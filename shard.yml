@@ -1,12 +1,18 @@
-name: app
+name: engine-rest-api
 version: 1.0.0
 
 dependencies:
   action-controller:
     github: spider-gazelle/action-controller
-    version: "~> 1.1"
-  active-model:
-    github: spider-gazelle/active-model
+    version: "~> 1.3"
+
+  # For rethink models
+  engine-core:
+    github: aca-labs/crystal-engine-core
+
+  # For redis access libraries
+  engine-driver:
+    github: aca-labs/crystal-engine-driver
 
   # https://github.com/jeromegn/kilt
   # Generic template interface for Crystal
