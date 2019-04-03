@@ -1,4 +1,4 @@
-class ControlSystems < Application
+class Systems < Application
   base "/api/systems/"
 
   # state, funcs, count and types are available to authenticated users
@@ -260,35 +260,35 @@ class ControlSystems < Application
   #   end
 
   # return the count of a module type in a system
-  def count
-    params.require(:module)
+  # def count
+  #   params.require(:module)
 
-    id = params["id"]
-    sys = System.find(id)
-    if sys
-      mod = params[:module]
-      render json: {count: sys.count(mod)}
-    else
-      head :not_found
-    end
-  end
+  #   id = params["id"]
+  #   sys = System.find(id)
+  #   if sys
+  #     mod = params[:module]
+  #     render json: {count: sys.count(mod)}
+  #   else
+  #     head :not_found
+  #   end
+  # end
 
-  # returns a hash of a module types in a system with
-  # the count of each of those types
-  def types
-    id = params["id"]
-    sys = System.find(id)
-    if sys
-      mods = sys.modules
-      # mods.delete(:__Triggers__)
-      result = mods.each_with_object({} of String => Int32) do |mod, counts|
-        counts[mod] = sys.count(mod)
-      end
-      render json: result
-    else
-      head :not_found
-    end
-  end
+  # # returns a hash of a module types in a system with
+  # # the count of each of those types
+  # def types
+  #   id = params["id"]
+  #   sys = System.find(id)
+  #   if sys
+  #     mods = sys.modules
+  #     # mods.delete(:__Triggers__)
+  #     result = mods.each_with_object({} of String => Int32) do |mod, counts|
+  #       counts[mod] = sys.count(mod)
+  #     end
+  #     render json: result
+  #   else
+  #     head :not_found
+  #   end
+  # end
 
   # Better performance as don't need to create the object each time
   protected CS_PARAMS = [
