@@ -1,5 +1,6 @@
-require "../utils"
+require "../constants"
 require "../error"
+require "../utils"
 
 abstract class Params < ActiveModel::Model
   # Checks that the model is valid

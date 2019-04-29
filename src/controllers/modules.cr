@@ -1,208 +1,215 @@
-class Modules < Application
-  before_action :check_admin, except: [:index, :state, :show, :ping]
-  before_action :check_support, only: [:index, :state, :show, :ping]
-  before_action :find_module, only: [:show, :update, :destroy, :ping]
+require "./application"
 
-  # Constant for performance
-  MOD_INCLUDE = {
-    include: {
-      # Provide the server information
-      edge: {only: [:name, :description]},
+module Engine::API
+  class Modules < Application
+    base "/api/v1/modules/"
 
-      # Most human readable module data is contained in dependency
-      dependency: {only: [:name, :description, :module_name, :settings]},
+    before_action :check_admin, except: [:index, :state, :show, :ping]
+    before_action :check_support, only: [:index, :state, :show, :ping]
+    before_action :find_module, only: [:show, :update, :destroy, :ping]
 
-      # include control system on logic modules so it is possible
-      # to display the inherited settings
-      control_system: {
-        only:    [:name, :settings],
-        methods: [:zone_data],
+    # Constant for performance
+    MOD_INCLUDE = {
+      include: {
+        # Most human readable module data is contained in dependency
+        dependency: {only: [:name, :description, :module_name, :settings]},
+
+        # include control system on logic modules so it is possible
+        # to display the inherited settings
+        control_system: {
+          only:    [:name, :settings],
+          methods: [:zone_data],
+        },
       },
-    },
-  }
+    }
 
-  def index
-    filters = params.select("system_id", "dependency_id", "connected", "no_logic", "running", "as_of")
+    private class IndexParams < Params
+      attribute system_id : String
+      attribute dependency_id : String
+      attribute connected : Bool = false
+      attribute no_logic : Bool = false
+      attribute running : Bool = false
+      attribute as_of : Int32
+    end
 
-    # if a system id is present we query the database directly
-    if filters.has_key? "system_id"
-      cs = ControlSystem.find(filters["system_id"])
+    def index
+      args = IndexParams.new(params)
 
-      results = Module.find_all(cs.modules).to_a
-      render json: {
-        total:   results.length,
-        results: results,
-      }
-    else # we use elastic search
-      query = Module.elastic.query(params)
+      # if a system id is present we query the database directly
+      if args.system_id
+        cs = ControlSystem.find(args.system_id)
 
-      if filters.has_key? "dependency_id"
-        query.filter({"doc.dependency_id" => [filters["dependency_id"]]})
-      end
+        results = Module.find_all(cs.modules).to_a
+        render json: {
+          total:   results.length,
+          results: results,
+        }
+      else # we use elastic search
+        query = Module.elastic.query(params)
 
-      if filters.has_key? "connected"
-        connected = filters["connected"] == "true"
-
-        query.filter({"doc.ignore_connected" => [false]})
-        query.filter({"doc.connected" => [connected]})
-
-        unless connected
-          query.should([{term: {"doc.ignore_connected" => false}},
-                        {missing: {field: "doc.ignore_connected"}}])
+        if args.dependency_id
+          query.filter({"doc.dependency_id" => [args.dependency_id]})
         end
-      end
 
-      if filters.has_key? "running"
-        running = filters["running"] == "true"
-        query.filter({"doc.running" => [running]})
-      end
+        if args.connected
+          query.filter({"doc.ignore_connected" => [false]})
+          query.filter({"doc.connected" => [args.connected]})
 
-      if filters.has_key? "no_logic"
-        query.filter({"doc.role" => [0, 1, 2]})
-      end
+          unless connected
+            query.should([{term: {"doc.ignore_connected" => false}},
+                          {missing: {field: "doc.ignore_connected"}}])
+          end
+        end
 
-      if filters.has_key? "as_of"
-        query.filter({
-          range: {
-            "doc.updated_at" => {
-              lte: filters[:as_of].to_i,
+        if args.running
+          query.filter({"doc.running" => [args.running]})
+        end
+
+        if args.no_logic
+          query.filter({"doc.role" => [0, 1, 2]})
+        end
+
+        if args.as_of
+          query.filter({
+            range: {
+              "doc.updated_at" => {
+                lte: args.as_of,
+              },
             },
-          },
-        })
+          })
+        end
+
+        query.has_parent(name: Dependency.name, index: Dependency.table_name)
+
+        results = Module.elastic.search(query)
+        # render json: results.as_json(MOD_INCLUDE)
+        render json: results
       end
-
-      query.has_parent(name: Dependency.name, index: Dependency.table_name)
-
-      results = Module.elastic.search(query)
-      # render json: results.as_json(MOD_INCLUDE)
-      render json: results
     end
-  end
 
-  def show
-    render json: @mod
-  end
-
-  # TODO: This depends on extended save_and_respond function
-  # def update
-  #     para = safe_params
-  #     @mod.assign_attributes(para)
-  #     was_running = @mod.running
-
-  #     save_and_respond(@mod, include: {
-  #         dependency: {
-  #             only: [:name, :module_name]
-  #         }
-  #     }) do
-  #         # Update the running module
-  #         promise = control.update(id)
-  #         if was_running
-  #             promise.finally do
-  #                 control.start(id)
-  #             end
-  #         end
-  #     end
-  # end
-
-  def create
-    mod = Module.new(safe_params)
-    save_and_respond mod
-  end
-
-  def destroy
-    @mod.destroy!
-    head :ok
-  end
-
-  ##
-  # Additional Functions:
-  ##
-
-  # def start
-  #     # It is possible that module class load can fail
-  #     result = control.start(id).value
-  #     if result
-  #         head :ok
-  #     else
-  #         render text: "module failed to start", status: :internal_server_error
-  #     end
-  # end
-
-  # def stop
-  #     control.stop(id).value
-  #     head :ok
-  # end
-
-  # # Returns the value of the requested status variable
-  # # Or dumps the complete status state of the module
-  # def state
-  #     lookup_module do |mod|
-  #         para = params.permit(:lookup)
-  #         if para.has_key?(:lookup)
-  #             render json: mod.status[para[:lookup].to_sym]
-  #         else
-  #             render json: mod.status.marshal_dump
-  #         end
-  #     end
-  # end
-
-  # # Dumps internal state out of the logger at debug level
-  # # and returns the internal state
-  # def internal_state
-  #     lookup_module do |mod|
-  #         defer = reactor.defer
-  #         mod.thread.next_tick do
-  #             begin
-  #                 defer.resolve(mod.instance.__STATS__)
-  #             rescue => err
-  #                 defer.reject(err)
-  #             end
-  #         end
-  #         render body: defer.promise.value.inspect
-  #     end
-  # end
-
-  # ping helper function
-  # def ping
-  #     if @mod.role > 2
-  #         head :not_acceptable
-  #     else
-  #         ping = ::UV::Ping.new(@mod.hostname, count: 3)
-  #         ping.ping
-  #         render json: {
-  #             host: ping.ip,
-  #             pingable: ping.pingable,
-  #             warning: ping.warning,
-  #             exception: ping.exception
-  #         }
-  #     end
-  # end
-
-  protected MOD_PARAMS = [
-    :dependency_id, :control_system_id, :edge_id,
-    :ip, :tls, :udp, :port, :makebreak, :uri,
-    :custom_name, :notes, :ignore_connected,
-    :ignore_startstop,
-  ]
-
-  protected def safe_params
-    settings = params[:settings]
-    args = params.permit(MOD_PARAMS).to_h
-    args[:settings] = settings.to_unsafe_hash if settings
-    args
-  end
-
-  protected def lookup_module
-    mod = control.loaded? id
-    if mod
-      yield mod
-    else
-      head :not_found
+    def show
+      render json: @mod
     end
-  end
 
-  def find_module
-    # Find will raise a 404 (not found) if there is an error
-    @mod = Module.find!(id)
+    # Restrict model attributes
+    def restrict_attributes(model, only = nil, exclude = nil)
+      attr = model.attributes
+      attr = attr.select(only) if only
+      attr = attr.reject(exclude) if exclude
+      attr
+    end
+
+    # TODO: This depends on extended save_and_respond function
+    def update
+      @mod.assign_attributes(params)
+      was_running = @mod.running
+
+      if @mod.save
+        # Update the running module
+        promise = control.update(id)
+        if was_running
+          promise.finally do
+            control.start(id)
+          end
+        end
+
+        collected_attributes = @mod.attributes.merge!({
+          :dependency => restrict_attributes(@mod.dependency, only: [:name, :module_name]),
+        })
+        render json: collected_attributes
+      elsif !@mod.valid?
+        render status: :unprocessable_entity, json: self.errors
+      else
+        head :internal_server_error
+      end
+    end
+
+    def create
+      mod = Module.new(params)
+      save_and_respond mod
+    end
+
+    def destroy
+      @mod.destroy!
+      head :ok
+    end
+
+    ##
+    # Additional Functions:
+    ##
+
+    # def start
+    #     # It is possible that module class load can fail
+    #     result = control.start(id).value
+    #     if result
+    #         head :ok
+    #     else
+    #         render text: "module failed to start", status: :internal_server_error
+    #     end
+    # end
+
+    # def stop
+    #     control.stop(id).value
+    #     head :ok
+    # end
+
+    # # Returns the value of the requested status variable
+    # # Or dumps the complete status state of the module
+    # def state
+    #     lookup_module do |mod|
+    #         para = params.permit(:lookup)
+    #         if para.has_key?(:lookup)
+    #             render json: mod.status[para[:lookup].to_sym]
+    #         else
+    #             render json: mod.status.marshal_dump
+    #         end
+    #     end
+    # end
+
+    # ping helper function
+    # def ping
+    #     if @mod.role > 2
+    #         head :not_acceptable
+    #     else
+    #         ping = ::UV::Ping.new(@mod.hostname, count: 3)
+    #         ping.ping
+    #         render json: {
+    #             host: ping.ip,
+    #             pingable: ping.pingable,
+    #             warning: ping.warning,
+    #             exception: ping.exception
+    #         }
+    #     end
+    # end
+
+    private class ModParams < Params
+      attribute dependency_id : String
+      attribute control_system_id : String
+      attribute ip : String
+      attribute tls : Bool
+      attribute udp : Bool
+      attribute port : Int32
+      attribute makebreak : Bool
+      attribute uri : String
+      attribute custom_name : String
+      attribute notes : String
+      attribute settings : String
+      attribute ignore_connected : Bool
+      attribute ignore_startstop : Bool
+    end
+
+    protected def lookup_module
+      mod = control.loaded? id
+      if mod
+        yield mod
+      else
+        head :not_found
+      end
+    end
+
+    def find_module
+      # Find will raise a 404 (not found) if there is an error
+      @mod = Module.find!(id)
+    end
   end
 end

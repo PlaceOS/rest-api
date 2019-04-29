@@ -3,6 +3,7 @@ require "action-controller"
 require "rethinkdb-orm"
 
 # Application code
+require "./constants"
 require "./controllers/application"
 require "./controllers/*"
 require "./models/*"
@@ -23,6 +24,3 @@ ActionController::Session.configure do
   settings.key = ENV["COOKIE_SESSION_KEY"]? || "_spider_gazelle_"
   settings.secret = ENV["COOKIE_SESSION_SECRET"]? || "4f74c0b358d5bab4000dd3c75465dc2c"
 end
-
-APP_NAME = "Engine REST API"
-VERSION  = "1.0.0"

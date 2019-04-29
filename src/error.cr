@@ -1,10 +1,12 @@
-class Error < Exception
-  getter message
+module Engine::API
+  class Error < Exception
+    getter message
 
-  def initialize(@message : String? = "")
-    super(message)
-  end
+    def initialize(@message : String? = "")
+      super(message)
+    end
 
-  class ParameterMissing < Error
+    class ParameterMissing < Error
+    end
   end
 end
