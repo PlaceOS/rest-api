@@ -7,8 +7,9 @@ dependencies:
     version: "~> 1.3"
 
   # For rethink models
-  engine-core:
-    github: aca-labs/crystal-engine-core
+  engine-models:
+    #github: aca-labs/crystal-engine-models
+    path: /home/caspian/work/engine/models
 
   # For redis access libraries
   engine-driver:

@@ -1,6 +1,6 @@
 require "./helper"
 
-module Engine::Controller
+module Engine::API
   describe Modules do
   end
 end

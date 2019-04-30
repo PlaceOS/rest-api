@@ -4,18 +4,19 @@ module Engine::API
   class Dependencies < Application
     base "/api/v1/dependencies/"
 
-    before_action :check_admin, except: [:index, :show]
-    before_action :check_support, only: [:index, :show]
+    # TODO: user access control
+    # before_action :check_admin, except: [:index, :show]
+    # before_action :check_support, only: [:index, :show]
     before_action :find_dependency, only: [:show, :update, :destroy, :reload]
 
-    @dep : Dependency?
+    @dep : Model::Dependency?
 
     def index
       role = params[:role]
-      elastic = Dependency.elastic
+      elastic = Model::Dependency.elastic
       query = elastic.query(params)
 
-      if role && Dependency::Roles.parse?(role)
+      if role && Model::Dependency::Role.parse?(role)
         query.filter({
           "doc.role" => [role],
         })
@@ -30,20 +31,22 @@ module Engine::API
     end
 
     def update
-      args = params.reject(:role, :class_name)
+      dep = @dep
+      return unless dep
+
+      args = params.to_h.reject(:role, :class_name)
 
       # Must destroy and re-add to change class or module type
-      @dep.assign_attributes(args)
-      save_and_respond @dep
-    end
-
-    def create
-      @dep = Dependency.create!(params)
+      dep.assign_attributes(args)
       save_and_respond dep
     end
 
+    def create
+      save_and_respond Model::Dependency.new(params)
+    end
+
     def destroy
-      @dep.destroy!
+      @dep.try &.destroy
       head :ok
     end
 
@@ -58,7 +61,7 @@ module Engine::API
 
     protected def find_dependency
       # Find will raise a 404 (not found) if there is an error
-      @dep = Dependency.find!(params[:id]?)
+      @dep = Model::Dependency.find!(params[:id]?)
     end
   end
 end

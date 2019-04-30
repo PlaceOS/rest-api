@@ -4,11 +4,12 @@ module Engine::API
   class Systems < Application
     base "/api/v1/systems/"
 
+    # TODO: Callbacks for access control
     # state, funcs, count and types are available to authenticated users
-    before_action :check_admin, only: [:create, :update, :destroy, :remove, :start, :stop]
-    before_action :find_system, only: [:show, :update, :destroy, :remove, :count, :start, :stop]
+    # before_action :check_admin, only: [:create, :update, :destroy, :remove, :start, :stop]
+    # before_action :find_system, only: [:show, :update, :destroy, :remove, :count, :start, :stop]
 
-    @cs : ControlSystem?
+    @cs : Model::ControlSystem?
 
     # Strong params for index method
     class IndexParams < Params
@@ -251,23 +252,23 @@ module Engine::API
     #       end
     #   end
 
-    class CountParams < Params
-      attribute id : String, presence: true
-      attribute module : String, presence: true
-    end
+    # class CountParams < Params
+    #   attribute id : String, presence: true
+    #   attribute module : String, presence: true
+    # end
 
-    # Return the count of a module type in a system
-    def count
-      args = CountParams.new(params)
-      args.validate_params!
+    # # Return the count of a module type in a system
+    # def count
+    #   args = CountParams.new(params)
+    #   args.validate_params!
 
-      sys = System.find(args.id)
-      if sys
-        render json: {count: sys.count(args.module)}
-      else
-        head :not_found
-      end
-    end
+    #   sys = System.find(args.id)
+    #   if sys
+    #     render json: {count: sys.count(args.module)}
+    #   else
+    #     head :not_found
+    #   end
+    # end
 
     # # returns a hash of a module types in a system with
     # # the count of each of those types

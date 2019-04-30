@@ -4,8 +4,10 @@ module Engine::API
   class Modules < Application
     base "/api/v1/modules/"
 
-    before_action :check_admin, except: [:index, :state, :show, :ping]
-    before_action :check_support, only: [:index, :state, :show, :ping]
+    # TODO: Callbacks for access control
+    # before_action :check_admin, except: [:index, :state, :show, :ping]
+    # before_action :check_support, only: [:index, :state, :show, :ping]
+
     before_action :find_module, only: [:show, :update, :destroy, :ping]
 
     # Constant for performance
@@ -37,27 +39,29 @@ module Engine::API
 
       # if a system id is present we query the database directly
       if args.system_id
-        cs = ControlSystem.find(args.system_id)
+        cs = Model::ControlSystem.find!(args.system_id)
 
-        results = Module.find_all(cs.modules).to_a
+        modules = cs.modules || [] of String
+
+        results = Model::Module.find_all(modules).to_a
         render json: {
-          total:   results.length,
+          total:   results.size,
           results: results,
         }
       else # we use elastic search
-        query = Module.elastic.query(params)
+        query = Model::Module.elastic.query(params)
 
         if args.dependency_id
           query.filter({"doc.dependency_id" => [args.dependency_id]})
         end
 
-        if args.connected
-          query.filter({"doc.ignore_connected" => [false]})
-          query.filter({"doc.connected" => [args.connected]})
+        unless args.connected.nil?
+          query.filter({"doc.ignore_connected" => false})
+          query.filter({"doc.ignore_connected" => [args.connected]})
 
-          unless connected
-            query.should([{term: {"doc.ignore_connected" => false}},
-                          {missing: {field: "doc.ignore_connected"}}])
+          unless args.connected
+            query.should({:term => {"doc.ignore_connected" => false}})
+            query.should({:missing => {field: "doc.ignore_connected"}})
           end
         end
 
@@ -79,9 +83,9 @@ module Engine::API
           })
         end
 
-        query.has_parent(name: Dependency.name, index: Dependency.table_name)
+        query.has_parent(name: Model::Dependency.name, index: Model::Dependency.table_name)
 
-        results = Module.elastic.search(query)
+        results = Model::Module.elastic.search(query)
         # render json: results.as_json(MOD_INCLUDE)
         render json: results
       end
@@ -101,8 +105,11 @@ module Engine::API
 
     # TODO: This depends on extended save_and_respond function
     def update
-      @mod.assign_attributes(params)
-      was_running = @mod.running
+      mod = @mod
+      return unless mod
+
+      mod.assign_attributes(params)
+      was_running = mod.running
 
       if @mod.save
         # Update the running module
@@ -125,12 +132,11 @@ module Engine::API
     end
 
     def create
-      mod = Module.new(params)
-      save_and_respond mod
+      save_and_respond Model::Module.new(params)
     end
 
     def destroy
-      @mod.destroy!
+      @mod.try &.destroy!
       head :ok
     end
 
@@ -209,7 +215,7 @@ module Engine::API
 
     def find_module
       # Find will raise a 404 (not found) if there is an error
-      @mod = Module.find!(id)
+      @mod = Model::Module.find!(id)
     end
   end
 end

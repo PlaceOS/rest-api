@@ -31,7 +31,9 @@ class UserMock
 end
 
 abstract class Application < ActionController::Base
-  rescue_from RethinkORM::Error::DocumentNotFound do
+  NAME_SORT_ASC = [{"doc.name.sort" => {order: :asc}}]
+
+  rescue_from RethinkORM::Error::DocumentNotFound do |error| # ameba:disable Lint/UnusedArgument
     head :not_found
   end
 
@@ -45,5 +47,14 @@ abstract class Application < ActionController::Base
     UserMock.new
   end
 
-  NAME_SORT_ASC = [{"doc.name.sort" => {order: :asc}}]
+  # Shortcut to save a record and render a response
+  def save_and_respond(resource)
+    creation = resource.new_record?
+    if resource.save
+      # TODO: ActionController does not accept variable status to render
+      creation ? render json: resource, status: :created : render json: resource, status: :ok
+    else
+      render json: resource.errors.map(&.to_s), status: :unprocessable_entity
+    end
+  end
 end

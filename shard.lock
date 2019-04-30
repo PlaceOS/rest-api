@@ -2,11 +2,11 @@ version: 1.0
 shards:
   action-controller:
     github: spider-gazelle/action-controller
-    version: 1.4.4
+    version: 1.4.7
 
   active-model:
     github: spider-gazelle/active-model
-    commit: b95d6813b3ae4e1e149182832ba4166bc6cf5796
+    commit: 40b52631d1da658d138f9b8cb3e5d86ab55a1f19
 
   ameba:
     github: veelenga/ameba
@@ -21,24 +21,20 @@ shards:
     version: 0.2.0
 
   crystal-rethinkdb:
-    github: kingsleyh/crystal-rethinkdb
-    version: 0.1.5
-
-  engine-core:
-    github: aca-labs/crystal-engine-core
-    commit: 5b062caa3bedd220a277c582721b9f15b8a6e026
+    github: aca-labs/crystal-rethinkdb
+    commit: a5c54f314174574d308efa3e8027ddfa9e065ba4
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: c66d82b37458e8ba7d0149785a63dcaa0e2063f4
+    commit: af23b97abbf098671442502a604617a592856e04
 
   engine-models:
-    github: aca-labs/crystal-engine-models
-    commit: b95f9b043a4c0d6f67921b440e88bbbe3b9c8c96
+    path: /home/caspian/work/engine/models
+    version: 1.0.0
 
   habitat:
     github: luckyframework/habitat
-    version: 0.4.0
+    version: 0.4.3
 
   ipaddress:
     github: Sija/ipaddress.cr
@@ -49,8 +45,8 @@ shards:
     version: 0.4.0
 
   neuroplastic:
-    github: aca-labs/neuroplastic
-    commit: 768476afb9a6c63a5001c45e6aff92bab3898928
+    path: /home/caspian/work/libs/crystal/neuroplastic
+    version: 1.0.0
 
   pool:
     github: ysbaddaden/pool
@@ -78,11 +74,11 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 7174d7fe83eb2313e3bd2a3766da1e25fe6a073c
+    commit: a1555af7421b2008e2bd948ca356697723e76a0b
 
   retriable:
     github: Sija/retriable.cr
-    version: 0.1.0
+    commit: 8cd9986bd89594c00bbeaae3fdeda4badfc59ab6
 
   ssh2:
     github: spider-gazelle/ssh2.cr
