@@ -8,17 +8,19 @@ dependencies:
 
   # For rethink models
   engine-models:
-    #github: aca-labs/crystal-engine-models
-    path: /home/caspian/work/engine/models
+    github: aca-labs/crystal-engine-models
 
   # For redis access libraries
   engine-driver:
     github: aca-labs/crystal-engine-driver
 
-  # https://github.com/jeromegn/kilt
-  # Generic template interface for Crystal
-  kilt:
-    github: jeromegn/kilt
+  # Microlibrary to perform ping requests
+  pinger:
+    github: spider-gazelle/pinger
+
+  # Data validation library
+  active-model:
+    github: spider-gazelle/active-model
 
 development_dependencies:
   ameba:

@@ -1,3 +1,5 @@
+require "pinger"
+
 require "./application"
 
 module Engine::API
@@ -25,6 +27,8 @@ module Engine::API
       },
     }
 
+    @mod : Model::Module?
+
     private class IndexParams < Params
       attribute system_id : String
       attribute dependency_id : String
@@ -49,43 +53,54 @@ module Engine::API
           results: results,
         }
       else # we use elastic search
-        query = Model::Module.elastic.query(params)
+        elastic = Model::Module.elastic
+        query = elastic.query(params)
 
-        if args.dependency_id
-          query.filter({"doc.dependency_id" => [args.dependency_id]})
+        dependency_id = args.dependency_id
+        if dependency_id
+          query.filter({"doc.dependency_id" => [dependency_id]})
         end
 
-        unless args.connected.nil?
-          query.filter({"doc.ignore_connected" => false})
-          query.filter({"doc.ignore_connected" => [args.connected]})
-
-          unless args.connected
-            query.should({:term => {"doc.ignore_connected" => false}})
-            query.should({:missing => {field: "doc.ignore_connected"}})
+        connected = args.connected
+        unless connected.nil?
+          query.filter({
+            "doc.ignore_connected" => [false],
+            "doc.connected"        => [connected],
+          })
+          unless connected
+            query.filter({"doc.ignore_connected" => nil})
+            query.should({"doc.ignore_connected" => [false]})
           end
         end
 
-        if args.running
-          query.filter({"doc.running" => [args.running]})
+        running = args.running
+        if running
+          query.filter({"doc.running" => [running]})
         end
 
         if args.no_logic
-          query.filter({"doc.role" => [0, 1, 2]})
+          non_logic_roles = [
+            Model::Dependency::Role::SSH,
+            Model::Dependency::Role::Device,
+            Model::Dependency::Role::Service,
+          ].map(&.to_i)
+
+          query.filter({"doc.role" => non_logic_roles})
         end
 
-        if args.as_of
-          query.filter({
-            range: {
-              "doc.updated_at" => {
-                lte: args.as_of,
-              },
-            },
-          })
-        end
+        # TODO: Awaiting range query support in neuroplastic
+        # as_of = args.as_of
+        # if as_of
+        #   query.range({
+        #     "doc.updated_at" => {
+        #       :lte => as_of,
+        #     },
+        #   })
+        # end
 
-        query.has_parent(name: Model::Dependency.name, index: Model::Dependency.table_name)
+        query.has_parent(parent: Model::Dependency, parent_index: Model::Dependency.table_name)
 
-        results = Model::Module.elastic.search(query)
+        results = elastic.search(query)
         # render json: results.as_json(MOD_INCLUDE)
         render json: results
       end
@@ -95,37 +110,31 @@ module Engine::API
       render json: @mod
     end
 
-    # Restrict model attributes
-    def restrict_attributes(model, only = nil, exclude = nil)
-      attr = model.attributes
-      attr = attr.select(only) if only
-      attr = attr.reject(exclude) if exclude
-      attr
-    end
-
     # TODO: This depends on extended save_and_respond function
     def update
       mod = @mod
       return unless mod
 
       mod.assign_attributes(params)
-      was_running = mod.running
+      # was_running = mod.running
+      if mod.save
+        # TODO: Update control
+        # # Update the running module
+        # promise = control.update(id)
+        # if was_running
+        #   promise.finally do
+        #     control.start(id)
+        #   end
+        # end
 
-      if @mod.save
-        # Update the running module
-        promise = control.update(id)
-        if was_running
-          promise.finally do
-            control.start(id)
-          end
-        end
-
-        collected_attributes = @mod.attributes.merge!({
-          :dependency => restrict_attributes(@mod.dependency, only: [:name, :module_name]),
+        dep = mod.dependency
+        serialised = !dep ? mod.to_json : serialise_with_fields(mod, {
+          :dependency => restrict_attributes(dep, only: ["name", "module_name"]),
         })
-        render json: collected_attributes
-      elsif !@mod.valid?
-        render status: :unprocessable_entity, json: self.errors
+
+        render json: serialised
+      elsif !mod.valid?
+        render status: :unprocessable_entity, json: mod.errors.map(&.to_s)
       else
         head :internal_server_error
       end
@@ -136,7 +145,7 @@ module Engine::API
     end
 
     def destroy
-      @mod.try &.destroy!
+      @mod.try &.destroy
       head :ok
     end
 
@@ -173,20 +182,20 @@ module Engine::API
     # end
 
     # ping helper function
-    # def ping
-    #     if @mod.role > 2
-    #         head :not_acceptable
-    #     else
-    #         ping = ::UV::Ping.new(@mod.hostname, count: 3)
-    #         ping.ping
-    #         render json: {
-    #             host: ping.ip,
-    #             pingable: ping.pingable,
-    #             warning: ping.warning,
-    #             exception: ping.exception
-    #         }
-    #     end
-    # end
+    def ping
+      if @mod.role > 2
+        head :not_acceptable
+      else
+        pinger = Pinger.new(@mod.hostname, count: 3)
+        pinger.ping
+        render json: {
+          host:      pinger.ip,
+          pingable:  pinger.pingable,
+          warning:   pinger.warning,
+          exception: pinger.exception,
+        }
+      end
+    end
 
     private class ModParams < Params
       attribute dependency_id : String
@@ -204,17 +213,18 @@ module Engine::API
       attribute ignore_startstop : Bool
     end
 
-    protected def lookup_module
-      mod = control.loaded? id
-      if mod
-        yield mod
-      else
-        head :not_found
-      end
-    end
+    # protected def lookup_module
+    #   mod = control.loaded? id
+    #   if mod
+    #     yield mod
+    #   else
+    #     head :not_found
+    #   end
+    # end
 
     def find_module
       # Find will raise a 404 (not found) if there is an error
+      id = params["id"]?
       @mod = Model::Module.find!(id)
     end
   end

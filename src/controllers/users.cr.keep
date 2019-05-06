@@ -7,6 +7,10 @@ module Engine::API
     before_action :check_authorization, only: [:update]
     before_action :check_admin, only: [:index, :destroy, :create]
 
+    protected def check_admin
+      raise "Unimplemented"
+    end
+
     # Factored into seperate auth service
     # before_action :doorkeeper_authorize!
 
@@ -15,13 +19,15 @@ module Engine::API
     # ADMIN_DATA[:only] += [:support, :sys_admin, :email, :phone]
 
     def index
-      query = User.elastic.query(params)
+      elastic = Model::User.elastic
+      query = elastic.query(params) 
+     
       query.must_not({"doc.deleted" => [true]})
 
       authority_id = params[:authority_id]?
       query.filter({"doc.authority_id" => [authority_id]}) if authority_id
 
-      results = User.elastic.search(query) do |user|
+      results = elastic.search(query) do |user|
         # FIXME: render json subset
         # user.as_json(ADMIN_DATA)
         user
@@ -31,17 +37,18 @@ module Engine::API
     end
 
     def show
-      user = User.find(id)
+      # user = Model::User.find!(id)
+      user = current_user
 
       # We only want to provide limited "public" information
-      if current_user.sys_admin
+      if user.sys_admin
         # FIXME: render json subset
         # render json: user.as_json(ADMIN_DATA)
-        render json: user
+        render json: user.to_s
       else
         # FIXME: render json subset
         # render json: user.as_json(User::PUBLIC_DATA)
-        render json: user
+        render json: user.to_s
       end
     end
 
@@ -50,7 +57,7 @@ module Engine::API
     end
 
     def create
-      user = User.new(params)
+      user = Model::User.new(params)
       user.authority = current_authority
       save_and_respond user
     end
@@ -60,7 +67,7 @@ module Engine::API
     def update
       @user.assign_attributes(safe_params)
       @user.save
-      render json: @user
+      render json: @user.to_s
     end
 
     # Make this available when there is a clean up option
@@ -95,14 +102,26 @@ module Engine::API
 
     protected def check_authorization
       # Find will raise a 404 (not found) if there is an error
-      @user = User.find!(params["id"]?)
+      # @user = User.find!(params["id"]?)
 
       # FIXME: previously, current_user pulled off manager
       # Likely new middleware will decode user from jwt
-      user = current_user
+      @user = current_user
 
       # Does the current user have permission to perform the current action
       head :forbidden unless @user.id == user.id || user.sys_admin
+    end
+
+    protected def check_adminj
+      # Find will raise a 404 (not found) if there is an error
+      # @user = User.find!(params["id"]?)
+
+      # FIXME: previously, current_user pulled off manager
+      # Likely new middleware will decode user from jwt
+      @user = current_user
+
+      # Does the current user have permission to perform the current action
+      head :forbidden unless @user.is_admin
     end
   end
 end

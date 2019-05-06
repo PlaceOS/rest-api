@@ -3,7 +3,7 @@ require "./helper"
 module Engine::API
   describe Root do
     with_server do
-      it "should respond to health checks" do
+      it "responds to health checks" do
         result = curl("GET", "/healthz")
         result.status.should eq 200
       end

@@ -1,9 +1,26 @@
 sudo: required
 language: crystal
+
+# Add Redis
 services: redis-server
+
+# Add RethinkDB
 addons:
   rethinkdb: '2.3'
+
+# Add elasticsearch 7.0.x
+before_install:
+  - curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.0.1-amd64.deb && \
+  sudo dpkg -i --force-confnew elasticsearch-7.0.1-amd64.deb && \
+  sudo service elasticsearch restart
+
 install:
   - shards install
+
+# Wait for elasticsearch
+before_script:
+  - sleep 10
+
 script:
   - crystal spec
+  - bin/ameba

@@ -6,8 +6,15 @@ module Engine::API
 
     # TODO: Callbacks for access control
     # state, funcs, count and types are available to authenticated users
-    # before_action :check_admin, only: [:create, :update, :destroy, :remove, :start, :stop]
-    # before_action :find_system, only: [:show, :update, :destroy, :remove, :count, :start, :stop]
+    before_action :find_system, only: [
+      :show,
+      :update,
+      :destroy,
+      :remove,
+      # :count,
+      # :start,
+      # :stop
+    ]
 
     @cs : Model::ControlSystem?
 
@@ -17,28 +24,31 @@ module Engine::API
       attribute module_id : String
     end
 
-    # Query control system resources
+    # # Query control system resources
     def index
-      query = System.elastic.query(params)
+      elastic = Model::ControlSystem.elastic
+      query = Model::ControlSystem.elastic.query(params)
       query.sort = NAME_SORT_ASC
       args = IndexParams.new(params)
 
       # Filter systems via zone_id
-      if args.zone_id
+      zone_id = args.zone_id
+      if zone_id
         query.filter({
-          "doc.zones" => [args.zone_id],
+          "doc.zones" => [zone_id],
         })
       end
 
       # Filter via module_id
-      if args.module_id
+      module_id = args.module_id
+      if module_id
         query.filter({
-          "doc.modules" => [args.module_id],
+          "doc.modules" => [module_id],
         })
       end
 
       query.search_field "doc.name"
-      render json: System.elastic.search(query)
+      render json: elastic.search(query)
     end
 
     class ShowParams < Params
@@ -49,11 +59,10 @@ module Engine::API
     def show
       args = ShowParams.new(params)
       if args.complete
-        complete = @cs.attributes.merge!({
-          :module_data => @cs.module_data,
-          :zone_data   => @cs.zone_data,
+        render json: serialise_with_fields(@cs, {
+          :module_data => @cs.try &.module_data,
+          :zone_data   => @cs.try &.zone_data,
         })
-        render json: complete
       else
         render json: @cs
       end
@@ -61,12 +70,15 @@ module Engine::API
 
     # Updates a control system
     def update
-      version = params[:version]?.try(&.to_i)
-      return head :conflict if version && version != @cs.version
+      cs = @cs
+      return unless cs
 
-      @cs.assign_attributes(params)
-      @cs.version += 1
-      save_and_respond(@cs)
+      version = params[:version]?.try(&.to_i)
+      head :conflict if version && version != cs.version
+
+      cs.assign_attributes(params)
+      cs.version = cs.version.try { |v| v + 1 }
+      save_and_respond(cs)
     end
 
     class RemoveParams < Params
@@ -94,22 +106,16 @@ module Engine::API
     end
 
     def create
-      cs = ControlSystem.new(params)
+      cs = Model::ControlSystem.new(params)
       save_and_respond cs
     end
 
     def destroy
-      sys_id = @cs.id
+      @cs.try &.destroy
 
-      # Stop all modules in the system
-      wait = @cs.cleanup_modules
-
-      reactor.finally(*wait).then {
-        @cs.destroy
-      }.value
-
+      # sys_id = cs.id
       # Clear the cache
-      control.expire_cache(sys_id).value
+      # control.expire_cache(sys_id).value
 
       head :ok
     end
@@ -291,10 +297,10 @@ module Engine::API
     private CS_PARAMS = [
       :name, :description, :support_url, :installed_ui_devices,
       :capacity, :email, :bookable, :features, :version,
-      # {
-      #   zones:   [] of String,
-      #   modules: [] of String,
-      # },
+      {
+        zones:   [] of String,
+        modules: [] of String,
+      },
     ]
 
     # Accepted mass assignment HTTP params
@@ -310,7 +316,7 @@ module Engine::API
 
     protected def find_system
       # Find will raise a 404 (not found) if there is an error
-      @cs = ControlSystem.find!(params[:id]?)
+      @cs = Model::ControlSystem.find!(params[:id]?)
     end
   end
 end

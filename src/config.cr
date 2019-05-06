@@ -1,7 +1,5 @@
 # Application dependencies
 require "action-controller"
-require "rethinkdb-orm"
-require "engine-models"
 
 # Application code
 require "./constants"

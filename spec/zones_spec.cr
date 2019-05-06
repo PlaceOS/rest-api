@@ -3,8 +3,6 @@ require "./helper"
 module Engine::API
   describe Zones do
     # Generate some zone data
-    zones = 5.times.to_a.map { |_| Engine::Model::Generator.zone.create! }
-
     with_server do
       it "should respond to health checks" do
         result = curl("GET", "/healthz")

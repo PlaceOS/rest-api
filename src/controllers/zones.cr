@@ -1,3 +1,5 @@
+require "./application"
+
 module Engine::API
   class Zones < Application
     base "/api/v1/zones/"
@@ -5,9 +7,11 @@ module Engine::API
     # TODO: user access control
     # before_action :check_admin, except: [:index, :show]
     before_action :find_zone, only: [:show, :update, :destroy]
+    @zone : Model::Zone?
 
     def index
-      query = Zone.elastic.query(params)
+      elastic = Model::Zone.elastic
+      query = elastic.query(params)
       query.sort = NAME_SORT_ASC
 
       if params.has_key? "tags"
@@ -18,18 +22,20 @@ module Engine::API
           "doc.tags" => tags,
         })
       else
-        user = current_user
-        return head :forbidden unless user && (user.support || user.sys_admin)
+        # TODO: Authorization
+        # user = current_user
+        # return head :forbidden unless user && (user.support || user.sys_admin)
         query.search_field "doc.name"
       end
 
-      render json: Zone.elastic.search(query)
+      render json: elastic.search(query)
     end
 
     def show
       if params.has_key? "data"
         key = params["data"]
-        info_any = JSON.parse(@zone.settings)[key]?
+        settings = @zone.try &.settings || ""
+        info_any = JSON.parse(settings)[key]?
 
         # convert setting string to Array or Hash
         info = info_any.try do |any|
@@ -42,11 +48,14 @@ module Engine::API
           head :not_found
         end
       else
-        user = current_user
-        return head :forbidden unless user && (user.support || user.sys_admin)
+        # TODO: Authorization
+        # user = current_user
+        # head :forbidden unless user && (user.support || user.sys_admin)
         if params.has_key? :complete
           # Include trigger data in response
-          render json: @zone.attributes.merge!({:trigger_data => @zone.trigger_data})
+          render json: serialise_with_fields(@zone, {
+            :trigger_data => @zone.try &.trigger_data,
+          })
         else
           render json: @zone
         end
@@ -54,17 +63,20 @@ module Engine::API
     end
 
     def update
-      @zone.assign_attributes(safe_params.attributes)
-      save_and_respond @zone
+      zone = @zone
+      if zone
+        zone.assign_attributes(params)
+        save_and_respond zone
+      end
     end
 
     def create
-      zone = Zone.new(safe_params.attributes)
+      zone = Model::Zone.new(params)
       save_and_respond zone
     end
 
     def destroy
-      @zone.destroy!
+      @zone.try &.destroy
       head :ok
     end
 
@@ -82,7 +94,7 @@ module Engine::API
 
     protected def find_zone
       # Find will raise a 404 (not found) if there is an error
-      @zone = Zone.find!(params["id"]?)
+      @zone = Model::Zone.find!(params["id"]?)
     end
   end
 end

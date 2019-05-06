@@ -1,3 +1,6 @@
+require "active-model"
+require "engine-models"
+
 require "../constants"
 require "../error"
 require "../utils"
@@ -12,23 +15,24 @@ abstract class Params < ActiveModel::Model
   end
 end
 
-class UserMock
-  @mocks = {} of Symbol => String | Bool | Int32 | Float32
+# # Mock of user
+# class UserMock
+#   @mocks = {} of Symbol => String | Bool | Int32 | Float32
 
-  def initialise(@mocks = {
-                   :logged_in? => true,
-                   :sys_admin  => true,
-                 })
-  end
+#   def initialise(@mocks = {
+#     :sys_admin => true,
+#     :sys_admin => true
+#   })
+#   end
 
-  def logged_in?
-    mocks[:logged_in?]
-  end
+#   def logged_in?
+#     @mocks[:logged_in?]
+#   end
 
-  def sys_admin
-    mocks[:sys_admin]
-  end
-end
+#   def sys_admin
+#     @mocks[:sys_admin]
+#   end
+# end
 
 abstract class Application < ActionController::Base
   NAME_SORT_ASC = [{"doc.name.sort" => {order: :asc}}]
@@ -43,9 +47,9 @@ abstract class Application < ActionController::Base
 
   # Authentication through JWT
   # TODO: Mock
-  def current_user
-    UserMock.new
-  end
+  # def current_user
+  #   UserMock.new
+  # end
 
   # Shortcut to save a record and render a response
   def save_and_respond(resource)
@@ -56,5 +60,19 @@ abstract class Application < ActionController::Base
     else
       render json: resource.errors.map(&.to_s), status: :unprocessable_entity
     end
+  end
+
+  protected def serialise_with_fields(model, fields)
+    attr = JSON.parse(model.to_json).as_h
+    attr.merge(fields).to_json
+  end
+
+  # Restrict model attributes
+  # FIXME: Incredibly inefficient, optimise
+  protected def restrict_attributes(model, only = nil, exclude = nil)
+    attr = JSON.parse(model.to_json).as_h
+    attr = attr.select(only) if only
+    attr = attr.reject(exclude) if exclude
+    attr.to_json
   end
 end
