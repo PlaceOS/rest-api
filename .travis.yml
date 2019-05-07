@@ -1,9 +1,6 @@
 sudo: required
 language: crystal
 
-# Add Redis
-services: redis-server
-
 # Add RethinkDB
 addons:
   rethinkdb: '2.3'
