@@ -22,5 +22,5 @@ before_script:
   - sleep 10
 
 script:
-  - crystal spec
+  - crystal spec --no-debug
   - bin/ameba

@@ -5,13 +5,18 @@ module Engine::API
     with_server do
       it "responds to health checks" do
         result = curl("GET", "/healthz")
-        result.status.should eq 200
+        result.status_code.should eq 200
+
+        result = curl("GET", "/")
+        result.status_code.should eq 200
       end
 
       it "renders version" do
         result = curl("GET", "/version")
-        result.status.should eq 200
-        pp! result.body
+        result.status_code.should eq 200
+        body = JSON.parse(result.body)
+        body["app"].should eq APP_NAME
+        body["version"].should eq VERSION
       end
     end
   end

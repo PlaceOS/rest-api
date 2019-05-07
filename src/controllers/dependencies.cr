@@ -7,9 +7,10 @@ module Engine::API
     # TODO: user access control
     # before_action :check_admin, except: [:index, :show]
     # before_action :check_support, only: [:index, :show]
-    before_action :find_dependency, only: [:show, :update, :destroy, :reload]
+    before_action :find_dependency, only: [:show, :update, :destroy]
 
-    @dep : Model::Dependency?
+    @dependency : Model::Dependency?
+    getter dependency
 
     def index
       role = params[:role]
@@ -27,26 +28,27 @@ module Engine::API
     end
 
     def show
-      render json: @dep
+      render json: @dependency
     end
 
     def update
-      dep = @dep
-      return unless dep
+      dependency = @dependency
+      return unless dependency
 
       args = params.to_h.reject(:role, :class_name)
 
       # Must destroy and re-add to change class or module type
-      dep.assign_attributes(args)
-      save_and_respond dep
+      dependency.assign_attributes(args)
+      save_and_respond(dependency)
     end
 
     def create
-      save_and_respond Model::Dependency.new(params)
+      body = request.body.not_nil!
+      save_and_respond(Model::Dependency.from_json(body))
     end
 
     def destroy
-      @dep.try &.destroy
+      @dependency.try &.destroy
       head :ok
     end
 
@@ -61,7 +63,7 @@ module Engine::API
 
     protected def find_dependency
       # Find will raise a 404 (not found) if there is an error
-      @dep = Model::Dependency.find!(params[:id]?)
+      @dependency = Model::Dependency.find!(params[:id]?)
     end
   end
 end

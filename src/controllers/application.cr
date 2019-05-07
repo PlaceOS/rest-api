@@ -28,6 +28,14 @@ module Engine::API
   private abstract class Application < ActionController::Base
     NAME_SORT_ASC = [{"doc.name.sort" => {order: :asc}}]
 
+    before_action :ensure_json, only: [:create, :update]
+
+    protected def ensure_json
+      unless request.headers["Content-Type"]? == "application/json"
+        render status: :unsupported_media_type, text: "Accepts: application/json"
+      end
+    end
+
     rescue_from RethinkORM::Error::DocumentNotFound do |error| # ameba:disable Lint/UnusedArgument
       head :not_found
     end

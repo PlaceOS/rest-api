@@ -30,7 +30,11 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 71769af40deccb79005fbb5df1378c0f72a009f3
+    commit: f0b624642161e3de949a213da06c6f880c42f0bb
+
+  faker:
+    github: askn/faker
+    version: 0.4.0
 
   habitat:
     github: luckyframework/habitat
@@ -46,7 +50,7 @@ shards:
 
   neuroplastic:
     github: aca-labs/neuroplastic
-    commit: b7d5909ecf9cd904f6900032d2bb9d60d3c3a14b
+    commit: 148a6073b91e50c5b9f5132dd0c698694dfdd88d
 
   pinger:
     github: spider-gazelle/pinger

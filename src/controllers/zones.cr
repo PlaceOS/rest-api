@@ -7,7 +7,9 @@ module Engine::API
     # TODO: user access control
     # before_action :check_admin, except: [:index, :show]
     before_action :find_zone, only: [:show, :update, :destroy]
+
     @zone : Model::Zone?
+    getter :zone
 
     def index
       elastic = Model::Zone.elastic
@@ -71,7 +73,8 @@ module Engine::API
     end
 
     def create
-      zone = Model::Zone.new(params)
+      body = request.body.not_nil!
+      zone = Model::Zone.from_json(body)
       save_and_respond zone
     end
 

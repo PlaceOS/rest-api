@@ -2,18 +2,10 @@ require "./helper"
 
 module Engine::API
   describe Zones do
-    # Generate some zone data
     with_server do
-      it "should respond to health checks" do
-        result = curl("GET", "/healthz")
-        result.status.should eq 200
-      end
-
-      it "renders version" do
-        result = curl("GET", "/version")
-        result.status.should eq 200
-        pp! result.body
-      end
+      test_404(namespace: Zones::NAMESPACE, model_name: Model::Zone.table_name)
+      test_crud(klass: Model::Zone, controller_klass: Zones)
+      pending "index"
     end
   end
 end

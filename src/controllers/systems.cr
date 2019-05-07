@@ -10,13 +10,14 @@ module Engine::API
       :show,
       :update,
       :destroy,
-      :remove,
+      # :remove,
       # :count,
       # :start,
       # :stop
     ]
 
-    @cs : Model::ControlSystem?
+    @control_system : Model::ControlSystem?
+    getter :control_system
 
     # Strong params for index method
     class IndexParams < Params
@@ -59,26 +60,26 @@ module Engine::API
     def show
       args = ShowParams.new(params)
       if args.complete
-        render json: serialise_with_fields(@cs, {
-          :module_data => @cs.try &.module_data,
-          :zone_data   => @cs.try &.zone_data,
+        render json: serialise_with_fields(@control_system, {
+          :module_data => @control_system.try &.module_data,
+          :zone_data   => @control_system.try &.zone_data,
         })
       else
-        render json: @cs
+        render json: @control_system
       end
     end
 
     # Updates a control system
     def update
-      cs = @cs
-      return unless cs
+      control_system = @control_system
+      return unless control_system
 
       version = params[:version]?.try(&.to_i)
-      head :conflict if version && version != cs.version
+      head :conflict if version && version != control_system.version
+      control_system.assign_attributes(params)
 
-      cs.assign_attributes(params)
-      cs.version = cs.version.try { |v| v + 1 }
-      save_and_respond(cs)
+      control_system.version = control_system.version.try { |v| v + 1 }
+      save_and_respond(control_system)
     end
 
     class RemoveParams < Params
@@ -89,13 +90,13 @@ module Engine::API
     def remove
       args = RemoveParams.new(params)
       module_id = args.module_id
-      if module_id && @cs.modules.include? module_id
-        @cs.modules_will_change!
-        @cs.modules.delete(module_id)
-        @cs.save! # with_cas: true
+      if module_id && @control_system.modules.include? module_id
+        @control_system.modules_will_change!
+        @control_system.modules.delete(module_id)
+        @control_system.save! # with_cas: true
 
         # keep if any other ControlSystem is using the module
-        keep = ControlSystem.using_module(module_id).any? { |cs| cs.id != @cs.id }
+        keep = ControlSystem.using_module(module_id).any? { |sys| sys.id != @control_system.id }
         unless keep
           mod = Module.find module_id
           mod.destroy unless mod.nil?
@@ -106,14 +107,14 @@ module Engine::API
     end
 
     def create
-      cs = Model::ControlSystem.new(params)
-      save_and_respond cs
+      body = request.body.not_nil!
+      save_and_respond Model::ControlSystem.from_json(body)
     end
 
     def destroy
-      @cs.try &.destroy
+      @control_system.try &.destroy
 
-      # sys_id = cs.id
+      # sys_id = control_system.id
       # Clear the cache
       # control.expire_cache(sys_id).value
 
@@ -316,7 +317,7 @@ module Engine::API
 
     protected def find_system
       # Find will raise a 404 (not found) if there is an error
-      @cs = Model::ControlSystem.find!(params[:id]?)
+      @control_system = Model::ControlSystem.find!(params["id"]?)
     end
   end
 end

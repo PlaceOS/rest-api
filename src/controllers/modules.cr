@@ -27,7 +27,8 @@ module Engine::API
       },
     }
 
-    @mod : Model::Module?
+    @module : Model::Module?
+    getter :module
 
     private class IndexParams < Params
       attribute system_id : String
@@ -107,12 +108,12 @@ module Engine::API
     end
 
     def show
-      render json: @mod
+      render json: @module
     end
 
     # TODO: This depends on extended save_and_respond function
     def update
-      mod = @mod
+      mod = @module
       return unless mod
 
       mod.assign_attributes(params)
@@ -141,11 +142,12 @@ module Engine::API
     end
 
     def create
-      save_and_respond Model::Module.new(params)
+      body = request.body.not_nil!
+      save_and_respond(Model::Module.from_json(body))
     end
 
     def destroy
-      @mod.try &.destroy
+      @module.try &.destroy
       head :ok
     end
 
@@ -183,10 +185,10 @@ module Engine::API
 
     # ping helper function
     def ping
-      if @mod.role > 2
+      if @module.role > 2
         head :not_acceptable
       else
-        pinger = Pinger.new(@mod.hostname, count: 3)
+        pinger = Pinger.new(@module.hostname, count: 3)
         pinger.ping
         render json: {
           host:      pinger.ip,
@@ -225,7 +227,7 @@ module Engine::API
     def find_module
       # Find will raise a 404 (not found) if there is an error
       id = params["id"]?
-      @mod = Model::Module.find!(id)
+      @module = Model::Module.find!(id)
     end
   end
 end
