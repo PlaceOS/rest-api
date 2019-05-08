@@ -15,8 +15,8 @@ module Engine::API
     # Constant for performance
     MOD_INCLUDE = {
       include: {
-        # Most human readable module data is contained in dependency
-        dependency: {only: [:name, :description, :module_name, :settings]},
+        # Most human readable module data is contained in driver
+        driver: {only: [:name, :description, :module_name, :settings]},
 
         # include control system on logic modules so it is possible
         # to display the inherited settings
@@ -32,7 +32,7 @@ module Engine::API
 
     private class IndexParams < Params
       attribute system_id : String
-      attribute dependency_id : String
+      attribute driver_id : String
       attribute connected : Bool = false
       attribute no_logic : Bool = false
       attribute running : Bool = false
@@ -57,9 +57,9 @@ module Engine::API
         elastic = Model::Module.elastic
         query = elastic.query(params)
 
-        dependency_id = args.dependency_id
-        if dependency_id
-          query.filter({"doc.dependency_id" => [dependency_id]})
+        driver_id = args.driver_id
+        if driver_id
+          query.filter({"doc.driver_id" => [driver_id]})
         end
 
         connected = args.connected
@@ -81,9 +81,9 @@ module Engine::API
 
         if args.no_logic
           non_logic_roles = [
-            Model::Dependency::Role::SSH,
-            Model::Dependency::Role::Device,
-            Model::Dependency::Role::Service,
+            Model::Driver::Role::SSH,
+            Model::Driver::Role::Device,
+            Model::Driver::Role::Service,
           ].map(&.to_i)
 
           query.filter({"doc.role" => non_logic_roles})
@@ -99,7 +99,7 @@ module Engine::API
         #   })
         # end
 
-        query.has_parent(parent: Model::Dependency, parent_index: Model::Dependency.table_name)
+        query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
 
         results = elastic.search(query)
         # render json: results.as_json(MOD_INCLUDE)
@@ -113,8 +113,7 @@ module Engine::API
 
     # TODO: This depends on extended save_and_respond function
     def update
-      mod = @module
-      return unless mod
+      mod = @module.not_nil!
 
       mod.assign_attributes(params)
       # was_running = mod.running
@@ -128,9 +127,9 @@ module Engine::API
         #   end
         # end
 
-        dep = mod.dependency
-        serialised = !dep ? mod.to_json : serialise_with_fields(mod, {
-          :dependency => restrict_attributes(dep, only: ["name", "module_name"]),
+        driver = mod.driver
+        serialised = !driver ? mod.to_json : serialise_with_fields(mod, {
+          :driver => restrict_attributes(driver, only: ["name", "module_name"]),
         })
 
         render json: serialised
@@ -200,7 +199,7 @@ module Engine::API
     end
 
     private class ModParams < Params
-      attribute dependency_id : String
+      attribute driver_id : String
       attribute control_system_id : String
       attribute ip : String
       attribute tls : Bool
@@ -226,8 +225,7 @@ module Engine::API
 
     def find_module
       # Find will raise a 404 (not found) if there is an error
-      id = params["id"]?
-      @module = Model::Module.find!(id)
+      @module = Model::Module.find!(params["id"]?)
     end
   end
 end

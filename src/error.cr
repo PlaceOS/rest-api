@@ -1,6 +1,6 @@
 module Engine::API
   class Error < Exception
-    getter message
+    getter :message
 
     def initialize(@message : String? = "")
       super(message)

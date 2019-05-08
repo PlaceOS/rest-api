@@ -24,7 +24,7 @@ module Engine::API
      
       query.must_not({"doc.deleted" => [true]})
 
-      authority_id = params[:authority_id]?
+      authority_id = params["authority_id"]?
       query.filter({"doc.authority_id" => [authority_id]}) if authority_id
 
       results = elastic.search(query) do |user|

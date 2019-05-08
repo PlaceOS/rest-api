@@ -30,7 +30,7 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: f0b624642161e3de949a213da06c6f880c42f0bb
+    commit: d5be23d51a8dc00b1c8bbb174eee8912d0f40a35
 
   faker:
     github: askn/faker

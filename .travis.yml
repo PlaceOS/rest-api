@@ -5,11 +5,12 @@ language: crystal
 addons:
   rethinkdb: '2.3'
 
+services:
+  - docker
+
 # Add elasticsearch 7.0.x
 before_install:
-  - curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.0.1-amd64.deb && \
-  sudo dpkg -i --force-confnew elasticsearch-7.0.1-amd64.deb && \
-  sudo service elasticsearch restart
+  - docker run -p9300:9300 -p9200:9200 -e discovery.type=single-node -d elasticsearch:7.0.1
 
 install:
   - shards install

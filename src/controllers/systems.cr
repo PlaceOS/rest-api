@@ -71,10 +71,9 @@ module Engine::API
 
     # Updates a control system
     def update
-      control_system = @control_system
-      return unless control_system
+      control_system = @control_system.not_nil!
 
-      version = params[:version]?.try(&.to_i)
+      version = params["version"]?.try(&.to_i)
       head :conflict if version && version != control_system.version
       control_system.assign_attributes(params)
 
@@ -145,7 +144,7 @@ module Engine::API
     #     # .symbolize_keys! is required for passing hashes to functions with named params
     #     # and having them apply correctly
     #     para = params.permit(EXEC_PARAMS).to_h.to_h.symbolize_keys!.tap do |whitelist|
-    #         whitelist[:args] = Array(params[:args]).collect { |arg|
+    #         whitelist[:args] = Array(params["args"]).collect { |arg|
     #             if arg.is_a?(::ActionController::Parameters)
     #                 arg.to_unsafe_h.to_h.symbolize_keys!
     #             else
