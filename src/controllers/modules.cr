@@ -114,8 +114,9 @@ module Engine::API
     # TODO: This depends on extended save_and_respond function
     def update
       mod = @module.not_nil!
+      body = request.body.not_nil!
+      mod.assign_attributes_from_json(body)
 
-      mod.assign_attributes(params)
       # was_running = mod.running
       if mod.save
         # TODO: Update control

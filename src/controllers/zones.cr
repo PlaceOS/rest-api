@@ -65,11 +65,11 @@ module Engine::API
     end
 
     def update
-      zone = @zone
-      if zone
-        zone.assign_attributes(params)
-        save_and_respond zone
-      end
+      zone = @zone.not_nil!
+      body = request.body.not_nil!.to_s
+
+      zone.assign_attributes_from_json(body)
+      save_and_respond zone
     end
 
     def create
@@ -81,18 +81,6 @@ module Engine::API
     def destroy
       @zone.try &.destroy
       head :ok
-    end
-
-    private class ZoneParams < Params
-      attribute name : String
-      attribute description : String
-      attribute tags : Array(String)
-      attribute triggers : Array(String)
-      attribute settings : String
-    end
-
-    protected def safe_params
-      ZoneParams.new(params).attributes
     end
 
     protected def find_zone

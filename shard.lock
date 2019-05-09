@@ -6,7 +6,7 @@ shards:
 
   active-model:
     github: spider-gazelle/active-model
-    commit: 40b52631d1da658d138f9b8cb3e5d86ab55a1f19
+    commit: cdbc87c51037949962e660504c7bec0295696021
 
   ameba:
     github: veelenga/ameba
@@ -30,7 +30,7 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: d5be23d51a8dc00b1c8bbb174eee8912d0f40a35
+    commit: b1a7a87f4598fb90de1fd600be56766128e8915b
 
   faker:
     github: askn/faker

@@ -69,15 +69,22 @@ module Engine::API
       end
     end
 
+    class UpdateParams < Params
+      attribute version : Int32, presence: true
+    end
+
     # Updates a control system
     def update
       control_system = @control_system.not_nil!
+      body = request.body.not_nil!
+      args = UpdateParams.new(params).validate!
+      version = args.version.not_nil!
 
-      version = params["version"]?.try(&.to_i)
-      head :conflict if version && version != control_system.version
-      control_system.assign_attributes(params)
+      head :conflict if version != control_system.version
 
-      control_system.version = control_system.version.try { |v| v + 1 }
+      control_system.assign_attributes_from_json(body)
+      control_system.version = version + 1
+
       save_and_respond(control_system)
     end
 
@@ -266,8 +273,7 @@ module Engine::API
 
     # # Return the count of a module type in a system
     # def count
-    #   args = CountParams.new(params)
-    #   args.validate_params!
+    #   args = CountParams.new(params).validate!
 
     #   sys = System.find(args.id)
     #   if sys

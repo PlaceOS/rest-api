@@ -5,8 +5,9 @@
 
 ## Testing
 
-`crystal spec`
+`crystal spec --no-debug`
 
+* the `--no-debug` flag is a bandaid for an as of yet undiagnosed LLVM issue.
 * to run in development mode `crystal ./src/app.cr`
 
 ## Compiling

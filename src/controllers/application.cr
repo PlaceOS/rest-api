@@ -5,26 +5,18 @@ require "../constants"
 require "../error"
 require "../utils"
 
-# # Mock of user
-# class UserMock
-#   @mocks = {} of Symbol => String | Bool | Int32 | Float32
-
-#   def initialise(@mocks = {
-#     :sys_admin => true,
-#     :sys_admin => true
-#   })
-#   end
-
-#   def logged_in?
-#     @mocks[:logged_in?]
-#   end
-
-#   def sys_admin
-#     @mocks[:sys_admin]
-#   end
-# end
-
 module Engine::API
+  abstract class Params < ActiveModel::Model
+    include ActiveModel::Validation
+
+    # Checks that the model is valid
+    # Responds with the validation errors
+    def validate!
+      raise Error::InvalidParams.new(self) unless self.valid?
+      self
+    end
+  end
+
   private abstract class Application < ActionController::Base
     NAME_SORT_ASC = [{"doc.name.sort" => {order: :asc}}]
 
@@ -40,8 +32,8 @@ module Engine::API
       head :not_found
     end
 
-    rescue_from Error::ParameterMissing do |error|
-      render status: :unprocessable_entity, text: error.message
+    rescue_from Error::InvalidParams do |error|
+      render status: :unprocessable_entity, json: error.params.errors.map(&.to_s)
     end
 
     # Authentication through JWT
@@ -75,14 +67,23 @@ module Engine::API
       attr.to_json
     end
   end
-
-  abstract class Params < ActiveModel::Model
-    # Checks that the model is valid
-    # Responds with the validation errors
-    def validate_params!
-      unless self.valid?
-        render status: :not_acceptable, json: self.errors
-      end
-    end
-  end
 end
+
+# # Mock of user
+# class UserMock
+#   @mocks = {} of Symbol => String | Bool | Int32 | Float32
+
+#   def initialise(@mocks = {
+#     :sys_admin => true,
+#     :sys_admin => true
+#   })
+#   end
+
+#   def logged_in?
+#     @mocks[:logged_in?]
+#   end
+
+#   def sys_admin
+#     @mocks[:sys_admin]
+#   end
+# end

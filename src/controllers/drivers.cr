@@ -33,12 +33,12 @@ module Engine::API
 
     def update
       driver = @driver.not_nil!
+      body = request.body.not_nil!
+      driver.assign_attributes_from_json(body)
 
-      args = params.to_h.reject(:role, :class_name)
-
-      # Must destroy and re-add to change class or module type
-      driver.assign_attributes(args)
-      save_and_respond(driver)
+      # Must destroy and re-add to change driver type
+      driver.role = driver.role_was.not_nil! if driver.role_changed?
+      save_and_respond driver
     end
 
     def create

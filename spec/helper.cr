@@ -33,48 +33,45 @@ def test_404(namespace, model_name)
   end
 end
 
-macro test_crud(klass, controller_klass)
+macro test_crd(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
   base = {{ controller_klass }}::NAMESPACE[0]
-  describe "CRUD operations" do
-    it "create" do
-      body = Model::Generator.{{ klass_name.id }}.to_json
-      result = curl(
-        method: "POST",
-        path: base,
-        body: body,
-        headers: {"Content-Type" => "application/json"},
-      )
 
-      result.success?.should be_true
-      result.status_code.should eq 201
-      body = result.body.not_nil!
+  it "create" do
+    body = Model::Generator.{{ klass_name.id }}.to_json
+    result = curl(
+      method: "POST",
+      path: base,
+      body: body,
+      headers: {"Content-Type" => "application/json"},
+    )
 
-      {{ klass }}.find(JSON.parse(body)["id"].as_s).try &.destroy
-    end
+    result.success?.should be_true
+    result.status_code.should eq 201
+    body = result.body.not_nil!
 
-    it "show" do
-      model = Engine::Model::Generator.{{ klass_name.id }}.save!
-      model.persisted?.should be_true
-      id = model.id.not_nil!
-      result = curl(method: "GET", path: base + id)
+    {{ klass }}.find(JSON.parse(body)["id"].as_s).try &.destroy
+  end
 
-      response_model = {{ klass.id }}.from_json(result.body).not_nil!
-      response_model.id.should eq id
+  it "show" do
+    model = Engine::Model::Generator.{{ klass_name.id }}.save!
+    model.persisted?.should be_true
+    id = model.id.not_nil!
+    result = curl(method: "GET", path: base + id)
 
-      model.destroy
-    end
+    response_model = {{ klass.id }}.from_json(result.body).not_nil!
+    response_model.id.should eq id
 
-    pending "update"
+    model.destroy
+  end
 
-    it "destroy" do
-      model = Engine::Model::Generator.{{ klass_name.id }}.save!
-      model.persisted?.should be_true
-      id = model.id.not_nil!
-      result = curl(method: "DELETE", path: base + id)
+  it "destroy" do
+    model = Engine::Model::Generator.{{ klass_name.id }}.save!
+    model.persisted?.should be_true
+    id = model.id.not_nil!
+    result = curl(method: "DELETE", path: base + id)
 
-      result.success?.should be_true
-      {{ klass.id }}.find(id).should be_nil
-    end
+    result.success?.should be_true
+    {{ klass.id }}.find(id).should be_nil
   end
 end

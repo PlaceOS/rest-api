@@ -6,7 +6,12 @@ module Engine::API
       super(message)
     end
 
-    class ParameterMissing < Error
+    class InvalidParams < Error
+      getter params
+
+      def initialize(@params : Params, message = "")
+        super(message)
+      end
     end
   end
 end
