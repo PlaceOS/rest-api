@@ -31,7 +31,7 @@ module Engine::API
     getter :module
 
     private class IndexParams < Params
-      attribute system_id : String
+      attribute control_system_id : String
       attribute driver_id : String
       attribute connected : Bool = false
       attribute no_logic : Bool = false
@@ -43,8 +43,8 @@ module Engine::API
       args = IndexParams.new(params)
 
       # if a system id is present we query the database directly
-      if args.system_id
-        cs = Model::ControlSystem.find!(args.system_id)
+      if args.control_system_id
+        cs = Model::ControlSystem.find!(args.control_system_id)
 
         modules = cs.modules || [] of String
 
@@ -126,7 +126,6 @@ module Engine::API
         #     control.start(id)
         #   end
         # end
-
         driver = mod.driver
         serialised = !driver ? mod.to_json : serialise_with_fields(mod, {
           :driver => restrict_attributes(driver, only: ["name", "module_name"]),
@@ -182,46 +181,21 @@ module Engine::API
     #     end
     # end
 
-    # ping helper function
-    def ping
-      if @module.role > 2
+    post(":id/ping", :ping) do
+      mod = @module.not_nil!
+      if mod.role == Model::Driver::Role::Logic
         head :not_acceptable
       else
-        pinger = Pinger.new(@module.hostname, count: 3)
+        pinger = Pinger.new(mod.hostname.not_nil!, count: 3)
         pinger.ping
         render json: {
-          host:      pinger.ip,
+          host:      pinger.ip.to_s,
           pingable:  pinger.pingable,
           warning:   pinger.warning,
           exception: pinger.exception,
         }
       end
     end
-
-    private class ModParams < Params
-      attribute driver_id : String
-      attribute control_system_id : String
-      attribute ip : String
-      attribute tls : Bool
-      attribute udp : Bool
-      attribute port : Int32
-      attribute makebreak : Bool
-      attribute uri : String
-      attribute custom_name : String
-      attribute notes : String
-      attribute settings : String
-      attribute ignore_connected : Bool
-      attribute ignore_startstop : Bool
-    end
-
-    # protected def lookup_module
-    #   mod = control.loaded? id
-    #   if mod
-    #     yield mod
-    #   else
-    #     head :not_found
-    #   end
-    # end
 
     def find_module
       # Find will raise a 404 (not found) if there is an error

@@ -87,15 +87,16 @@ module Engine::API
 
     # Removes the module from the system and deletes it if not used elsewhere
     def remove
+      control_system = @control_system.not_nil!
       args = RemoveParams.new(params)
       module_id = args.module_id
-      if module_id && @control_system.modules.include? module_id
-        @control_system.modules_will_change!
-        @control_system.modules.delete(module_id)
-        @control_system.save! # with_cas: true
+      if module_id && control_system.modules.include? module_id
+        control_system.modules_will_change!
+        control_system.modules.delete(module_id)
+        control_system.save! # with_cas: true
 
         # keep if any other ControlSystem is using the module
-        keep = ControlSystem.using_module(module_id).any? { |sys| sys.id != @control_system.id }
+        keep = ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }
         unless keep
           mod = Module.find module_id
           mod.destroy unless mod.nil?
