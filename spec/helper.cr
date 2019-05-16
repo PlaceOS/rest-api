@@ -27,9 +27,10 @@ end
 # Check application responds with 404 when model not present
 def test_404(namespace, model_name)
   it "404s if #{model_name} isn't present in database" do
-    id = "#{model_name}_#{Random.rand(9999).to_s.ljust(4, '0')}"
+    id = "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
     path = namespace[0] + id
-    curl("GET", path).status_code.should eq 404
+    result = curl("GET", path)
+    result.status_code.should eq 404
   end
 end
 
@@ -46,7 +47,6 @@ macro test_crd(klass, controller_klass)
       headers: {"Content-Type" => "application/json"},
     )
 
-    result.success?.should be_true
     result.status_code.should eq 201
     body = result.body.not_nil!
 
@@ -59,6 +59,7 @@ macro test_crd(klass, controller_klass)
     id = model.id.not_nil!
     result = curl(method: "GET", path: base + id)
 
+    result.status_code.should eq 200
     response_model = {{ klass.id }}.from_json(result.body).not_nil!
     response_model.id.should eq id
 
@@ -71,7 +72,7 @@ macro test_crd(klass, controller_klass)
     id = model.id.not_nil!
     result = curl(method: "DELETE", path: base + id)
 
-    result.success?.should be_true
+    result.status_code.should eq 200
     {{ klass.id }}.find(id).should be_nil
   end
 end
