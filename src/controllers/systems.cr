@@ -7,8 +7,8 @@ module Engine::API
     # TODO: Callbacks for access control
     # state, funcs, count and types are available to authenticated users
 
-    #              only: [:show, :update, :destroy, :remove, :types, :count, :start, :stop]
-    before_action :find_system, only: [:show, :update, :destroy, :remove]
+    before_action :find_system, only: [:show, :update, :destroy, :remove,
+                                       :start, :stop, :exec, :types, :funcs]
     before_action :ensure_json, only: [:create, :update]
 
     @control_system : Model::ControlSystem?
@@ -133,9 +133,9 @@ module Engine::API
     # Start modules
     #
     # FIXME: Optimise query
-    def start
+    post("/:id/start", :start) do
       modules = @control_system.not_nil!.modules || [] of String
-      Modules.find_all(modules).each do |mod|
+      Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: true)
       end
 
@@ -145,19 +145,26 @@ module Engine::API
     # Stop modules
     #
     # FIXME: Optimise query
-    def stop
+    post("/:id/stop", :stop) do
       modules = @control_system.not_nil!.modules || [] of String
-      Modules.find_all(modules).each do |mod|
+      Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: false)
       end
 
       head :ok
     end
 
-    # EXEC_PARAMS = [:module, :index, :method]
-    # def exec
+    # class ExecParams < Params
+    #   attribute method : String, presence: true
+    #   attribute module_id : String, presence: true
+    #   attribute index : Int32
+    #   # attribute args : Array(String | Int32 | ... )
+    # end
+
+    # post("/:id/exec", :exec) do
     #     # Run a function in a system module (async request)
     #     required_params(params, :module, :method)
+    #     args = ExecParams.new(params)
 
     #     # This looks insane however it does achieve our out of the ordinary requirement
     #     # .to_h converts to indifferent access .to_h converts to a regular hash and
@@ -199,7 +206,8 @@ module Engine::API
     #     render json: ["#{e.message}\n#{e.backtrace.join("\n")}"], status: :internal_server_error
     # end
 
-    # def state
+    # Returns the state of an associated module
+    # get("/:id/state", :state) do
     #   # Status defined as a system module
     #   required_params(params, :module)
     #   sys = System.get(id)
@@ -235,7 +243,7 @@ module Engine::API
     #       Object, Kernel, BasicObject
     #   ])
     #
-    #   def funcs
+    #   get("/:id/funcs", :funcs)
     #       required_params(params, :module)
     #       sys = System.get(id)
     #       if sys
@@ -276,17 +284,17 @@ module Engine::API
     #       else
     #           head :not_found
     #       end
-    #   endo
+    #   end
 
-    # classo
-    #   atto: true
+    # class CountParams < Params
+    #   attribute module_name : String, presence: true
     # end
 
-    # # Retoystem
-    # get("o
-    #   cono!
-    #   argo
-    #   render json: {count: control_system.count(args.module_name)}
+    # # Return the count of a module type in a system
+    # get("/:id/count", :count) do
+    #   sys = @control_system.not_nil!
+    #   args = CountParams.new(params).validate!
+    #   render json: {count: sys.count(args.module)}
     # end
 
     # returns a hash of a module types in a system with

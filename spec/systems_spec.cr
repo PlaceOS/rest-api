@@ -6,14 +6,65 @@ module Engine::API
       test_404(namespace: Systems::NAMESPACE, model_name: Model::ControlSystem.table_name)
 
       pending "index"
-      pending "remove"
 
-      pending "count"
-      pending "types"
+      describe "remove" do
+        pending "removes module if not in use by another ControlSystem"
+        pending "keeps module if in use by another ControlSystem"
+      end
 
-      pending "start"
-      pending "stop"
-      pending "exec"
+      describe "module function" do
+        pending "count"
+        pending "types"
+        pending "exec"
+
+        it "start" do
+          cs = Model::Generator.control_system.save!
+          mod = Model::Generator.module(control_system: cs).save!
+          cs.update_fields(modules: [mod.id.not_nil!])
+
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
+          mod.running.should be_false
+
+          path = Systems::NAMESPACE[0] + "#{cs.id}/start"
+
+          result = curl(
+            method: "POST",
+            path: path,
+          )
+
+          result.status_code.should eq 200
+          Model::Module.find!(mod.id.not_nil!).running.should be_true
+
+          mod.destroy
+          cs.destroy
+        end
+
+        it "stop" do
+          cs = Model::Generator.control_system.save!
+          mod = Model::Generator.module(control_system: cs)
+          mod.running = true
+          mod.save!
+          cs.update_fields(modules: [mod.id.not_nil!])
+
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
+          mod.running.should be_true
+
+          path = Systems::NAMESPACE[0] + "#{cs.id}/stop"
+
+          result = curl(
+            method: "POST",
+            path: path,
+          )
+
+          result.status_code.should eq 200
+          Model::Module.find!(mod.id.not_nil!).running.should be_false
+
+          mod.destroy
+          cs.destroy
+        end
+      end
 
       describe "CRUD operations" do
         test_crd(klass: Model::ControlSystem, controller_klass: Systems)
