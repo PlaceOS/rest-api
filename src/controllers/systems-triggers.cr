@@ -8,7 +8,7 @@ module Engine::API
     # before_action :check_admin,   only: [:create, :update, :destroy]
     # before_action :check_support, only: [:index, :show]
 
-    before_action :ensure_json, only: [:create]
+    before_action :ensure_json, only: [:create, :update]
     before_action :find_sys_trig, only: [:show, :update, :destroy]
 
     @sys_trig : Model::TriggerInstance?
@@ -111,10 +111,11 @@ module Engine::API
 
     patch("/:trigger_id", :update) do
       sys_trig = @sys_trig.not_nil!
-      args = UpdateParams.new(params)
+      body = request.body.not_nil!
+      args = UpdateParams.from_json(body)
 
       sys_trig.enabled = args.enabled unless args.enabled.nil?
-      sys_trig.important = args.enabled unless args.important.nil?
+      sys_trig.important = args.important unless args.important.nil?
 
       save_and_respond(sys_trig)
     end
