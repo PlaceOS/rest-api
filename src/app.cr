@@ -33,6 +33,15 @@ OptionParser.parse(ARGV.dup) do |parser|
     puts parser
     exit 0
   end
+
+  fail = ->(error : String, option : String) {
+    STDERR.puts "#{error}: #{option}"
+    puts parser
+    exit 1
+  }
+
+  parser.missing_option { |o| fail.call("Error: Missing Option", o) }
+  parser.invalid_option { |o| fail.call("Error: Invalid Option", o) }
 end
 
 # Load the routes

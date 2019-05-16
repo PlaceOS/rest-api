@@ -7,7 +7,8 @@ module Engine::API
 
       describe "CRUD operations" do
         test_crd(klass: Model::Module, controller_klass: Modules)
-        pending "update" do
+
+        it "update" do
           mod = Model::Generator.module.save!
           connected = mod.connected.not_nil!
           mod.connected = !connected
@@ -21,9 +22,10 @@ module Engine::API
             headers: {"Content-Type" => "application/json"},
           )
 
-          result.success?.should be_true
-          updated = Model::Module.from_trusted_json(result.body)
-          updated.attributes.should eq mod.attributes
+          result.status_code.should eq 200
+          updated = Model::Module.from_json(result.body)
+          updated.id.should eq mod.id
+          updated.connected.should eq !connected
         end
       end
 

@@ -6,15 +6,10 @@ module Engine::API
 
     # TODO: Callbacks for access control
     # state, funcs, count and types are available to authenticated users
-    before_action :find_system, only: [
-      :show,
-      :update,
-      :destroy,
-      # :remove,
-      # :count,
-      # :start,
-      # :stop
-    ]
+
+    #              only: [:show, :update, :destroy, :remove, :types, :count, :start, :stop]
+    before_action :find_system, only: [:show, :update, :destroy, :remove]
+    before_action :ensure_json, only: [:create, :update]
 
     @control_system : Model::ControlSystem?
     getter :control_system
@@ -60,7 +55,7 @@ module Engine::API
     def show
       args = ShowParams.new(params)
       if args.complete
-        render json: serialise_with_fields(@control_system, {
+        render json: with_fields(@control_system, {
           :module_data => @control_system.try &.module_data,
           :zone_data   => @control_system.try &.zone_data,
         })
@@ -77,6 +72,7 @@ module Engine::API
     def update
       control_system = @control_system.not_nil!
       body = request.body.not_nil!
+
       args = UpdateParams.new(params).validate!
       version = args.version.not_nil!
 
@@ -86,31 +82,6 @@ module Engine::API
       control_system.version = version + 1
 
       save_and_respond(control_system)
-    end
-
-    class RemoveParams < Params
-      attribute module_id : String
-    end
-
-    # Removes the module from the system and deletes it if not used elsewhere
-    def remove
-      control_system = @control_system.not_nil!
-      args = RemoveParams.new(params)
-      module_id = args.module_id
-      if module_id && control_system.modules.include? module_id
-        control_system.modules_will_change!
-        control_system.modules.delete(module_id)
-        control_system.save! # with_cas: true
-
-        # keep if any other ControlSystem is using the module
-        keep = ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }
-        unless keep
-          mod = Module.find module_id
-          mod.destroy unless mod.nil?
-        end
-      end
-
-      head :ok
     end
 
     def create
@@ -128,19 +99,60 @@ module Engine::API
       head :ok
     end
 
-    ##
-    # Additional Functions:
-    # TODO: Application specfic functionality
-    #
-    # # Start modules
-    # def start
-    #   head :ok
-    # end
+    class RemoveParams < Params
+      attribute module_id : String, presence: true
+    end
 
-    # # Stop modules
-    # def stop
-    #   head :ok
-    # end
+    # Removes the module from the system and deletes it if not used elsewhere
+    post("/:id/remove", :remove) do
+      control_system = @control_system.not_nil!
+      args = RemoveParams.new(params).validate!
+
+      module_id = args.module_id.not_nil!
+      modules = control_system.modules || [] of String
+
+      if modules.includes? module_id
+        control_system.modules_will_change!
+        control_system.modules.try &.delete(module_id)
+
+        control_system.save! # with_cas: true
+
+        # keep if any other ControlSystem is using the module
+        keep = Model::ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }
+        unless keep
+          Model::Module.find(module_id).try &.destroy
+        end
+      end
+
+      head :ok
+    end
+
+    ##
+    # Additional Functions
+
+    # Start modules
+    #
+    # FIXME: Optimise query
+    def start
+      modules = @control_system.not_nil!.modules || [] of String
+      Modules.find_all(modules).each do |mod|
+        mod.update_fields(running: true)
+      end
+
+      head :ok
+    end
+
+    # Stop modules
+    #
+    # FIXME: Optimise query
+    def stop
+      modules = @control_system.not_nil!.modules || [] of String
+      Modules.find_all(modules).each do |mod|
+        mod.update_fields(running: false)
+      end
+
+      head :ok
+    end
 
     # EXEC_PARAMS = [:module, :index, :method]
     # def exec
@@ -264,64 +276,39 @@ module Engine::API
     #       else
     #           head :not_found
     #       end
-    #   end
+    #   endo
 
-    # class CountParams < Params
-    #   attribute id : String, presence: true
-    #   attribute module : String, presence: true
+    # classo
+    #   atto: true
     # end
 
-    # # Return the count of a module type in a system
-    # def count
-    #   args = CountParams.new(params).validate!
-
-    #   sys = System.find(args.id)
-    #   if sys
-    #     render json: {count: sys.count(args.module)}
-    #   else
-    #     head :not_found
-    #   end
+    # # Retoystem
+    # get("o
+    #   cono!
+    #   argo
+    #   render json: {count: control_system.count(args.module_name)}
     # end
 
-    # # returns a hash of a module types in a system with
-    # # the count of each of those types
-    # def types
-    #   id = params["id"]
-    #   sys = System.find(id)
-    #   if sys
-    #     mods = sys.modules
-    #     # mods.delete(:__Triggers__)
-    #     result = mods.each_with_object({} of String => Int32) do |mod, counts|
-    #       counts[mod] = sys.count(mod)
-    #     end
-    #     render json: result
-    #   else
-    #     head :not_found
+    # returns a hash of a module types in a system with
+    # the count of each of those types
+    # get("/:id/types", :types) do
+    #   control_system = @control_system.not_nil!
+    #   render json: control_system.modules.each_with_object({} of String => Int32) do |mod, counts|
+    #     counts[mod] = control_system.count(mod)
     #   end
     # end
 
     # Better performance as don't need to create the object each time
-    private CS_PARAMS = [
-      :name, :description, :support_url, :installed_ui_devices,
-      :capacity, :email, :bookable, :features, :version,
-      {
-        zones:   [] of String,
-        modules: [] of String,
-      },
-    ]
+    # private CS_PARAMS = [
+    #   :name, :description, :support_url, :installed_ui_devices,
+    #   :capacity, :email, :bookable, :features, :version,
+    #   {
+    #     zones:   [] of String,
+    #     modules: [] of String,
+    #   },
+    # ]
 
-    # Accepted mass assignment HTTP params
-    # :name
-    # :description
-    # :support_url
-    # :installed_ui_devices
-    # :capacity
-    # :email
-    # :bookable
-    # :features
-    # :version
-
-    protected def find_system
+    def find_system
       # Find will raise a 404 (not found) if there is an error
       @control_system = Model::ControlSystem.find!(params["id"]?)
     end

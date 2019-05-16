@@ -20,11 +20,9 @@ module Engine::API
   private abstract class Application < ActionController::Base
     NAME_SORT_ASC = [{"doc.name.sort" => {order: :asc}}]
 
-    before_action :ensure_json, only: [:create, :update]
-
     protected def ensure_json
       unless request.headers["Content-Type"]? == "application/json"
-        render status: :unsupported_media_type, text: "Accepts: application/json"
+        render status: :not_acceptable, text: "Accepts: application/json"
       end
     end
 
@@ -35,12 +33,6 @@ module Engine::API
     rescue_from Error::InvalidParams do |error|
       render status: :unprocessable_entity, json: error.params.errors.map(&.to_s)
     end
-
-    # Authentication through JWT
-    # TODO: Mock
-    # def current_user
-    #   UserMock.new
-    # end
 
     # Shortcut to save a record and render a response
     def save_and_respond(resource)
@@ -53,9 +45,9 @@ module Engine::API
       end
     end
 
-    protected def serialise_with_fields(model, fields)
+    protected def with_fields(model, fields)
       attr = JSON.parse(model.to_json).as_h
-      attr.merge(fields).to_json
+      attr.merge(fields)
     end
 
     # Restrict model attributes
@@ -64,26 +56,7 @@ module Engine::API
       attr = JSON.parse(model.to_json).as_h
       attr = attr.select(only) if only
       attr = attr.reject(exclude) if exclude
-      attr.to_json
+      attr
     end
   end
 end
-
-# # Mock of user
-# class UserMock
-#   @mocks = {} of Symbol => String | Bool | Int32 | Float32
-
-#   def initialise(@mocks = {
-#     :sys_admin => true,
-#     :sys_admin => true
-#   })
-#   end
-
-#   def logged_in?
-#     @mocks[:logged_in?]
-#   end
-
-#   def sys_admin
-#     @mocks[:sys_admin]
-#   end
-# end

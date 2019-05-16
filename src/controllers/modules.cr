@@ -10,6 +10,7 @@ module Engine::API
     # before_action :check_admin, except: [:index, :state, :show, :ping]
     # before_action :check_support, only: [:index, :state, :show, :ping]
 
+    before_action :ensure_json, only: [:create, :update]
     before_action :find_module, only: [:show, :update, :destroy, :ping]
 
     # Constant for performance
@@ -116,27 +117,16 @@ module Engine::API
       mod = @module.not_nil!
       body = request.body.not_nil!
       mod.assign_attributes_from_json(body)
-
-      # was_running = mod.running
       if mod.save
-        # TODO: Update control
-        # # Update the running module
-        # promise = control.update(id)
-        # if was_running
-        #   promise.finally do
-        #     control.start(id)
-        #   end
-        # end
+        # TODO: Update control; Ruby engine starts the module instance
         driver = mod.driver
-        serialised = !driver ? mod.to_json : serialise_with_fields(mod, {
+        serialised = !driver ? mod : with_fields(mod, {
           :driver => restrict_attributes(driver, only: ["name", "module_name"]),
         })
 
         render json: serialised
-      elsif !mod.valid?
-        render status: :unprocessable_entity, json: mod.errors.map(&.to_s)
       else
-        head :internal_server_error
+        render status: :unprocessable_entity, json: mod.errors.map(&.to_s)
       end
     end
 
@@ -154,20 +144,29 @@ module Engine::API
     # Additional Functions:
     ##
 
-    # def start
-    #     # It is possible that module class load can fail
-    #     result = control.start(id).value
-    #     if result
-    #         head :ok
-    #     else
-    #         render text: "module failed to start", status: :internal_server_error
-    #     end
-    # end
+    post(":id/start", :start) do
+      mod = @module.not_nil!
+      head :ok if mod.running == true
 
-    # def stop
-    #     control.stop(id).value
-    #     head :ok
-    # end
+      mod.update_fields(running: true)
+      if mod.running_changed?
+        head :internal_server_error
+      else
+        head :ok
+      end
+    end
+
+    post(":id/stop", :stop) do
+      mod = @module.not_nil!
+      head :ok if mod.running == false
+
+      mod.update_fields(running: false)
+      if mod.running_changed?
+        head :internal_server_error
+      else
+        head :ok
+      end
+    end
 
     # # Returns the value of the requested status variable
     # # Or dumps the complete status state of the module

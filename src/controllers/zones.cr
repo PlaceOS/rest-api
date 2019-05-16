@@ -53,9 +53,9 @@ module Engine::API
         # TODO: Authorization
         # user = current_user
         # head :forbidden unless user && (user.support || user.sys_admin)
-        if params.has_key? :complete
+        if params.has_key? "complete"
           # Include trigger data in response
-          render json: serialise_with_fields(@zone, {
+          render json: with_fields(@zone, {
             :trigger_data => @zone.try &.trigger_data,
           })
         else
@@ -66,7 +66,7 @@ module Engine::API
 
     def update
       zone = @zone.not_nil!
-      body = request.body.not_nil!.to_s
+      body = request.body.not_nil!
 
       zone.assign_attributes_from_json(body)
       save_and_respond zone
@@ -83,7 +83,7 @@ module Engine::API
       head :ok
     end
 
-    protected def find_zone
+    def find_zone
       # Find will raise a 404 (not found) if there is an error
       @zone = Model::Zone.find!(params["id"]?)
     end

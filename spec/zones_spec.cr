@@ -7,9 +7,10 @@ module Engine::API
       pending "index"
       describe "CRUD operations" do
         test_crd(klass: Model::Zone, controller_klass: Zones)
-        pending "update" do
+        it "update" do
           zone = Model::Generator.zone.save!
-          zone.name = Faker::Hacker.name
+          original_name = zone.name
+          zone.name = Faker::Hacker.noun*2
 
           id = zone.id.not_nil!
           path = Zones::NAMESPACE[0] + id
@@ -21,8 +22,10 @@ module Engine::API
           )
 
           result.success?.should be_true
-          updated = Model::Zone.from_trusted_json(result.body)
-          updated.attributes.should eq zone.attributes
+          updated = Model::Zone.from_json(result.body)
+
+          updated.id.should eq zone.id
+          updated.name.should_not eq original_name
         end
       end
     end

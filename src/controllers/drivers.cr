@@ -37,7 +37,8 @@ module Engine::API
       driver.assign_attributes_from_json(body)
 
       # Must destroy and re-add to change driver type
-      driver.role = driver.role_was.not_nil! if driver.role_changed?
+      render :unprocessable_entity, text: "Error: role must not change" if driver.role_changed?
+
       save_and_respond driver
     end
 
