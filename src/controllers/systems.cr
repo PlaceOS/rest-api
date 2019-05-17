@@ -4,6 +4,8 @@ module Engine::API
   class Systems < Application
     base "/api/v1/systems/"
 
+    id_param :sys_id
+
     # TODO: Callbacks for access control
     # state, funcs, count and types are available to authenticated users
 
@@ -20,7 +22,7 @@ module Engine::API
       attribute module_id : String
     end
 
-    # # Query control system resources
+    # Query ControlSystem resources
     def index
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(params)
@@ -104,7 +106,7 @@ module Engine::API
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
-    post("/:id/remove", :remove) do
+    post("/:sys_id/remove", :remove) do
       control_system = @control_system.not_nil!
       args = RemoveParams.new(params).validate!
 
@@ -133,7 +135,7 @@ module Engine::API
     # Start modules
     #
     # FIXME: Optimise query
-    post("/:id/start", :start) do
+    post("/:sys_id/start", :start) do
       modules = @control_system.not_nil!.modules || [] of String
       Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: true)
@@ -145,7 +147,7 @@ module Engine::API
     # Stop modules
     #
     # FIXME: Optimise query
-    post("/:id/stop", :stop) do
+    post("/:sys_id/stop", :stop) do
       modules = @control_system.not_nil!.modules || [] of String
       Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: false)
@@ -161,7 +163,7 @@ module Engine::API
     #   # attribute args : Array(String | Int32 | ... )
     # end
 
-    # post("/:id/exec", :exec) do
+    # post("/:sys_id/exec", :exec) do
     #     # Run a function in a system module (async request)
     #     required_params(params, :module, :method)
     #     args = ExecParams.new(params)
@@ -207,7 +209,7 @@ module Engine::API
     # end
 
     # Returns the state of an associated module
-    # get("/:id/state", :state) do
+    # get("/:sys_id/state", :state) do
     #   # Status defined as a system module
     #   required_params(params, :module)
     #   sys = System.get(id)
@@ -243,7 +245,7 @@ module Engine::API
     #       Object, Kernel, BasicObject
     #   ])
     #
-    #   get("/:id/funcs", :funcs)
+    #   get("/:sys_id/funcs", :funcs)
     #       required_params(params, :module)
     #       sys = System.get(id)
     #       if sys
@@ -291,7 +293,7 @@ module Engine::API
     # end
 
     # # Return the count of a module type in a system
-    # get("/:id/count", :count) do
+    # get("/:sys_id/count", :count) do
     #   sys = @control_system.not_nil!
     #   args = CountParams.new(params).validate!
     #   render json: {count: sys.count(args.module)}
@@ -299,7 +301,7 @@ module Engine::API
 
     # returns a hash of a module types in a system with
     # the count of each of those types
-    # get("/:id/types", :types) do
+    # get("/:sys_id/types", :types) do
     #   control_system = @control_system.not_nil!
     #   render json: control_system.modules.each_with_object({} of String => Int32) do |mod, counts|
     #     counts[mod] = control_system.count(mod)
@@ -318,7 +320,7 @@ module Engine::API
 
     def find_system
       # Find will raise a 404 (not found) if there is an error
-      @control_system = Model::ControlSystem.find!(params["id"]?)
+      @control_system = Model::ControlSystem.find!(params["sys_id"]?)
     end
   end
 end

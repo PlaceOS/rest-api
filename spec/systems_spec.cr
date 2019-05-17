@@ -4,12 +4,76 @@ module Engine::API
   describe Systems do
     with_server do
       test_404(namespace: Systems::NAMESPACE, model_name: Model::ControlSystem.table_name)
-
       pending "index"
 
       describe "remove" do
-        pending "removes module if not in use by another ControlSystem"
-        pending "keeps module if in use by another ControlSystem"
+        it "module if not in use by another ControlSystem" do
+          cs = Model::Generator.control_system.save!
+          mod = Model::Generator.module(control_system: cs).save!
+
+          mod_id = mod.id.not_nil!
+          cs.update_fields(modules: [mod_id])
+
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
+          cs.modules.not_nil!.should contain mod_id
+
+          params = HTTP::Params.encode({module_id: mod_id})
+          path = Systems::NAMESPACE[0] + "#{cs.id}/remove?#{params}"
+
+          result = curl(
+            method: "POST",
+            path: path,
+          )
+
+          result.status_code.should eq 200
+
+          cs = Model::ControlSystem.find!(cs.id)
+          cs.modules.not_nil!.should_not contain mod_id
+
+          Model::Module.find(mod_id).should be_nil
+          cs.destroy
+        end
+
+        it "keeps module if in use by another ControlSystem" do
+          cs1 = Model::Generator.control_system.save!
+          cs2 = Model::Generator.control_system.save!
+          mod = Model::Generator.module(control_system: cs1).save!
+
+          mod_id = mod.id.not_nil!
+
+          cs1.update_fields(modules: [mod_id])
+          cs2.update_fields(modules: [mod_id])
+
+          cs1.persisted?.should be_true
+          cs2.persisted?.should be_true
+          mod.persisted?.should be_true
+
+          cs1.modules.not_nil!.should contain mod_id
+          cs2.modules.not_nil!.should contain mod_id
+
+          params = HTTP::Params.encode({module_id: mod_id})
+          path = Systems::NAMESPACE[0] + "#{cs1.id}/remove?#{params}"
+
+          result = curl(
+            method: "POST",
+            path: path,
+          )
+
+          result.status_code.should eq 200
+
+          cs1 = Model::ControlSystem.find!(cs1.id)
+          cs2 = Model::ControlSystem.find!(cs2.id)
+
+          cs1.modules.not_nil!.should_not contain mod_id
+          cs2.modules.not_nil!.should contain mod_id
+
+          Model::Module.find(mod_id).should_not be_nil
+
+          mod.destroy
+          cs1.destroy
+          cs2.destroy
+        end
       end
 
       describe "module function" do
@@ -56,6 +120,7 @@ module Engine::API
           result = curl(
             method: "POST",
             path: path,
+            headers: {"Content-Type" => "application/x-www-form-urlencoded"},
           )
 
           result.status_code.should eq 200

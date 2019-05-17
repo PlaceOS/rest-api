@@ -5,20 +5,20 @@ module Engine::API
     base = SystemTriggers::NAMESPACE[0]
 
     with_server do
-      test_404(namespace: [base.gsub(/:id/, "sys-#{Random.rand(9999)}")], model_name: Model::TriggerInstance.table_name)
+      test_404(namespace: [base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}")], model_name: Model::TriggerInstance.table_name)
       pending "index"
 
       describe "CRUD operations" do
         # TODO: determine if sys_id in path is source of errors
         # Have to manually test these as ControlSystem id needs to be set
 
-        pending "create" do
+        it "create" do
           sys = Model::Generator.control_system.save!
           trigger_instance = Model::Generator.trigger_instance
           trigger_instance.control_system
           body = trigger_instance.to_json
 
-          path = base.gsub(/:id/, sys.id)
+          path = base.gsub(/:sys_id/, sys.id)
           result = curl(
             method: "POST",
             path: path,
@@ -39,7 +39,7 @@ module Engine::API
           trigger_instance.save!
           id = trigger_instance.id.not_nil!
 
-          path = base.gsub(/:id/, sys.id) + id
+          path = base.gsub(/:sys_id/, sys.id) + id
           result = curl(method: "GET", path: path)
 
           result.status_code.should eq 200
@@ -61,7 +61,7 @@ module Engine::API
           updated_importance = !original_importance
 
           id = trigger_instance.id.not_nil!
-          path = base.gsub(/:id/, sys.id) + id
+          path = base.gsub(/:sys_id/, sys.id) + id
 
           result = curl(
             method: "PATCH",
@@ -77,7 +77,7 @@ module Engine::API
           updated.important.should_not eq original_importance
         end
 
-        pending "destroy" do
+        it "destroy" do
           sys = Engine::Model::Generator.control_system.save!
           model = Engine::Model::Generator.trigger_instance
           model.control_system = sys
@@ -86,7 +86,7 @@ module Engine::API
           model.persisted?.should be_true
 
           id = model.id.not_nil!
-          path = base.gsub(/:id/, sys.id) + id
+          path = base.gsub(/:sys_id/, sys.id) + id
 
           result = curl(method: "DELETE", path: path)
           result.status_code.should eq 200

@@ -2,7 +2,8 @@ require "./application"
 
 module Engine::API
   class SystemTriggers < Application
-    base "/api/v1/systems/:id/triggers/"
+    base "/api/v1/systems/:sys_id/triggers/"
+    id_param :trig_id
 
     # state, funcs, count and types are available to authenticated users
     # before_action :check_admin,   only: [:create, :update, :destroy]
@@ -96,7 +97,7 @@ module Engine::API
       render json: results
     end
 
-    get("/:trigger_id", :show) do
+    def show
       # if user.support && !user.sys_admin
       #   render json: restrict_attributes(@sys_trig, exclude: ["webhook_secret"])
       # else
@@ -109,7 +110,7 @@ module Engine::API
       attribute important : Bool
     end
 
-    patch("/:trigger_id", :update) do
+    def update
       sys_trig = @sys_trig.not_nil!
       body = request.body.not_nil!
       args = UpdateParams.from_json(body)
@@ -120,19 +121,19 @@ module Engine::API
       save_and_respond(sys_trig)
     end
 
-    post("/:trigger_id", :create) do
+    def create
       body = request.body.not_nil!
       save_and_respond Model::TriggerInstance.from_json(body)
     end
 
-    delete("/:trigger_id", :delete) do
+    def destroy
       @sys_trig.try &.destroy # expires the cache in after callback
       head :ok
     end
 
     def find_sys_trig
       # Find will raise a 404 (not found) if there is an error
-      @sys_trig = Model::TriggerInstance.find!(params["trigger_id"]?)
+      @sys_trig = Model::TriggerInstance.find!(params["trig_id"]?)
     end
   end
 end

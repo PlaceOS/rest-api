@@ -2,7 +2,7 @@ version: 1.0
 shards:
   action-controller:
     github: spider-gazelle/action-controller
-    version: 1.5.0
+    version: 1.5.1
 
   active-model:
     github: spider-gazelle/active-model
@@ -78,11 +78,11 @@ shards:
 
   redis:
     github: stefanwille/crystal-redis
-    version: 2.1.1
+    version: 2.2.0
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 9a50fa4c01d6d4b2aeef66d4c5e62c8cef260778
+    commit: c94758ef798cbd22f2538ae8d4b0745460fb2b1f
 
   retriable:
     github: Sija/retriable.cr
