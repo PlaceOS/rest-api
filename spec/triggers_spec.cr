@@ -4,7 +4,11 @@ module Engine::API
   describe Triggers do
     with_server do
       test_404(namespace: Triggers::NAMESPACE, model_name: Model::Trigger.table_name)
-      pending "index"
+
+      pending "index" do
+        test_base_index(klass: Model::Trigger, controller_klass: Triggers)
+      end
+
       describe "CRUD operations" do
         test_crd(klass: Model::Trigger, controller_klass: Triggers)
         it "update" do

@@ -4,7 +4,11 @@ module Engine::API
   describe Zones do
     with_server do
       test_404(namespace: Zones::NAMESPACE, model_name: Model::Zone.table_name)
-      pending "index"
+
+      pending "index" do
+        test_base_index(klass: Model::Zone, controller_klass: Zones)
+      end
+
       describe "CRUD operations" do
         test_crd(klass: Model::Zone, controller_klass: Zones)
         it "update" do

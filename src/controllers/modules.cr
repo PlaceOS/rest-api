@@ -32,12 +32,12 @@ module Engine::API
     getter :module
 
     private class IndexParams < Params
-      attribute control_system_id : String
-      attribute driver_id : String
-      attribute connected : Bool = false
-      attribute no_logic : Bool = false
-      attribute running : Bool = false
       attribute as_of : Int32
+      attribute control_system_id : String
+      attribute connected : Bool
+      attribute driver_id : String
+      attribute no_logic : Bool = false
+      attribute running : Bool
     end
 
     def index
@@ -46,9 +46,7 @@ module Engine::API
       # if a system id is present we query the database directly
       if args.control_system_id
         cs = Model::ControlSystem.find!(args.control_system_id)
-
         modules = cs.modules || [] of String
-
         results = Model::Module.find_all(modules).to_a
         render json: {
           total:   results.size,
@@ -58,13 +56,12 @@ module Engine::API
         elastic = Model::Module.elastic
         query = elastic.query(params)
 
-        driver_id = args.driver_id
-        if driver_id
-          query.filter({"doc.driver_id" => [driver_id]})
+        if args.driver_id
+          query.filter({"doc.driver_id" => [args.driver_id.not_nil!]})
         end
 
-        connected = args.connected
-        unless connected.nil?
+        if args.connected
+          connected = args.connected.not_nil!
           query.filter({
             "doc.ignore_connected" => [false],
             "doc.connected"        => [connected],
@@ -75,9 +72,8 @@ module Engine::API
           end
         end
 
-        running = args.running
-        if running
-          query.filter({"doc.running" => [running]})
+        if args.running
+          query.filter({"doc.running" => [args.running.not_nil!]})
         end
 
         if args.no_logic

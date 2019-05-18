@@ -30,6 +30,8 @@ module Engine::API
 
     class IndexParams < Params
       attribute control_system_id : String
+      attribute important : Bool = false
+      attribute triggered : Bool = false
       attribute trigger_id : String
       attribute as_of : Int32 # Unix epoch
     end
@@ -59,12 +61,12 @@ module Engine::API
       # end
 
       # Filter by importance
-      if params.has_key? "important"
+      if args.important
         query.filter({"doc.important" => [true]})
       end
 
       # Filter by triggered
-      if params.has_key? "triggered"
+      if args.triggered
         query.filter({"doc.triggered" => [true]})
       end
 

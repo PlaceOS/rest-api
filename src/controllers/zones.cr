@@ -14,7 +14,7 @@ module Engine::API
     def index
       elastic = Model::Zone.elastic
       query = elastic.query(params)
-      query.sort = NAME_SORT_ASC
+      query.sort(NAME_SORT_ASC)
 
       if params.has_key? "tags"
         tags = params["tags"].gsub(/[^0-9a-z ]/i, "").split(/\s+/).reject(&.empty?).uniq
@@ -23,11 +23,12 @@ module Engine::API
         query.must({
           "doc.tags" => tags,
         })
-      else
+
+        # else
         # TODO: Authorization
         # user = current_user
         # return head :forbidden unless user && (user.support || user.sys_admin)
-        query.search_field "doc.name"
+        # query.search_field "doc.name"
       end
 
       render json: elastic.search(query)

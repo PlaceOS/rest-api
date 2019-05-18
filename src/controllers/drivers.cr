@@ -13,17 +13,23 @@ module Engine::API
     getter :driver
 
     def index
-      role = params["role"]?
+      # Pick off role from HTTP params, render error if present and invalid
+      role = params["role"]?.try &.to_i?.try do |r|
+        parsed = Model::Driver::Role.from_value?(r)
+        render status: :unprocessable_entity, text: "Invalid Role" unless parsed
+        parsed
+      end
+
       elastic = Model::Driver.elastic
       query = elastic.query(params)
 
-      if role && Model::Driver::Role.parse?(role)
+      if role
         query.filter({
-          "doc.role" => [role],
+          "doc.role" => [role.to_i],
         })
       end
 
-      query.sort = NAME_SORT_ASC
+      query.sort(NAME_SORT_ASC)
       render json: elastic.search(query)
     end
 

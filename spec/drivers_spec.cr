@@ -3,9 +3,39 @@ require "./helper"
 module Engine::API
   describe Drivers do
     with_server do
-      test_404(namespace: Drivers::NAMESPACE, model_name: Model::Driver.table_name)
+      pending "index" do
+        test_base_index(klass: Model::Driver, controller_klass: Drivers)
+        it "filters queries by driver role" do
+          service = Model::Generator.driver(role: Model::Driver::Role::Service)
+          service.name = Faker::Hacker.noun + rand((1..10000)).to_s
+          service.save!
 
-      pending "index"
+          sleep 10
+
+          params = HTTP::Params.encode({
+            "role" => Model::Driver::Role::Service.to_i.to_s,
+            "q"    => service.id.not_nil!,
+          })
+
+          path = "#{Drivers::NAMESPACE[0]}?#{params}"
+
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          result.status_code.should eq 200
+          results = JSON.parse(result.body)["results"].as_a
+
+          all_service_roles = results.all? { |result| result["role"] == Model::Driver::Role::Service.to_i }
+          contains_search_term = results.any? { |result| result["id"] == service.id }
+
+          all_service_roles.should be_true
+          contains_search_term.should be_true
+        end
+      end
+
+      test_404(namespace: Drivers::NAMESPACE, model_name: Model::Driver.table_name)
 
       describe "CRUD operations" do
         test_crd(klass: Model::Driver, controller_klass: Drivers)

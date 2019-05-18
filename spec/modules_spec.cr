@@ -30,11 +30,16 @@ module Engine::API
       end
 
       pending "index" do
+        test_base_index(klass: Model::Module, controller_klass: Modules)
+
         it "looks up by system_id" do
           mod = Model::Generator.module.save!
-          id = mod.control_system_id.not_nil!
+          sys = mod.control_system.not_nil!
 
-          params = HTTP::Params.encode({"control_system_id" => id})
+          sys.modules = [mod.id.not_nil!]
+          sys.save!
+
+          params = HTTP::Params.encode({"control_system_id" => sys.id.not_nil!})
           path = "#{Modules::NAMESPACE[0]}?#{params}"
 
           result = curl(
@@ -44,12 +49,57 @@ module Engine::API
 
           body = JSON.parse(result.body)
           body["total"].should eq 1
-          Engine::Module.from_json(body["results"][0]).should eq mod
+          body["results"][0]["id"].should eq mod.id
         end
 
         pending "range query"
-        pending "connected query"
-        pending "no logic query"
+
+        it "connected query" do
+          mod = Model::Generator.module
+          mod.connected = true
+          mod.save!
+
+          found_mod = Model::Module.find!(mod.id)
+
+          params = HTTP::Params.encode({"connected" => "true"})
+          path = "#{Modules::NAMESPACE[0]}?#{params}"
+
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          results = JSON.parse(result.body)["results"].as_a
+
+          all_connected = results.all? { |result| result["connected"] != "true" }
+          contains_created = results.any? { |result| result["id"] == mod.id }
+
+          all_connected.should be_true
+          contains_created.should be_true
+        end
+
+        it "no logic query" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service)
+          mod = Model::Generator.module
+          mod.driver = driver
+          mod.save!
+
+          params = HTTP::Params.encode({"no_logic" => "true"})
+          path = "#{Modules::NAMESPACE[0]}?#{params}"
+
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          results = JSON.parse(result.body)["results"].as_a
+
+          no_logic = results.all? { |result| result["role"] != Model::Driver::Role::Logic.to_i }
+          contains_created = results.any? { |result| result["id"] == mod.id }
+
+          no_logic.should be_true
+          contains_created.should be_true
+        end
       end
 
       describe "ping" do

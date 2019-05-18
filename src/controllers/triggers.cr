@@ -17,7 +17,7 @@ module Engine::API
     def index
       elastic = Model::Trigger.elastic
       query = elastic.query(params)
-      query.sort = NAME_SORT_ASC
+      query.sort(NAME_SORT_ASC)
 
       render json: elastic.search(query)
     end

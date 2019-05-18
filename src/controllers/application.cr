@@ -18,7 +18,7 @@ module Engine::API
   end
 
   private abstract class Application < ActionController::Base
-    NAME_SORT_ASC = [{"doc.name.sort" => {order: :asc}}]
+    NAME_SORT_ASC = {"name" => {order: :asc}}
 
     protected def ensure_json
       unless request.headers["Content-Type"]? == "application/json"

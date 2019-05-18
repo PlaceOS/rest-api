@@ -12,15 +12,18 @@ require "../lib/action-controller/spec/curl_context"
 require "../lib/engine-models/spec/generator"
 
 # Configure DB
-DB_NAME = "test_#{Time.now.to_unix}_#{rand(10000)}"
+# DB_NAME = "test_#{Time.now.to_unix}_#{rand(10000)}"
+DB_NAME = "engine"
 RethinkORM::Connection.configure do |settings|
   settings.db = DB_NAME
 end
 
-# Tear down the test database
+# Clear test tables on exit
 at_exit do
   RethinkORM::Connection.raw do |q|
-    q.db_drop(DB_NAME)
+    q.db(DB_NAME).table_list.for_each do |t|
+      q.db(DB_NAME).table(t).delete
+    end
   end
 end
 
@@ -31,6 +34,30 @@ def test_404(namespace, model_name)
     path = namespace[0] + id
     result = curl("GET", path)
     result.status_code.should eq 404
+  end
+end
+
+macro test_base_index(klass, controller_klass)
+  {% klass_name = klass.stringify.split("::").last.underscore %}
+  it "queries #{ {{ klass_name }} }" do
+    doc = Model::Generator.{{ klass_name.id }}.save!
+    doc.persisted?.should be_true
+
+    sleep 5
+
+    params = HTTP::Params.encode({"q" => doc.id.not_nil!})
+    path = "#{{{controller_klass}}::NAMESPACE[0]}?#{params}"
+    result = curl(
+      method: "GET",
+      path: path,
+    )
+
+    puts result.body unless result.success?
+
+    result.status_code.should eq 200
+
+    found_id = JSON.parse(result.body)["results"][0]?.try &.["id"]
+    found_id.should eq doc.id
   end
 end
 

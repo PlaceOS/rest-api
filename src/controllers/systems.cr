@@ -26,26 +26,26 @@ module Engine::API
     def index
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(params)
-      query.sort = NAME_SORT_ASC
       args = IndexParams.new(params)
 
+      query.sort(NAME_SORT_ASC)
+
       # Filter systems via zone_id
-      zone_id = args.zone_id
-      if zone_id
+      if args.zone_id
         query.filter({
-          "doc.zones" => [zone_id],
+          "doc.zones" => [args.zone_id.not_nil!],
         })
       end
 
       # Filter via module_id
-      module_id = args.module_id
-      if module_id
+      if args.module_id
         query.filter({
-          "doc.modules" => [module_id],
+          "doc.modules" => [args.module_id.not_nil!],
         })
       end
 
-      query.search_field "doc.name"
+      query.sort(NAME_SORT_ASC)
+      # query.search_field "doc.name"
       render json: elastic.search(query)
     end
 

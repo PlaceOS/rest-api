@@ -6,7 +6,6 @@ module Engine::API
 
     with_server do
       test_404(namespace: [base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}")], model_name: Model::TriggerInstance.table_name)
-      pending "index"
 
       describe "CRUD operations" do
         # TODO: determine if sys_id in path is source of errors

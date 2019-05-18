@@ -4,7 +4,80 @@ module Engine::API
   describe Systems do
     with_server do
       test_404(namespace: Systems::NAMESPACE, model_name: Model::ControlSystem.table_name)
-      pending "index"
+
+      pending "index" do
+        test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
+
+        it "filters systems by zones" do
+          Model::ControlSystem.clear
+          num_systems = 5
+
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.not_nil!
+
+          systems = Array.new(size: num_systems) do
+            Model::Generator.control_system
+          end
+
+          # Add the zone to a subset of systems
+          expected_systems = systems.shuffle[0..2]
+          expected_systems.each do |sys|
+            sys.zones = [zone_id]
+          end
+
+          systems.each &.save!
+
+          params = HTTP::Params.encode({"zone_id" => zone_id})
+          path = "#{Systems::NAMESPACE[0]}?#{params}"
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          result.status_code.should eq 200
+
+          returned_ids = JSON.parse(result.body)["results"].as_a.map &.["id"]
+          returned_ids.should eq expected_systems.map &.id
+
+          systems.each &.destroy
+          mod.destroy
+        end
+
+        it "filters systems by modules" do
+          Model::ControlSystem.clear
+          num_systems = 5
+
+          mod = Model::Generator.mod.save!
+          mod_id = mod.id.not_nil!
+
+          systems = Array.new(size: num_systems) do
+            Model::Generator.control_system
+          end
+
+          # Add the zone to a subset of systems
+          expected_systems = systems.shuffle[0..2]
+          expected_systems.each do |sys|
+            sys.modules = [mod_id]
+          end
+
+          systems.each &.save!
+
+          params = HTTP::Params.encode({"module_id" => mod_id})
+          path = "#{Systems::NAMESPACE[0]}?#{params}"
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          result.status_code.should eq 200
+
+          returned_ids = JSON.parse(result.body)["results"].as_a.map &.["id"]
+          returned_ids.should eq expected_systems.map &.id
+
+          systems.each &.destroy
+          mod.destroy
+        end
+      end
 
       describe "remove" do
         it "module if not in use by another ControlSystem" do
