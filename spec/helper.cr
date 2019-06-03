@@ -25,6 +25,7 @@ at_exit do
       q.db(DB_NAME).table(t).delete
     end
   end
+  # Elastic.empty_indices
 end
 
 # Check application responds with 404 when model not present
@@ -43,7 +44,7 @@ macro test_base_index(klass, controller_klass)
     doc = Model::Generator.{{ klass_name.id }}.save!
     doc.persisted?.should be_true
 
-    sleep 5
+    sleep 2
 
     params = HTTP::Params.encode({"q" => doc.id.not_nil!})
     path = "#{{{controller_klass}}::NAMESPACE[0]}?#{params}"
@@ -55,9 +56,8 @@ macro test_base_index(klass, controller_klass)
     puts result.body unless result.success?
 
     result.status_code.should eq 200
-
-    found_id = JSON.parse(result.body)["results"][0]?.try &.["id"]
-    found_id.should eq doc.id
+    contains_search_term = JSON.parse(result.body)["results"].as_a.any? { |result| result["id"] == doc.id }
+    contains_search_term.should be_true
   end
 end
 

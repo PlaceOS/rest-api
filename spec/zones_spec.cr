@@ -5,7 +5,7 @@ module Engine::API
     with_server do
       test_404(namespace: Zones::NAMESPACE, model_name: Model::Zone.table_name)
 
-      pending "index" do
+      describe "index" do
         test_base_index(klass: Model::Zone, controller_klass: Zones)
       end
 

@@ -7,8 +7,7 @@ module Engine::API
     id_param :sys_id
 
     # TODO: Callbacks for access control
-    # state, funcs, count and types are available to authenticated users
-
+    # state, funcs, count and types are available to authenticated usersj
     before_action :find_system, only: [:show, :update, :destroy, :remove,
                                        :start, :stop, :exec, :types, :funcs]
     before_action :ensure_json, only: [:create, :update]
@@ -28,8 +27,6 @@ module Engine::API
       query = Model::ControlSystem.elastic.query(params)
       args = IndexParams.new(params)
 
-      query.sort(NAME_SORT_ASC)
-
       # Filter systems via zone_id
       if args.zone_id
         query.filter({
@@ -45,18 +42,12 @@ module Engine::API
       end
 
       query.sort(NAME_SORT_ASC)
-      # query.search_field "doc.name"
       render json: elastic.search(query)
-    end
-
-    class ShowParams < Params
-      attribute complete : Bool
     end
 
     # Renders a control system
     def show
-      args = ShowParams.new(params)
-      if args.complete
+      if params["complete"]?
         render json: with_fields(@control_system, {
           :module_data => @control_system.try &.module_data,
           :zone_data   => @control_system.try &.zone_data,
@@ -106,6 +97,7 @@ module Engine::API
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
+    #
     post("/:sys_id/remove", :remove) do
       control_system = @control_system.not_nil!
       args = RemoveParams.new(params).validate!

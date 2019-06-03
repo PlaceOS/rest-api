@@ -6,11 +6,11 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    version: 1.5.1
+    version: 1.6.0
 
   active-model:
     github: spider-gazelle/active-model
-    commit: 1da98e6cdc4deda7773126501439099ad5b7c8a2
+    commit: 93241cd16bd3d7336e02a35f0b2c1f20936170af
 
   ameba:
     github: veelenga/ameba
@@ -30,11 +30,11 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: f63d18298cbbf0c82b7d66d4a06dcd4e735a0922
+    commit: dfdd0805195ebaec6ec84eb8707e29aafc594ce0
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: fde0218f01661538d15199694316619ae8f6e25c
+    commit: e4e6bf090bec75bc3f78c3be776ec68a69ec3158
 
   faker:
     github: askn/faker
@@ -86,7 +86,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 139ae04d0fb2d794986c85bc5a62b47c23ad751d
+    commit: 4f08082b8defb656c4dcf8c2f116ffe970a31da6
 
   retriable:
     github: Sija/retriable.cr
@@ -94,7 +94,7 @@ shards:
 
   scrypt:
     github: ysbaddaden/scrypt-crystal
-    version: 0.2.2
+    version: 0.3.0
 
   ssh2:
     github: spider-gazelle/ssh2.cr

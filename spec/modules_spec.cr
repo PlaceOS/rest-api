@@ -29,7 +29,7 @@ module Engine::API
         end
       end
 
-      pending "index" do
+      describe "index" do
         test_base_index(klass: Model::Module, controller_klass: Modules)
 
         it "looks up by system_id" do
@@ -59,8 +59,6 @@ module Engine::API
           mod.connected = true
           mod.save!
 
-          found_mod = Model::Module.find!(mod.id)
-
           params = HTTP::Params.encode({"connected" => "true"})
           path = "#{Modules::NAMESPACE[0]}?#{params}"
 
@@ -71,8 +69,8 @@ module Engine::API
 
           results = JSON.parse(result.body)["results"].as_a
 
-          all_connected = results.all? { |result| result["connected"] != "true" }
-          contains_created = results.any? { |result| result["id"] == mod.id }
+          all_connected = results.all? { |r| r["connected"] != "true" }
+          contains_created = results.any? { |r| r["id"] == mod.id }
 
           all_connected.should be_true
           contains_created.should be_true
@@ -94,8 +92,8 @@ module Engine::API
 
           results = JSON.parse(result.body)["results"].as_a
 
-          no_logic = results.all? { |result| result["role"] != Model::Driver::Role::Logic.to_i }
-          contains_created = results.any? { |result| result["id"] == mod.id }
+          no_logic = results.all? { |r| r["role"] != Model::Driver::Role::Logic.to_i }
+          contains_created = results.any? { |r| r["id"] == mod.id }
 
           no_logic.should be_true
           contains_created.should be_true

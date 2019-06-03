@@ -3,14 +3,14 @@ require "./helper"
 module Engine::API
   describe Drivers do
     with_server do
-      pending "index" do
+      describe "index" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
         it "filters queries by driver role" do
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
           service.name = Faker::Hacker.noun + rand((1..10000)).to_s
           service.save!
 
-          sleep 10
+          sleep 2
 
           params = HTTP::Params.encode({
             "role" => Model::Driver::Role::Service.to_i.to_s,
@@ -27,8 +27,8 @@ module Engine::API
           result.status_code.should eq 200
           results = JSON.parse(result.body)["results"].as_a
 
-          all_service_roles = results.all? { |result| result["role"] == Model::Driver::Role::Service.to_i }
-          contains_search_term = results.any? { |result| result["id"] == service.id }
+          all_service_roles = results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }
+          contains_search_term = results.any? { |r| r["id"] == service.id }
 
           all_service_roles.should be_true
           contains_search_term.should be_true

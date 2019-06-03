@@ -5,7 +5,7 @@ module Engine::API
     with_server do
       test_404(namespace: Triggers::NAMESPACE, model_name: Model::Trigger.table_name)
 
-      pending "index" do
+      describe "index" do
         test_base_index(klass: Model::Trigger, controller_klass: Triggers)
       end
 

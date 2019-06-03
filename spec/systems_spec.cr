@@ -5,7 +5,7 @@ module Engine::API
     with_server do
       test_404(namespace: Systems::NAMESPACE, model_name: Model::ControlSystem.table_name)
 
-      pending "index" do
+      describe "index" do
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
         it "filters systems by zones" do
@@ -27,6 +27,8 @@ module Engine::API
 
           systems.each &.save!
 
+          sleep 1
+
           params = HTTP::Params.encode({"zone_id" => zone_id})
           path = "#{Systems::NAMESPACE[0]}?#{params}"
           result = curl(
@@ -40,14 +42,13 @@ module Engine::API
           returned_ids.should eq expected_systems.map &.id
 
           systems.each &.destroy
-          mod.destroy
         end
 
         it "filters systems by modules" do
           Model::ControlSystem.clear
           num_systems = 5
 
-          mod = Model::Generator.mod.save!
+          mod = Model::Generator.module.save!
           mod_id = mod.id.not_nil!
 
           systems = Array.new(size: num_systems) do
@@ -61,6 +62,8 @@ module Engine::API
           end
 
           systems.each &.save!
+
+          sleep 1
 
           params = HTTP::Params.encode({"module_id" => mod_id})
           path = "#{Systems::NAMESPACE[0]}?#{params}"
