@@ -2,6 +2,8 @@ require "./application"
 
 module Engine::API
   class SystemTriggers < Application
+    include Utils::CurrentUser
+
     base "/api/v1/systems/:sys_id/triggers/"
     id_param :trig_id
 
@@ -14,19 +16,6 @@ module Engine::API
 
     @sys_trig : Model::TriggerInstance?
     getter :sys_trig
-
-    # SYS_INCLUDE =
-    #     include: {
-    #         # include control system on logic modules so it is possible
-    #         # to display the inherited settings
-    #         control_system: {
-    #             only: [:name, :id],
-    #         }
-    #     }
-    # }
-    # # Support users cannot access webhook links
-    # SUPPORT_ONLY = { except: [:webhook_secret] }
-    # SYS_INCLUDE_SUPPORT = SYS_INCLUDE.merge(SUPPORT_ONLY)
 
     class IndexParams < Params
       attribute control_system_id : String
@@ -73,38 +62,53 @@ module Engine::API
       # Include parent documents in the search
       query.has_parent(parent: Model::Trigger, parent_index: Model::Trigger.table_name)
 
-      results = elastic.search(query)
+      results = elastic.search(query)[:results]
+      users = render_users(results, args.trigger_id)
+      render json: {
+        results: users,
+        total:   users.size,
+      }
+    end
 
-      # Awaiting User logic
-      # user = current_user
-      # if args.trigger_id
-      #     if user.support && !user.sys_admin
-      #         render json: restrict_attributes(results.as_json(SYS_INCLUDE_SUPPORT))
-      #     else
-      #         sys_included = results.map do |r|
-      #           cs = r.cs
-      #           name = cs.try &.name
-      #           id = cs.try &.id
-      #           with_fields(r, { :control_system => { name: name, id: id } })
-      #         end
-      #
-      #         render json: sys_included
-      #     end
-      # elsif user.support && !user.sys_admin
-      #     render json: results.as_json(SUPPORT_ONLY)
-      # else
-      #     render json: results
-      # end
+    # Render a collection of users
+    # - excludes :webhook_secret if authorized user has a support role
+    # - includes :name, :id of parent ControlSystem if passed trigger id
+    protected def render_users(users, trigger_id = nil)
+      # TODO: Review on auth completion
+      user = current_user.not_nil!
+      if trigger_id
+        # Include ControlSystem
+        users.map do |r|
+          cs = r.control_system
 
-      render json: results
+          # Sa port users cannot access webhook links
+          except = user.support && !user.sys_admin ? ["webhook_secret"] : nil
+          restrict_attributes(r,
+            fields: {
+              :control_system => {
+                name: cs.try &.name,
+                id:   cs.try &.id,
+              },
+            },
+            except: except,
+          )
+        end
+      elsif user.support && !user.sys_admin
+        # Support users cannot access webhook links
+        users.map { |r| restrict_attributes(r, except: ["webhook_secret"]) }
+      else
+        users
+      end
     end
 
     def show
-      # if user.support && !user.sys_admin
-      #   render json: restrict_attributes(@sys_trig, exclude: ["webhook_secret"])
-      # else
-      render json: @sys_trig
-      # end
+      user = current_user.not_nil!
+      sys_trig = @sys_trig.not_nil!
+      if user.support && !user.sys_admin
+        render json: restrict_attributes(sys_trig, except: ["webhook_secret"])
+      else
+        render json: sys_trig
+      end
     end
 
     class UpdateParams < Params

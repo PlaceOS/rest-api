@@ -14,6 +14,7 @@ require "../lib/engine-models/spec/generator"
 # Configure DB
 # DB_NAME = "test_#{Time.now.to_unix}_#{rand(10000)}"
 DB_NAME = "engine"
+
 RethinkORM::Connection.configure do |settings|
   settings.db = DB_NAME
 end

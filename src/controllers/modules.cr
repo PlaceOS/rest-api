@@ -13,21 +13,6 @@ module Engine::API
     before_action :ensure_json, only: [:create, :update]
     before_action :find_module, only: [:show, :update, :destroy, :ping]
 
-    # Constant for performance
-    MOD_INCLUDE = {
-      include: {
-        # Most human readable module data is contained in driver
-        driver: {only: [:name, :description, :module_name, :settings]},
-
-        # include control system on logic modules so it is possible
-        # to display the inherited settings
-        control_system: {
-          only:    [:name, :settings],
-          methods: [:zone_data],
-        },
-      },
-    }
-
     @module : Model::Module?
     getter :module
 
@@ -97,10 +82,47 @@ module Engine::API
         # end
 
         query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
+        search_results = elastic.search(query)
 
-        results = elastic.search(query)
-        # render json: results.as_json(MOD_INCLUDE)
-        render json: results
+        # Include subset of association data with results
+        includes = search_results[:results].map do |d|
+          sys = d.control_system
+          driver = d.driver
+
+          # Most human readable module data is contained in driver
+          driver_field = restrict_attributes(
+            driver,
+            only: [
+              "name",
+              "description",
+              "module_name",
+              "settings",
+            ]
+          )
+
+          # Include control system on logic modules so it is possible
+          # to display the inherited settings
+          sys_field = restrict_attributes(
+            sys,
+            only: [
+              "name",
+              "settings",
+            ],
+            fields: {
+              :zone_data => sys.try &.zone_data,
+            }
+          )
+
+          with_fields(d, {
+            :control_system => sys_field,
+            :driver         => driver_field,
+          })
+        end
+
+        render json: {
+          total:   search_results[:total],
+          results: includes,
+        }
       end
     end
 
@@ -108,7 +130,6 @@ module Engine::API
       render json: @module
     end
 
-    # TODO: This depends on extended save_and_respond function
     def update
       mod = @module.not_nil!
       body = request.body.not_nil!

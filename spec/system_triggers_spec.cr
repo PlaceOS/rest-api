@@ -8,9 +8,6 @@ module Engine::API
       test_404(namespace: [base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}")], model_name: Model::TriggerInstance.table_name)
 
       describe "CRUD operations" do
-        # TODO: determine if sys_id in path is source of errors
-        # Have to manually test these as ControlSystem id needs to be set
-
         it "create" do
           sys = Model::Generator.control_system.save!
           trigger_instance = Model::Generator.trigger_instance

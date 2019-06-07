@@ -7,6 +7,7 @@ module Engine::API
     # TODO: user access control
     # before_action :check_admin, except: [:index, :show]
     # before_action :check_support, only: [:index, :show]
+
     before_action :find_driver, only: [:show, :update, :destroy]
 
     @driver : Model::Driver?
