@@ -42,23 +42,23 @@ module Engine::API
         query = elastic.query(params)
 
         if args.driver_id
-          query.filter({"doc.driver_id" => [args.driver_id.not_nil!]})
+          query.filter({"driver_id" => [args.driver_id.not_nil!]})
         end
 
         if args.connected
           connected = args.connected.not_nil!
           query.filter({
-            "doc.ignore_connected" => [false],
-            "doc.connected"        => [connected],
+            "ignore_connected" => [false],
+            "connected"        => [connected],
           })
           unless connected
-            query.filter({"doc.ignore_connected" => nil})
-            query.should({"doc.ignore_connected" => [false]})
+            query.filter({"ignore_connected" => nil})
+            query.should({"ignore_connected" => [false]})
           end
         end
 
         if args.running
-          query.filter({"doc.running" => [args.running.not_nil!]})
+          query.filter({"running" => [args.running.not_nil!]})
         end
 
         if args.no_logic
@@ -68,14 +68,14 @@ module Engine::API
             Model::Driver::Role::Service,
           ].map(&.to_i)
 
-          query.filter({"doc.role" => non_logic_roles})
+          query.filter({"role" => non_logic_roles})
         end
 
         # TODO: Awaiting range query support in neuroplastic
         # as_of = args.as_of
         # if as_of
         #   query.range({
-        #     "doc.updated_at" => {
+        #     "updated_at" => {
         #       :lte => as_of,
         #     },
         #   })

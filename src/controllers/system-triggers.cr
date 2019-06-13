@@ -32,18 +32,18 @@ module Engine::API
 
       # Filter by system ID
       if args.control_system_id
-        query.filter({"doc.control_system_id" => [args.control_system_id.not_nil!]})
+        query.filter({"control_system_id" => [args.control_system_id.not_nil!]})
       end
 
       # Filter by trigger ID
       if args.trigger_id
-        query.filter({"doc.trigger_id" => [args.trigger_id.not_nil!]})
+        query.filter({"trigger_id" => [args.trigger_id.not_nil!]})
       end
 
       # That occured before a particular time
       # if args.as_of
       #   query.range({
-      #     "doc.updated_at" => {
+      #     "updated_at" => {
       #       :lte => args.as_of,
       #     },
       #   })
@@ -51,12 +51,12 @@ module Engine::API
 
       # Filter by importance
       if args.important
-        query.filter({"doc.important" => [true]})
+        query.filter({"important" => [true]})
       end
 
       # Filter by triggered
       if args.triggered
-        query.filter({"doc.triggered" => [true]})
+        query.filter({"triggered" => [true]})
       end
 
       # Include parent documents in the search

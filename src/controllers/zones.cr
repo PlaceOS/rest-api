@@ -21,14 +21,14 @@ module Engine::API
         return head :bad_request if tags.empty?
 
         query.must({
-          "doc.tags" => tags,
+          "tags" => tags,
         })
 
         # else
         # TODO: Authorization
         # user = current_user
         # return head :forbidden unless user && (user.support || user.sys_admin)
-        # query.search_field "doc.name"
+        # query.search_field "name"
       end
 
       render json: elastic.search(query)

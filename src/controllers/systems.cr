@@ -30,14 +30,14 @@ module Engine::API
       # Filter systems via zone_id
       if args.zone_id
         query.filter({
-          "doc.zones" => [args.zone_id.not_nil!],
+          "zones.keyword" => [args.zone_id.not_nil!],
         })
       end
 
       # Filter via module_id
       if args.module_id
         query.filter({
-          "doc.modules" => [args.module_id.not_nil!],
+          "modules.keyword" => [args.module_id.not_nil!],
         })
       end
 

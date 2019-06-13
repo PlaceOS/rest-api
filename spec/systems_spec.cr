@@ -9,7 +9,6 @@ module Engine::API
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
         it "filters systems by zones" do
-          Model::ControlSystem.clear
           num_systems = 5
 
           zone = Model::Generator.zone.save!
@@ -30,7 +29,7 @@ module Engine::API
           sleep 1
 
           params = HTTP::Params.encode({"zone_id" => zone_id})
-          path = "#{Systems::NAMESPACE[0]}?#{params}"
+          path = "#{Systems::NAMESPACE[0].rstrip('/')}?#{params}"
           result = curl(
             method: "GET",
             path: path,
@@ -38,14 +37,11 @@ module Engine::API
 
           result.status_code.should eq 200
 
-          returned_ids = JSON.parse(result.body)["results"].as_a.map &.["id"]
-          returned_ids.should eq expected_systems.map &.id
-
-          systems.each &.destroy
+          returned_ids = (JSON.parse(result.body)["results"].as_a.compact_map &.["id"].as_s).sort
+          returned_ids.should eq (expected_systems.compact_map &.id).sort
         end
 
         it "filters systems by modules" do
-          Model::ControlSystem.clear
           num_systems = 5
 
           mod = Model::Generator.module.save!
@@ -63,10 +59,10 @@ module Engine::API
 
           systems.each &.save!
 
-          sleep 1
+          sleep 5
 
           params = HTTP::Params.encode({"module_id" => mod_id})
-          path = "#{Systems::NAMESPACE[0]}?#{params}"
+          path = "#{Systems::NAMESPACE[0].rstrip('/')}?#{params}"
           result = curl(
             method: "GET",
             path: path,
@@ -74,11 +70,8 @@ module Engine::API
 
           result.status_code.should eq 200
 
-          returned_ids = JSON.parse(result.body)["results"].as_a.map &.["id"]
-          returned_ids.should eq expected_systems.map &.id
-
-          systems.each &.destroy
-          mod.destroy
+          returned_ids = (JSON.parse(result.body)["results"].as_a.compact_map &.["id"].as_s).sort
+          returned_ids.should eq (expected_systems.compact_map &.id).sort
         end
       end
 

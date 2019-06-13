@@ -10,7 +10,11 @@ shards:
 
   active-model:
     github: spider-gazelle/active-model
-    commit: 93241cd16bd3d7336e02a35f0b2c1f20936170af
+    commit: 3b6c1bb15588deac32d772f5c579adeab7fb9224
+
+  ameba:
+    github: veelenga/ameba
+    version: 0.10.0
 
   bisect:
     github: spider-gazelle/bisect
@@ -26,11 +30,11 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 906694bd68df4e51a63505ae83c3acd3c7c0f537
+    commit: a02ccdb150482810c9f0a7bf6271f294d9a252d0
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 73062023cebc6150076b9af54a4d62a73f337a2a
+    commit: 2f8de6ced95673830ef80a198b9fe535db1afd85
 
   faker:
     github: askn/faker
@@ -82,7 +86,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 9b0c2ebda888ef026bf7062c0d523e2c23c42ff3
+    commit: 3fc9cb88049661c6db0f51b79bb4537ba759c804
 
   retriable:
     github: Sija/retriable.cr

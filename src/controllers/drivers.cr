@@ -26,7 +26,7 @@ module Engine::API
 
       if role
         query.filter({
-          "doc.role" => [role.to_i],
+          "role" => [role.to_i],
         })
       end
 

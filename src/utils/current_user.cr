@@ -21,6 +21,8 @@ module Engine::API
     # end
 
     def current_user
+      return @current_user unless @current_user.nil?
+
       # TODO: Ghost of ruby's past
       # user = cookies.encrypted[:user]
 
@@ -28,12 +30,13 @@ module Engine::API
       @current_user = Model::User.new(
         id: params["user_id"]? || "",
         email_digest: params["email_digest"]? || "",
-        admin_status: params["admin_status"]? || "",
-        social: params["social"]? || "",
+        sys_admin: !!(params["sys_admin"]?),
+        support: !!(params["support"]?),
       )
 
-      return @current_user if @current_user
-      @current_user = Model::User.find!((user[:id]))
+      # TODO: On JWT
+      # @current_user ||= Model::User.find!(token.user_id)
+      @current_user
     end
 
     def signed_in?

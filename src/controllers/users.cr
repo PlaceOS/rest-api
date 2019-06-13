@@ -26,10 +26,10 @@ module Engine::API
       elastic = Model::User.elastic
       query = elastic.query(params)
 
-      query.must_not({"doc.deleted" => [true]})
+      query.must_not({"deleted" => [true]})
 
       authority_id = params["authority_id"]?
-      query.filter({"doc.authority_id" => [authority_id]}) if authority_id
+      query.filter({"authority_id" => [authority_id]}) if authority_id
 
       results = elastic.search(query)[:results].map do |user|
         user.as_admin_json
