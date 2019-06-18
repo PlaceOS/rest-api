@@ -71,15 +71,13 @@ module Engine::API
           query.filter({"role" => non_logic_roles})
         end
 
-        # TODO: Awaiting range query support in neuroplastic
-        # as_of = args.as_of
-        # if as_of
-        #   query.range({
-        #     "updated_at" => {
-        #       :lte => as_of,
-        #     },
-        #   })
-        # end
+        if args.as_of
+          query.range({
+            "updated_at" => {
+              :lte => args.as_of.not_nil!,
+            },
+          })
+        end
 
         query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
         search_results = elastic.search(query)

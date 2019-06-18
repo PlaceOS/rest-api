@@ -41,13 +41,13 @@ module Engine::API
       end
 
       # That occured before a particular time
-      # if args.as_of
-      #   query.range({
-      #     "updated_at" => {
-      #       :lte => args.as_of,
-      #     },
-      #   })
-      # end
+      if args.as_of
+        query.range({
+          "updated_at" => {
+            :lte => args.as_of.not_nil!,
+          },
+        })
+      end
 
       # Filter by importance
       if args.important
