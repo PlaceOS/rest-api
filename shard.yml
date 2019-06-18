@@ -9,7 +9,6 @@ dependencies:
   # For rethink models
   engine-models:
     github: aca-labs/crystal-engine-models
-    branch: trigger
 
   # For redis access libraries
   engine-driver:

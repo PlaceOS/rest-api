@@ -2,8 +2,10 @@ require "./helper"
 
 module Engine::API
   describe Systems do
+    base = Systems::NAMESPACE[0]
+
     with_server do
-      test_404(namespace: Systems::NAMESPACE, model_name: Model::ControlSystem.table_name)
+      test_404(base, model_name: Model::ControlSystem.table_name)
 
       describe "index" do
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
@@ -29,7 +31,7 @@ module Engine::API
           sleep 1
 
           params = HTTP::Params.encode({"zone_id" => zone_id})
-          path = "#{Systems::NAMESPACE[0].rstrip('/')}?#{params}"
+          path = "#{base}?#{params}"
           result = curl(
             method: "GET",
             path: path,
@@ -59,10 +61,10 @@ module Engine::API
 
           systems.each &.save!
 
-          sleep 5
+          sleep 1
 
           params = HTTP::Params.encode({"module_id" => mod_id})
-          path = "#{Systems::NAMESPACE[0].rstrip('/')}?#{params}"
+          path = "#{base}?#{params}"
           result = curl(
             method: "GET",
             path: path,
@@ -88,7 +90,7 @@ module Engine::API
           cs.modules.not_nil!.should contain mod_id
 
           params = HTTP::Params.encode({module_id: mod_id})
-          path = Systems::NAMESPACE[0] + "#{cs.id}/remove?#{params}"
+          path = base + "#{cs.id}/remove?#{params}"
 
           result = curl(
             method: "POST",
@@ -122,7 +124,7 @@ module Engine::API
           cs2.modules.not_nil!.should contain mod_id
 
           params = HTTP::Params.encode({module_id: mod_id})
-          path = Systems::NAMESPACE[0] + "#{cs1.id}/remove?#{params}"
+          path = base + "#{cs1.id}/remove?#{params}"
 
           result = curl(
             method: "POST",
@@ -159,7 +161,7 @@ module Engine::API
           mod.persisted?.should be_true
           mod.running.should be_false
 
-          path = Systems::NAMESPACE[0] + "#{cs.id}/start"
+          path = base + "#{cs.id}/start"
 
           result = curl(
             method: "POST",
@@ -184,7 +186,7 @@ module Engine::API
           mod.persisted?.should be_true
           mod.running.should be_true
 
-          path = Systems::NAMESPACE[0] + "#{cs.id}/stop"
+          path = base + "#{cs.id}/stop"
 
           result = curl(
             method: "POST",
@@ -214,7 +216,7 @@ module Engine::API
             id = cs.id.not_nil!
 
             params = HTTP::Params.encode({"version" => "0"})
-            path = "#{Systems::NAMESPACE[0] + id}?#{params}"
+            path = "#{base + id}?#{params}"
 
             result = curl(
               method: "PATCH",
@@ -235,7 +237,7 @@ module Engine::API
             cs.persisted?.should be_true
 
             params = HTTP::Params.encode({"version" => "2"})
-            path = "#{Systems::NAMESPACE[0] + id}?#{params}"
+            path = "#{base + id}?#{params}"
 
             result = curl(
               method: "PATCH",

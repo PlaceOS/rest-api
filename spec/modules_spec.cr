@@ -2,8 +2,10 @@ require "./helper"
 
 module Engine::API
   describe Modules do
+    base = Modules::NAMESPACE[0]
+
     with_server do
-      test_404(namespace: Modules::NAMESPACE, model_name: Model::Module.table_name)
+      test_404(base, model_name: Model::Module.table_name)
 
       describe "CRUD operations" do
         test_crd(klass: Model::Module, controller_klass: Modules)
@@ -14,7 +16,7 @@ module Engine::API
           mod.connected = !connected
 
           id = mod.id.not_nil!
-          path = Modules::NAMESPACE[0] + id
+          path = base + id
           result = curl(
             method: "PATCH",
             path: path,
@@ -40,7 +42,7 @@ module Engine::API
           sys.save!
 
           params = HTTP::Params.encode({"control_system_id" => sys.id.not_nil!})
-          path = "#{Modules::NAMESPACE[0]}?#{params}"
+          path = "#{base}?#{params}"
 
           result = curl(
             method: "GET",
@@ -51,92 +53,124 @@ module Engine::API
           body["total"].should eq 1
           body["results"][0]["id"].should eq mod.id
         end
+
+        it "as_of query" do
+          mod1 = Model::Generator.module
+          mod1.connected = true
+          mod1.save!
+          mod1.persisted?.should be_true
+
+          sleep 3
+
+          mod2 = Model::Generator.module
+          mod2.connected = true
+          mod2.save!
+          mod2.persisted?.should be_true
+
+          params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
+          path = "#{base}?#{params}"
+          puts path
+
+          sleep 3
+
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          results = JSON.parse(result.body)["results"].as_a
+
+          contains_correct = results.any? { |r| r["id"] == mod1.id }
+          contains_incorrect = results.any? { |r| r["id"] == mod2.id }
+
+          contains_correct.should be_true
+          contains_incorrect.should be_false
+        end
+
+        it "connected query" do
+          mod = Model::Generator.module
+          mod.connected = true
+          mod.save!
+          mod.persisted?.should be_true
+
+          params = HTTP::Params.encode({"connected" => "true"})
+          path = "#{base}?#{params}"
+          puts path
+
+          sleep 1
+
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          results = JSON.parse(result.body)["results"].as_a
+
+          all_connected = results.all? { |r| r["connected"] != "true" }
+          contains_created = results.any? { |r| r["id"] == mod.id }
+
+          all_connected.should be_true
+          contains_created.should be_true
+        end
+
+        it "no logic query" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service)
+          mod = Model::Generator.module
+          mod.driver = driver
+          mod.save!
+
+          params = HTTP::Params.encode({"no_logic" => "true"})
+          path = "#{base}?#{params}"
+
+          sleep 1
+
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          results = JSON.parse(result.body)["results"].as_a
+
+          no_logic = results.all? { |r| r["role"] != Model::Driver::Role::Logic.to_i }
+          contains_created = results.any? { |r| r["id"] == mod.id }
+
+          no_logic.should be_true
+          contains_created.should be_true
+        end
       end
 
-      pending "range query"
+      describe "ping" do
+        it "fails for logic module" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
+          mod = Model::Generator.module(driver: driver).save!
+          path = "#{base}#{mod.id}/ping"
+          result = curl(
+            method: "POST",
+            path: path,
+          )
 
-      it "connected query" do
-        mod = Model::Generator.module
-        mod.connected = true
-        mod.save!
-        mod.persisted?.should be_true
+          result.success?.should be_false
+          result.status_code.should eq 406
+        end
 
-        params = HTTP::Params.encode({"connected" => "true"})
-        path = "#{Modules::NAMESPACE[0]}?#{params}"
+        it "pings a module" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Device)
+          driver.default_port = 8080
+          driver.save!
+          mod = Model::Generator.module(driver: driver)
+          mod.ip = "127.0.0.1"
+          mod.save!
 
-        sleep 5
+          path = "#{base}#{mod.id}/ping"
+          result = curl(
+            method: "POST",
+            path: path,
+          )
 
-        result = curl(
-          method: "GET",
-          path: path,
-        )
-
-        results = JSON.parse(result.body)["results"].as_a
-
-        all_connected = results.all? { |r| r["connected"] != "true" }
-        contains_created = results.any? { |r| r["id"] == mod.id }
-
-        all_connected.should be_true
-        contains_created.should be_true
-      end
-
-      describe "no logic query" do
-        driver = Model::Generator.driver(role: Model::Driver::Role::Service)
-        mod = Model::Generator.module
-        mod.driver = driver
-        mod.save!
-
-        params = HTTP::Params.encode({"no_logic" => "true"})
-        path = "#{Modules::NAMESPACE[0]}?#{params}"
-
-        sleep 5
-
-        result = curl(
-          method: "GET",
-          path: path,
-        )
-
-        results = JSON.parse(result.body)["results"].as_a
-
-        no_logic = results.all? { |r| r["role"] != Model::Driver::Role::Logic.to_i }
-        contains_created = results.any? { |r| r["id"] == mod.id }
-
-        no_logic.should be_true
-        contains_created.should be_true
-      end
-    end
-
-    describe "ping" do
-      it "fails for logic module" do
-        driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
-        mod = Model::Generator.module(driver: driver).save!
-        path = "#{Modules::NAMESPACE[0]}#{mod.id}/ping"
-        result = curl(
-          method: "POST",
-          path: path,
-        )
-
-        result.success?.should be_false
-        result.status_code.should eq 406
-      end
-
-      it "pings a module" do
-        driver = Model::Generator.driver(role: Model::Driver::Role::Device)
-        driver.default_port = 8080
-        driver.save!
-        mod = Model::Generator.module(driver: driver)
-        mod.ip = "127.0.0.1"
-        mod.save!
-
-        path = "#{Modules::NAMESPACE[0]}#{mod.id}/ping"
-        result = curl(
-          method: "POST",
-          path: path,
-        )
-
-        body = JSON.parse(result.body)
-        result.success?.should be_true
-        body["pingable"].should be_true
+          body = JSON.parse(result.body)
+          result.success?.should be_true
+          body["pingable"].should be_true
+        end
       end
     end
   end

@@ -2,6 +2,8 @@ require "./helper"
 
 module Engine::API
   describe Drivers do
+    base = Drivers::NAMESPACE[0]
+
     with_server do
       describe "index" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
@@ -10,14 +12,14 @@ module Engine::API
           service.name = Faker::Hacker.noun + rand((1..10000)).to_s
           service.save!
 
-          sleep 2
+          sleep 1
 
           params = HTTP::Params.encode({
             "role" => Model::Driver::Role::Service.to_i.to_s,
             "q"    => service.id.not_nil!,
           })
 
-          path = "#{Drivers::NAMESPACE[0]}?#{params}"
+          path = "#{base}?#{params}"
 
           result = curl(
             method: "GET",
@@ -35,7 +37,7 @@ module Engine::API
         end
       end
 
-      test_404(namespace: Drivers::NAMESPACE, model_name: Model::Driver.table_name)
+      test_404(base, model_name: Model::Driver.table_name)
 
       describe "CRUD operations" do
         test_crd(klass: Model::Driver, controller_klass: Drivers)
@@ -47,7 +49,7 @@ module Engine::API
             driver.name = Faker::Hacker.noun
 
             id = driver.id.not_nil!
-            path = Drivers::NAMESPACE[0] + id
+            path = base + id
             result = curl(
               method: "PATCH",
               path: path,
@@ -65,7 +67,7 @@ module Engine::API
             driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
             driver.role = Model::Driver::Role::Device
             id = driver.id.not_nil!
-            path = Drivers::NAMESPACE[0] + id
+            path = base + id
             result = curl(
               method: "PATCH",
               path: path,

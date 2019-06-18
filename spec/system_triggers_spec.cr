@@ -5,7 +5,37 @@ module Engine::API
     base = SystemTriggers::NAMESPACE[0]
 
     with_server do
-      test_404(namespace: [base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}")], model_name: Model::TriggerInstance.table_name)
+      test_404(base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}"), model_name: Model::TriggerInstance.table_name)
+      describe "index" do
+        it "as_of query" do
+          inst1 = Model::Generator.trigger_instance.save!
+          inst1.persisted?.should be_true
+
+          sleep 3
+
+          inst2 = Model::Generator.trigger_instance.save!
+          inst2.persisted?.should be_true
+
+          params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
+          path = "#{base}?#{params}"
+          puts path
+
+          sleep 3
+
+          result = curl(
+            method: "GET",
+            path: path,
+          )
+
+          results = JSON.parse(result.body)["results"].as_a
+
+          contains_correct = results.any? { |r| r["id"] == inst1.id }
+          contains_incorrect = results.any? { |r| r["id"] == inst2.id }
+
+          contains_correct.should be_true
+          contains_incorrect.should be_false
+        end
+      end
 
       describe "CRUD operations" do
         it "create" do

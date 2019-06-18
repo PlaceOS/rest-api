@@ -31,10 +31,10 @@ at_exit do
 end
 
 # Check application responds with 404 when model not present
-def test_404(namespace, model_name)
+def test_404(base, model_name)
   it "404s if #{model_name} isn't present in database" do
     id = "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
-    path = namespace[0] + id
+    path = base + id
     result = curl("GET", path)
     result.status_code.should eq 404
   end

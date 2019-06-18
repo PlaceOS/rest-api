@@ -2,8 +2,10 @@ require "./helper"
 
 module Engine::API
   describe Triggers do
+    base = Triggers::NAMESPACE[0]
+
     with_server do
-      test_404(namespace: Triggers::NAMESPACE, model_name: Model::Trigger.table_name)
+      test_404(base, model_name: Model::Trigger.table_name)
 
       describe "index" do
         test_base_index(klass: Model::Trigger, controller_klass: Triggers)
@@ -17,7 +19,7 @@ module Engine::API
           trigger.name = Faker::Hacker.noun
 
           id = trigger.id.not_nil!
-          path = Triggers::NAMESPACE[0] + id
+          path = base + id
           result = curl(
             method: "PATCH",
             path: path,
