@@ -1,6 +1,14 @@
 require "./helper"
 
 module Engine::API
+  authenticated_user = Model::Generator.user.not_nil!
+  authenticated_user.sys_admin = true
+  authenticated_user.support = true
+  authenticated_user.save!
+  headers = {
+    "Authorization" => "Bearer #{Model::Generator.jwt(authenticated_user).encode}",
+  }
+
   describe SystemTriggers do
     base = SystemTriggers::NAMESPACE[0]
 
@@ -18,15 +26,13 @@ module Engine::API
 
           params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
           path = "#{base}?#{params}"
-          puts path
-
           sleep 3
 
           result = curl(
             method: "GET",
             path: path,
+            headers: headers,
           )
-
           results = JSON.parse(result.body)["results"].as_a
 
           contains_correct = results.any? { |r| r["id"] == inst1.id }
@@ -49,7 +55,7 @@ module Engine::API
             method: "POST",
             path: path,
             body: body,
-            headers: {"Content-Type" => "application/json"},
+            headers: headers.merge({"Content-Type" => "application/json"}),
           )
 
           result.status_code.should eq 201
@@ -66,7 +72,7 @@ module Engine::API
           id = trigger_instance.id.not_nil!
 
           path = base.gsub(/:sys_id/, sys.id) + id
-          result = curl(method: "GET", path: path)
+          result = curl(method: "GET", path: path, headers: headers)
 
           result.status_code.should eq 200
 
@@ -93,7 +99,7 @@ module Engine::API
             method: "PATCH",
             path: path,
             body: {important: updated_importance}.to_json,
-            headers: {"Content-Type" => "application/json"},
+            headers: headers.merge({"Content-Type" => "application/json"}),
           )
 
           result.status_code.should eq 200
@@ -114,7 +120,7 @@ module Engine::API
           id = model.id.not_nil!
           path = base.gsub(/:sys_id/, sys.id) + id
 
-          result = curl(method: "DELETE", path: path)
+          result = curl(method: "DELETE", path: path, headers: headers)
           result.status_code.should eq 200
 
           Model::TriggerInstance.find(id).should be_nil

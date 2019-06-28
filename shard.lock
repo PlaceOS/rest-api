@@ -10,7 +10,7 @@ shards:
 
   active-model:
     github: spider-gazelle/active-model
-    commit: bde695c5877415ce6ff9078dc00bd049c25d3f5c
+    commit: 0bc32c0145e367e78b12725d28fa31ccf0b458f0
 
   ameba:
     github: veelenga/ameba
@@ -30,11 +30,11 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: b3167ab8612f7530c61b6aca8c99253fee3d4cad
+    commit: e82476756c92eb13bee9091247ab4204d82afbf6
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: b3a63493a8b9d4ec7930154fbe2973f4c15c5de8
+    commit: 104dc8e84b9416a3dd5f72e7cebc160dd8e7859c
 
   faker:
     github: askn/faker
@@ -48,6 +48,10 @@ shards:
     github: Sija/ipaddress.cr
     version: 0.1.2
 
+  jwt:
+    github: crystal-community/jwt
+    version: 1.1.1
+
   kilt:
     github: jeromegn/kilt
     version: 0.4.0
@@ -55,6 +59,10 @@ shards:
   neuroplastic:
     github: aca-labs/neuroplastic
     commit: f7a99e26aeed95f2c986a48e8428d097ed4f5f4e
+
+  openssl_ext:
+    github: stakach/openssl_ext
+    version: 1.0.0
 
   pinger:
     github: spider-gazelle/pinger

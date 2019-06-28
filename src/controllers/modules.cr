@@ -6,9 +6,8 @@ module Engine::API
   class Modules < Application
     base "/api/v1/modules/"
 
-    # TODO: Callbacks for access control
-    # before_action :check_admin, except: [:index, :state, :show, :ping]
-    # before_action :check_support, only: [:index, :state, :show, :ping]
+    before_action :check_admin, except: [:index, :state, :show, :ping]
+    before_action :check_support, only: [:index, :state, :show, :ping]
 
     before_action :ensure_json, only: [:create, :update]
     before_action :find_module, only: [:show, :update, :destroy, :ping]

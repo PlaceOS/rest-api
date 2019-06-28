@@ -8,14 +8,10 @@ module Engine::API
     include Utils::CurrentAuthority
     base "/api/v1/users/"
 
-    # before_action :check_authorization, only: [:update]
-    # before_action :check_admin, only: [:index, :destroy, :create]
+    before_action :check_authorization, only: [:update]
+    before_action :check_admin, only: [:index, :destroy, :create]
 
     before_action :ensure_json, only: [:update]
-
-    # Factored into seperate auth service
-    # Replaced with a JWT
-    # before_action :doorkeeper_authorize!
 
     # Render the current user
     get("/current", :current) do

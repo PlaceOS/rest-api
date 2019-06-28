@@ -4,9 +4,8 @@ module Engine::API
   class Drivers < Application
     base "/api/v1/drivers/"
 
-    # TODO: user access control
-    # before_action :check_admin, except: [:index, :show]
-    # before_action :check_support, only: [:index, :show]
+    before_action :check_admin, except: [:index, :show]
+    before_action :check_support, only: [:index, :show]
 
     before_action :find_driver, only: [:show, :update, :destroy]
 

@@ -63,26 +63,24 @@ module Engine::API
       query.has_parent(parent: Model::Trigger, parent_index: Model::Trigger.table_name)
 
       results = elastic.search(query)[:results]
-      users = render_users(results, args.trigger_id)
+      system_triggers = render_system_triggers(results, args.trigger_id)
       render json: {
-        results: users,
-        total:   users.size,
+        results: system_triggers,
+        total:   system_triggers.size,
       }
     end
 
-    # Render a collection of users
+    # Render a collection of TriggerInstances
     # - excludes :webhook_secret if authorized user has a support role
     # - includes :name, :id of parent ControlSystem if passed trigger id
-    protected def render_users(users, trigger_id = nil)
-      # TODO: Review on auth completion
-      user = current_user.not_nil!
+    protected def render_system_triggers(system_triggers, trigger_id = nil)
       if trigger_id
         # Include ControlSystem
-        users.map do |r|
+        system_triggers.map do |r|
           cs = r.control_system
 
           # Sa port users cannot access webhook links
-          except = user.support && !user.sys_admin ? ["webhook_secret"] : nil
+          except = is_support? && !is_admin? ? ["webhook_secret"] : nil
           restrict_attributes(r,
             fields: {
               :control_system => {
@@ -93,18 +91,17 @@ module Engine::API
             except: except,
           )
         end
-      elsif user.support && !user.sys_admin
+      elsif is_support? && !is_admin?
         # Support users cannot access webhook links
-        users.map { |r| restrict_attributes(r, except: ["webhook_secret"]) }
+        system_triggers.map { |r| restrict_attributes(r, except: ["webhook_secret"]) }
       else
-        users
+        system_triggers
       end
     end
 
     def show
-      user = current_user.not_nil!
       sys_trig = @sys_trig.not_nil!
-      if user.support && !user.sys_admin
+      if is_support? && !is_admin?
         render json: restrict_attributes(sys_trig, except: ["webhook_secret"])
       else
         render json: sys_trig

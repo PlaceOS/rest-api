@@ -4,8 +4,7 @@ module Engine::API
   class Zones < Application
     base "/api/v1/zones/"
 
-    # TODO: user access control
-    # before_action :check_admin, except: [:index, :show]
+    before_action :check_admin, except: [:index, :show]
     before_action :find_zone, only: [:show, :update, :destroy]
 
     @zone : Model::Zone?
@@ -26,8 +25,7 @@ module Engine::API
 
         # else
         # TODO: Authorization
-        # user = current_user
-        # return head :forbidden unless user && (user.support || user.sys_admin)
+        # return head :forbidden unless is_support? || is_admin?
         # query.search_field "name"
       end
 
@@ -51,9 +49,8 @@ module Engine::API
           head :not_found
         end
       else
-        # TODO: Authorization
-        # user = current_user
-        # head :forbidden unless user && (user.support || user.sys_admin)
+        head :forbidden unless is_support? || is_admin?
+
         if params.has_key? "complete"
           # Include trigger data in response
           render json: with_fields(@zone, {
