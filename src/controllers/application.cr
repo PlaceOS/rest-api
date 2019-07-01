@@ -57,12 +57,11 @@ module Engine::API
       response.headers["X-Request-ID"] = request.id = UUID.random.to_s
     end
 
-    # 401 if JWT parsing fails, or is not present
-    rescue_from JWT::Error do |error|
+    # 403 if user role invalid for a route
+    rescue_from Error::Unauthorized do |error|
       self.settings.logger.debug error
-      pp! error
 
-      head :unauthorized
+      head :forbidden
     end
 
     # 404 if resource not present
@@ -77,6 +76,21 @@ module Engine::API
       self.settings.logger.debug error
 
       render status: :unprocessable_entity, json: error.params.errors.map(&.to_s)
+    end
+
+    # 401 if JWT parsing fails, or is not present
+    rescue_from JWT::Error do |error|
+      self.settings.logger.debug error
+      pp! error
+
+      head :unauthorized
+    end
+
+    # 401 if bearer is missing
+    rescue_from Error::MissingBearer do |error|
+      self.settings.logger.debug error
+
+      head :unauthorized
     end
   end
 end

@@ -5,8 +5,8 @@ module Engine::API
     base "/api/v1/triggers/"
 
     # state, funcs, count and types are available to authenticated users
-    # before_action :check_admin,   only: [:create, :update, :destroy]
-    # before_action :check_support, only: [:index, :show]
+    before_action :check_admin, only: [:create, :update, :destroy]
+    before_action :check_support, only: [:index, :show]
 
     before_action :ensure_json, only: [:create, :update]
     before_action :find_trigger, only: [:show, :update, :destroy]

@@ -8,14 +8,17 @@ module Engine::API
     include Utils::CurrentAuthority
     base "/api/v1/users/"
 
-    before_action :check_authorization, only: [:update]
+    before_action :find_user, only: [:destroy, :update, :create]
     before_action :check_admin, only: [:index, :destroy, :create]
+    before_action :check_authorization, only: [:update]
 
     before_action :ensure_json, only: [:update]
 
+    @user : Model::User?
+
     # Render the current user
     get("/current", :current) do
-      render json: current_user.not_nil!
+      render json: current_user
     end
 
     def index
@@ -27,21 +30,17 @@ module Engine::API
       authority_id = params["authority_id"]?
       query.filter({"authority_id" => [authority_id]}) if authority_id
 
-      results = elastic.search(query)[:results].map do |user|
-        user.as_admin_json
-      end
+      results = elastic.search(query)[:results].map &.as_admin_json
 
       render json: results
     end
 
     def show
-      user = current_user.not_nil!
-
       # We only want to provide limited "public" information
-      if user.sys_admin
-        render json: user.as_admin_json
+      if is_admin?
+        render json: @user.try &.as_admin_json
       else
-        render json: user.as_public_json
+        render json: @user.try &.as_public_json
       end
     end
 
@@ -51,13 +50,11 @@ module Engine::API
       save_and_respond user
     end
 
-    ##
-    # Requests requiring authorization have already loaded the model
     def update
-      user = current_user.not_nil!
       body = request.body.not_nil!
+      user = @user.not_nil!
 
-      if user.sys_admin
+      if is_admin?
         user.assign_attributes_from_trusted_json(body)
       else
         user.assign_attributes_from_json(body)
@@ -66,8 +63,9 @@ module Engine::API
       save_and_respond user
     end
 
-    # # Make this available when there is a clean up option
-    # TODO: Offlocaded to auth service? or here
+    #
+    # Destroy user, revoke authentication.
+    # TODO: Make this available when there is a clean up option for User
     # def destroy
     #   @user = User.find(id)
     #   if defined?(::UserCleanup)
@@ -81,33 +79,15 @@ module Engine::API
     #   end
     # end
 
-    # TODO: Are these concerns satisified through mass asignment restrictions?
-    # protected def safe_params(params)
-    #   user = required_params(params, :user)
-    #   if current_user.sys_admin
-    #     user.select!(
-    #       :name, :first_name, :last_name, :country, :building, :email, :phone, :nickname,
-    #       :card_number, :login_name, :staff_id, :sys_admin, :support, :password, :password_confirmation
-    #     )
-    #   else
-    #     user.select!(
-    #       :name, :first_name, :last_name, :country, :building, :email, :phone, :nickname
-    #     )
-    #   end
-    # end
+    def find_user
+      @user = Model::User.find!(params["id"]?) unless @user
+    end
 
     def check_authorization
-      # Find will raise a 404 (not found) if there is an error
-      # @user = User.find!(params["id"]?)
-
-      # FIXME: previously, current_user pulled off manager
-      # Likely new middleware will decode user from jwt
-
-      @user = Model::User.find(params["id"])
-      user = current_user.not_nil!
+      find_user unless @user
 
       # Does the current user have permission to perform the current action
-      head :forbidden unless @user.id == user.id || user.sys_admin
+      head :forbidden unless (@user.try &.id) == current_user.id || is_admin?
     end
   end
 end

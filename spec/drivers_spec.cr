@@ -2,6 +2,8 @@ require "./helper"
 
 module Engine::API
   describe Drivers do
+    # ameba:disable Lint/UselessAssign
+    authenticated_user, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
     with_server do
@@ -24,6 +26,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
+            headers: authorization_header,
           )
 
           result.status_code.should eq 200
@@ -37,7 +40,7 @@ module Engine::API
         end
       end
 
-      test_404(base, model_name: Model::Driver.table_name)
+      test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
 
       describe "CRUD operations" do
         test_crd(klass: Model::Driver, controller_klass: Drivers)
@@ -54,7 +57,7 @@ module Engine::API
               method: "PATCH",
               path: path,
               body: driver.to_json,
-              headers: {"Content-Type" => "application/json"},
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )
             result.success?.should be_true
 
@@ -72,7 +75,7 @@ module Engine::API
               method: "PATCH",
               path: path,
               body: driver.to_json,
-              headers: {"Content-Type" => "application/json"},
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )
 
             result.success?.should_not be_true

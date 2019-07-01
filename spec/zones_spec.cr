@@ -2,10 +2,12 @@ require "./helper"
 
 module Engine::API
   describe Zones do
+    # ameba:disable Lint/UselessAssign
+    authenticated_user, authorization_header = authentication
     base = Zones::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Zone.table_name)
+      test_404(base, model_name: Model::Zone.table_name, headers: authorization_header)
 
       describe "index" do
         test_base_index(klass: Model::Zone, controller_klass: Zones)
@@ -24,7 +26,7 @@ module Engine::API
             method: "PATCH",
             path: path,
             body: zone.to_json,
-            headers: {"Content-Type" => "application/json"},
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
           result.success?.should be_true

@@ -2,10 +2,12 @@ require "./helper"
 
 module Engine::API
   describe Modules do
+    # ameba:disable Lint/UselessAssign
+    authenticated_user, authorization_header = authentication
     base = Modules::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Module.table_name)
+      test_404(base, model_name: Model::Module.table_name, headers: authorization_header)
 
       describe "CRUD operations" do
         test_crd(klass: Model::Module, controller_klass: Modules)
@@ -21,7 +23,7 @@ module Engine::API
             method: "PATCH",
             path: path,
             body: mod.to_json,
-            headers: {"Content-Type" => "application/json"},
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
           result.status_code.should eq 200
@@ -47,6 +49,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
+            headers: authorization_header,
           )
 
           body = JSON.parse(result.body)
@@ -76,6 +79,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
+            headers: authorization_header,
           )
 
           results = JSON.parse(result.body)["results"].as_a
@@ -102,6 +106,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
+            headers: authorization_header,
           )
 
           results = JSON.parse(result.body)["results"].as_a
@@ -127,6 +132,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
+            headers: authorization_header,
           )
 
           results = JSON.parse(result.body)["results"].as_a
@@ -147,6 +153,7 @@ module Engine::API
           result = curl(
             method: "POST",
             path: path,
+            headers: authorization_header,
           )
 
           result.success?.should be_false
@@ -165,6 +172,7 @@ module Engine::API
           result = curl(
             method: "POST",
             path: path,
+            headers: authorization_header,
           )
 
           body = JSON.parse(result.body)

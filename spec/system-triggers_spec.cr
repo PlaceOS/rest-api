@@ -1,19 +1,17 @@
 require "./helper"
 
 module Engine::API
-  authenticated_user = Model::Generator.user.not_nil!
-  authenticated_user.sys_admin = true
-  authenticated_user.support = true
-  authenticated_user.save!
-  headers = {
-    "Authorization" => "Bearer #{Model::Generator.jwt(authenticated_user).encode}",
-  }
-
   describe SystemTriggers do
+    # ameba:disable Lint/UselessAssign
+    authenticated_user, authorization_header = authentication
     base = SystemTriggers::NAMESPACE[0]
 
     with_server do
-      test_404(base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}"), model_name: Model::TriggerInstance.table_name)
+      test_404(
+        base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}"),
+        model_name: Model::TriggerInstance.table_name,
+        headers: authorization_header,
+      )
       describe "index" do
         it "as_of query" do
           inst1 = Model::Generator.trigger_instance.save!
@@ -31,7 +29,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
-            headers: headers,
+            headers: authorization_header,
           )
           results = JSON.parse(result.body)["results"].as_a
 
@@ -55,7 +53,7 @@ module Engine::API
             method: "POST",
             path: path,
             body: body,
-            headers: headers.merge({"Content-Type" => "application/json"}),
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
           result.status_code.should eq 201
@@ -72,7 +70,7 @@ module Engine::API
           id = trigger_instance.id.not_nil!
 
           path = base.gsub(/:sys_id/, sys.id) + id
-          result = curl(method: "GET", path: path, headers: headers)
+          result = curl(method: "GET", path: path, headers: authorization_header)
 
           result.status_code.should eq 200
 
@@ -99,7 +97,7 @@ module Engine::API
             method: "PATCH",
             path: path,
             body: {important: updated_importance}.to_json,
-            headers: headers.merge({"Content-Type" => "application/json"}),
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
           result.status_code.should eq 200
@@ -120,7 +118,7 @@ module Engine::API
           id = model.id.not_nil!
           path = base.gsub(/:sys_id/, sys.id) + id
 
-          result = curl(method: "DELETE", path: path, headers: headers)
+          result = curl(method: "DELETE", path: path, headers: authorization_header)
           result.status_code.should eq 200
 
           Model::TriggerInstance.find(id).should be_nil

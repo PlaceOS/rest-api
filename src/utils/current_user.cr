@@ -6,21 +6,33 @@ module Engine::API
     @user_token : Model::UserJWT?
     @current_user : Model::User?
 
-    def user_token : Model::UserJWT
+    def user_token
       return @user_token.not_nil! unless @user_token.nil?
-      parse_user_token!.not_nil!
+      parse_user_token!
     end
 
-    def parse_user_token
+    # Unmarshall Bearer token, raise MissingBearer if a Bearer token isn't present
+    def parse_user_token! : Model::UserJWT
+      raise Error::MissingBearer.new unless (token = parse_user_token)
+      token.not_nil!
+    end
+
+    def parse_user_token : Model::UserJWT?
       token = request.headers["Authorization"]?.try do |bearer|
         bearer.lchop("Bearer ").rstrip
       end
+
       @user_token = Model::UserJWT.decode(token) if token
     end
 
-    # Unmarshall Bearer token, render a 401 if token isn't present
-    def parse_user_token!
-      parse_user_token.tap { |token| render status: :unauthorized, text: "missing Bearer token" unless token }
+    # Read admin status from supplied request JWT
+    def check_admin
+      raise Error::Unauthorized.new unless is_admin?
+    end
+
+    # Read support status from supplied request JWT
+    def check_support
+      raise Error::Unauthorized.new unless is_support?
     end
 
     def is_admin?
@@ -29,16 +41,6 @@ module Engine::API
 
     def is_support?
       user_token.support
-    end
-
-    # Read admin status from supplied request JWT
-    def check_admin
-      head :forbidden unless user_token.admin
-    end
-
-    # Read support status from supplied request JWT
-    def check_support
-      head :forbidden unless user_token.support
     end
 
     def current_user : Model::User

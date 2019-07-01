@@ -2,10 +2,12 @@ require "./helper"
 
 module Engine::API
   describe Triggers do
+    # ameba:disable Lint/UselessAssign
+    authenticated_user, authorization_header = authentication
     base = Triggers::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Trigger.table_name)
+      test_404(base, model_name: Model::Trigger.table_name, headers: authorization_header)
 
       describe "index" do
         test_base_index(klass: Model::Trigger, controller_klass: Triggers)
@@ -24,7 +26,7 @@ module Engine::API
             method: "PATCH",
             path: path,
             body: trigger.to_json,
-            headers: {"Content-Type" => "application/json"},
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
           result.status_code.should eq 200

@@ -6,6 +6,12 @@ module Engine::API
       super(message)
     end
 
+    class Unauthorized < Error
+    end
+
+    class MissingBearer < Error
+    end
+
     class InvalidParams < Error
       getter params
 

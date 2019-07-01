@@ -8,8 +8,8 @@ module Engine::API
     id_param :trig_id
 
     # state, funcs, count and types are available to authenticated users
-    # before_action :check_admin,   only: [:create, :update, :destroy]
-    # before_action :check_support, only: [:index, :show]
+    before_action :check_admin, only: [:create, :update, :destroy]
+    before_action :check_support, only: [:index, :show]
 
     before_action :ensure_json, only: [:create, :update]
     before_action :find_sys_trig, only: [:show, :update, :destroy]

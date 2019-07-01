@@ -2,10 +2,12 @@ require "./helper"
 
 module Engine::API
   describe Systems do
+    # ameba:disable Lint/UselessAssign
+    authenticated_user, authorization_header = authentication
     base = Systems::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::ControlSystem.table_name)
+      test_404(base, model_name: Model::ControlSystem.table_name, headers: authorization_header)
 
       describe "index" do
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
@@ -35,6 +37,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
+            headers: authorization_header,
           )
 
           result.status_code.should eq 200
@@ -68,6 +71,7 @@ module Engine::API
           result = curl(
             method: "GET",
             path: path,
+            headers: authorization_header,
           )
 
           result.status_code.should eq 200
@@ -95,6 +99,7 @@ module Engine::API
           result = curl(
             method: "POST",
             path: path,
+            headers: authorization_header,
           )
 
           result.status_code.should eq 200
@@ -129,6 +134,7 @@ module Engine::API
           result = curl(
             method: "POST",
             path: path,
+            headers: authorization_header,
           )
 
           result.status_code.should eq 200
@@ -166,6 +172,7 @@ module Engine::API
           result = curl(
             method: "POST",
             path: path,
+            headers: authorization_header,
           )
 
           result.status_code.should eq 200
@@ -191,7 +198,7 @@ module Engine::API
           result = curl(
             method: "POST",
             path: path,
-            headers: {"Content-Type" => "application/x-www-form-urlencoded"},
+            headers: authorization_header.merge({"Content-Type" => "application/x-www-form-urlencoded"}),
           )
 
           result.status_code.should eq 200
@@ -222,7 +229,7 @@ module Engine::API
               method: "PATCH",
               path: path,
               body: cs.to_json,
-              headers: {"Content-Type" => "application/json"},
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )
 
             result.status_code.should eq 200
@@ -243,7 +250,7 @@ module Engine::API
               method: "PATCH",
               path: path,
               body: cs.to_json,
-              headers: {"Content-Type" => "application/json"},
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )
 
             result.status_code.should eq 409
