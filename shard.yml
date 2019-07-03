@@ -33,5 +33,5 @@ development_dependencies:
 
 # compile target
 targets:
-  app:
-    main: src/app.cr
+  engine-api:
+    main: src/engine-api.cr

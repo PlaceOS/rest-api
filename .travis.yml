@@ -12,7 +12,11 @@ before_install:
   # Add elasticsearch 7.0.x
   - docker run -p9300:9300 -p9200:9200 -e discovery.type=single-node -d elasticsearch:7.0.1
   # Add latest rubber-soul (mirrors RethinkDB tables to elasticsearch indices)
-  - docker run --net="host" -e RETHINKDB_PORT="28015" -e RETHINKDB_HOST="127.0.0.1" -e ES_PORT="9200" -e ES_HOST="127.0.0.1" --restart=always -d acalabs/rubber-soul:latest
+  - docker run --net="host" -e RETHINKDB_DB="engine_production" -e RETHINKDB_PORT="28015" -e RETHINKDB_HOST="127.0.0.1" -e ES_PORT="9200" -e ES_HOST="127.0.0.1" --restart=always -d acalabs/rubber-soul:latest
+
+env:
+  # Set spider-gazelle environment
+  - SG_ENV=production
 
 install:
   - shards install

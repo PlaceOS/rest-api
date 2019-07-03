@@ -10,14 +10,14 @@ RUN crystal spec
 
 # Extract dependencies
 RUN ldd bin/app | tr -s '[:blank:]' '\n' | grep '^/' | \
-    xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
+  xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
 
 # Build a minimal docker image
 FROM scratch
 COPY --from=0 /src/deps /
-COPY --from=0 /src/bin/app /app
+COPY --from=0 /src/bin/engine-api /engine-api
 
 # Run the app binding on port 8080
 EXPOSE 8080
-ENTRYPOINT ["/app"]
+ENTRYPOINT ["/engine-api"]
 CMD ["/app", "-b", "0.0.0.0", "-p", "8080"]
