@@ -3,26 +3,26 @@ require "rethinkdb-orm"
 
 # Your application config
 # If you have a testing environment, replace this with a test config file
-require "../src/config"
+require "../../src/config"
 
 # Helper methods for testing controllers (curl, with_server, context)
-require "../lib/action-controller/spec/curl_context"
+require "../../lib/action-controller/spec/curl_context"
 
 # Generators for Engine models
-require "../lib/engine-models/spec/generator"
+require "../models/generator"
 
 # Configure DB
-DB_NAME = "engine_#{ENV["SG_ENV"]? || "development"}"
+db_name = "engine_#{ENV["SG_ENV"]? || "development"}"
 
 RethinkORM::Connection.configure do |settings|
-  settings.db = DB_NAME
+  settings.db = db_name
 end
 
 # Clear test tables on exit
 at_exit do
   RethinkORM::Connection.raw do |q|
-    q.db(DB_NAME).table_list.for_each do |t|
-      q.db(DB_NAME).table(t).delete
+    q.db(db_name).table_list.for_each do |t|
+      q.db(db_name).table(t).delete
     end
   end
   # Elastic.empty_indices

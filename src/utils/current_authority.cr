@@ -1,4 +1,4 @@
-require "engine-models"
+require "../models"
 
 module Engine::API
   # Helpers to grab user from token

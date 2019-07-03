@@ -10,7 +10,7 @@ shards:
 
   active-model:
     github: spider-gazelle/active-model
-    commit: 0bc32c0145e367e78b12725d28fa31ccf0b458f0
+    version: 1.5.0
 
   ameba:
     github: veelenga/ameba
@@ -30,11 +30,7 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: bc564a90a6f73a69c8fb0532342dc3b5b66bdf31
-
-  engine-models:
-    github: aca-labs/crystal-engine-models
-    commit: 104dc8e84b9416a3dd5f72e7cebc160dd8e7859c
+    commit: b009df50c80f1df16a5b295282c355224b695cbf
 
   faker:
     github: askn/faker

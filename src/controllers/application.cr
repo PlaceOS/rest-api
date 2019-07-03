@@ -1,7 +1,8 @@
 require "action-controller"
 require "active-model"
-require "engine-models"
 require "uuid"
+
+require "../models"
 
 require "../constants"
 require "../error"

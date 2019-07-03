@@ -1,5 +1,5 @@
-require "engine-models/user"
-require "engine-models/user-jwt"
+require "../models/user"
+require "../models/user-jwt"
 
 module Engine::API
   # Helpers to grab user from token
@@ -20,7 +20,7 @@ module Engine::API
       begin
         @user_token = Model::UserJWT.decode(token)
       rescue e : JWT::Error
-        settings.logger.warn("action=authorize! error=#{ e.inspect }")
+        settings.logger.warn("action=authorize! error=#{e.inspect}")
         # Request bearer was malformed
         head :unauthorized
       end
