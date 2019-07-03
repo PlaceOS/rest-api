@@ -1,6 +1,9 @@
+require "./application"
+
 module Engine::API
   class Webhooks < Application
     base "/api/v1/webhooks/"
+
     before_action :find_hook
 
     @trigger : Model::TriggerInstance?
@@ -58,7 +61,7 @@ module Engine::API
       attribute mod : String
       attribute method : String
 
-      # TODO: Generic? Stringly typed? Explicit?
+      # TODO: Generic? Stringly typed? Explicit? Whatever this is?
       attribute args : Array(String | Int64 | Float64) = [] of String | Int64 | Float64
 
       attribute metadata : String

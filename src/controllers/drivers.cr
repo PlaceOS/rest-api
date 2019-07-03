@@ -10,7 +10,6 @@ module Engine::API
     before_action :find_driver, only: [:show, :update, :destroy]
 
     @driver : Model::Driver?
-    getter :driver
 
     def index
       # Pick off role from HTTP params, render error if present and invalid

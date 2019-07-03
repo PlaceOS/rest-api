@@ -16,17 +16,18 @@ module Engine::API
       query.sort(NAME_SORT_ASC)
 
       if params.has_key? "tags"
+        # list of unique tags
         tags = params["tags"].gsub(/[^0-9a-z ]/i, "").split(/\s+/).reject(&.empty?).uniq
+
         return head :bad_request if tags.empty?
 
         query.must({
           "tags" => tags,
         })
+      else
+        head :forbidden unless is_support? || is_admin?
 
-        # else
-        # TODO: Authorization
-        # return head :forbidden unless is_support? || is_admin?
-        # query.search_field "name"
+        query.search_field "name"
       end
 
       render json: elastic.search(query)

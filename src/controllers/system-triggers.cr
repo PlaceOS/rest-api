@@ -15,7 +15,6 @@ module Engine::API
     before_action :find_sys_trig, only: [:show, :update, :destroy]
 
     @sys_trig : Model::TriggerInstance?
-    getter :sys_trig
 
     class IndexParams < Params
       attribute control_system_id : String
@@ -79,7 +78,7 @@ module Engine::API
         system_triggers.map do |r|
           cs = r.control_system
 
-          # Sa port users cannot access webhook links
+          # Support users cannot access webhook links
           except = is_support? && !is_admin? ? ["webhook_secret"] : nil
           restrict_attributes(r,
             fields: {
@@ -130,7 +129,7 @@ module Engine::API
     end
 
     def destroy
-      @sys_trig.try &.destroy # expires the cache in after callback
+      @sys_trig.try &.destroy # Expires the cache in after callback
       head :ok
     end
 

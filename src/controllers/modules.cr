@@ -13,7 +13,6 @@ module Engine::API
     before_action :find_module, only: [:show, :update, :destroy, :ping]
 
     @module : Model::Module?
-    getter :module
 
     private class IndexParams < Params
       attribute as_of : Int32
@@ -163,7 +162,10 @@ module Engine::API
       head :ok if mod.running == true
 
       mod.update_fields(running: true)
+
+      # Changes cleared on a successful update
       if mod.running_changed?
+        self.settings.logger.error("controller=Modules action=start module_id=#{mod.id} event=failed")
         head :internal_server_error
       else
         head :ok
@@ -175,7 +177,10 @@ module Engine::API
       head :ok if mod.running == false
 
       mod.update_fields(running: false)
+
+      # Changes cleared on a successful update
       if mod.running_changed?
+        self.settings.logger.error("controller=Modules action=stop module_id=#{mod.id} event=failed")
         head :internal_server_error
       else
         head :ok
@@ -198,6 +203,7 @@ module Engine::API
     post(":id/ping", :ping) do
       mod = @module.not_nil!
       if mod.role == Model::Driver::Role::Logic
+        self.settings.logger.debug("controller=Modules action=ping module_id=#{mod.id} role=#{mod.role}")
         head :not_acceptable
       else
         pinger = Pinger.new(mod.hostname.not_nil!, count: 3)

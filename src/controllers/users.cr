@@ -79,11 +79,11 @@ module Engine::API
     #   end
     # end
 
-    def find_user
+    protected def find_user
       @user = Model::User.find!(params["id"]?) unless @user
     end
 
-    def check_authorization
+    protected def check_authorization
       find_user unless @user
 
       # Does the current user have permission to perform the current action

@@ -12,7 +12,6 @@ module Engine::API
     before_action :find_trigger, only: [:show, :update, :destroy]
 
     @trig : Model::Trigger?
-    getter :trig
 
     def index
       elastic = Model::Trigger.elastic

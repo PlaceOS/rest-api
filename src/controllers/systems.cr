@@ -6,14 +6,12 @@ module Engine::API
 
     id_param :sys_id
 
-    # TODO: Callbacks for access control
     # state, funcs, count and types are available to authenticated usersj
     before_action :find_system, only: [:show, :update, :destroy, :remove,
                                        :start, :stop, :exec, :types, :funcs]
     before_action :ensure_json, only: [:create, :update]
 
     @control_system : Model::ControlSystem?
-    getter :control_system
 
     # Strong params for index method
     class IndexParams < Params
@@ -237,6 +235,7 @@ module Engine::API
     #       Object, Kernel, BasicObject
     #   ])
     #
+    # metadata route
     #   get("/:sys_id/funcs", :funcs)
     #       required_params(params, :module)
     #       sys = System.get(id)
