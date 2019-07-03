@@ -1,4 +1,4 @@
-require "./helper"
+require "../helper"
 
 module Engine::Model
   # Transmogrified from the Ruby Engine spec

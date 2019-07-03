@@ -1,4 +1,4 @@
-require "./helper"
+require "../helper"
 
 module Engine::Model
   describe Driver do

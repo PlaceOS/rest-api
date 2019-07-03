@@ -1,6 +1,6 @@
 require "digest/md5"
 
-require "./helper"
+require "../helper"
 
 module Engine::Model
   describe User do

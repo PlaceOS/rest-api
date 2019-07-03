@@ -1,4 +1,4 @@
-require "./helper"
+require "../helper"
 
 module Engine::API
   describe Drivers do

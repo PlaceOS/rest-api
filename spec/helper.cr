@@ -1,15 +1,15 @@
 require "spec"
+require "random"
 require "rethinkdb-orm"
 
-# Your application config
-# If you have a testing environment, replace this with a test config file
-require "../../src/config"
-
 # Helper methods for testing controllers (curl, with_server, context)
-require "../../lib/action-controller/spec/curl_context"
+require "../lib/action-controller/spec/curl_context"
+
+# Application config
+require "../src/config"
 
 # Generators for Engine models
-require "../models/generator"
+require "./models/generator"
 
 # Configure DB
 db_name = "engine_#{ENV["SG_ENV"]? || "development"}"
@@ -27,6 +27,23 @@ at_exit do
   end
   # Elastic.empty_indices
 end
+
+# Models
+#################################################################
+
+# Pretty prints document errors
+def inspect_error(error : RethinkORM::Error::DocumentInvalid)
+  errors = error.model.errors.map do |e|
+    {
+      field:   e.field,
+      message: e.message,
+    }
+  end
+  pp! errors
+end
+
+# API
+########################################################################
 
 # Yield an authenticated user, and a header with Authorization bearer set
 def authentication
