@@ -9,9 +9,6 @@ module Engine::API
     class Unauthorized < Error
     end
 
-    class MissingBearer < Error
-    end
-
     class InvalidParams < Error
       getter params
 

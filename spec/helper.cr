@@ -12,7 +12,7 @@ require "../lib/action-controller/spec/curl_context"
 require "../lib/engine-models/spec/generator"
 
 # Configure DB
-DB_NAME = "engine-#{ ENV["SG_ENV"]? || "development" }"
+DB_NAME = "engine_#{ENV["SG_ENV"]? || "development"}"
 
 RethinkORM::Connection.configure do |settings|
   settings.db = DB_NAME
