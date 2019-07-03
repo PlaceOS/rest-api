@@ -23,12 +23,13 @@ module Engine::API
       attribute running : Bool
     end
 
+    # TODO: Refactor, strictly a port from ruby-engine
     def index
       args = IndexParams.new(params)
 
       # if a system id is present we query the database directly
-      if args.control_system_id
-        cs = Model::ControlSystem.find!(args.control_system_id)
+      if (sys_id = args.control_system_id)
+        cs = Model::ControlSystem.find!(sys_id)
         modules = cs.modules || [] of String
         results = Model::Module.find_all(modules).to_a
         render json: {
@@ -39,24 +40,31 @@ module Engine::API
         elastic = Model::Module.elastic
         query = elastic.query(params)
 
-        if args.driver_id
-          query.filter({"driver_id" => [args.driver_id.not_nil!]})
+        if (driver_id = args.driver_id)
+          query.filter({"driver_id" => [driver_id]})
         end
 
-        if args.connected
-          connected = args.connected.not_nil!
+        if (connected = args.connected)
           query.filter({
             "ignore_connected" => [false],
             "connected"        => [connected],
           })
           unless connected
-            query.filter({"ignore_connected" => nil})
+            query.filter({"ignore_connected" => nil}) # FIXME: dubious... field with default, unlikely to be nil
             query.should({"ignore_connected" => [false]})
           end
         end
 
-        if args.running
-          query.filter({"running" => [args.running.not_nil!]})
+        if (running = args.running)
+          query.filter({"running" => [running]})
+        end
+
+        if (as_of = args.as_of)
+          query.range({
+            "updated_at" => {
+              :lte => as_of,
+            },
+          })
         end
 
         if args.no_logic
@@ -67,14 +75,6 @@ module Engine::API
           ].map(&.to_i)
 
           query.filter({"role" => non_logic_roles})
-        end
-
-        if args.as_of
-          query.range({
-            "updated_at" => {
-              :lte => args.as_of.not_nil!,
-            },
-          })
         end
 
         query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)

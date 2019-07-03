@@ -26,16 +26,16 @@ module Engine::API
       args = IndexParams.new(params)
 
       # Filter systems via zone_id
-      if args.zone_id
+      if (zone_id = args.zone_id)
         query.filter({
-          "zones.keyword" => [args.zone_id.not_nil!],
+          "zones.keyword" => [zone_id],
         })
       end
 
       # Filter via module_id
-      if args.module_id
+      if (module_id = args.module_id)
         query.filter({
-          "modules.keyword" => [args.module_id.not_nil!],
+          "modules.keyword" => [module_id],
         })
       end
 

@@ -30,20 +30,20 @@ module Engine::API
       args = IndexParams.new(params)
 
       # Filter by system ID
-      if args.control_system_id
-        query.filter({"control_system_id" => [args.control_system_id.not_nil!]})
+      if (control_system_id = args.control_system_id)
+        query.filter({"control_system_id" => [control_system_id]})
       end
 
       # Filter by trigger ID
-      if args.trigger_id
-        query.filter({"trigger_id" => [args.trigger_id.not_nil!]})
+      if (trigger_id = args.trigger_id)
+        query.filter({"trigger_id" => [trigger_id]})
       end
 
       # That occured before a particular time
-      if args.as_of
+      if (as_of = args.as_of)
         query.range({
           "updated_at" => {
-            :lte => args.as_of.not_nil!,
+            :lte => as_of,
           },
         })
       end
