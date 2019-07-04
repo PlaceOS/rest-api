@@ -1,5 +1,5 @@
 name: engine-rest-api
-version: 1.0.0
+version: 1.1.0
 
 dependencies:
   # Server framework
@@ -42,14 +42,15 @@ dependencies:
     github: ysbaddaden/scrypt-crystal
 
 development_dependencies:
+  # Linter
   ameba:
     github: veelenga/ameba
     version: ~> 0.10.0
 
+  # Mock data generation
   faker:
     github: askn/faker
 
-# compile target
 targets:
   engine-api:
     main: src/engine-api.cr
