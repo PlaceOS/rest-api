@@ -57,7 +57,7 @@ module Engine::Model
 
     def self.trigger_instance(trigger = nil, zone = nil, control_system = nil)
       trigger = self.trigger.save! unless trigger
-      instance = TriggerInstance.new
+      instance = TriggerInstance.new(important: false)
       instance.trigger = trigger
 
       instance.zone = zone if zone

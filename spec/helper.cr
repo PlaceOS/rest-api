@@ -42,6 +42,11 @@ def inspect_error(error : RethinkORM::Error::DocumentInvalid)
   pp! errors
 end
 
+# Helper to check if string is encrypted
+def is_encrypted?(string : String)
+  string.starts_with? '\e'
+end
+
 # API
 ########################################################################
 

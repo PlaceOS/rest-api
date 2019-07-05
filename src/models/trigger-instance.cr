@@ -60,9 +60,9 @@ module Engine::Model
       self.id
     end
 
-    # # ------------
-    # # VIEWS ACCESS
-    # # ------------
+    # ------------
+    # VIEWS ACCESS
+    # ------------
 
     # Look up TriggerInstances by ControlSystem
     def self.for(control_system_id)

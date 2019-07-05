@@ -1,8 +1,9 @@
-require "uri"
-require "time"
 require "rethinkdb-orm"
+require "time"
+require "uri"
 
 require "./base/model"
+require "../encryption"
 
 module Engine::Model
   class ControlSystem < ModelBase
@@ -59,9 +60,6 @@ module Engine::Model
     def self.using_module(id)
       self.by_module_id(id)
     end
-
-    # YAML settings
-    attribute settings : String = "{}"
 
     # Provide a field for simplifying support
     attribute support_url : String
@@ -123,22 +121,93 @@ module Engine::Model
     # Adds modules to the features field,
     # Extends features with extra_features field in settings if present
     protected def update_features
-      if self.id
-        system = ControlSystem.find(self.id)
+      if (id = @id)
+        system = ControlSystem.find(id)
         if system
           mods = system.modules || [] of String
           mods.reject! "__Triggers__"
-          self.features = mods.join " "
+          @features = mods.join " "
         end
       end
 
-      settings = self.settings
-      if settings
-        extra_features = JSON.parse(settings)["extra_features"]?
-        if extra_features
-          self.features = "#{self.features} #{extra_features}"
+      if (settings = @settings)
+        # Extra features stored in unencrypted settings
+        settings.find { |(level, _)| level == Encryption::Level::None }.try do |(_, setting_string)|
+          # Append any extra features
+          if (extra_features = JSON.parse(setting_string)["extra_features"]?)
+            @features = "#{@features} #{extra_features}"
+          end
         end
       end
+    end
+
+    # =======================
+    # Settings Management
+    # =======================
+
+    alias Setting = Tuple(Encryption::Level, String)
+
+    # Array of encrypted YAML setting and the encryption privilege
+    attribute settings : Array(Setting) = [] of Setting
+
+    # On save, after encryption, sets existing to previous settings. use settings_was
+    attribute settings_backup : Array(Setting) = [] of Setting
+
+    # Settings encryption
+    before_save do
+      # Set settings_backup to previous version of settings
+      @settings_backup = encrypt_settings(@settings_was || [] of Setting)
+
+      # Encrypt all settings
+      @settings = encrypt_settings(@settings || [] of Setting)
+    end
+
+    # Get settings string for specific encryption level
+    #
+    def settings_at(level : Encryption::Level) : String?
+      @settings.try &.find { |s| s[0] == level }.try &.[1]
+    end
+
+    # Encrypts all settings.
+    #
+    # We want encryption of unpersisted models, so we set the id if not present
+    # Setting of id here will not intefer with `persisted?` unless call made in a before_save
+    def encrypt_settings(settings : Array(Setting))
+      id = (@id ||= @@uuid_generator.next(self))
+      settings.map do |setting|
+        level, setting_string = setting
+        {level, Encryption.encrypt(string: setting_string, level: level, id: id)}
+      end
+    end
+
+    # Decrypts settings dependent on user privileges
+    #
+    def decrypt_for!(user)
+      (@settings || [] of Setting).map! do |setting|
+        level, setting_string = setting
+        id = @id.as(String)
+
+        case level
+        when Encryption::Level::Support
+          (user.is_support? || user.is_admin?) ? {level, Encryption.decrypt(string: setting_string, level: level, id: id)} : setting
+        when Encryption::Level::Admin
+          user.is_admin? ? {level, Encryption.decrypt(string: setting_string, level: level, id: id)} : setting
+        else
+          setting
+        end
+      end
+    end
+
+    # Decrypts settings, merges into single JSON object
+    #
+    def settings_json
+      return unless (id = @id)
+      @settings.reduce({} of String => YAML::Any) { |acc, (level, settings_string)|
+        # Decrypt String
+        decrypted = Engine::Encryption.decrypt(string: settings_string, level: level, id: id)
+        # Parse and merge into accumulated settings hash
+        acc.merge!(YAML.parse(decrypted).as_h)
+      }.to_json
     end
 
     # =======================

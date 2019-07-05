@@ -1,7 +1,6 @@
 require "../helper"
 
 module Engine::Model
-  # Transmogrified from the Ruby Engine spec
   describe ControlSystem do
     it "saves a control system" do
       cs = Generator.control_system
@@ -16,6 +15,82 @@ module Engine::Model
       id = cs.id
       id.should start_with "sys-" if id
       cs.persisted?.should be_true
+    end
+
+    describe "settings" do
+      it "encrypts on save" do
+        sys = Generator.control_system
+        sys.settings = old_settings = [{Encryption::Level::NeverDisplay, %({"secret_key": "secret1234"})}]
+        sys.save!
+        encrypted_settings = sys.settings.not_nil!
+
+        encrypted_settings.should_not eq old_settings
+        encrypted_settings[0][1].should start_with '\e'
+      end
+
+      describe "#decrypt_for!" do
+        mock_settings = [
+          {Encryption::Level::None, %({"sla": "99.?"})},
+          {Encryption::Level::Support, %({"whales": "victor mcwhale"})},
+          {Encryption::Level::Admin, %({"tax_haven": "seychelles"})},
+          {Encryption::Level::NeverDisplay, %({"secret_key": "secret1234"})},
+        ]
+
+        it "decrypts for unprivileged" do
+          sys = Generator.control_system
+          user = Generator.user
+
+          sys.settings = mock_settings.dup
+          sys.save!
+
+          encrypted_settings = sys.settings.not_nil!
+          encrypted_settings.all? { |s| is_encrypted?(s[1].as(String)) }
+
+          sys.decrypt_for!(user)
+
+          is_encrypted?(sys.settings_at(Encryption::Level::None).as(String)).should be_false
+          is_encrypted?(sys.settings_at(Encryption::Level::Support).as(String)).should be_true
+          is_encrypted?(sys.settings_at(Encryption::Level::Admin).as(String)).should be_true
+          is_encrypted?(sys.settings_at(Encryption::Level::NeverDisplay).as(String)).should be_true
+        end
+
+        it "decrypts for support" do
+          sys = Generator.control_system
+          user = Generator.user
+          user.support = true
+
+          sys.settings = mock_settings.dup
+          sys.save!
+
+          encrypted_settings = sys.settings.not_nil!
+          encrypted_settings.all? { |s| is_encrypted?(s[1].as(String)) }
+
+          sys.decrypt_for!(user)
+
+          is_encrypted?(sys.settings_at(Encryption::Level::None).as(String)).should be_false
+          is_encrypted?(sys.settings_at(Encryption::Level::Support).as(String)).should be_false
+          is_encrypted?(sys.settings_at(Encryption::Level::Admin).as(String)).should be_true
+          is_encrypted?(sys.settings_at(Encryption::Level::NeverDisplay).as(String)).should be_true
+        end
+
+        it "decrypts for admin" do
+          sys = Generator.control_system
+          user = Generator.authenticated_user
+
+          sys.settings = mock_settings.dup
+          sys.save!
+
+          encrypted_settings = sys.settings.not_nil!
+          encrypted_settings.all? { |s| is_encrypted?(s[1].as(String)) }
+
+          sys.decrypt_for!(user)
+
+          is_encrypted?(sys.settings_at(Encryption::Level::None).as(String)).should be_false
+          is_encrypted?(sys.settings_at(Encryption::Level::Support).as(String)).should be_false
+          is_encrypted?(sys.settings_at(Encryption::Level::Admin).as(String)).should be_false
+          is_encrypted?(sys.settings_at(Encryption::Level::NeverDisplay).as(String)).should be_true
+        end
+      end
     end
 
     describe "generation of json data" do

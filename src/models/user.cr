@@ -89,10 +89,17 @@ module Engine::Model
       User.get_all([staff_id], index: :staff_id).first?
     end
 
-    # Create a secondary index on sys_admin field for quick lookup
     attribute sys_admin : Bool = false
 
     attribute support : Bool = false
+
+    def is_admin?
+      !!(@sys_admin)
+    end
+
+    def is_support?
+      !!(@support)
+    end
 
     before_save :build_name
 
