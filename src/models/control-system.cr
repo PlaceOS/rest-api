@@ -183,7 +183,7 @@ module Engine::Model
     # Decrypts settings dependent on user privileges
     #
     def decrypt_for!(user)
-      (@settings || [] of Setting).map! do |setting|
+      @settings.as(Array(Setting)).map! do |setting|
         level, setting_string = setting
         id = @id.as(String)
 

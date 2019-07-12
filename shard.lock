@@ -10,7 +10,7 @@ shards:
 
   active-model:
     github: spider-gazelle/active-model
-    version: 1.5.0
+    commit: 0bc32c0145e367e78b12725d28fa31ccf0b458f0
 
   ameba:
     github: veelenga/ameba
@@ -90,7 +90,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 3fc9cb88049661c6db0f51b79bb4537ba759c804
+    commit: 1f7a4f055baf87502c541af86d01cbac055cc6d7
 
   retriable:
     github: Sija/retriable.cr

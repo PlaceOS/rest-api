@@ -72,7 +72,6 @@ module Engine::API
 
           params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
           path = "#{base}?#{params}"
-          puts path
 
           sleep 3
 
@@ -99,7 +98,6 @@ module Engine::API
 
           params = HTTP::Params.encode({"connected" => "true"})
           path = "#{base}?#{params}"
-          puts path
 
           sleep 1
 
@@ -119,7 +117,7 @@ module Engine::API
         end
 
         it "no logic query" do
-          driver = Model::Generator.driver(role: Model::Driver::Role::Service)
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
           mod = Model::Generator.module
           mod.driver = driver
           mod.save!

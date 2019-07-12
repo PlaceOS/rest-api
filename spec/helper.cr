@@ -25,7 +25,6 @@ at_exit do
       q.db(db_name).table(t).delete
     end
   end
-  # Elastic.empty_indices
 end
 
 # Models

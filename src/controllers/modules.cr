@@ -36,7 +36,7 @@ module Engine::API
           total:   results.size,
           results: results,
         }
-      else # we use elastic search
+      else # we use Elasticsearch
         elastic = Model::Module.elastic
         query = elastic.query(params)
 
@@ -56,7 +56,7 @@ module Engine::API
         end
 
         if (running = args.running)
-          query.filter({"running" => [running]})
+          query.should({"running" => [running]})
         end
 
         if (as_of = args.as_of)
@@ -68,13 +68,7 @@ module Engine::API
         end
 
         if args.no_logic
-          non_logic_roles = [
-            Model::Driver::Role::SSH,
-            Model::Driver::Role::Device,
-            Model::Driver::Role::Service,
-          ].map(&.to_i)
-
-          query.filter({"role" => non_logic_roles})
+          query.must_not({"role" => [Model::Driver::Role::Logic.to_i]})
         end
 
         query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
