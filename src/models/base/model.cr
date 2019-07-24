@@ -4,7 +4,7 @@ require "neuroplastic"
 require "rethinkdb-orm"
 require "semantic_version"
 
-require "../utils/*"
+require "../utilities/*"
 
 module Engine::Model
   # Base class for all Engine models

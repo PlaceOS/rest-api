@@ -3,10 +3,9 @@ require "active-model"
 require "uuid"
 
 require "../models"
-
 require "../constants"
 require "../error"
-require "../utils/*"
+require "../utilities/*"
 
 module Engine::API
   abstract class Params < ActiveModel::Model
