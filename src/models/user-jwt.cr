@@ -2,11 +2,20 @@ require "./base/jwt"
 
 module Engine::Model
   class UserJWT < JWTBase
-    attribute id : String
-    attribute email : String
-    attribute admin : Bool
-    attribute support : Bool
+    property id : String
+    property email : String
+    property admin : Bool
+    property support : Bool
 
-    validates :id, :email, :admin, :support, presence: true
+    def initialize(@id, @email, @admin, @support)
+    end
+
+    def is_admin?
+      !!(@admin)
+    end
+
+    def is_support?
+      !!(@support)
+    end
   end
 end

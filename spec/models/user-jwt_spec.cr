@@ -46,7 +46,10 @@ module Engine::Model
       token = user_jwt.encode
       decoded_jwt = UserJWT.decode(token)
 
-      decoded_jwt.attributes.should eq user_jwt.attributes
+      decoded_jwt.id.should eq user_jwt.id
+      decoded_jwt.email.should eq user_jwt.email
+      decoded_jwt.admin.should eq user_jwt.admin
+      decoded_jwt.support.should eq user_jwt.support
     end
 
     it "encodes" do
@@ -55,8 +58,13 @@ module Engine::Model
     end
 
     it "decodes" do
+      user_jwt = UserJWT.new(**ATTRIBUTES)
       decoded_jwt = UserJWT.decode(SAMPLE_JWT, KEY, ALGORITHM)
-      decoded_jwt.attributes.should eq ATTRIBUTES.to_h
+
+      decoded_jwt.id.should eq user_jwt.id
+      decoded_jwt.email.should eq user_jwt.email
+      decoded_jwt.admin.should eq user_jwt.admin
+      decoded_jwt.support.should eq user_jwt.support
     end
   end
 end

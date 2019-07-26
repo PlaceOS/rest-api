@@ -1,12 +1,11 @@
-require "active-model"
 require "jwt"
 
 module Engine::Model
   # Base ORM for JWT
-  abstract class JWTBase < ActiveModel::Model
-    include ActiveModel::Validation
+  abstract class JWTBase
+    include JSON::Serializable
 
-    KEY = ENV["JWT_SECRET"]? ||
+    KEY = ENV["SECRET_KEY_BASE"]? ||
           <<-KEY
           -----BEGIN RSA PRIVATE KEY-----
           MIIEpAIBAAKCAQEAt01C9NBQrA6Y7wyIZtsyur191SwSL3MjR58RIjZ5SEbSyzMG

@@ -174,10 +174,10 @@ module Engine::Model
     def self.jwt(user : User? = nil)
       user = self.user.save! if user.nil?
       UserJWT.new(
-        id: user.id,
-        email: user.email,
-        support: user.support,
-        admin: user.sys_admin,
+        id: user.id.as(String),
+        email: user.email.as(String),
+        support: user.support.as(Bool),
+        admin: user.sys_admin.as(Bool),
       )
     end
 
