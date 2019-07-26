@@ -3,6 +3,7 @@ require "digest/md5"
 require "rethinkdb-orm"
 require "scrypt"
 
+require "./authority"
 require "./base/model"
 
 module Engine::Model
@@ -47,7 +48,7 @@ module Engine::Model
     # Sets email_digest to allow user look up without leaking emails
     #
     protected def create_email_digest
-      self.email_digest = Digest::MD5.hexdigest(self.email.not_nil!)
+      self.email_digest = Digest::MD5.hexdigest(self.email.as(String))
     end
 
     def self.find_by_email(authority_id, email)

@@ -7,6 +7,7 @@ module Engine::API
     before_action :find_hook
 
     @trigger : Model::TriggerInstance?
+    @webhook : Model::Trigger::Conditions::Webhook?
 
     class WebhookParams < Params
       attribute id : String
@@ -19,7 +20,7 @@ module Engine::API
     def show
       return notify if params["exec"]? == "true"
 
-      render json: @trigger.not_nil!
+      render json: @trigger.as(Model::TriggerInstance)
     end
 
     # Triggers the webhook
@@ -28,14 +29,14 @@ module Engine::API
     #  * Perform payload before actions
     #  * Perform payload after actions
     post("/:id/notify", :notify) do
-      trig = @trigger.not_nil!
-      webhook = (trig.conditions.try &.webhooks.try &.first).not_nil!
+      trig = @trigger.as(Model::TriggerInstance)
+      webhook = @webhook.as(Model::Trigger::Conditions::Webhook)
 
       case webhook.type
       when Model::Trigger::Conditions::Webhook::Type::PayloadOnly
         # TODO: Defer to core
         # exec_payload(sys)
-        Model::TriggerInstance.increment_trigger_count(trig.id.not_nil!)
+        Model::TriggerInstance.increment_trigger_count(trig.id.as(String))
         # TODO: Internal to core?
         # trig["#{trig.binding}_count"] += 1
         raise("unimplemented")
@@ -86,15 +87,16 @@ module Engine::API
       # Find will raise a 404 (not found) if there is an error
       trig = Model::TriggerInstance.find!(args.id)
 
-      has_webhook = (trig.conditions.try &.webhooks.try &.size || 0) > 0
+      webhook = trig.conditions.try &.webhooks.try &.first?
 
       # Determine the validity of loaded TriggerInstance
       unless trig.enabled &&
              trig.webhook_secret == args.secret &&
-             has_webhook
+             webhook
         head :not_found
       end
 
+      @webhook = webhook
       @trigger = trig
     end
   end

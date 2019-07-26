@@ -37,8 +37,8 @@ module Engine::API
     end
 
     def update
-      driver = @driver.not_nil!
       body = request.body.not_nil!
+      driver = @driver.as(Model::Driver)
       driver.assign_attributes_from_json(body)
 
       # Must destroy and re-add to change driver type

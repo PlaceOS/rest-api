@@ -38,10 +38,10 @@ module Engine::API
     end
 
     # Getter for user_token
-    def user_token
+    def user_token : Model::UserJWT
       # FIXME: Remove when action-controller respects the ordering of route callbacks
       authorize! unless @user_token
-      @user_token.not_nil!
+      @user_token.as(Model::UserJWT)
     end
 
     # Read admin status from supplied request JWT
@@ -64,7 +64,7 @@ module Engine::API
 
     # Obtains user referenced by user_token id
     def current_user : Model::User
-      return @current_user.not_nil! unless @current_user.nil?
+      return @current_user.as(Model::User) unless @current_user.nil?
 
       @current_user = Model::User.find!(user_token.id)
     end

@@ -99,7 +99,7 @@ module Engine::API
     end
 
     def show
-      sys_trig = @sys_trig.not_nil!
+      sys_trig = @sys_trig.as(Model::TriggerInstance)
       if is_support? && !is_admin?
         render json: restrict_attributes(sys_trig, except: ["webhook_secret"])
       else
@@ -113,8 +113,9 @@ module Engine::API
     end
 
     def update
-      sys_trig = @sys_trig.not_nil!
       body = request.body.not_nil!
+      sys_trig = @sys_trig.as(Model::TriggerInstance)
+
       args = UpdateParams.from_json(body)
 
       sys_trig.enabled = args.enabled unless args.enabled.nil?

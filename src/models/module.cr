@@ -50,7 +50,7 @@ module Engine::Model
         self.ip
       when Driver::Role::Service
         uri = self.uri || self.driver.try &.default_uri
-        uri.try { |u| URI.parse(u).host }
+        uri.try(&->URI.parse(String)).try(&.host)
       else
         # No hostname for Logic module
         nil

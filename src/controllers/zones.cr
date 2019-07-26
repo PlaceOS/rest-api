@@ -64,8 +64,8 @@ module Engine::API
     end
 
     def update
-      zone = @zone.not_nil!
       body = request.body.not_nil!
+      zone = @zone.as(Model::Zone)
 
       zone.assign_attributes_from_json(body)
       save_and_respond zone

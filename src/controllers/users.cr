@@ -6,6 +6,7 @@ module Engine::API
   class Users < Application
     include Utils::CurrentUser
     include Utils::CurrentAuthority
+
     base "/api/v1/users/"
 
     before_action :find_user, only: [:destroy, :update, :create]
@@ -46,13 +47,14 @@ module Engine::API
 
     def create
       user = Model::User.new(params)
-      user.authority = current_authority.not_nil!
+      user.authority = current_authority.as(Model::Authority)
+
       save_and_respond user
     end
 
     def update
       body = request.body.not_nil!
-      user = @user.not_nil!
+      user = @user.as(Model::User)
 
       if is_admin?
         user.assign_attributes_from_trusted_json(body)

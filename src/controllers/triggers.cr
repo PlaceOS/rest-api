@@ -26,8 +26,8 @@ module Engine::API
     end
 
     def update
-      trig = @trig.not_nil!
       body = request.body.not_nil!
+      trig = @trig.as(Model::Trigger)
 
       trig.assign_attributes_from_json(body)
       save_and_respond(trig)
