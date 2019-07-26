@@ -1,23 +1,32 @@
-FROM crystallang/crystal:latest
-ADD . /src
+FROM crystallang/crystal:0.29.0
+
+COPY . /src
 WORKDIR /src
 
-# Build App
-RUN shards build --production
+# Prerequisite for libscrypt install
+RUN apt-get -qq update -dd
+RUN apt-get -qq install -y curl
 
-# Run tests
-RUN crystal spec
+# Install dependencies
+RUN shards install
+
+# Manually remake libscrypt, PostInstall fails inexplicably
+RUN make -C ./lib/scrypt/ clean
+RUN make -C ./lib/scrypt/
+
+# Build App
+RUN shards build --production --no-debug
 
 # Extract dependencies
-RUN ldd bin/app | tr -s '[:blank:]' '\n' | grep '^/' | \
-  xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
+RUN ldd bin/engine-api | tr -s '[:blank:]' '\n' | grep '^/' | xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
 
 # Build a minimal docker image
-FROM scratch
+FROM busybox:glibc
 COPY --from=0 /src/deps /
 COPY --from=0 /src/bin/engine-api /engine-api
 
-# Run the app binding on port 8080
-EXPOSE 8080
+# Run the app binding on port 3000
+EXPOSE 3000
+HEALTHCHECK CMD wget --spider localhost:3000/
 ENTRYPOINT ["/engine-api"]
-CMD ["/app", "-b", "0.0.0.0", "-p", "8080"]
+CMD ["/engine-api", "-b", "0.0.0.0", "-p", "3000"]
