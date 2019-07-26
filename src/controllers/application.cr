@@ -1,5 +1,4 @@
 require "action-controller"
-require "active-model"
 require "uuid"
 
 require "../models"
@@ -8,18 +7,6 @@ require "../error"
 require "../utilities/*"
 
 module Engine::API
-  abstract class Params < ActiveModel::Model
-    # Helpers for model validations
-    include ActiveModel::Validation
-
-    # Checks that the model is valid
-    # Responds with the validation errors
-    def validate!
-      raise Error::InvalidParams.new(self) unless self.valid?
-      self
-    end
-  end
-
   private abstract class Application < ActionController::Base
     # Helpers for controller responses
     include Utils::Responders
