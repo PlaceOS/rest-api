@@ -1,5 +1,7 @@
 require "pinger"
 
+require "engine-driver/storage"
+
 require "./application"
 
 module Engine::API
@@ -10,7 +12,7 @@ module Engine::API
     before_action :check_support, only: [:index, :state, :show, :ping]
 
     before_action :ensure_json, only: [:create, :update]
-    before_action :find_module, only: [:show, :update, :destroy, :ping]
+    before_action :find_module, only: [:show, :update, :destroy, :ping, :state]
 
     @module : Model::Module?
 
@@ -121,9 +123,10 @@ module Engine::API
     end
 
     def update
-      mod = @module.not_nil!
       body = request.body.not_nil!
+      mod = @module.as(Model::Module)
       mod.assign_attributes_from_json(body)
+
       if mod.save
         # TODO: Update control; Ruby engine starts the module instance
         driver = mod.driver
@@ -152,7 +155,7 @@ module Engine::API
     ##
 
     post(":id/start", :start) do
-      mod = @module.not_nil!
+      mod = @module.as(Model::Module)
       head :ok if mod.running == true
 
       mod.update_fields(running: true)
@@ -167,7 +170,7 @@ module Engine::API
     end
 
     post(":id/stop", :stop) do
-      mod = @module.not_nil!
+      mod = @module.as(Model::Module)
       head :ok if mod.running == false
 
       mod.update_fields(running: false)
@@ -181,26 +184,25 @@ module Engine::API
       end
     end
 
-    # # Returns the value of the requested status variable
-    # # Or dumps the complete status state of the module
-    # def state
-    #     lookup_module do |mod|
-    #         para = params.permit(:lookup)
-    #         if para.has_key?(:lookup)
-    #             render json: mod.status[para[:lookup].to_sym]
-    #         else
-    #             render json: mod.status.marshal_dump
-    #         end
-    #     end
-    # end
+    # Returns the value of the requested status variable
+    # Or dumps the complete status state of the module
+    get(":id/state", :state) do
+      mod = @module.as(Model::Module)
+
+      # Grab driver state proxy
+      storage = EngineDriver::Storage.new(mod.id.as(String))
+
+      # Perform lookup, otherwise dump state
+      render json: ((lookup = params["lookup"]?) ? storage[lookup] : storage.to_h)
+    end
 
     post(":id/ping", :ping) do
-      mod = @module.not_nil!
+      mod = @module.as(Model::Module)
       if mod.role == Model::Driver::Role::Logic
         self.settings.logger.debug("controller=Modules action=ping module_id=#{mod.id} role=#{mod.role}")
         head :not_acceptable
       else
-        pinger = Pinger.new(mod.hostname.not_nil!, count: 3)
+        pinger = Pinger.new(mod.hostname.as(String), count: 3)
         pinger.ping
         render json: {
           host:      pinger.ip.to_s,

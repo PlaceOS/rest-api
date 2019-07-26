@@ -1,4 +1,9 @@
+require "uuid"
+
+require "engine-driver/proxy/system"
+
 require "./application"
+require "../sessions"
 
 module Engine::API
   class Systems < Application
@@ -6,9 +11,10 @@ module Engine::API
 
     id_param :sys_id
 
-    # state, funcs, count and types are available to authenticated usersj
+    # state, funcs, count and types are available to authenticated users
     before_action :find_system, only: [:show, :update, :destroy, :remove,
                                        :start, :stop, :exec, :types, :funcs]
+
     before_action :ensure_json, only: [:create, :update]
 
     @control_system : Model::ControlSystem?
@@ -61,11 +67,11 @@ module Engine::API
 
     # Updates a control system
     def update
-      control_system = @control_system.not_nil!
       body = request.body.not_nil!
+      control_system = @control_system.as(Model::ControlSystem)
 
       args = UpdateParams.new(params).validate!
-      version = args.version.not_nil!
+      version = args.version.as(Int32)
 
       head :conflict if version != control_system.version
 
@@ -82,11 +88,6 @@ module Engine::API
 
     def destroy
       @control_system.try &.destroy
-
-      # sys_id = control_system.id
-      # Clear the cache
-      # control.expire_cache(sys_id).value
-
       head :ok
     end
 
@@ -97,10 +98,10 @@ module Engine::API
     # Removes the module from the system and deletes it if not used elsewhere
     #
     post("/:sys_id/remove", :remove) do
-      control_system = @control_system.not_nil!
+      control_system = @control_system.as(Model::ControlSystem)
       args = RemoveParams.new(params).validate!
 
-      module_id = args.module_id.not_nil!
+      module_id = args.module_id.as(String)
       modules = control_system.modules || [] of String
 
       if modules.includes? module_id
@@ -119,14 +120,14 @@ module Engine::API
       head :ok
     end
 
-    ##
-    # Additional Functions
+    # Module Functions
+    ###########################################################################
 
     # Start modules
     #
     # FIXME: Optimise query
     post("/:sys_id/start", :start) do
-      modules = @control_system.not_nil!.modules || [] of String
+      modules = @control_system.as(Model::ControlSystem).modules || [] of String
       Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: true)
       end
@@ -138,7 +139,7 @@ module Engine::API
     #
     # FIXME: Optimise query
     post("/:sys_id/stop", :stop) do
-      modules = @control_system.not_nil!.modules || [] of String
+      modules = @control_system.as(Model::ControlSystem).modules || [] of String
       Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: false)
       end
@@ -146,168 +147,170 @@ module Engine::API
       head :ok
     end
 
-    # class ExecParams < Params
-    #   attribute method : String, presence: true
-    #   attribute module_id : String, presence: true
-    #   attribute index : Int32
-    #   # attribute args : Array(String | Int32 | ... )
-    # end
+    # Driver Metadata, State and Status
+    ###########################################################################
 
-    # post("/:sys_id/exec", :exec) do
-    #     # Run a function in a system module (async request)
-    #     required_params(params, :module, :method)
-    #     args = ExecParams.new(params)
+    class ExecParams < Params
+      attribute sys_id : String
 
-    #     # This looks insane however it does achieve our out of the ordinary requirement
-    #     # .to_h converts to indifferent access .to_h converts to a regular hash and
-    #     # .symbolize_keys! is required for passing hashes to functions with named params
-    #     # and having them apply correctly
-    #     para = params.permit(EXEC_PARAMS).to_h.to_h.symbolize_keys!.tap do |whitelist|
-    #         whitelist[:args] = Array(params["args"]).collect { |arg|
-    #             if arg.is_a?(::ActionController::Parameters)
-    #                 arg.to_unsafe_h.to_h.symbolize_keys!
-    #             else
-    #                 arg
-    #             end
-    #         }
-    #     end
-    #     defer = reactor.defer
-    #     sys  = ::Orchestrator::Core::SystemProxy.new(reactor, id, nil, current_user)
-    #     mod = sys.get(para[:module], para[:index] || 1)
-    #     result = mod.method_missing(para[:method], *para[:args])
-    #     # timeout in case message is queued
-    #     timeout = reactor.scheduler.in(15000) do
-    #         defer.resolve("Wait time exceeded. Command may have been queued.")
-    #     end
-    #     result.finally do
-    #         timeout.cancel # if we have our answer
-    #         defer.resolve(result)
-    #     end
+      attribute module_name : String
+      attribute index : Int32 = 1
 
-    #     value = defer.promise.value
+      attribute method : String
+      attribute args : Array(JSON::Any)
 
-    #     begin
-    #         # Placed into an array so primitives values are returned as valid JSON
-    #         render json: [prepare_json(value)]
-    #     rescue e < Exception
-    #         # respond with nil if object cannot be converted to JSON
-    #         logger.info "failed to convert object #{value.class} to JSON"
-    #         render json: ["response object #{value.class} could not be rendered in JSON"]
-    #     end
-    # rescue e < Exception
-    #     render json: ["#{e.message}\n#{e.backtrace.join("\n")}"], status: :internal_server_error
-    # end
+      validates :method, presence: true
+      validates :module_name, presence: true
+    end
 
-    # Returns the state of an associated module
-    # get("/:sys_id/state", :state) do
-    #   # Status defined as a system module
-    #   required_params(params, :module)
-    #   sys = System.get(id)
-    #   if sys
-    #     para = params.permit(:module, :index, :lookup)
-    #     index = para[:index]
-    #     mod = sys.get(para[:module].to_sym, index.nil? ? 1 : index.to_i)
-    #     if mod
-    #       if para.has_key?(:lookup)
-    #         render json: mod.status[para[:lookup].to_sym]
-    #       else
-    #         mod.thread.next_tick do
-    #           mod.instance.__STATS__
-    #         end
-    #         render json: mod.status.marshal_dump
-    #       end
-    #     else
-    #       head :not_found
-    #     end
-    #   else
-    #     head :not_found
-    #   end
-    # end
-
-    #   # returns a list of functions available to call
-    #   Ignore = Set.new([
-    #       Constants, Transcoder, Core::Mixin, Ssh::Mixin,
-    #       Logic::Mixin, Device::Mixin, Service::Mixin
-    #   ])
-
-    #   Break = Set.new([
-    #       ::ActiveSupport::ToJsonWithActiveSupportEncoder,
-    #       Object, Kernel, BasicObject
-    #   ])
+    # Runs a function in a system module (async request)
     #
-    # metadata route
-    #   get("/:sys_id/funcs", :funcs)
-    #       required_params(params, :module)
-    #       sys = System.get(id)
-    #       if sys
-    #           para = params.permit(:module, :index)
-    #           index = para[:index]
-    #           index = index.nil? ? 1 : index.to_i;
+    post("/:sys_id/exec", :exec) do
+      args = ExecParams.new(params).validate!
 
-    #           mod = sys.get(para[:module].to_sym, index)
-    #           if mod
-    #               klass = mod.klass
+      # This looks insane however it does achieve our out of the ordinary requirement
+      # .to_h converts to indifferent access .to_h converts to a regular hash and
+      # .symbolize_keys! is required for passing hashes to functions with named params
+      # and having them apply correctly
 
-    #               # Find all the public methods available for calling
-    #               # Including those methods from ancestor classes
-    #               funcs = []
-    #               klass.ancestors.each do |methods|
-    #                   break if Break.include?(methods)
-    #                   next  if Ignore.include?(methods)
-    #                   funcs += methods.public_instance_methods(false)
-    #               end
+      # TODO: Request core
+      begin
+        value = nil
+        url = nil
+        # url = locate_module?(sys_id, module_name, method)
 
-    #               # Remove protected methods
-    #               pub = funcs.select { |func| !Core::PROTECTED[func] }
+        head :not_found unless url
+      rescue e
+        self.settings.logger.error("core exec request failed: params=#{args.attributes} message=#{e.message} backtrace=#{e.inspect_with_backtrace}")
+        render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
+      end
 
-    #               # Provide details on the methods
-    #               resp = {}
-    #               pub.each do |pfunc|
-    #                   meth = klass.instance_method(pfunc.to_sym)
-    #                   resp[pfunc] = {
-    #                       arity: meth.arity,
-    #                       params: meth.parameters
-    #                   }
-    #               end
-
-    #               render json: resp
-    #           else
-    #               head :not_found
-    #           end
-    #       else
-    #           head :not_found
-    #       end
-    #   end
+      render json: value
+    end
 
     # class CountParams < Params
     #   attribute module_name : String, presence: true
     # end
-
-    # # Return the count of a module type in a system
+    #
+    # # Returns the count of a module type in a system
+    # #
     # get("/:sys_id/count", :count) do
-    #   sys = @control_system.not_nil!
+    #   sys = @control_system.as(Model::ControlSystem)
     #   args = CountParams.new(params).validate!
-    #   render json: {count: sys.count(args.module)}
+    #   render json: {count: sys.count(args.module_name)}
     # end
-
-    # returns a hash of a module types in a system with
-    # the count of each of those types
+    #
+    # # Looksup a module types in a system, returning a count of each type
+    # #
     # get("/:sys_id/types", :types) do
-    #   control_system = @control_system.not_nil!
+    #   control_system = @control_system.as(Model::ControlSystem)
     #   render json: control_system.modules.each_with_object({} of String => Int32) do |mod, counts|
     #     counts[mod] = control_system.count(mod)
     #   end
     # end
 
-    # Better performance as don't need to create the object each time
-    # private CS_PARAMS = [
-    #   :name, :description, :support_url, :installed_ui_devices,
-    #   :capacity, :email, :bookable, :features, :version,
-    #   {
-    #     zones:   [] of String,
-    #     modules: [] of String,
-    #   },
-    # ]
+    class StateParams < Params
+      attribute lookup : Symbol
+
+      attribute sys_id : String
+      attribute module_name : String
+      attribute index : Int32 = 1
+
+      validates :module_name, presence: true
+      validates :sys_id, presence: true
+    end
+
+    # Returns the state of an associated module
+    #
+    get("/:sys_id/state", :state) do
+      # Status defined as a system module
+      args = StateParams.new(params).validate!
+
+      # Look up module's id for module on system
+      module_id = EngineDriver::Proxy::System.module_id?(args.sys_id.as(String), args.module_name.as(String), args.index.as(Int32))
+
+      if module_id
+        # Grab driver state proxy
+        storage = EngineDriver::Storage.new(module_id)
+
+        # Perform lookup, otherwise dump state
+        render json: ((lookup = args.lookup) ? storage[lookup] : storage.to_h)
+      else
+        head :not_found
+      end
+    end
+
+    class FuncsParams < Params
+      attribute sys_id : String
+      attribute module_name : String
+      attribute index : Int32 = 1
+
+      validates :module_name, presence: true
+    end
+
+    # Lists functions available on the driver
+    # Filters higher privilege functions.
+    get("/:sys_id/funcs", :funcs) do
+      args = FuncsParams.new(params).validate!
+
+      metadata = EngineDriver::Proxy::System.driver_metadata?(
+        system_id: args.sys_id.as(String),
+        module_name: args.module_name.as(String),
+        index: args.index.as(Int32),
+      )
+
+      head :not_found unless metadata
+
+      hidden_functions = if user_token.is_admin?
+                           # All functions available to admin
+                           [] of String
+                         elsif user_token.is_support?
+                           # Admin functions hidden from support
+                           metadata.security["administrator"]? || [] of String
+                         else
+                           # All privileged functions hidden from user without privileges
+                           (metadata.security["support"]? || [] of String) + (metadata.security["administrator"]? || [] of String)
+                         end
+
+      # Delete keys to metadata for functions with higher privilege
+      functions = metadata.functions.reject!(hidden_functions)
+
+      # Transform function metadata
+      response = functions.transform_values do |arguments|
+        {
+          arity:  arguments.size,
+          params: arguments,
+        }
+      end
+
+      render json: response
+    end
+
+    # Websockets
+    ###########################################################################
+
+    class BindParams < Params
+      attribute access_token : String
+
+      validates :access_token, prescence: true
+    end
+
+    ws("/bind", :bind) do |ws|
+      args = BindParams.new(params).validate!
+      user_token = Model::UserJWT.decode(args.access_token.as(String))
+      Systems.session_manager.create_session(
+        ws: ws,
+        request_id: request.id || "",
+        user: user_token,
+      )
+    end
+
+    # Lazy initializer for session_manager
+    def self.session_manager
+      (@@session_manager ||= SessionManager.new(self.settings.logger)).as(SessionManager)
+    end
+
+    @@session_manager : SessionManager? = nil
 
     def find_system
       # Find will raise a 404 (not found) if there is an error
