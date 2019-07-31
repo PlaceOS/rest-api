@@ -4,7 +4,6 @@ module Engine::API
   class Triggers < Application
     base "/api/v1/triggers/"
 
-    # state, funcs, count and types are available to authenticated users
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
 

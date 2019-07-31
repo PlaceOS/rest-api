@@ -3,7 +3,7 @@ require "uuid"
 require "engine-driver/proxy/system"
 
 require "./application"
-require "../sessions"
+require "../session"
 
 module Engine::API
   class Systems < Application
@@ -11,7 +11,6 @@ module Engine::API
 
     id_param :sys_id
 
-    # state, funcs, count and types are available to authenticated users
     before_action :find_system, only: [:show, :update, :destroy, :remove,
                                        :start, :stop, :exec, :types, :funcs]
 
@@ -192,6 +191,7 @@ module Engine::API
     #   attribute module_name : String, presence: true
     # end
     #
+
     # # Returns the count of a module type in a system
     # #
     # get("/:sys_id/count", :count) do
@@ -199,7 +199,7 @@ module Engine::API
     #   args = CountParams.new(params).validate!
     #   render json: {count: sys.count(args.module_name)}
     # end
-    #
+
     # # Looksup a module types in a system, returning a count of each type
     # #
     # get("/:sys_id/types", :types) do
@@ -307,10 +307,10 @@ module Engine::API
 
     # Lazy initializer for session_manager
     def self.session_manager
-      (@@session_manager ||= SessionManager.new(self.settings.logger)).as(SessionManager)
+      (@@session_manager ||= Session::Manager.new(self.settings.logger)).as(Session::Manager)
     end
 
-    @@session_manager : SessionManager? = nil
+    @@session_manager : Session::Manager? = nil
 
     def find_system
       # Find will raise a 404 (not found) if there is an error

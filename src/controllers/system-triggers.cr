@@ -7,7 +7,6 @@ module Engine::API
     base "/api/v1/systems/:sys_id/triggers/"
     id_param :trig_id
 
-    # state, funcs, count and types are available to authenticated users
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
 

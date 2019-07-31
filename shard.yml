@@ -42,6 +42,10 @@ dependencies:
   scrypt:
     github: ysbaddaden/scrypt-crystal
 
+  # Scheduling
+  tasker:
+    github: spider-gazelle/tasker
+
 development_dependencies:
   # Linter
   ameba:
@@ -51,6 +55,10 @@ development_dependencies:
   # Mock data generation
   faker:
     github: askn/faker
+
+  # File System Changes
+  sentry:
+    github: samueleaton/sentry
 
 targets:
   engine-api:
