@@ -11,8 +11,8 @@ RUN apt-get -qq install -y curl
 RUN shards install
 
 # Manually remake libscrypt, PostInstall fails inexplicably
-RUN make -C ./lib/scrypt/ clean
-RUN make -C ./lib/scrypt/
+# RUN make -C ./lib/scrypt/ clean
+# RUN make -C ./lib/scrypt/
 
 # Build App
 RUN shards build --production --no-debug
