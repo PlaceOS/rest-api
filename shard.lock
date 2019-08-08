@@ -42,7 +42,7 @@ shards:
 
   ipaddress:
     github: Sija/ipaddress.cr
-    version: 0.1.2
+    version: 0.1.3
 
   jwt:
     github: crystal-community/jwt
@@ -94,7 +94,7 @@ shards:
 
   retriable:
     github: Sija/retriable.cr
-    commit: 8cd9986bd89594c00bbeaae3fdeda4badfc59ab6
+    commit: 74f7b3dae330f87c5d3afd3f06f7896f5fda24b6
 
   scrypt:
     github: ysbaddaden/scrypt-crystal
