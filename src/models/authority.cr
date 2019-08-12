@@ -28,7 +28,7 @@ module Engine::Model
       previous_def(parsed.host.try &.downcase)
     end
 
-    # Locates an Authority by its unique domain name
+    # locates an authority by its unique domain name
     #
     def self.find_by_domain(domain)
       Authority.find_all([domain], index: :domain).first?

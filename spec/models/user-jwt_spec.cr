@@ -2,12 +2,22 @@ require "../helper"
 
 module Engine::Model
   # Sample data
-  ATTRIBUTES = {
-    id:      "1234",
-    email:   "abcde@protonmail.com",
-    admin:   true,
+  USER_META = UserJWT::Metadata.new(
+    name: "abcde",
+    email: "abcde@protonmail.com",
+    admin: true,
     support: true,
+  )
+
+  ATTRIBUTES = {
+    iss:  "ACAE",
+    iat:  Time.unix(1000),
+    exp:  Time.unix(Int32::MAX),
+    aud:  "protonmail.com",
+    sub:  "1234",
+    user: USER_META,
   }
+
   ALGORITHM = JWT::Algorithm::RS256
   KEY       = <<-KEY
   -----BEGIN RSA PRIVATE KEY-----
@@ -38,7 +48,8 @@ module Engine::Model
   4n455vizig2c4/sxU5yu9AF9Dv+qNsGCx2e9uUOTDUlHM9NXwxU9rQ==
   -----END RSA PRIVATE KEY-----
   KEY
-  SAMPLE_JWT = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpZCI6IjEyMzQiLCJlbWFpbCI6ImFiY2RlQHByb3Rvbm1haWwuY29tIiwiYWRtaW4iOnRydWUsInN1cHBvcnQiOnRydWV9.nC4xgIU14Jjove1krR4161eWztpsr40IwoFdQGaNEFvgKh9RlDnWaRr0XazQHWKtVdBJDetzESDuQ0haDFDtLVVEbkXZMfmfJ6cYsg3eoAlDp8JZJSm3exaQYEj8PplWZINE2jDryev3xEH0FYPNO4G-BMxZ8tLUQ3eRjF0Gd9yzaEf1Sf097iWuv7euFsyWZp66bJRkZatM1Rs86YG6bu4gKaF5OB-aYO5MmJYIRI3d6GDWSjf73QPl60Llq-K0ks7cSHUj-iUqPH3xXrv4ZSj9pRJoBavbN5xaVRMrFj6UB6Idd3JUu3j6QYKycLTGII986ExYza_BtUuchZl11Q"
+
+  SAMPLE_JWT = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJBQ0FFIiwiaWF0IjoxMDAwLCJleHAiOjIxNDc0ODM2NDcsImF1ZCI6InByb3Rvbm1haWwuY29tIiwic3ViIjoiMTIzNCIsInVzZXIiOnsibmFtZSI6ImFiY2RlIiwiZW1haWwiOiJhYmNkZUBwcm90b25tYWlsLmNvbSIsImFkbWluIjp0cnVlLCJzdXBwb3J0Ijp0cnVlfX0.OWem13XxhN9j-ivgR9tfmcnbqzk3J_d4buC_-UdDcxZ6mIHTVt2GrNoEHTJrcBIiBWAO_UsfSIy4lP-jNnRlHN9MSRzTQFLvHKxQbQNWEQ3vFwuTYscESDxjJWKd__RF_7t_J_AkYVraaiXKuHgXu5o4xJ9OR3JuW2Z4pVmq63gXcb5fdexE5jMUySQ6oZ8Pk7VxJdRMDhyMOfnK7aQ-UXL6Us9tXMD-_XItp9Ko_JOJkJeGtVEU4vIX5G6UdCMzCe5cGB1nbm_70MdCKNoqEopSuDn0JvMngh69_ylTlB1wvHHFIWsW9SDKDaWlfhs-YW10kIysKEq4bd3j-veWMA"
 
   describe UserJWT do
     it "satisfies round trip property" do
@@ -47,9 +58,10 @@ module Engine::Model
       decoded_jwt = UserJWT.decode(token)
 
       decoded_jwt.id.should eq user_jwt.id
-      decoded_jwt.email.should eq user_jwt.email
-      decoded_jwt.admin.should eq user_jwt.admin
-      decoded_jwt.support.should eq user_jwt.support
+      decoded_jwt.domain.should eq user_jwt.domain
+      decoded_jwt.user.email.should eq user_jwt.user.email
+      decoded_jwt.user.admin.should eq user_jwt.user.admin
+      decoded_jwt.user.support.should eq user_jwt.user.support
     end
 
     it "encodes" do
@@ -62,9 +74,10 @@ module Engine::Model
       decoded_jwt = UserJWT.decode(SAMPLE_JWT, KEY, ALGORITHM)
 
       decoded_jwt.id.should eq user_jwt.id
-      decoded_jwt.email.should eq user_jwt.email
-      decoded_jwt.admin.should eq user_jwt.admin
-      decoded_jwt.support.should eq user_jwt.support
+      decoded_jwt.domain.should eq user_jwt.domain
+      decoded_jwt.user.email.should eq user_jwt.user.email
+      decoded_jwt.user.admin.should eq user_jwt.user.admin
+      decoded_jwt.user.support.should eq user_jwt.user.support
     end
   end
 end

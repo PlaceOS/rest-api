@@ -1,4 +1,5 @@
 require "jwt"
+require "time"
 
 module Engine::Model
   # Base ORM for JWT

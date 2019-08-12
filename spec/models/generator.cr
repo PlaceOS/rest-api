@@ -118,7 +118,7 @@ module Engine::Model
     def self.authority
       Authority.new(
         name: Faker::Hacker.noun,
-        domain: Faker::Internet.url,
+        domain: "localhost",
       )
     end
 
@@ -173,20 +173,46 @@ module Engine::Model
 
     def self.jwt(user : User? = nil)
       user = self.user.save! if user.nil?
-      UserJWT.new(
-        id: user.id.as(String),
+
+      meta = UserJWT::Metadata.new(
+        name: user.name.as(String),
         email: user.email.as(String),
         support: user.support.as(Bool),
         admin: user.sys_admin.as(Bool),
       )
+
+      UserJWT.new(
+        iss: "ACAE",
+        iat: Time.utc,
+        exp: 2.weeks.from_now,
+        aud: Faker::Internet.email,
+        sub: user.id.as(String),
+        user: meta,
+      )
     end
 
-    def self.user_jwt(id : String? = nil, email : String? = nil, support : Bool? = nil, admin : Bool? = nil)
-      UserJWT.new(
-        id: id || RANDOM.base64(10),
+    def self.user_jwt(
+      id : String? = nil,
+      domain : String? = nil,
+      name : String? = nil,
+      email : String? = nil,
+      support : Bool? = nil,
+      admin : Bool? = nil
+    )
+      meta = UserJWT::Metadata.new(
+        name: name || Faker::Hacker.noun,
         email: email || Faker::Internet.email,
         support: support || self.bool,
         admin: admin || self.bool,
+      )
+
+      UserJWT.new(
+        iss: "ACAE",
+        iat: Time.utc,
+        exp: 2.weeks.from_now,
+        aud: Faker::Internet.email,
+        sub: id || RANDOM.base64(10),
+        user: meta,
       )
     end
   end
