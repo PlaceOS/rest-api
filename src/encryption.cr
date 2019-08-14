@@ -13,7 +13,6 @@ module Engine::Encryption
   end
 
   private SECRET = ENV["ENGINE_SECRET"]? || "super secret, do not leak"
-
   private CIPHER = "aes-256-gcm"
 
   # Encrypt clear text

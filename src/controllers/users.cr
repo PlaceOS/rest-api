@@ -5,7 +5,6 @@ require "./application"
 module Engine::API
   class Users < Application
     include Utils::CurrentUser
-    include Utils::CurrentAuthority
 
     base "/api/v1/users/"
 

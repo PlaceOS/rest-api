@@ -1,3 +1,5 @@
+require "rethinkdb-orm"
+
 module Engine::API
   class Error < Exception
     getter :message
