@@ -133,7 +133,7 @@ module Engine::Model
       # accounts created with social logins will have an empty password_digest
       return nil if unencrypted_password.size == 0
 
-      if (password_digest || "") == unencrypted_password
+      if @password_digest.try &.verify(unencrypted_password)
         self
       else
         nil
