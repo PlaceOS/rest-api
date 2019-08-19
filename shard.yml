@@ -10,19 +10,22 @@ dependencies:
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
-    branch: master
+    version: "~> 1.6"
 
   # Email validations
   CrystalEmail:
     github: Nephos/CrystalEmail
+    version: "~> 0.2.4"
 
   # For driver state helpers
   engine-driver:
     github: aca-labs/crystal-engine-driver
+    branch: master
 
   # JSON Web Token support
   jwt:
     github: crystal-community/jwt
+    version: "~> 1.1.1"
 
   # Elasticsearch extension for RethinkORM
   neuroplastic:
@@ -32,6 +35,7 @@ dependencies:
   # Performs ping requests
   pinger:
     github: spider-gazelle/pinger
+    version: "~> 1.0"
 
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
@@ -41,10 +45,12 @@ dependencies:
   # Scrypt encryption
   scrypt:
     github: ysbaddaden/scrypt-crystal
+    version: "~> 0.3"
 
   # Scheduling
   tasker:
     github: spider-gazelle/tasker
+    version: "~> 1.2.1"
 
 development_dependencies:
   # Linter
@@ -60,5 +66,5 @@ targets:
   engine-api:
     main: src/engine-api.cr
 
-crystal: 0.30.0
+crystal: 0.30.1
 
