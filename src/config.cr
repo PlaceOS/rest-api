@@ -16,6 +16,9 @@ require "./controllers/*"
 # Server required after application controllers
 require "action-controller/server"
 
+# Do not buffer logs
+STDOUT.sync = true
+
 # Add handlers that should run before your application
 ActionController::Server.before(
   HTTP::ErrorHandler.new(ENV["SG_ENV"]? != "production"),
