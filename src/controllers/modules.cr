@@ -162,7 +162,7 @@ module Engine::API
 
       # Changes cleared on a successful update
       if mod.running_changed?
-        self.settings.logger.error("controller=Modules action=start module_id=#{mod.id} event=failed")
+        logger.error("controller=Modules action=start module_id=#{mod.id} event=failed")
         head :internal_server_error
       else
         head :ok
@@ -177,7 +177,7 @@ module Engine::API
 
       # Changes cleared on a successful update
       if mod.running_changed?
-        self.settings.logger.error("controller=Modules action=stop module_id=#{mod.id} event=failed")
+        logger.error("controller=Modules action=stop module_id=#{mod.id} event=failed")
         head :internal_server_error
       else
         head :ok
@@ -199,7 +199,7 @@ module Engine::API
     post(":id/ping", :ping) do
       mod = @module.as(Model::Module)
       if mod.role == Model::Driver::Role::Logic
-        self.settings.logger.debug("controller=Modules action=ping module_id=#{mod.id} role=#{mod.role}")
+        logger.debug("controller=Modules action=ping module_id=#{mod.id} role=#{mod.role}")
         head :not_acceptable
       else
         pinger = Pinger.new(mod.hostname.as(String), count: 3)

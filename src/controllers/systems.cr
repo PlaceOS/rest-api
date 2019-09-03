@@ -180,7 +180,7 @@ module Engine::API
 
         head :not_found unless url
       rescue e
-        self.settings.logger.error("core exec request failed: params=#{args.attributes} message=#{e.message} backtrace=#{e.inspect_with_backtrace}")
+        logger.error("core exec request failed: params=#{args.attributes} message=#{e.message} backtrace=#{e.inspect_with_backtrace}")
         render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
       end
 
@@ -307,7 +307,7 @@ module Engine::API
 
     # Lazy initializer for session_manager
     def self.session_manager
-      (@@session_manager ||= Session::Manager.new(self.settings.logger)).as(Session::Manager)
+      (@@session_manager ||= Session::Manager.new(logger)).as(Session::Manager)
     end
 
     @@session_manager : Session::Manager? = nil

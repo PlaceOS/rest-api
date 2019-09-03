@@ -1,4 +1,5 @@
 require "action-controller"
+require "logger"
 require "uuid"
 
 require "../models"
@@ -16,6 +17,8 @@ module Engine::API
 
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name" => {order: :asc}}
+
+    self.settings.logger.level = ENV["SG_ENV"]? != "production" ? Logger::DEBUG : Logger::WARN
 
     # Callbacks
     ###########################################################################
@@ -51,21 +54,21 @@ module Engine::API
 
     # 403 if user role invalid for a route
     rescue_from Error::Unauthorized do |error|
-      self.settings.logger.debug error
+      logger.debug error
 
       head :forbidden
     end
 
     # 404 if resource not present
     rescue_from RethinkORM::Error::DocumentNotFound do |error|
-      self.settings.logger.debug error
+      logger.debug error
 
       head :not_found
     end
 
     # 422 if resource fails validation before mutation
     rescue_from Error::InvalidParams do |error|
-      self.settings.logger.debug error
+      logger.debug error
 
       render status: :unprocessable_entity, json: error.params.errors.map(&.to_s)
     end

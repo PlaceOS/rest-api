@@ -28,7 +28,7 @@ ActionController::Server.before(
     {
       request_id: context.request.id,      # `context.request.id` is set in `controllers/application`
       user_id:    context.request.user_id, # `context.request.user_id` is set in `utils/current_user`
-    }.map { |key, value| " #{key}=#{value}" }.join("")
+    }.map { |key, value| " #{key}=#{value}" if value && !value.empty? }.compact.join("")
   },
   HTTP::CompressHandler.new
 )
