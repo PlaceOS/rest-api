@@ -1,7 +1,9 @@
 FROM crystallang/crystal:0.30.1
 
-# Add curl (necessary for scrypt install)
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Add
+# - curl (necessary for scrypt install)
+# - ping (not in base xenial image the crystal image is based off)
+RUN apt-get update && apt-get install -y curl iputils-ping && rm -rf /var/lib/apt/lists/*
 
 # Install shards for caching
 COPY shard.yml shard.yml
