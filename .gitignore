@@ -1,8 +1,8 @@
-doc
+docs
 lib
 .crystal
 .shards
-app
+engine-api
 *.dwarf
 bin
 *.DS_Store
