@@ -22,7 +22,7 @@ RUN upx --best engine-api
 
 # Build a minimal docker image
 FROM alpine:3.10
-COPY --from=builder engine-api engine-api
+COPY --from=builder /build/engine-api engine-api
 
 # Run the app binding on port 3000
 EXPOSE 3000
