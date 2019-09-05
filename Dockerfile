@@ -1,23 +1,27 @@
 FROM crystallang/crystal:0.30.1
 
+WORKDIR /app
+
 # Add
 # - curl (necessary for scrypt install)
 # - ping (not in base xenial image the crystal image is based off)
-RUN apt-get update && apt-get install -y curl iputils-ping && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y curl=7.47.0-1ubuntu2.13 iputils-ping=3:20121221-5ubuntu2 && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install shards for caching
 COPY shard.yml shard.yml
 RUN shards install --production
 
-# Add src
-COPY . /app
-
 # Manually remake libscrypt, PostInstall fails inexplicably
-RUN make -C /app/lib/scrypt/ clean
-RUN make -C /app/lib/scrypt/
+RUN make -C lib/scrypt/ clean
+RUN make -C lib/scrypt/
+
+# Add src
+COPY ./src /app/src
 
 # Build application
-RUN crystal build app/src/engine-api.cr --release --no-debug
+RUN crystal build /app/src/engine-api.cr --release --no-debug
 
 # Run the app binding on port 3000
 EXPOSE 3000

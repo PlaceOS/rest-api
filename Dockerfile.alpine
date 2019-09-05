@@ -1,16 +1,18 @@
 FROM acalabs/crystal-alpine:0.30.1 as builder
 
+WORKDIR /build
+
 # Install shards for caching
 COPY shard.yml shard.yml
 
 RUN shards install --production
 
-# Add src
-COPY . ./
-
 # Manually remake libscrypt, PostInstall fails inexplicably
-RUN make -C ./lib/scrypt/ clean
-RUN make -C ./lib/scrypt/
+RUN make -C lib/scrypt/ clean
+RUN make -C lib/scrypt/
+
+# Add src
+COPY src src
 
 # Build application
 RUN crystal build src/engine-api.cr --release --no-debug --static
