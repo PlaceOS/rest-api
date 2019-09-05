@@ -13,11 +13,12 @@ module Engine::Model
 
     attribute description : String
 
+    # TODO: feature request: autogenerate login url
     attribute login_url : String = "/auth/login?continue={{url}}"
     attribute logout_url : String = "/auth/logout"
 
-    attribute internals : String
-    attribute config : String
+    attribute internals : Hash(String, String) = {} of String => String
+    attribute config : Hash(String, String) = {} of String => String
 
     validates :name, presence: true
 
@@ -30,7 +31,7 @@ module Engine::Model
 
     # locates an authority by its unique domain name
     #
-    def self.find_by_domain(domain)
+    def self.find_by_domain(domain) : Authority?
       Authority.find_all([domain], index: :domain).first?
     end
   end
