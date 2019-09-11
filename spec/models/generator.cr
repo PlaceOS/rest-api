@@ -116,6 +116,7 @@ module Engine::Model
     end
 
     def self.authority
+      puts "\n\nMaking an authority!\n\n"
       Authority.new(
         name: Faker::Hacker.noun,
         domain: "localhost",
@@ -123,7 +124,13 @@ module Engine::Model
     end
 
     def self.user(authority : Authority? = nil)
-      authority = self.authority.save! unless authority
+      unless authority
+        # look up an existing authority
+        existing = Authority.find_by_domain("localhost")
+        authority = existing || self.authority.save!
+      end
+      pp! authority
+
       User.new(
         name: Faker::Name.name,
         email: Faker::Internet.email,
@@ -139,7 +146,12 @@ module Engine::Model
     end
 
     def self.adfs_strat(authority : Authority? = nil)
-      authority = self.authority.save! unless authority
+      unless authority
+        # look up an existing authority
+        existing = Authority.find_by_domain("localhost")
+        authority = existing || self.authority.save!
+      end
+
       AdfsStrat.new(
         name: Faker::Name.name,
         authority_id: authority.id,
@@ -149,7 +161,12 @@ module Engine::Model
     end
 
     def self.oauth_strat(authority : Authority? = nil)
-      authority = self.authority.save! unless authority
+      unless authority
+        # look up an existing authority
+        existing = Authority.find_by_domain("localhost")
+        authority = existing || self.authority.save!
+      end
+
       OauthStrat.new(
         name: Faker::Name.name,
         authority_id: authority.id,
@@ -157,7 +174,12 @@ module Engine::Model
     end
 
     def self.ldap_strat(authority : Authority? = nil)
-      authority = self.authority.save! unless authority
+      unless authority
+        # look up an existing authority
+        existing = Authority.find_by_domain("localhost")
+        authority = existing || self.authority.save!
+      end
+
       LdapStrat.new(
         name: Faker::Name.name,
         authority_id: authority.id,
