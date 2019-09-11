@@ -10,7 +10,7 @@ dependencies:
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
-    version: ~> 1.6
+    version: 1.6.0
 
   # Email validations
   CrystalEmail:
