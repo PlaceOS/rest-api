@@ -2,7 +2,7 @@ require "./application"
 
 module Engine::API
   class Webhooks < Application
-    base "/api/v1/webhooks/"
+    base "/api/engine/v1/webhooks/"
 
     before_action :find_hook
 

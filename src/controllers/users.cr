@@ -6,7 +6,7 @@ module Engine::API
   class Users < Application
     include Utils::CurrentUser
 
-    base "/api/v1/users/"
+    base "/api/engine/v1/users/"
 
     before_action :find_user, only: [:destroy, :update, :create]
     before_action :check_admin, only: [:index, :destroy, :create]

@@ -2,7 +2,7 @@ require "./application"
 
 module Engine::API
   class Drivers < Application
-    base "/api/v1/drivers/"
+    base "/api/engine/v1/drivers/"
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]

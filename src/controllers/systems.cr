@@ -7,7 +7,7 @@ require "../session"
 
 module Engine::API
   class Systems < Application
-    base "/api/v1/systems/"
+    base "/api/engine/v1/systems/"
 
     id_param :sys_id
 
@@ -289,15 +289,7 @@ module Engine::API
     # Websockets
     ###########################################################################
 
-    class BindParams < Params
-      attribute access_token : String
-
-      validates :access_token, prescence: true
-    end
-
     ws("/bind", :bind) do |ws|
-      args = BindParams.new(params).validate!
-      user_token = Model::UserJWT.decode(args.access_token.as(String))
       Systems.session_manager.create_session(
         ws: ws,
         request_id: request.id || "",

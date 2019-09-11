@@ -2,7 +2,7 @@ require "./application"
 
 module Engine::API
   class Zones < Application
-    base "/api/v1/zones/"
+    base "/api/engine/v1/zones/"
 
     before_action :check_admin, except: [:index, :show]
     before_action :find_zone, only: [:show, :update, :destroy]

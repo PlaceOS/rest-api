@@ -6,7 +6,7 @@ require "./application"
 
 module Engine::API
   class Modules < Application
-    base "/api/v1/modules/"
+    base "/api/engine/v1/modules/"
 
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]
