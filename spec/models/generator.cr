@@ -116,7 +116,6 @@ module Engine::Model
     end
 
     def self.authority
-      puts "\n\nMaking an authority!\n\n"
       Authority.new(
         name: Faker::Hacker.noun,
         domain: "localhost",
@@ -129,7 +128,6 @@ module Engine::Model
         existing = Authority.find_by_domain("localhost")
         authority = existing || self.authority.save!
       end
-      pp! authority
 
       User.new(
         name: Faker::Name.name,

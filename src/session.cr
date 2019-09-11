@@ -11,6 +11,128 @@ require "engine-driver/proxy/subscriptions"
 require "./utilities/params"
 
 class Engine::API::Session
+  # A websocket API request
+  class Message
+    include JSON::Serializable
+    include JSON::Serializable::Strict
+
+    def initialize(
+      @request_id,
+      @sys_id,
+      @module_name,
+      @command,
+      @name,
+      @index = 1,
+      @args = nil
+    )
+    end
+
+    @[JSON::Field(key: "id")]
+    property request_id : String
+
+    # Module location metadata
+    @[JSON::Field(key: "sys")]
+    property sys_id : String
+
+    @[JSON::Field(key: "mod")]
+    property module_name : String
+
+    property index : Int32 = 1
+
+    # Command
+    @[JSON::Field(key: "cmd")]
+    property command : Command
+
+    # Function name
+    property name : String
+
+    # Function arguments
+    @[JSON::Field(emit_null: true)]
+    property args : Array(JSON::Any)?
+  end
+
+  @[Flags]
+  enum ErrorCode
+    ParseError     # 0
+    BadRequest     # 1
+    AccessDenied   # 2
+    RequestFailed  # 3
+    UnknownCommand # 4
+
+    SystemNotFound    # 5
+    ModuleNotFound    # 6
+    UnexpectedFailure # 7
+
+    def to_s
+      super.underscore
+    end
+  end
+
+  def error_response(id : String?, error : ErrorCode, message : String?)
+    response = Response.new(
+      request_id: id || "",
+      type: Response::Type::Error,
+      error_code: error.to_i,
+      error_message: message || "",
+    )
+    respond(response)
+  end
+
+  # Websocket API Response
+  struct Response
+    include JSON::Serializable
+
+    def initialize(
+      @request_id,
+      @type,
+      @error_code = nil,
+      @error_message = nil,
+      @value = nil,
+      @meta = nil
+    )
+    end
+
+    # Message type
+    enum Type
+      Success
+      Notify
+      Error
+
+      def to_json(json)
+        json.string(to_s.downcase)
+      end
+    end
+
+    @[JSON::Field(key: "id")]
+    property request_id : String
+
+    property type : Type
+
+    @[JSON::Field(key: "code")]
+    property error_code : Int32?
+    @[JSON::Field(key: "msg")]
+    property error_message : String?
+
+    property value : JSON::Any?
+    property meta : Metadata?
+
+    alias Metadata = NamedTuple(
+      sys: String,
+      mod: String,
+      index: Int32,
+      name: String,
+    )
+  end
+
+  # Commands available over websocket API
+  enum Command
+    Exec
+    Bind
+    Unbind
+    Debug
+    Ignore
+  end
+
   # Stores sessions until their websocket closes
   class Manager
     @sessions = [] of Session
@@ -35,12 +157,10 @@ class Engine::API::Session
     end
   end
 
-  COMMANDS = %w(exec bind unbind debug ignore)
-
   @@subscriptions = EngineDriver::Proxy::Subscriptions.new
 
   # Local subscriptions
-  @bindings : Hash(String, EngineDriver::Subscriptions::Subscription) = {} of String => EngineDriver::Subscriptions::Subscription
+  @bindings = {} of String => EngineDriver::Subscriptions::Subscription
 
   @cache_cleaner : Tasker::Task?
 
@@ -48,7 +168,7 @@ class Engine::API::Session
     @ws : HTTP::WebSocket,
     @request_id : String,
     @user : Engine::Model::UserJWT,
-    @logger : Logger = Logger.new,
+    @logger : Logger = Engine::API.settings.logger,
     @cache_timeout : Int32? = 60 * 5
   )
     # Register event handlers
@@ -70,7 +190,7 @@ class Engine::API::Session
   # - make exec request to correct core
   #
   def exec(
-    id : String,
+    request_id : String,
     sys_id : String,
     module_name : String,
     index : Int32,
@@ -79,19 +199,19 @@ class Engine::API::Session
   )
     unless (metadata = metadata?(sys_id, module_name, index))
       @logger.debug("websocket exec could not find module: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(id, ErrorCode::ModuleNotFound, "could not find module: mod=#{module_name}")
+      error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: mod=#{module_name}")
       return
     end
 
     unless function_present?(metadata.functions, name)
       @logger.debug("websocket exec could not find function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(id, ErrorCode::BadRequest, "could not find function: name=#{name}")
+      error_response(request_id, ErrorCode::BadRequest, "could not find function: name=#{name}")
       return
     end
 
     unless function_visible?(metadata.security, name)
       @logger.warn("websocket exec attempted to access priviled function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(id, ErrorCode::AccessDenied, "attempted to access privileged function")
+      error_response(request_id, ErrorCode::AccessDenied, "attempted to access privileged function")
       return
     end
 
@@ -102,51 +222,49 @@ class Engine::API::Session
 
     unless (module_id = module_id?(sys_id, module_name, index))
       @logger.warn("websocket exec could not find module id: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(id, ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
+      error_response(request_id, ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
       return
     end
 
     core_url = locate_module?(module_id)
     unless core_url
       @logger.warn("websocket exec could not locate module's system: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(id, ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
+      error_response(request_id, ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
       return
     end
 
+    # TODO: Validate response from the module, perhaps a Session::Update
     response = HTTP::Client.post(core_url)
     if response.success?
-      @ws.send({
-        id:    id,
-        type:  :success,
-        value: response.body,
-      }.to_json)
+      response_message = Response.new(
+        request_id: request_id,
+        type: Response::Type::Success,
+        value: JSON::Any.new response.body,
+      )
+      respond(response_message)
     else
       @logger.warn("websocket exec failed: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(id, ErrorCode::RequestFailed, response.body)
+      error_response(request_id, ErrorCode::RequestFailed, response.body)
     end
   end
 
   # Bind a websocket to a module subscription
   #
   def bind(
-    id : String,
+    request_id : String,
     sys_id : String,
     module_name : String,
     index : Int32,
     name : String
   )
-    lookup = "#{sys_id}_#{module_name}_#{index}_#{name}"
     begin
       # Check if module previously bound
-      unless @bindings.has_key? lookup
-        # Subscribe and set local binding
-        @bindings[lookup] = @@subscriptions.subscribe(sys_id, module_name, index, lookup) do |_, event|
-          notify_update(event)
-        end
+      unless has_binding?(sys_id, module_name, index, name)
+        create_binding(request_id, sys_id, module_name, index, name)
       end
     rescue
       @logger.debug("websocket binding could not find system: {sys: #{sys_id}, mod: #{module_name}, index: #{index}, name: #{name}}")
-      error_response(id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}")
+      error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}")
     end
 
     # Notify success
@@ -154,44 +272,40 @@ class Engine::API::Session
     #       - keep a flag in @bindings hash, set flag once success sent and send message on channel
     #       - notify update gets subscription, checks binding hash for flag, otherwise wait on channel
     # Could use a promise
-    @ws.send({
-      id:   id,
-      type: :success,
+    response = Response.new(
+      request_id: request_id,
+      type: Response::Type::Success,
       meta: {
         sys:   sys_id,
         mod:   module_name,
         index: index,
         name:  name,
       },
-    }.to_json)
+    )
+    respond(response)
   end
 
   # Unbind a websocket from a module subscription
   #
   def unbind(
-    id : String,
+    request_id : String,
     sys_id : String,
     module_name : String,
     index : Int32,
     name : String
   )
-    lookup = "#{sys_id}_#{module_name}_#{index}_#{name}"
-    subscription = @bindings.delete(lookup)
+    subscription = delete_binding(sys_id, module_name, index, name)
+    @@subscriptions.unsubscribe(subscription) if subscription
 
-    @subscriptions.unsubscribe(subscription) if subscription
-
-    @ws.send({
-      id:   id,
-      type: :success,
-    }.to_json)
+    respond(Response.new(request_id: request_id, type: Response::Type::Success))
   end
 
   def debug
-    raise "debug unimplemented"
+    raise "#debug unimplemented"
   end
 
   def ignore
-    raise "ignore unimplemented"
+    raise "#ignore unimplemented"
   end
 
   # Looks up the metadata.
@@ -226,8 +340,34 @@ class Engine::API::Session
     end
   end
 
+  # Index into module websocket sessions
+  def self.binding_key(sys_id, module_name, index, name)
+    "#{sys_id}_#{module_name}_#{index}_#{name}"
+  end
+
+  # Index into module_id cache
   def self.cache_key(sys_id, module_name, index)
     "#{sys_id}_#{module_name}_#{index}"
+  end
+
+  # Check for existing binding to a module
+  def has_binding?(sys_id, module_name, index, name)
+    @bindings.has_key? Session.binding_key(sys_id, module_name, index, name)
+  end
+
+  # Create a binding to a module on the Session
+  def create_binding(request_id, sys_id, module_name, index, name)
+    key = Session.binding_key(sys_id, module_name, index, name)
+    # Subscribe and set local binding
+    @bindings[key] = @@subscriptions.subscribe(sys_id, module_name, index, key) do |_, event|
+      notify_update(request_id, event)
+    end
+  end
+
+  # Create a binding to a module on the Session
+  def delete_binding(sys_id, module_name, index, name)
+    key = Session.binding_key(sys_id, module_name, index, name)
+    @bindings.delete key
   end
 
   # Determine if function visible to user
@@ -284,30 +424,31 @@ class Engine::API::Session
 
   # Parse an update from a subscription and pass to listener
   #
-  def notify_update(message)
+  def notify_update(request_id, message)
     update = Update.from_json(message)
-    @ws.send({
-      type:  :notify,
+    response = Response.new(
+      request_id: request_id,
+      type: Response::Type::Notify,
       value: update.value,
-      meta:  {
+      meta: {
         sys:   update.sys_id,
         mod:   update.mod_name,
         index: update.index,
         name:  update.status,
       },
-    }.to_json)
+    )
+    respond(response)
   end
 
   # Request handler
   #
   protected def on_message(data)
     # Execute the request
-    if (message = unmarshall_message(data))
-      __send__(message)
-    end
+    message = parse_message(data)
+    __send__(message) if message
   rescue e
     @logger.error(e, "websocket request failed: data=#{data} message=#{message} error=#{e.inspect_with_backtrace}")
-    error_response(message.try(&.id), ErrorCode::RequestFailed, e.message)
+    error_response(message.try(&.request_id), ErrorCode::RequestFailed, e.message)
   end
 
   # Shutdown handler
@@ -334,83 +475,14 @@ class Engine::API::Session
     }
   end
 
-  # A websocket API request
-  class Message
-    include JSON::Serializable
-    include JSON::Serializable::Strict
-
-    def initialize(@id, @sys_id, @module_name, @command, @name, @index = 1, @args = nil)
-    end
-
-    property id : String
-
-    # Module location metadata
-    @[JSON::Field(key: "sys")]
-    property sys_id : String
-
-    @[JSON::Field(key: "mod")]
-    property module_name : String
-
-    property index : Int32 = 1
-
-    # Command
-    @[JSON::Field(key: "cmd")]
-    property command : String
-
-    # Function name
-    property name : String
-
-    # Function arguments
-    @[JSON::Field(emit_null: true)]
-    property args : Array(JSON::Any)
-  end
-
-  @[Flags]
-  enum ErrorCode
-    ParseError     # 0
-    BadRequest     # 1
-    AccessDenied   # 2
-    RequestFailed  # 3
-    UnknownCommand # 4
-
-    SystemNotFound    # 5
-    ModuleNotFound    # 6
-    UnexpectedFailure # 7
-    def to_s
-      super.underscore
-    end
-  end
-
-  def error_response(id : String?, error : ErrorCode, message : String?)
-    response = {
-      id:   id || "",
-      type: :error,
-      code: error.to_i,
-      msg:  message || "",
-    }
-    @ws.send(response.to_json)
-  end
-
-  # Ensure
+  # Ensures
   # - required params present
   # - command recognised
-  def unmarshall_message(data) : Message?
-    return unless (message = parse_message(data))
-
-    unless COMMANDS.includes?(message.command)
-      @logger.warn("websocket requested unknown command: cmd=#{message.command}")
-      error_response(message.id, ErrorCode::UnknownCommand, "unknown command: #{message.command}")
-      return
-    end
-
-    message
-  end
-
   def parse_message(data) : Message?
     Message.from_json(data)
   rescue e
-    @logger.warn("failed to parse: data=#{data}")
-    error_response(nil, ErrorCode::BadRequest, "required parameters missing from request")
+    @logger.warn("failed to parse: data=#{data} error=#{e.message}")
+    error_response(JSON.parse(data)["id"]?.try &.as_s, ErrorCode::BadRequest, "bad request: #{e.message}")
     return
   end
 
@@ -425,38 +497,31 @@ class Engine::API::Session
     end
   end
 
+  protected def respond(message : Response)
+    @ws.send(message.to_json)
+  end
+
   # Delegate message to correct handler
   #
   protected def __send__(message : Message)
+    arguments = {
+      request_id:  message.request_id,
+      sys_id:      message.sys_id,
+      module_name: message.module_name,
+      index:       message.index,
+      name:        message.name,
+    }
     case message.command
-    when "exec"
-      exec(
-        id: message.id,
-        sys_id: message.sys_id,
-        module_name: message.module_name,
-        index: message.index,
-        name: message.name,
-        args: message.args,
-      )
-    when "bind"
-      bind(
-        id: message.id,
-        sys_id: message.sys_id,
-        module_name: message.module_name,
-        index: message.index,
-        name: message.name,
-      )
-    when "unbind"
-      bind(
-        id: message.id,
-        sys_id: message.sys_id,
-        module_name: message.module_name,
-        index: message.index,
-        name: message.name,
-      )
-    when "debug"
+    when Command::Exec
+      args = message.args.as(Array(JSON::Any))
+      exec(**arguments.merge({args: args}))
+    when Command::Bind
+      bind(**arguments)
+    when Command::Unbind
+      unbind(**arguments)
+    when Command::Debug
       debug
-    when "ignore"
+    when Command::Ignore
       ignore
     else
       @logger.error("unrecognised websocket command: cmd=#{message.command}")
