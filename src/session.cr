@@ -11,128 +11,6 @@ require "engine-driver/proxy/subscriptions"
 require "./utilities/params"
 
 class Engine::API::Session
-  # A websocket API request
-  class Message
-    include JSON::Serializable
-    include JSON::Serializable::Strict
-
-    def initialize(
-      @request_id,
-      @sys_id,
-      @module_name,
-      @command,
-      @name,
-      @index = 1,
-      @args = nil
-    )
-    end
-
-    @[JSON::Field(key: "id")]
-    property request_id : String
-
-    # Module location metadata
-    @[JSON::Field(key: "sys")]
-    property sys_id : String
-
-    @[JSON::Field(key: "mod")]
-    property module_name : String
-
-    property index : Int32 = 1
-
-    # Command
-    @[JSON::Field(key: "cmd")]
-    property command : Command
-
-    # Function name
-    property name : String
-
-    # Function arguments
-    @[JSON::Field(emit_null: true)]
-    property args : Array(JSON::Any)?
-  end
-
-  @[Flags]
-  enum ErrorCode
-    ParseError     # 0
-    BadRequest     # 1
-    AccessDenied   # 2
-    RequestFailed  # 3
-    UnknownCommand # 4
-
-    SystemNotFound    # 5
-    ModuleNotFound    # 6
-    UnexpectedFailure # 7
-
-    def to_s
-      super.underscore
-    end
-  end
-
-  def error_response(id : String?, error : ErrorCode, message : String?)
-    response = Response.new(
-      request_id: id || "",
-      type: Response::Type::Error,
-      error_code: error.to_i,
-      error_message: message || "",
-    )
-    respond(response)
-  end
-
-  # Websocket API Response
-  struct Response
-    include JSON::Serializable
-
-    def initialize(
-      @request_id,
-      @type,
-      @error_code = nil,
-      @error_message = nil,
-      @value = nil,
-      @meta = nil
-    )
-    end
-
-    # Message type
-    enum Type
-      Success
-      Notify
-      Error
-
-      def to_json(json)
-        json.string(to_s.downcase)
-      end
-    end
-
-    @[JSON::Field(key: "id")]
-    property request_id : String
-
-    property type : Type
-
-    @[JSON::Field(key: "code")]
-    property error_code : Int32?
-    @[JSON::Field(key: "msg")]
-    property error_message : String?
-
-    property value : JSON::Any?
-    property meta : Metadata?
-
-    alias Metadata = NamedTuple(
-      sys: String,
-      mod: String,
-      index: Int32,
-      name: String,
-    )
-  end
-
-  # Commands available over websocket API
-  enum Command
-    Exec
-    Bind
-    Unbind
-    Debug
-    Ignore
-  end
-
   # Stores sessions until their websocket closes
   class Manager
     @sessions = [] of Session
@@ -157,11 +35,13 @@ class Engine::API::Session
     end
   end
 
+  # Class level subscriptions to modules
   @@subscriptions = EngineDriver::Proxy::Subscriptions.new
 
   # Local subscriptions
   @bindings = {} of String => EngineDriver::Subscriptions::Subscription
 
+  # Background task to clear module metadata caches
   @cache_cleaner : Tasker::Task?
 
   def initialize(
@@ -181,6 +61,132 @@ class Engine::API::Session
 
     # Begin clearing cache
     spawn name: "cache_cleaner" { cache_plumbing }
+  end
+
+  # Websocket API
+  ##############################################################################
+
+  # A websocket API request
+  class Request
+    include JSON::Serializable
+    include JSON::Serializable::Strict
+
+    # Commands available over websocket API
+    enum Command
+      Exec
+      Bind
+      Unbind
+      Debug
+      Ignore
+    end
+
+    def initialize(
+      @id,
+      @sys_id,
+      @module_name,
+      @command,
+      @name,
+      @index = 1,
+      @args = nil
+    )
+    end
+
+    property id : String
+
+    # Module location metadata
+    @[JSON::Field(key: "sys")]
+    property sys_id : String
+
+    @[JSON::Field(key: "mod")]
+    property module_name : String
+
+    property index : Int32 = 1
+
+    # Command
+    @[JSON::Field(key: "cmd")]
+    property command : Command
+
+    # Function name
+    property name : String
+
+    # Function arguments
+    @[JSON::Field(emit_null: true)]
+    property args : Array(JSON::Any)?
+  end
+
+  # Websocket API Response
+  struct Response
+    include JSON::Serializable
+
+    def initialize(
+      @id,
+      @type,
+      @error_code = nil,
+      @error_message = nil,
+      @value = nil,
+      @meta = nil
+    )
+    end
+
+    # Request type
+    enum Type
+      Success
+      Notify
+      Error
+
+      def to_json(json)
+        json.string(to_s.downcase)
+      end
+    end
+
+    @[JSON::Field(key: "id")]
+    property id : String
+
+    property type : Type
+
+    @[JSON::Field(key: "code")]
+    property error_code : Int32?
+    @[JSON::Field(key: "msg")]
+    property error_message : String?
+
+    property value : JSON::Any?
+    property meta : Metadata?
+
+    alias Metadata = NamedTuple(
+      sys: String,
+      mod: String,
+      index: Int32,
+      name: String,
+    )
+  end
+
+  @[Flags]
+  enum ErrorCode
+    ParseError     # 0
+    BadRequest     # 1
+    AccessDenied   # 2
+    RequestFailed  # 3
+    UnknownCommand # 4
+
+    SystemNotFound    # 5
+    ModuleNotFound    # 6
+    UnexpectedFailure # 7
+
+    def to_s
+      super.underscore
+    end
+  end
+
+  # Generate an error response
+  #
+  def error_response(id : String?, error : ErrorCode, message : String?)
+    response = Response.new(
+      id: id || "",
+      type: Response::Type::Error,
+      error_code: error.to_i,
+      error_message: message || "",
+    )
+    respond(response)
   end
 
   # Grab metatadata from driver proxy
@@ -219,7 +225,6 @@ class Engine::API::Session
     # - Locate core responsible for module through consistent hashing
     # - Make request to core
     # - Respond with result
-
     unless (module_id = module_id?(sys_id, module_name, index))
       @logger.warn("websocket exec could not find module id: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
       error_response(request_id, ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
@@ -237,7 +242,7 @@ class Engine::API::Session
     response = HTTP::Client.post(core_url)
     if response.success?
       response_message = Response.new(
-        request_id: request_id,
+        id: request_id,
         type: Response::Type::Success,
         value: JSON::Any.new response.body,
       )
@@ -273,7 +278,7 @@ class Engine::API::Session
     #       - notify update gets subscription, checks binding hash for flag, otherwise wait on channel
     # Could use a promise
     response = Response.new(
-      request_id: request_id,
+      id: request_id,
       type: Response::Type::Success,
       meta: {
         sys:   sys_id,
@@ -297,7 +302,7 @@ class Engine::API::Session
     subscription = delete_binding(sys_id, module_name, index, name)
     @@subscriptions.unsubscribe(subscription) if subscription
 
-    respond(Response.new(request_id: request_id, type: Response::Type::Success))
+    respond(Response.new(id: request_id, type: Response::Type::Success))
   end
 
   def debug
@@ -308,9 +313,12 @@ class Engine::API::Session
     raise "#ignore unimplemented"
   end
 
+  ##############################################################################
+
   # Looks up the metadata.
   # - checks for fresh value in cache
   # - refreshes cache with new value if present
+  #
   def metadata?(sys_id, module_name, index) : EngineDriver::DriverModel::Metadata?
     key = Session.cache_key(sys_id, module_name, index)
     # Try for value in the cache
@@ -328,6 +336,7 @@ class Engine::API::Session
   # Looks up the module_id
   # - checks for fresh value in cache
   # - refreshes cache with new value if present
+  #
   def module_id?(sys_id, module_name, index) : String?
     key = Session.cache_key(sys_id, module_name, index)
     # Try for value in the cache
@@ -340,22 +349,14 @@ class Engine::API::Session
     end
   end
 
-  # Index into module websocket sessions
-  def self.binding_key(sys_id, module_name, index, name)
-    "#{sys_id}_#{module_name}_#{index}_#{name}"
-  end
-
-  # Index into module_id cache
-  def self.cache_key(sys_id, module_name, index)
-    "#{sys_id}_#{module_name}_#{index}"
-  end
-
   # Check for existing binding to a module
+  #
   def has_binding?(sys_id, module_name, index, name)
     @bindings.has_key? Session.binding_key(sys_id, module_name, index, name)
   end
 
   # Create a binding to a module on the Session
+  #
   def create_binding(request_id, sys_id, module_name, index, name)
     key = Session.binding_key(sys_id, module_name, index, name)
     # Subscribe and set local binding
@@ -365,12 +366,13 @@ class Engine::API::Session
   end
 
   # Create a binding to a module on the Session
+  #
   def delete_binding(sys_id, module_name, index, name)
     key = Session.binding_key(sys_id, module_name, index, name)
     @bindings.delete key
   end
 
-  # Determine if function visible to user
+  # Determine if the function is visible to user
   #
   def function_present?(functions, function)
     functions.keys.includes?(function)
@@ -401,12 +403,13 @@ class Engine::API::Session
   end
 
   # TODO: Consistent hash lookup of module id to core address
+  #
   def locate_module?(module_id : String) : URI?
     puts "noop"
     URI.parse("https://core_1")
   end
 
-  # Message handlers
+  # Event handlers
   ###########################################################################
 
   # Message from a subscription
@@ -427,7 +430,7 @@ class Engine::API::Session
   def notify_update(request_id, message)
     update = Update.from_json(message)
     response = Response.new(
-      request_id: request_id,
+      id: request_id,
       type: Response::Type::Notify,
       value: update.value,
       meta: {
@@ -444,11 +447,11 @@ class Engine::API::Session
   #
   protected def on_message(data)
     # Execute the request
-    message = parse_message(data)
-    __send__(message) if message
+    request = parse_request(data)
+    __send__(request) if request
   rescue e
-    @logger.error(e, "websocket request failed: data=#{data} message=#{message} error=#{e.inspect_with_backtrace}")
-    error_response(message.try(&.request_id), ErrorCode::RequestFailed, e.message)
+    @logger.error(e, "websocket request failed: data=#{data} request=#{request} error=#{e.inspect_with_backtrace}")
+    error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
   end
 
   # Shutdown handler
@@ -466,6 +469,16 @@ class Engine::API::Session
   # Utilities
   ###########################################################################
 
+  # Index into module websocket sessions
+  def self.binding_key(sys_id, module_name, index, name)
+    "#{sys_id}_#{module_name}_#{index}_#{name}"
+  end
+
+  # Index into module_id cache
+  def self.cache_key(sys_id, module_name, index)
+    "#{sys_id}_#{module_name}_#{index}"
+  end
+
   # Headers for requesting engine core,
   # - forwards request id for tracing
   protected def default_headers
@@ -478,8 +491,8 @@ class Engine::API::Session
   # Ensures
   # - required params present
   # - command recognised
-  def parse_message(data) : Message?
-    Message.from_json(data)
+  def parse_request(data) : Request?
+    Request.from_json(data)
   rescue e
     @logger.warn("failed to parse: data=#{data} error=#{e.message}")
     error_response(JSON.parse(data)["id"]?.try &.as_s, ErrorCode::BadRequest, "bad request: #{e.message}")
@@ -497,34 +510,34 @@ class Engine::API::Session
     end
   end
 
-  protected def respond(message : Response)
-    @ws.send(message.to_json)
+  protected def respond(response : Response)
+    @ws.send(response.to_json)
   end
 
-  # Delegate message to correct handler
+  # Delegate request to correct handler
   #
-  protected def __send__(message : Message)
+  protected def __send__(request : Request)
     arguments = {
-      request_id:  message.request_id,
-      sys_id:      message.sys_id,
-      module_name: message.module_name,
-      index:       message.index,
-      name:        message.name,
+      request_id:  request.id,
+      sys_id:      request.sys_id,
+      module_name: request.module_name,
+      index:       request.index,
+      name:        request.name,
     }
-    case message.command
-    when Command::Exec
-      args = message.args.as(Array(JSON::Any))
+    case request.command
+    when Request::Command::Exec
+      args = request.args.as(Array(JSON::Any))
       exec(**arguments.merge({args: args}))
-    when Command::Bind
+    when Request::Command::Bind
       bind(**arguments)
-    when Command::Unbind
+    when Request::Command::Unbind
       unbind(**arguments)
-    when Command::Debug
+    when Request::Command::Debug
       debug
-    when Command::Ignore
+    when Request::Command::Ignore
       ignore
     else
-      @logger.error("unrecognised websocket command: cmd=#{message.command}")
+      @logger.error("unrecognised websocket command: cmd=#{request.command}")
     end
   end
 end

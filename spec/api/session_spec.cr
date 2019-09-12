@@ -20,70 +20,82 @@ module Engine::API
         pending "exec"
         describe "bind" do
           it "receives updates" do
-            # Create a System
-            control_system = Model::Generator.control_system.save!
-
-            # Create a Module
-            mod = Model::Generator.module(control_system: control_system).save!
-
-            # Random request id
-            request_id = RANDOM.hex(7)
-
-            # Create a storage proxy
-            driver_proxy = EngineDriver::Storage.new mod.id.as(String)
-
+            # Status to bind
             status_name = "nugget"
 
-            updates = [] of Session::Response
-
-            on_message = ->(message : String) {
-              updates << Session::Response.from_json message
-            }
-
-            bind(base, authorization_header, on_message) do |ws|
-              ws.send Session::Message.new(
-                request_id: request_id,
+            results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
+              ws.send Session::Request.new(
+                id: RANDOM.hex(7),
                 sys_id: control_system.id.as(String),
-                module_name: mod.name.as(String),
+                module_name: mod.custom_name.as(String),
                 name: status_name,
-                command: Session::Command::Bind,
+                command: Session::Request::Command::Bind,
               ).to_json
+              sleep 2
 
-              sleep 2
+              # Create a storage proxy
+              driver_proxy = EngineDriver::Storage.new mod.id.as(String)
               driver_proxy[status_name] = 1
-              sleep 2
+              sleep 1
               driver_proxy[status_name] = 2
-              sleep 2
+              sleep 5
             end
 
+            updates, control_system, mod = results
             updates.should_not be_empty
 
             expected_meta = {
               sys:   control_system.id,
-              mod:   mod.name,
+              mod:   mod.custom_name,
               index: 1,
               name:  status_name,
             }
 
             # Check for successful bind response
             updates.first.type.should eq Session::Response::Type::Success
-
             # Check all responses correct metadata
             updates.all? { |v| v.meta == expected_meta }.should be_true
-
             # Check all messages received
             updates.size.should eq 3
-
             # Check for status variable updates
             updates[1..2].map(&.value.not_nil!.as_i).should eq [1, 2]
-
-            # Clean up.
-            control_system.destroy
-            mod.destroy
           end
         end
 
-        pending "unbind"
+        it "unbind" do
+          # Status to bind
+          status_name = "nugget"
+
+          results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
+            request = {
+              id:          RANDOM.hex(7),
+              sys_id:      control_system.id.as(String),
+              module_name: mod.custom_name.as(String),
+              name:        status_name,
+              command:     Session::Request::Command::Bind,
+            }
+            ws.send Session::Request.new(**request).to_json
+            ws.send Session::Request.new(**request.merge({command: Session::Request::Command::Bind})).to_json
+          end
+
+          updates, control_system, mod = results
+
+          expected_meta = {
+            sys:   control_system.id,
+            mod:   mod.custom_name,
+            index: 1,
+            name:  status_name,
+          }
+
+          # Check all messages received
+          updates.size.should eq 2
+          # Check all responses correct metadata
+          updates.all? { |v| v.meta == expected_meta }.should be_true
+          # Check for successful bind response
+          updates.shift.type.should eq Session::Response::Type::Success
+          # Check for successful unbind response
+          updates.shift.type.should eq Session::Response::Type::Success
+        end
         pending "debug"
         pending "ignore"
       end
@@ -118,4 +130,37 @@ def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) {})
   spawn { socket.run }
   yield socket
   socket.close
+end
+
+# Binds to the websocket API
+# Yields API websocket, and a control system + module
+# Cleans up the websocket and models
+def test_websocket_api(base, authorization_header)
+  # Create a System
+  control_system = Engine::Model::Generator.control_system.save!
+
+  # Create a Module
+  mod = Engine::Model::Generator.module(control_system: control_system).save!
+  updates = [] of Engine::API::Session::Response
+
+  on_message = ->(message : String) {
+    updates << Engine::API::Session::Response.from_json message
+  }
+
+  # Set metadata in redis to allow binding to module
+  sys_lookup = EngineDriver::Storage.new(control_system.id.as(String), "system")
+  lookup_key = "#{mod.custom_name}\x021"
+  puts "\n\n"
+  pp! lookup_key
+  sys_lookup[lookup_key] = mod.id.as(String)
+
+  bind(base, authorization_header, on_message) do |ws|
+    yield ({ws, control_system, mod})
+  end
+
+  # Clean up.
+  control_system.destroy
+  mod.destroy
+
+  {updates, control_system, mod}
 end

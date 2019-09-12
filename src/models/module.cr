@@ -22,8 +22,6 @@ module Engine::Model
     # HTTP Service module
     attribute uri : String
 
-    # Mirror of driver name
-    attribute name : String
     # Custom module names (in addition to what is defined in the driver)
     attribute custom_name : String
     attribute settings : String = "{}"
@@ -69,7 +67,7 @@ module Engine::Model
     def driver=(driver : Driver)
       previous_def(driver)
       self.role = driver.role
-      self.name = driver.name
+      self.custom_name = driver.module_name
     end
 
     validates :driver, presence: true
