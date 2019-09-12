@@ -30,7 +30,7 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 5646bfa00cad15ca17840784e9474b7b92a820b2
+    commit: 476419da29b3f904df973775febb0162323b263b
 
   faker:
     github: askn/faker
@@ -86,7 +86,7 @@ shards:
 
   redis:
     github: stefanwille/crystal-redis
-    version: 2.3.0
+    version: 2.2.1
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
@@ -94,7 +94,7 @@ shards:
 
   retriable:
     github: Sija/retriable.cr
-    commit: 016b9ebfae7e30f56c2db6fbca5dd95cbf7702aa
+    version: 0.2.0
 
   scrypt:
     github: ysbaddaden/scrypt-crystal

@@ -358,9 +358,11 @@ class Engine::API::Session
   # Create a binding to a module on the Session
   #
   def create_binding(request_id, sys_id, module_name, index, name)
+    pp! request_id, sys_id, module_name, index, name
     key = Session.binding_key(sys_id, module_name, index, name)
     # Subscribe and set local binding
     @bindings[key] = @@subscriptions.subscribe(sys_id, module_name, index, key) do |_, event|
+      pp! event
       notify_update(request_id, event)
     end
   end
