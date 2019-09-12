@@ -149,7 +149,7 @@ class Engine::API::Session
     @[JSON::Field(key: "msg")]
     property error_message : String?
 
-    property value : JSON::Any?
+    property value : String?
     property meta : Metadata?
 
     alias Metadata = NamedTuple(
@@ -244,7 +244,7 @@ class Engine::API::Session
       response_message = Response.new(
         id: request_id,
         type: Response::Type::Success,
-        value: JSON::Any.new response.body,
+        value: response.body,
       )
       respond(response_message)
     else
@@ -355,15 +355,29 @@ class Engine::API::Session
     @bindings.has_key? Session.binding_key(sys_id, module_name, index, name)
   end
 
+  alias RedisMessage = NamedTuple(
+    request_id: String,
+    sys_id: String,
+    mod_name: String,
+    index: Int32,
+    status: String,
+    value: String,
+  )
+
   # Create a binding to a module on the Session
   #
   def create_binding(request_id, sys_id, module_name, index, name)
-    pp! request_id, sys_id, module_name, index, name
     key = Session.binding_key(sys_id, module_name, index, name)
     # Subscribe and set local binding
-    @bindings[key] = @@subscriptions.subscribe(sys_id, module_name, index, key) do |_, event|
-      pp! event
-      notify_update(request_id, event)
+    @bindings[key] = @@subscriptions.subscribe(sys_id, module_name, index, name) do |_, event|
+      notify_update(
+        request_id: request_id,
+        system_id: sys_id,
+        module_name: module_name,
+        status: name,
+        index: index,
+        value: event
+      )
     end
   end
 
@@ -414,32 +428,29 @@ class Engine::API::Session
   # Event handlers
   ###########################################################################
 
-  # Message from a subscription
-  #
-  class Update
-    include JSON::Serializable
-
-    property sys_id : String
-    property mod_name : String
-    property index : Int32
-    property status : String
-
-    property value : JSON::Any
-  end
+  # # Message from a subscription
+  # #
+  # class Update
+  #   include JSON::Serializable
+  #   property sys_id : String
+  #   property mod_name : String
+  #   property index : Int32
+  #   property status : String
+  #   property value : JSON::Any
+  # end
 
   # Parse an update from a subscription and pass to listener
   #
-  def notify_update(request_id, message)
-    update = Update.from_json(message)
+  def notify_update(value, request_id, system_id, module_name, index, status)
     response = Response.new(
       id: request_id,
       type: Response::Type::Notify,
-      value: update.value,
+      value: value,
       meta: {
-        sys:   update.sys_id,
-        mod:   update.mod_name,
-        index: update.index,
-        name:  update.status,
+        sys:   system_id,
+        mod:   module_name,
+        index: index,
+        name:  status,
       },
     )
     respond(response)
@@ -513,7 +524,7 @@ class Engine::API::Session
   end
 
   protected def respond(response : Response)
-    @ws.send(response.to_json)
+    @ws.send(response.to_json) unless @ws.closed?
   end
 
   # Delegate request to correct handler

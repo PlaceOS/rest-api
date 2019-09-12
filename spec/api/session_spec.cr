@@ -16,59 +16,16 @@ module Engine::API
         end
       end
 
-      it "does some stuff" do
-        in_callback = false
-        sub_passed = nil
-        message_passed = nil
-        channel = Channel(Nil).new
-        redis = EngineDriver::Storage.redis_pool
-
-        # Ensure keys don't already exist
-        sys_lookup = EngineDriver::Storage.new("sys-123", "system")
-        lookup_key = "Display\x021"
-        sys_lookup.delete lookup_key
-        storage = EngineDriver::Storage.new("mod-1234")
-        storage.delete("power")
-
-        subs = EngineDriver::Subscriptions.new
-        subscription = subs.subscribe "sys-123", "Display", 1, :power do |sub, message|
-          sub_passed = sub
-          message_passed = message
-          in_callback = true
-          channel.close
-        end
-
-        # Subscription should not exist yet - i.e. no lookup
-        subscription.module_id.should eq(nil)
-
-        # Create the lookup and signal the change
-        sys_lookup[lookup_key] = "mod-1234"
-        redis.publish "lookup-change", "sys-123"
-
-        sleep 0.05
-
-        # Update the status
-        storage["power"] = true
-        channel.receive?
-
-        subscription.module_id.should eq("mod-1234")
-        in_callback.should eq(true)
-        message_passed.should eq("true")
-        sub_passed.should eq(subscription)
-
-        storage.delete("power")
-        sys_lookup.delete lookup_key
-        subs.terminate
-      end
-
       describe "websocket API" do
         pending "exec"
         describe "bind" do
           it "receives updates" do
             # Status to bind
             status_name = "nugget"
-
             results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
+              # Create a storage proxy
+              driver_proxy = EngineDriver::Storage.new mod.id.as(String)
+
               ws.send Session::Request.new(
                 id: RANDOM.hex(7),
                 sys_id: control_system.id.as(String),
@@ -76,14 +33,10 @@ module Engine::API
                 name: status_name,
                 command: Session::Request::Command::Bind,
               ).to_json
-              sleep 2
-
-              # Create a storage proxy
-              driver_proxy = EngineDriver::Storage.new mod.id.as(String)
+              sleep 0.1
               driver_proxy[status_name] = 1
-              sleep 1
+              sleep 0.1
               driver_proxy[status_name] = 2
-              sleep 5
             end
 
             updates, control_system, mod = results
@@ -103,7 +56,7 @@ module Engine::API
             # Check all messages received
             updates.size.should eq 3
             # Check for status variable updates
-            updates[1..2].map(&.value.not_nil!.as_i).should eq [1, 2]
+            updates[1..2].map(&.value.not_nil!.to_i).should eq [1, 2]
           end
         end
 
@@ -196,9 +149,6 @@ def test_websocket_api(base, authorization_header)
   sys_lookup = EngineDriver::Storage.new(control_system.id.as(String), "system")
   lookup_key = "#{mod.custom_name}\x021"
   sys_lookup[lookup_key] = mod.id.as(String)
-
-  driver_proxy = EngineDriver::Storage.new mod.id.as(String)
-  driver_proxy["nugget"] = 100
 
   bind(base, authorization_header, on_message) do |ws|
     yield ({ws, control_system, mod})
