@@ -40,7 +40,7 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: ~> 2.3
+    branch: master
 
   # Scrypt encryption
   scrypt:

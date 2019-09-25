@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    version: 1.7.0
+    version: 1.8.0
 
   active-model:
     github: spider-gazelle/active-model
@@ -14,7 +14,7 @@ shards:
 
   ameba:
     github: veelenga/ameba
-    version: 0.10.0
+    version: 0.10.1
 
   bisect:
     github: spider-gazelle/bisect
@@ -25,12 +25,12 @@ shards:
     version: 0.2.0
 
   crystal-rethinkdb:
-    github: kingsleyh/crystal-rethinkdb
-    version: 0.1.8
+    github: caspiano/crystal-rethinkdb
+    commit: d7c3195db9ad0db7e5cfe4150d65615afbbad636
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 476419da29b3f904df973775febb0162323b263b
+    commit: a066c902191e378388770639a068f6d30cd46f96
 
   faker:
     github: askn/faker
@@ -90,7 +90,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: b2eb4e9284b9cb8c86c48d871a04406581c1926d
+    commit: d500336dac53a197bbdcc298d69fe6ef9b40782a
 
   retriable:
     github: Sija/retriable.cr
