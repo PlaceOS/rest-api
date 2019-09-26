@@ -42,10 +42,10 @@ dependencies:
     github: spider-gazelle/rethinkdb-orm
     branch: master
 
-  # Scrypt encryption
-  scrypt:
-    github: ysbaddaden/scrypt-crystal
-    version: ~> 0.3
+  # # Scrypt encryption
+  # scrypt:
+  #   github: ysbaddaden/scrypt-crystal
+  #   version: ~> 0.3
 
   # Scheduling
   tasker:

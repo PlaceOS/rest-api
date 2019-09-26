@@ -1,7 +1,8 @@
 require "CrystalEmail"
 require "digest/md5"
 require "rethinkdb-orm"
-require "scrypt"
+
+# require "scrypt"
 
 require "./authority"
 require "./base/model"
@@ -27,7 +28,8 @@ module Engine::Model
     attribute last_name : String
     attribute building : String
 
-    attribute password_digest : Scrypt::Password, converter: Scrypt::Converter
+    attribute password_digest : String
+    # attribute password_digest : Scrypt::Password, converter: Scrypt::Converter
 
     attribute email_digest : String
     attribute card_number : String
@@ -126,38 +128,38 @@ module Engine::Model
       User.get_all([true], index: :sys_admin)
     end
 
-    # PASSWORD ENCRYPTION::
-    # ---------------------
-
-    def authenticate(unencrypted_password)
-      # accounts created with social logins will have an empty password_digest
-      return nil if unencrypted_password.size == 0
-
-      if @password_digest.try &.verify(unencrypted_password)
-        self
-      else
-        nil
-      end
-    end
-
-    attribute password : String, persistence: false, allow_blank: true, confirmation: true, mass_assignment: false do |password|
-      (password || "").tap do |p|
-        unless p.empty?
-          self.password_digest = Scrypt::Password.create(
-            password: p,
-            key_len: 32,
-            salt_size: 32,
-            max_mem: 16 * 1024 * 1024,
-            max_memfrac: 0.5,
-            max_time: 0.2,
-          )
-        end
-      end
-    end
-
-    validates :password, length: {minimum: 6, wrong_length: "must be at least 6 characters"}
-
-    # --------------------
-    # END PASSWORD METHODS
+    # # PASSWORD ENCRYPTION::
+    # # ---------------------
+    #
+    # def authenticate(unencrypted_password)
+    #   # accounts created with social logins will have an empty password_digest
+    #   return nil if unencrypted_password.size == 0
+    #
+    #   if @password_digest.try &.verify(unencrypted_password)
+    #     self
+    #   else
+    #     nil
+    #   end
+    # end
+    #
+    # attribute password : String, persistence: false, allow_blank: true, confirmation: true, mass_assignment: false do |password|
+    #   (password || "").tap do |p|
+    #     unless p.empty?
+    #       self.password_digest = Scrypt::Password.create(
+    #         password: p,
+    #         key_len: 32,
+    #         salt_size: 32,
+    #         max_mem: 16 * 1024 * 1024,
+    #         max_memfrac: 0.5,
+    #         max_time: 0.2,
+    #       )
+    #     end
+    #   end
+    # end
+    #
+    # validates :password, length: {minimum: 6, wrong_length: "must be at least 6 characters"}
+    #
+    # # --------------------
+    # # END PASSWORD METHODS
   end
 end

@@ -7,10 +7,6 @@ COPY shard.yml shard.yml
 
 RUN shards install --production
 
-# Manually remake libscrypt, PostInstall fails inexplicably
-RUN make -C lib/scrypt/ clean
-RUN make -C lib/scrypt/
-
 # Add src
 COPY src src
 
