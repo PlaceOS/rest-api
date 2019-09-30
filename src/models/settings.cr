@@ -65,7 +65,8 @@ module Engine::Model
 
     # Decrypts all module settings, merges them
     def settings_any
-      @settings.as(Array(Setting)).reduce({} of String => YAML::Any) { |acc, (level, settings_string)|
+      return unless (id = @id)
+      @settings.as(Array(Setting)).reduce({} of YAML::Any => YAML::Any) { |acc, (level, settings_string)|
         # Decrypt String
         decrypted = Engine::Encryption.decrypt(string: settings_string, level: level, id: id)
         # Parse and merge into accumulated settings hash
@@ -77,7 +78,7 @@ module Engine::Model
     #
     def settings_json
       return unless (id = @id)
-      @settings.as(Array(Setting)).reduce({} of String => YAML::Any) { |acc, (level, settings_string)|
+      @settings.as(Array(Setting)).reduce({} of YAML::Any => YAML::Any) { |acc, (level, settings_string)|
         # Decrypt String
         decrypted = Engine::Encryption.decrypt(string: settings_string, level: level, id: id)
         # Parse and merge into accumulated settings hash

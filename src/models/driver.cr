@@ -6,7 +6,7 @@ require "./settings"
 module Engine::Model
   class Driver < ModelBase
     include RethinkORM::Timestamps
-    include Setting
+    include Settings
 
     table :driver
 

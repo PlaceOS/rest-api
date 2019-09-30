@@ -71,11 +71,14 @@ module Engine::Model
       settings = [module_settings]
 
       if role == Driver::Role::Logic
+        cs = self.control_system
+        raise "Missing control system: module_id=#{@id} control_system_id=#{@control_system_id}" unless cs
+
         # Control System Settings
-        settings.push(control_system.settings_any)
+        settings.push(cs.settings_any)
 
         # Zone Settings
-        zone_ids = self.control_system.as(Model::ControlSystem).zones.as(Array(String))
+        zone_ids = cs.zones.as(Array(String))
         zones = Model::Zone.get_all(zone_ids, index: :id)
         # Merge by highest associated zone
         zone_ids.reverse_each do |zone_id|
@@ -91,7 +94,7 @@ module Engine::Model
       settings.push(driver.as(Model::Driver).settings_any)
 
       # Merge all settings, serialise to JSON
-      settings.reverse.reduce({} of String => YAML::Any) do |acc, setting_any|
+      settings.compact.reverse.reduce({} of YAML::Any => YAML::Any) do |acc, setting_any|
         acc.merge!(setting_any)
       end.to_json
     end

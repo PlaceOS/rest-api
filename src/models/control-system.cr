@@ -136,7 +136,7 @@ module Engine::Model
         # Extra features stored in unencrypted settings
         settings.find { |(level, _)| level == Encryption::Level::None }.try do |(_, setting_string)|
           # Append any extra features
-          if (extra_features = JSON.parse(setting_string)["extra_features"]?)
+          if (extra_features = YAML.parse(setting_string)["extra_features"]?)
             @features = "#{@features} #{extra_features}"
           end
         end
