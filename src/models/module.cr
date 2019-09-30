@@ -2,6 +2,7 @@ require "rethinkdb-orm"
 require "uri"
 
 require "./base/model"
+require "./driver"
 require "./settings"
 
 module Engine::Model
