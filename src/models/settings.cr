@@ -63,6 +63,16 @@ module Engine::Model
       nil
     end
 
+    # Decrypts all module settings, merges them
+    def settings_any
+      @settings.as(Array(Setting)).reduce({} of String => YAML::Any) { |acc, (level, settings_string)|
+        # Decrypt String
+        decrypted = Engine::Encryption.decrypt(string: settings_string, level: level, id: id)
+        # Parse and merge into accumulated settings hash
+        acc.merge!(YAML.parse(decrypted).as_h)
+      }
+    end
+
     # Decrypts settings, merges into single JSON object
     #
     def settings_json

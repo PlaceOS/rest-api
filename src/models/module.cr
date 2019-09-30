@@ -29,7 +29,7 @@ module Engine::Model
     attribute custom_name : String
 
     # Array of encrypted YAML setting and the encryption privilege
-    attribute settings : Array(Setting) = [] of Setting
+    attribute settings : Array(Setting) = [] of Setting, es_keyword: "text"
 
     enum_attribute role : Driver::Role, es_type: "integer" # cache the driver role locally for load order
 
@@ -52,6 +52,48 @@ module Engine::Model
     # Finds the systems for which this module is in use
     def systems
       ControlSystem.by_module_id(self.id)
+    end
+
+    # Traverse settings hierarchy, and merge settings
+    # Logic modules
+    # - Module
+    # - ControlSystem
+    # - ControlSystem's Zones (pop-off array)
+    # - Driver
+    # Others
+    # - Module
+    # - Driver
+    def merge_settings
+      # Module Settings
+      module_settings = settings_any
+
+      # Accumulate, then merge
+      settings = [module_settings]
+
+      if role == Driver::Role::Logic
+        # Control System Settings
+        settings.push(control_system.settings_any)
+
+        # Zone Settings
+        zone_ids = self.control_system.as(Model::ControlSystem).zones.as(Array(String))
+        zones = Model::Zone.get_all(zone_ids, index: :id)
+        # Merge by highest associated zone
+        zone_ids.reverse_each do |zone_id|
+          zone = zones.find { |found_zone| found_zone.id == zone_id }
+          # TODO: Warn that zone not present rather than error
+          raise "Missing zone: module_id=#{@id} zone_id=#{zone_id}" unless zone
+
+          settings.push(zone.settings_any)
+        end
+      end
+
+      # Driver Settings
+      settings.push(driver.as(Model::Driver).settings_any)
+
+      # Merge all settings, serialise to JSON
+      settings.reverse.reduce({} of String => YAML::Any) do |acc, setting_any|
+        acc.merge!(setting_any)
+      end.to_json
     end
 
     # Getter for the module's host

@@ -148,10 +148,10 @@ module Engine::Model
     # =======================
 
     # Array of encrypted YAML setting and the encryption privilege
-    attribute settings : Array(Setting) = [] of Setting
+    attribute settings : Array(Setting) = [] of Setting, es_keyword: "text"
 
     # On save, after encryption, sets existing to previous settings. use settings_was
-    attribute settings_backup : Array(Setting) = [] of Setting
+    attribute settings_backup : Array(Setting) = [] of Setting, es_keyword: "text"
 
     # Settings encryption
     before_save do

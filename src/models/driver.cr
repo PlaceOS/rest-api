@@ -1,10 +1,13 @@
 require "semantic_version"
 
 require "./base/model"
+require "./settings"
 
 module Engine::Model
   class Driver < ModelBase
     include RethinkORM::Timestamps
+    include Setting
+
     table :driver
 
     after_save :update_modules
@@ -33,7 +36,7 @@ module Engine::Model
 
     # Module instance configuration
     attribute module_name : String
-    attribute settings : String = "{}", es_keyword: "object"
+    attribute settings : Array(Setting) = [] of Setting, es_keyword: "text"
 
     # Don't include this module in statistics or disconnected searches
     # Might be a device that commonly goes offline (like a PC or Display that only supports Wake on Lan)

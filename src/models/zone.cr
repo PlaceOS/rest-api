@@ -13,7 +13,6 @@ module Engine::Model
     attribute name : String, es_type: "keyword"
     attribute description : String
     attribute tags : String
-    attribute settings : String = "{}"
 
     attribute triggers : Array(String) = [] of String
 
@@ -58,7 +57,7 @@ module Engine::Model
     # =======================
 
     # Array of encrypted YAML setting and the encryption privilege
-    attribute settings : Array(Setting) = [] of Setting
+    attribute settings : Array(Setting) = [] of Setting, es_keyword: "text"
 
     # Settings encryption
     before_save do
