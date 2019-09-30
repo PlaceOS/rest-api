@@ -34,16 +34,11 @@ module Engine::API
     end
 
     def show
+      zone = @zone.as(Model::Zone)
       if params.has_key? "data"
         key = params["data"]
-        settings = @zone.try &.settings || ""
-        info_any = JSON.parse(settings)[key]?
 
-        # convert setting string to Array or Hash
-        info = info_any.try do |any|
-          any.as_h? || any.as_a?
-        end
-
+        info = zone.get_setting_for(current_user, key)
         if info
           render json: info
         else
@@ -54,11 +49,11 @@ module Engine::API
 
         if params.has_key? "complete"
           # Include trigger data in response
-          render json: with_fields(@zone, {
-            :trigger_data => @zone.try &.trigger_data,
+          render json: with_fields(zone, {
+            :trigger_data => zone.trigger_data,
           })
         else
-          render json: @zone
+          render json: zone
         end
       end
     end

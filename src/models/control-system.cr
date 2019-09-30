@@ -3,11 +3,13 @@ require "time"
 require "uri"
 
 require "./base/model"
-require "../encryption"
+require "./settings"
 
 module Engine::Model
   class ControlSystem < ModelBase
     include RethinkORM::Timestamps
+    include Settings
+
     table :sys
 
     before_save :update_features
@@ -145,8 +147,6 @@ module Engine::Model
     # Settings Management
     # =======================
 
-    alias Setting = Tuple(Encryption::Level, String)
-
     # Array of encrypted YAML setting and the encryption privilege
     attribute settings : Array(Setting) = [] of Setting
 
@@ -159,55 +159,7 @@ module Engine::Model
       @settings_backup = encrypt_settings(@settings_was || [] of Setting)
 
       # Encrypt all settings
-      @settings = encrypt_settings(@settings || [] of Setting)
-    end
-
-    # Get settings string for specific encryption level
-    #
-    def settings_at(level : Encryption::Level) : String?
-      @settings.try &.find { |s| s[0] == level }.try &.[1]
-    end
-
-    # Encrypts all settings.
-    #
-    # We want encryption of unpersisted models, so we set the id if not present
-    # Setting of id here will not intefer with `persisted?` unless call made in a before_save
-    def encrypt_settings(settings : Array(Setting))
-      id = (@id ||= @@uuid_generator.next(self))
-      settings.map do |setting|
-        level, setting_string = setting
-        {level, Encryption.encrypt(string: setting_string, level: level, id: id)}
-      end
-    end
-
-    # Decrypts settings dependent on user privileges
-    #
-    def decrypt_for!(user)
-      @settings.as(Array(Setting)).map! do |setting|
-        level, setting_string = setting
-        id = @id.as(String)
-
-        case level
-        when Encryption::Level::Support
-          (user.is_support? || user.is_admin?) ? {level, Encryption.decrypt(string: setting_string, level: level, id: id)} : setting
-        when Encryption::Level::Admin
-          user.is_admin? ? {level, Encryption.decrypt(string: setting_string, level: level, id: id)} : setting
-        else
-          setting
-        end
-      end
-    end
-
-    # Decrypts settings, merges into single JSON object
-    #
-    def settings_json
-      return unless (id = @id)
-      @settings.reduce({} of String => YAML::Any) { |acc, (level, settings_string)|
-        # Decrypt String
-        decrypted = Engine::Encryption.decrypt(string: settings_string, level: level, id: id)
-        # Parse and merge into accumulated settings hash
-        acc.merge!(YAML.parse(decrypted).as_h)
-      }.to_json
+      @settings = encrypt_settings(@settings.as(Array(Setting)))
     end
 
     # =======================

@@ -2,10 +2,13 @@ require "rethinkdb-orm"
 require "uri"
 
 require "./base/model"
+require "./settings"
 
 module Engine::Model
   class Module < ModelBase
     include RethinkORM::Timestamps
+    include Settings
+
     table :mod
 
     # The classes/files that this module requires to execute
@@ -22,11 +25,11 @@ module Engine::Model
     # HTTP Service module
     attribute uri : String
 
-    # Mirror of driver's name
-    attribute driver_name : String
     # Custom module names (in addition to what is defined in the driver)
     attribute custom_name : String
-    attribute settings : String = "{}"
+
+    # Array of encrypted YAML setting and the encryption privilege
+    attribute settings : Array(Setting) = [] of Setting
 
     enum_attribute role : Driver::Role, es_type: "integer" # cache the driver role locally for load order
 
@@ -39,6 +42,12 @@ module Engine::Model
     # Might be a device that commonly goes offline (like a PC or Display that only supports Wake on Lan)
     attribute ignore_connected : Bool = false
     attribute ignore_startstop : Bool = false
+
+    # Settings encryption
+    before_save do
+      # Encrypt all settings
+      @settings = encrypt_settings(@settings.as(Array(Setting)))
+    end
 
     # Finds the systems for which this module is in use
     def systems
@@ -69,7 +78,6 @@ module Engine::Model
     def driver=(driver : Driver)
       previous_def(driver)
       self.role = driver.role
-      self.driver_name = driver.name
       self.custom_name = driver.module_name
     end
 
