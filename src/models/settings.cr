@@ -1,6 +1,6 @@
 require "../encryption"
 
-module Engine::Model
+module ACAEngine::Model
   # Common settings code
   module Settings
     alias Setting = Tuple(Encryption::Level, String)
@@ -68,7 +68,7 @@ module Engine::Model
       return unless (id = @id)
       @settings.as(Array(Setting)).reduce({} of YAML::Any => YAML::Any) { |acc, (level, settings_string)|
         # Decrypt String
-        decrypted = Engine::Encryption.decrypt(string: settings_string, level: level, id: id)
+        decrypted = ACAEngine::Encryption.decrypt(string: settings_string, level: level, id: id)
         # Parse and merge into accumulated settings hash
         acc.merge!(YAML.parse(decrypted).as_h)
       }
@@ -80,7 +80,7 @@ module Engine::Model
       return unless (id = @id)
       @settings.as(Array(Setting)).reduce({} of YAML::Any => YAML::Any) { |acc, (level, settings_string)|
         # Decrypt String
-        decrypted = Engine::Encryption.decrypt(string: settings_string, level: level, id: id)
+        decrypted = ACAEngine::Encryption.decrypt(string: settings_string, level: level, id: id)
         # Parse and merge into accumulated settings hash
         acc.merge!(YAML.parse(decrypted).as_h)
       }.to_json

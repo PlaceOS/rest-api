@@ -1,6 +1,6 @@
 require "rethinkdb-orm"
 
-module Engine::API
+module ACAEngine::Api
   class Error < Exception
     getter :message
 

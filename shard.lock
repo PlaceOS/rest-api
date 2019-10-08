@@ -20,6 +20,10 @@ shards:
     github: spider-gazelle/bisect
     version: 1.2.0
 
+  connect-proxy:
+    github: spider-gazelle/connect-proxy
+    version: 1.0.0
+
   cron_parser:
     github: kostya/cron_parser
     version: 0.2.0
@@ -30,7 +34,11 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: f495849b23afe7fa3eee1737f818eb5388c35c70
+    commit: 7a7c116a586cf387401114bab69c8bba2ca51219
+
+  etcd:
+    github: aca-labs/crystal-etcd
+    commit: 46bfecae1e277d1f9bd4a45c8b3bcb2723facd0e
 
   faker:
     github: askn/faker
@@ -40,9 +48,13 @@ shards:
     github: luckyframework/habitat
     version: 0.4.3
 
+  hound-dog:
+    github: aca-labs/hound-dog
+    commit: cc6a18654527997fbe381db74766a07c5eccef5e
+
   ipaddress:
     github: Sija/ipaddress.cr
-    version: 0.2.0
+    version: 0.2.1
 
   jwt:
     github: crystal-community/jwt
@@ -51,6 +63,10 @@ shards:
   kilt:
     github: jeromegn/kilt
     version: 0.4.0
+
+  murmur3:
+    github: aca-labs/murmur3
+    commit: 7cbe25c0ca8d052c9d98c377c824dcb0e038c790
 
   neuroplastic:
     github: aca-labs/neuroplastic
@@ -74,7 +90,7 @@ shards:
 
   promise:
     github: spider-gazelle/promise
-    version: 1.1.3
+    version: 1.3.0
 
   protobuf:
     github: jeromegn/protobuf.cr
@@ -87,6 +103,10 @@ shards:
   redis:
     github: stefanwille/crystal-redis
     version: 2.2.1
+
+  rendezvous-hash:
+    github: caspiano/rendezvous-hash
+    commit: 7daf4bcd8778b02bea037222310ddc9a4d3e13dd
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
@@ -102,9 +122,9 @@ shards:
 
   tasker:
     github: spider-gazelle/tasker
-    version: 1.2.1
+    version: 1.2.2
 
   tokenizer:
     github: spider-gazelle/tokenizer
-    version: 1.0.2
+    version: 1.1.0
 

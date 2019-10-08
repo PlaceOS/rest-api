@@ -1,3 +1,4 @@
+require "hound-dog"
 require "uuid"
 
 require "engine-driver/proxy/system"
@@ -5,7 +6,7 @@ require "engine-driver/proxy/system"
 require "./application"
 require "../session"
 
-module Engine::API
+module ACAEngine::Api
   class Systems < Application
     base "/api/engine/v1/systems/"
 
@@ -17,6 +18,9 @@ module Engine::API
     before_action :ensure_json, only: [:create, :update]
 
     @control_system : Model::ControlSystem?
+
+    # ACAEngine Core service discovery
+    @@core_discovery = HoundDog::Discovery.new("core")
 
     # Strong params for index method
     class IndexParams < Params
@@ -167,16 +171,15 @@ module Engine::API
     post("/:sys_id/exec", :exec) do
       args = ExecParams.new(params).validate!
 
-      # This looks insane however it does achieve our out of the ordinary requirement
-      # .to_h converts to indifferent access .to_h converts to a regular hash and
-      # .symbolize_keys! is required for passing hashes to functions with named params
-      # and having them apply correctly
-
-      # TODO: Request core
       begin
         value = nil
-        url = nil
-        # url = locate_module?(sys_id, module_name, method)
+        url = Systems.locate_module?(
+          sys_id: args.sys_id.as(String),
+          module_name: args.module_name.as(String),
+          index: args.index.as(Int32),
+        )
+
+        # TODO: Request core
 
         head :not_found unless url
       rescue e
@@ -185,6 +188,20 @@ module Engine::API
       end
 
       render json: value
+    end
+
+    # Determine URI for a module
+    def self.locate_module(module_id : String) : URI
+      # Use consistent hashing to determine the location of the module
+      node = @@core_discovery.find(module_id)
+
+      URI.new(host: node[:ip], port: node[:port])
+    end
+
+    # Determine URI for a system module
+    def self.locate_module?(sys_id : String, module_name : String, index : Int32) : URI?
+      module_id = ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index)
+      module_id ? self.locate_module(module_id: module_id) : nil
     end
 
     # class CountParams < Params
@@ -227,11 +244,15 @@ module Engine::API
       args = StateParams.new(params).validate!
 
       # Look up module's id for module on system
-      module_id = EngineDriver::Proxy::System.module_id?(args.sys_id.as(String), args.module_name.as(String), args.index.as(Int32))
+      module_id = ACAEngine::Driver::Proxy::System.module_id?(
+        system_id: args.sys_id.as(String),
+        module_name: args.module_name.as(String),
+        index: args.index.as(Int32)
+      )
 
       if module_id
         # Grab driver state proxy
-        storage = EngineDriver::Storage.new(module_id)
+        storage = ACAEngine::Driver::Storage.new(module_id)
 
         # Perform lookup, otherwise dump state
         render json: ((lookup = args.lookup) ? storage[lookup] : storage.to_h)
@@ -253,7 +274,7 @@ module Engine::API
     get("/:sys_id/funcs", :funcs) do
       args = FuncsParams.new(params).validate!
 
-      metadata = EngineDriver::Proxy::System.driver_metadata?(
+      metadata = ACAEngine::Driver::Proxy::System.driver_metadata?(
         system_id: args.sys_id.as(String),
         module_name: args.module_name.as(String),
         index: args.index.as(Int32),

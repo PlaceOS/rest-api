@@ -9,7 +9,7 @@ process_count = 1
 
 # Command line options
 OptionParser.parse(ARGV.dup) do |parser|
-  parser.banner = "Usage: #{Engine::API::APP_NAME} [arguments]"
+  parser.banner = "Usage: #{ACAEngine::Api::APP_NAME} [arguments]"
 
   parser.on("-b HOST", "--bind=HOST", "Specifies the server host") { |h| host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| port = p.to_i }
@@ -25,7 +25,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   end
 
   parser.on("-v", "--version", "Display the application version") do
-    puts "#{Engine::API::APP_NAME} v#{Engine::API::VERSION}"
+    puts "#{ACAEngine::Api::APP_NAME} v#{ACAEngine::Api::VERSION}"
     exit 0
   end
 
@@ -45,7 +45,7 @@ OptionParser.parse(ARGV.dup) do |parser|
 end
 
 # Load the routes
-puts "Launching #{Engine::API::APP_NAME} v#{Engine::API::VERSION}"
+puts "Launching #{ACAEngine::Api::APP_NAME} v#{ACAEngine::Api::VERSION}"
 server = ActionController::Server.new(port, host)
 
 # Start clustering
@@ -68,4 +68,4 @@ server.run do
 end
 
 # Shutdown message
-puts "#{Engine::API::APP_NAME} leaps through the veldt\n"
+puts "#{ACAEngine::Api::APP_NAME} leaps through the veldt\n"

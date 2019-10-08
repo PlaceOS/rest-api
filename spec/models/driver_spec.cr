@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe Driver do
     it "creates a driver" do
       driver = Generator.driver(role: Driver::Role::Service)

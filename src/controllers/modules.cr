@@ -4,7 +4,7 @@ require "engine-driver/storage"
 
 require "./application"
 
-module Engine::API
+module ACAEngine::Api
   class Modules < Application
     base "/api/engine/v1/modules/"
 
@@ -190,7 +190,7 @@ module Engine::API
       mod = @module.as(Model::Module)
 
       # Grab driver state proxy
-      storage = EngineDriver::Storage.new(mod.id.as(String))
+      storage = ACAEngine::Driver::Storage.new(mod.id.as(String))
 
       # Perform lookup, otherwise dump state
       render json: ((lookup = params["lookup"]?) ? storage[lookup] : storage.to_h)

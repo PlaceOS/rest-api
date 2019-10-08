@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe Repository do
     it "saves a Repository" do
       repo = Generator.repository.save!

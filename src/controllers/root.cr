@@ -1,6 +1,6 @@
 require "./application"
 
-module Engine::API
+module ACAEngine::Api
   class Root < Application
     base "/"
 

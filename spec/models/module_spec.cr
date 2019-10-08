@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe Module do
     describe "persistence" do
       Driver::Role.values.each do |role|
@@ -10,11 +10,11 @@ module Engine::Model
 
     describe "merge_settings" do
       it "obeys logic module settings hierarchy" do
-        driver = Engine::Model::Generator.driver(role: Model::Driver::Role::Logic)
+        driver = ACAEngine::Model::Generator.driver(role: Model::Driver::Role::Logic)
         driver.settings.not_nil!.push({Encryption::Level::None, %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)})
         driver.save!
 
-        cs = Engine::Model::Generator.control_system
+        cs = ACAEngine::Model::Generator.control_system
         cs.settings.not_nil!.push({Encryption::Level::None, %(frangos: 1)})
         cs.save!
 
@@ -25,7 +25,7 @@ module Engine::Model
         cs.zones = [zone.id.as(String)]
         cs.update!
 
-        mod = Engine::Model::Generator.module(driver: driver, control_system: cs)
+        mod = ACAEngine::Model::Generator.module(driver: driver, control_system: cs)
         mod.settings.not_nil!.push({Encryption::Level::None, %(value: 2\n)})
         mod.save!
 
@@ -44,11 +44,11 @@ module Engine::Model
       end
 
       it "obeys driver-module settings hierarchy" do
-        driver = Engine::Model::Generator.driver(role: Model::Driver::Role::Service)
+        driver = ACAEngine::Model::Generator.driver(role: Model::Driver::Role::Service)
         driver.settings.not_nil!.push({Encryption::Level::None, %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)})
         driver.save!
 
-        cs = Engine::Model::Generator.control_system
+        cs = ACAEngine::Model::Generator.control_system
         cs.settings.not_nil!.push({Encryption::Level::None, %(frangos: 1)})
         cs.save!
 
@@ -59,7 +59,7 @@ module Engine::Model
         cs.zones = [zone.id.as(String)]
         cs.update!
 
-        mod = Engine::Model::Generator.module(driver: driver, control_system: cs)
+        mod = ACAEngine::Model::Generator.module(driver: driver, control_system: cs)
         mod.settings.not_nil!.push({Encryption::Level::None, %(value: 2\n)})
         mod.save!
 
@@ -82,8 +82,8 @@ end
 
 def spec_module_persistence(role)
   it "saves a #{role} module" do
-    driver = Engine::Model::Generator.driver(role: role)
-    mod = Engine::Model::Generator.module(driver: driver)
+    driver = ACAEngine::Model::Generator.driver(role: role)
+    mod = ACAEngine::Model::Generator.module(driver: driver)
     begin
       mod.save!
       mod.persisted?.should be_true

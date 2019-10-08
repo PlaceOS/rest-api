@@ -4,7 +4,7 @@ require "time"
 require "./base/model"
 require "./settings"
 
-module Engine::Model
+module ACAEngine::Model
   class Zone < ModelBase
     include RethinkORM::Timestamps
     include Settings

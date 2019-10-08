@@ -1,4 +1,4 @@
-# Crystal Engine REST API
+# Crystal ACAEngine REST API
 
 [![Build Status](https://travis-ci.org/aca-labs/crystal-engine-rest-api.svg?branch=master)](https://travis-ci.org/aca-labs/crystal-engine-rest-api)
 

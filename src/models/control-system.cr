@@ -5,7 +5,7 @@ require "uri"
 require "./base/model"
 require "./settings"
 
-module Engine::Model
+module ACAEngine::Model
   class ControlSystem < ModelBase
     include RethinkORM::Timestamps
     include Settings

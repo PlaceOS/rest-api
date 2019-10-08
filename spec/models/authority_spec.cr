@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe Authority do
     it "saves an Authority" do
       inst = Generator.authority.save!

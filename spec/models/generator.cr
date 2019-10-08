@@ -5,7 +5,7 @@ require "../../src/models/**"
 
 RANDOM = Random.new
 
-module Engine::Model
+module ACAEngine::Model
   # Defines generators for models
   module Generator
     def self.driver(role : Driver::Role? = nil, module_name : String? = nil, repo : Repository? = nil)

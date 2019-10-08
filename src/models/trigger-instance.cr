@@ -4,7 +4,7 @@ require "time"
 
 require "./base/model"
 
-module Engine::Model
+module ACAEngine::Model
   class TriggerInstance < ModelBase
     include RethinkORM::Timestamps
     table :trig

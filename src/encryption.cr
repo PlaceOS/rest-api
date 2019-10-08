@@ -3,7 +3,7 @@ require "base64"
 require "uuid"
 
 # Provides symmetric key encryption/decryption
-module Engine::Encryption
+module ACAEngine::Encryption
   # Privilege levels
   enum Level
     None

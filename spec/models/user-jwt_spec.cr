@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   # Sample data
   USER_META = UserJWT::Metadata.new(
     name: "abcde",

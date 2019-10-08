@@ -1,6 +1,6 @@
 require "./base/jwt"
 
-module Engine::Model
+module ACAEngine::Model
   class UserJWT < JWTBase
     property iss : String
 

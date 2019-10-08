@@ -2,7 +2,7 @@ require "logger"
 require "tasker"
 
 # Hack around abstract base class for driver applications
-class EngineDriver; end
+class ACAEngine::Driver; end
 
 require "redis"
 require "engine-driver/subscriptions"
@@ -10,7 +10,7 @@ require "engine-driver/proxy/subscriptions"
 
 require "./utilities/params"
 
-class Engine::API::Session
+class ACAEngine::Api::Session
   # Stores sessions until their websocket closes
   class Manager
     @sessions = [] of Session
@@ -36,10 +36,10 @@ class Engine::API::Session
   end
 
   # Class level subscriptions to modules
-  @@subscriptions = EngineDriver::Proxy::Subscriptions.new
+  @@subscriptions = ACAEngine::Driver::Proxy::Subscriptions.new
 
   # Local subscriptions
-  @bindings = {} of String => EngineDriver::Subscriptions::Subscription
+  @bindings = {} of String => ACAEngine::Driver::Subscriptions::Subscription
 
   # Background task to clear module metadata caches
   @cache_cleaner : Tasker::Task?
@@ -47,8 +47,8 @@ class Engine::API::Session
   def initialize(
     @ws : HTTP::WebSocket,
     @request_id : String,
-    @user : Engine::Model::UserJWT,
-    @logger : Logger = Engine::API.settings.logger,
+    @user : ACAEngine::Model::UserJWT,
+    @logger : Logger = ACAEngine::Api.settings.logger,
     @cache_timeout : Int32? = 60 * 5
   )
     # Register event handlers
@@ -56,7 +56,7 @@ class Engine::API::Session
     @ws.on_ping { |_| @ws.pong }
 
     # NOTE: Might need a rw-lock/concurrent-map due to cache cleaning fiber
-    @metadata_cache = {} of String => EngineDriver::DriverModel::Metadata
+    @metadata_cache = {} of String => ACAEngine::Driver::DriverModel::Metadata
     @module_id_cache = {} of String => String
 
     # Begin clearing cache
@@ -319,7 +319,7 @@ class Engine::API::Session
   # - checks for fresh value in cache
   # - refreshes cache with new value if present
   #
-  def metadata?(sys_id, module_name, index) : EngineDriver::DriverModel::Metadata?
+  def metadata?(sys_id, module_name, index) : ACAEngine::Driver::DriverModel::Metadata?
     key = Session.cache_key(sys_id, module_name, index)
     # Try for value in the cache
     cached = @metadata_cache[key]?
@@ -327,7 +327,7 @@ class Engine::API::Session
 
     # Look up value, refresh cache if value found
     if (module_id = module_id?(sys_id, module_name, index))
-      EngineDriver::Proxy::System.driver_metadata?(module_id).tap do |metadata|
+      ACAEngine::Driver::Proxy::System.driver_metadata?(module_id).tap do |metadata|
         @metadata_cache[key] = metadata if metadata
       end
     end
@@ -344,7 +344,7 @@ class Engine::API::Session
     return cached if cached
 
     # Look up value, refresh cache if value found
-    EngineDriver::Proxy::System.module_id?(sys_id, module_name, index).tap do |id|
+    ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index).tap do |id|
       @module_id_cache[key] = id if id
     end
   end

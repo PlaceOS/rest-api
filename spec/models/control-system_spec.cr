@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe ControlSystem do
     it "saves a control system" do
       cs = Generator.control_system

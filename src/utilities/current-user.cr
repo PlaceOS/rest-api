@@ -4,7 +4,7 @@ require "../models/authority"
 require "../models/user"
 require "../models/user-jwt"
 
-module Engine::API
+module ACAEngine::Api
   # Helper to grab user and authority from a request
   module Utils::CurrentUser
     @user_token : Model::UserJWT?

@@ -51,12 +51,12 @@ end
 
 # Yield an authenticated user, and a header with Authorization bearer set
 def authentication
-  authenticated_user = Engine::Model::Generator.user.not_nil!
+  authenticated_user = ACAEngine::Model::Generator.user.not_nil!
   authenticated_user.sys_admin = true
   authenticated_user.support = true
   authenticated_user.save!
   authorization_header = {
-    "Authorization" => "Bearer #{Engine::Model::Generator.jwt(authenticated_user).encode}",
+    "Authorization" => "Bearer #{ACAEngine::Model::Generator.jwt(authenticated_user).encode}",
   }
   {authenticated_user, authorization_header}
 end
@@ -76,7 +76,7 @@ macro test_base_index(klass, controller_klass)
   authenticated_user, authorization_header = authentication
 
   it "queries #{ {{ klass_name }} }" do
-    doc = Engine::Model::Generator.{{ klass_name.id }}.save!
+    doc = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
     doc.persisted?.should be_true
 
     sleep 2
@@ -103,7 +103,7 @@ macro test_crd(klass, controller_klass)
   authenticated_user, authorization_header = authentication
 
   it "create" do
-    body = Engine::Model::Generator.{{ klass_name.id }}.to_json
+    body = ACAEngine::Model::Generator.{{ klass_name.id }}.to_json
     result = curl(
       method: "POST",
       path: base,
@@ -118,7 +118,7 @@ macro test_crd(klass, controller_klass)
   end
 
   it "show" do
-    model = Engine::Model::Generator.{{ klass_name.id }}.save!
+    model = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
     id = model.id.not_nil!
     result = curl(
@@ -135,7 +135,7 @@ macro test_crd(klass, controller_klass)
   end
 
   it "destroy" do
-    model = Engine::Model::Generator.{{ klass_name.id }}.save!
+    model = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
     id = model.id.not_nil!
     result = curl(

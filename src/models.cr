@@ -2,7 +2,7 @@ require "rethinkdb-orm"
 
 require "./models/base/*"
 
-module Engine::Model
+module ACAEngine::Model
   # Expose RethinkDB connection
   # Use for configuration, raw queries
   class Connection < RethinkORM::Connection

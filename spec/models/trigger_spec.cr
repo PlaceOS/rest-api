@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe Trigger do
     it "saves a trigger" do
       inst = Generator.trigger.save!

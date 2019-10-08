@@ -2,7 +2,7 @@ require "oauth2"
 
 require "./application"
 
-module Engine::API
+module ACAEngine::Api
   class Users < Application
     include Utils::CurrentUser
 

@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::API
+module ACAEngine::Api
   describe Zones do
     # ameba:disable Lint/UselessAssign
     authenticated_user, authorization_header = authentication

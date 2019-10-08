@@ -1,7 +1,7 @@
 require "jwt"
 require "time"
 
-module Engine::Model
+module ACAEngine::Model
   # Base ORM for JWT
   abstract class JWTBase
     include JSON::Serializable

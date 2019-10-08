@@ -2,7 +2,7 @@ require "../helper"
 
 require "engine-driver/storage"
 
-module Engine::API
+module ACAEngine::Api
   authenticated_user, authorization_header = authentication
   base = Systems::NAMESPACE[0]
 
@@ -24,7 +24,7 @@ module Engine::API
             status_name = "nugget"
             results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
               # Create a storage proxy
-              driver_proxy = EngineDriver::Storage.new mod.id.as(String)
+              driver_proxy = ACAEngine::Driver::Storage.new mod.id.as(String)
 
               ws.send Session::Request.new(
                 id: RANDOM.hex(7),
@@ -135,18 +135,18 @@ end
 # Cleans up the websocket and models
 def test_websocket_api(base, authorization_header)
   # Create a System
-  control_system = Engine::Model::Generator.control_system.save!
+  control_system = ACAEngine::Model::Generator.control_system.save!
 
   # Create a Module
-  mod = Engine::Model::Generator.module(control_system: control_system).save!
-  updates = [] of Engine::API::Session::Response
+  mod = ACAEngine::Model::Generator.module(control_system: control_system).save!
+  updates = [] of ACAEngine::Api::Session::Response
 
   on_message = ->(message : String) {
-    updates << Engine::API::Session::Response.from_json message
+    updates << ACAEngine::Api::Session::Response.from_json message
   }
 
   # Set metadata in redis to allow binding to module
-  sys_lookup = EngineDriver::Storage.new(control_system.id.as(String), "system")
+  sys_lookup = ACAEngine::Driver::Storage.new(control_system.id.as(String), "system")
   lookup_key = "#{mod.custom_name}\x021"
   sys_lookup[lookup_key] = mod.id.as(String)
 

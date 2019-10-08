@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   # Transmogrified from the Ruby Engine spec
   describe Zone do
     it "saves a zone" do

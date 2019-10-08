@@ -7,7 +7,7 @@ require "rethinkdb-orm"
 require "./authority"
 require "./base/model"
 
-module Engine::Model
+module ACAEngine::Model
   class User < ModelBase
     include RethinkORM::Timestamps
     table :user

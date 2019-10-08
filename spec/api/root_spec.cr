@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::API
+module ACAEngine::Api
   describe Root do
     with_server do
       # ameba:disable Lint/UselessAssign

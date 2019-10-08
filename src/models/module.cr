@@ -5,7 +5,7 @@ require "./base/model"
 require "./driver"
 require "./settings"
 
-module Engine::Model
+module ACAEngine::Model
   class Module < ModelBase
     include RethinkORM::Timestamps
     include Settings

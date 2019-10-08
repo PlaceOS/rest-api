@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::API
+module ACAEngine::Api
   describe SystemTriggers do
     # ameba:disable Lint/UselessAssign
     authenticated_user, authorization_header = authentication
@@ -108,8 +108,8 @@ module Engine::API
         end
 
         it "destroy" do
-          sys = Engine::Model::Generator.control_system.save!
-          model = Engine::Model::Generator.trigger_instance
+          sys = ACAEngine::Model::Generator.control_system.save!
+          model = ACAEngine::Model::Generator.trigger_instance
           model.control_system = sys
 
           model.save!

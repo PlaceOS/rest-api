@@ -1,6 +1,6 @@
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe TriggerInstance do
     it "saves a TriggerInstance" do
       inst = TriggerInstance.create!

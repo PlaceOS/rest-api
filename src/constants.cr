@@ -1,5 +1,5 @@
-module Engine::API
-  APP_NAME    = "Engine REST API"
+module ACAEngine::Api
+  APP_NAME    = "ACAEngine REST API"
   API_VERSION = "v1"
   VERSION     = `shards version`
 end

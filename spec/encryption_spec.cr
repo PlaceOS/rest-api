@@ -3,7 +3,7 @@ require "uuid"
 require "./helper"
 require "../src/encryption"
 
-module Engine
+module ACAEngine
   describe Encryption do
     describe Encryption::Level::None do
       it "preserves plaintext" do

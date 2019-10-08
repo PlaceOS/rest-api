@@ -4,7 +4,7 @@ require "time"
 
 require "./base/model"
 
-module Engine::Model
+module ACAEngine::Model
   class Trigger < ModelBase
     include RethinkORM::Timestamps
     table :trigger
@@ -13,8 +13,8 @@ module Engine::Model
     attribute description : String
 
     # Full path allows resolution in macros
-    attribute actions : Engine::Model::Trigger::Actions = ->{ Actions.new }, es_type: "object"
-    attribute conditions : Engine::Model::Trigger::Conditions = ->{ Conditions.new }, es_type: "object"
+    attribute actions : ACAEngine::Model::Trigger::Actions = ->{ Actions.new }, es_type: "object"
+    attribute conditions : ACAEngine::Model::Trigger::Conditions = ->{ Conditions.new }, es_type: "object"
 
     # In seconds
     attribute debounce_period : Int32 = 0

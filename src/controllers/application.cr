@@ -7,7 +7,7 @@ require "../constants"
 require "../error"
 require "../utilities/*"
 
-module Engine::API
+module ACAEngine::Api
   private abstract class Application < ActionController::Base
     # Helpers for controller responses
     include Utils::Responders

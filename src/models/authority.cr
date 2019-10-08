@@ -2,7 +2,7 @@ require "uri"
 
 require "./base/model"
 
-module Engine::Model
+module ACAEngine::Model
   class Authority < ModelBase
     table :authority
 

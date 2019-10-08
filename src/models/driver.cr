@@ -3,7 +3,7 @@ require "semantic_version"
 require "./base/model"
 require "./settings"
 
-module Engine::Model
+module ACAEngine::Model
   class Driver < ModelBase
     include RethinkORM::Timestamps
     include Settings

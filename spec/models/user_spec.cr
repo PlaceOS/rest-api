@@ -2,7 +2,7 @@ require "digest/md5"
 
 require "../helper"
 
-module Engine::Model
+module ACAEngine::Model
   describe User do
     it "saves a User" do
       user = Generator.user.save!

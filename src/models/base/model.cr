@@ -6,7 +6,7 @@ require "semantic_version"
 
 require "../utilities/*"
 
-module Engine::Model
+module ACAEngine::Model
   # Base class for all Engine models
   abstract class ModelBase < RethinkORM::Base
     include Neuroplastic
