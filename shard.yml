@@ -22,6 +22,11 @@ dependencies:
     github: aca-labs/crystal-engine-driver
     branch: master
 
+  # Service discovery
+  hound-dog:
+    github: aca-labs/hound-dog
+    branch: master
+
   # JSON Web Token support
   jwt:
     github: crystal-community/jwt
@@ -41,11 +46,6 @@ dependencies:
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
     branch: master
-
-  # # Scrypt encryption
-  # scrypt:
-  #   github: ysbaddaden/scrypt-crystal
-  #   version: ~> 0.3
 
   # Scheduling
   tasker:
