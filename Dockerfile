@@ -3,7 +3,6 @@ FROM crystallang/crystal:0.31.1
 WORKDIR /app
 
 # Add
-# - curl (necessary for scrypt install)
 # - ping (not in base xenial image the crystal image is based off)
 RUN apt-get update && \
     apt-get install --no-install-recommends -y iputils-ping=3:20121221-5ubuntu2 && \
