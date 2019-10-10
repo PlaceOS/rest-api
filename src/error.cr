@@ -4,7 +4,7 @@ module ACAEngine::Api
   class Error < Exception
     getter :message
 
-    def initialize(@message : String? = "")
+    def initialize(@message : String = "")
       super(message)
     end
 

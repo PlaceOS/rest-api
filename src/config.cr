@@ -26,10 +26,13 @@ HoundDog.configure do |settings|
   settings.etcd_port = (ENV["ETCD_PORT"]? || 2379).to_i
 end
 
+PROD = ENV["SG_ENV"]? != "production"
+FILTERS = PROD ? ["bearer_token", "secret"] : [] of String
+
 # Add handlers that should run before your application
 ActionController::Server.before(
-  HTTP::ErrorHandler.new(ENV["SG_ENV"]? != "production"),
-  ActionController::LogHandler.new(STDOUT) { |context|
+  HTTP::ErrorHandler.new(PROD),
+  ActionController::LogHandler.new(STDOUT, FILTERS) { |context|
     # Allows for custom tags to be included when logging
     # For example you might want to include a user id here.
     {

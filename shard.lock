@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    version: 1.8.0
+    version: 1.8.2
 
   active-model:
     github: spider-gazelle/active-model
@@ -34,7 +34,7 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 7a7c116a586cf387401114bab69c8bba2ca51219
+    commit: 8d79a4543e24e65def499bd33c69d3ca33aec997
 
   etcd:
     github: aca-labs/crystal-etcd
