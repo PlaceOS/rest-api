@@ -5,13 +5,11 @@
 
 ## Testing
 
-`crystal spec --no-debug` to run tests
-
-* the `--no-debug` flag is a bandaid for an as of yet undiagnosed LLVM issue.
+`crystal spec` to run tests
 
 ## Compiling
 
-`crystal build --no-debug ./src/engine-api.cr`
+`crystal build ./src/engine-api.cr`
 
 ## Dependencies
 
