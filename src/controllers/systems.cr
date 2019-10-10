@@ -8,7 +8,7 @@ require "../session"
 
 module ACAEngine::Api
   class Systems < Application
-    base "/api/engine/v1/systems/"
+    base "/api/engine/v2/systems/"
 
     id_param :sys_id
 

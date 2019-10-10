@@ -2,7 +2,7 @@ require "./application"
 
 module ACAEngine::Api
   class Zones < Application
-    base "/api/engine/v1/zones/"
+    base "/api/engine/v2/zones/"
 
     before_action :check_admin, except: [:index, :show]
     before_action :find_zone, only: [:show, :update, :destroy]

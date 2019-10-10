@@ -6,7 +6,7 @@ require "./application"
 
 module ACAEngine::Api
   class Modules < Application
-    base "/api/engine/v1/modules/"
+    base "/api/engine/v2/modules/"
 
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]

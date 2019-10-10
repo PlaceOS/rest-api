@@ -2,7 +2,7 @@ require "./application"
 
 module ACAEngine::Api
   class Webhooks < Application
-    base "/api/engine/v1/webhooks/"
+    base "/api/engine/v2/webhooks/"
 
     before_action :find_hook
 

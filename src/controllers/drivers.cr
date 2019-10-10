@@ -2,7 +2,7 @@ require "./application"
 
 module ACAEngine::Api
   class Drivers < Application
-    base "/api/engine/v1/drivers/"
+    base "/api/engine/v2/drivers/"
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]

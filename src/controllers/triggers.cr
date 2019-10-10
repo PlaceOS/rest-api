@@ -2,7 +2,7 @@ require "./application"
 
 module ACAEngine::Api
   class Triggers < Application
-    base "/api/engine/v1/triggers/"
+    base "/api/engine/v2/triggers/"
 
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]

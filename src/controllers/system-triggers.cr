@@ -4,7 +4,7 @@ module ACAEngine::Api
   class SystemTriggers < Application
     include Utils::CurrentUser
 
-    base "/api/engine/v1/systems/:sys_id/triggers/"
+    base "/api/engine/v2/systems/:sys_id/triggers/"
     id_param :trig_id
 
     before_action :check_admin, only: [:create, :update, :destroy]
