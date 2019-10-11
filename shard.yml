@@ -22,6 +22,11 @@ dependencies:
     github: aca-labs/crystal-engine-driver
     branch: master
 
+  # Database view
+  engine-models:
+    github: aca-labs/crystal-engine-models
+    branch: master
+
   # Service discovery
   hound-dog:
     github: aca-labs/hound-dog

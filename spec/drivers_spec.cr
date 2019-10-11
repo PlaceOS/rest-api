@@ -1,4 +1,4 @@
-require "../helper"
+require "./helper"
 
 module ACAEngine::Api
   describe Drivers do

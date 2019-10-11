@@ -2,7 +2,6 @@
 
 [![Build Status](https://travis-ci.org/aca-labs/crystal-engine-rest-api.svg?branch=master)](https://travis-ci.org/aca-labs/crystal-engine-rest-api)
 
-
 ## Testing
 
 `crystal spec` to run tests

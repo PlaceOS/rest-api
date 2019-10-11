@@ -9,7 +9,7 @@ require "../lib/action-controller/spec/curl_context"
 require "../src/config"
 
 # Generators for Engine models
-require "./models/generator"
+require "engine-models/spec/generator"
 
 # Configure DB
 db_name = "engine_#{ENV["SG_ENV"]? || "development"}"
@@ -18,13 +18,15 @@ RethinkORM::Connection.configure do |settings|
   settings.db = db_name
 end
 
-# Clear test tables on exit
 at_exit do
-  RethinkORM::Connection.raw do |q|
-    q.db(db_name).table_list.for_each do |t|
-      q.db(db_name).table(t).delete
-    end
-  end
+  # Clear test tables on exit
+  ACAEngine::Model::ControlSystem.clear
+  ACAEngine::Model::Driver.clear
+  ACAEngine::Model::Module.clear
+  ACAEngine::Model::Repository.clear
+  ACAEngine::Model::Trigger.clear
+  ACAEngine::Model::TriggerInstance.clear
+  ACAEngine::Model::Zone.clear
 end
 
 # Models
