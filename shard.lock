@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    version: 1.8.2
+    version: 1.8.3
 
   active-model:
     github: spider-gazelle/active-model
@@ -38,7 +38,7 @@ shards:
 
   etcd:
     github: aca-labs/crystal-etcd
-    commit: 46bfecae1e277d1f9bd4a45c8b3bcb2723facd0e
+    commit: 25a02e60f32a8de6609cee4dbbec07698878f102
 
   faker:
     github: askn/faker
@@ -110,7 +110,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 6ddc7b3cb636e394ac3d8729c251a6dc1c6b1010
+    commit: d4b57179a9cb0c1e14b61d106957140170f85b64
 
   retriable:
     github: Sija/retriable.cr
