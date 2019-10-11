@@ -22,7 +22,7 @@ module ACAEngine::Model
     attribute uri : String
     attribute commit_hash : String = "head"
 
-    enum_attribute type : Type, es_type: "integer"
+    enum_attribute type : Type = Type::Driver, es_type: "integer"
 
     # Validations
     validates :name, presence: true
