@@ -13,7 +13,7 @@ module ACAEngine::Api
     id_param :sys_id
 
     before_action :find_system, only: [:show, :update, :destroy, :remove,
-                                       :start, :stop, :exec, :types, :funcs]
+                                       :start, :stop, :execute, :types, :functions]
 
     before_action :ensure_json, only: [:create, :update]
 
@@ -153,7 +153,7 @@ module ACAEngine::Api
     # Driver Metadata, State and Status
     ###########################################################################
 
-    class ExecParams < Params
+    class ExecuteParams < Params
       attribute sys_id : String
 
       attribute module_name : String
@@ -168,8 +168,8 @@ module ACAEngine::Api
 
     # Runs a function in a system module (async request)
     #
-    post("/:sys_id/exec", :exec) do
-      args = ExecParams.new(params).validate!
+    post("/:sys_id/execute", :execute) do
+      args = ExecuteParams.new(params).validate!
 
       begin
         value = nil
@@ -178,12 +178,9 @@ module ACAEngine::Api
           module_name: args.module_name.as(String),
           index: args.index.as(Int32),
         )
-
-        # TODO: Request core
-
         head :not_found unless url
       rescue e
-        logger.error("core exec request failed: params=#{args.attributes} message=#{e.message} backtrace=#{e.inspect_with_backtrace}")
+        logger.error("core execute request failed: params=#{args.attributes} message=#{e.message} backtrace=#{e.inspect_with_backtrace}")
         render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
       end
 
@@ -261,7 +258,7 @@ module ACAEngine::Api
       end
     end
 
-    class FuncsParams < Params
+    class FunctionsParams < Params
       attribute sys_id : String
       attribute module_name : String
       attribute index : Int32 = 1
@@ -271,8 +268,8 @@ module ACAEngine::Api
 
     # Lists functions available on the driver
     # Filters higher privilege functions.
-    get("/:sys_id/funcs", :funcs) do
-      args = FuncsParams.new(params).validate!
+    get("/:sys_id/functions", :functions) do
+      args = FunctionsParams.new(params).validate!
 
       metadata = ACAEngine::Driver::Proxy::System.driver_metadata?(
         system_id: args.sys_id.as(String),
