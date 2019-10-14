@@ -1,6 +1,7 @@
 require "hound-dog"
 require "uuid"
 
+require "engine-core/client"
 require "engine-driver/proxy/system"
 
 require "./application"
@@ -18,6 +19,11 @@ module ACAEngine::Api
     before_action :ensure_json, only: [:create, :update]
 
     @control_system : Model::ControlSystem?
+
+    # :nodoc:
+    def core
+      (@core || Core::Client.new(request_id: request.id)).as(Core::Client)
+    end
 
     # ACAEngine Core service discovery
     @@core_discovery = HoundDog::Discovery.new("core")
@@ -187,7 +193,11 @@ module ACAEngine::Api
       render json: value
     end
 
-    # Determine URI for a module
+    # Create a core client for given module id
+    def self.core_for(module_id : String, request_id : String? = nil) : Core::Client
+      Core::Client.new(uri: self.locate_module(module_id), request_id: request_id)
+    end
+
     def self.locate_module(module_id : String) : URI
       # Use consistent hashing to determine the location of the module
       node = @@core_discovery.find(module_id)

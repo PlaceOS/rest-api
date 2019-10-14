@@ -17,6 +17,11 @@ dependencies:
     github: Nephos/CrystalEmail
     version: ~> 0.2.4
 
+  # For core client
+  engine-core:
+    github: aca-labs/crystal-engine-core
+    branch: master
+
   # For driver state helpers
   engine-driver:
     github: aca-labs/crystal-engine-driver
