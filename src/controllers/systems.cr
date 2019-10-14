@@ -319,7 +319,7 @@ module ACAEngine::Api
 
     ws("/bind", :bind) do |ws|
       log = logger
-      Systems.session_manager(log).create_session(
+      Systems.session_manager.create_session(
         ws: ws,
         request_id: log.request_id || "",
         user: user_token,
@@ -327,8 +327,8 @@ module ACAEngine::Api
     end
 
     # Lazy initializer for session_manager
-    def self.session_manager(logger)
-      (@@session_manager ||= Session::Manager.new(logger)).as(Session::Manager)
+    def self.session_manager
+      (@@session_manager ||= Session::Manager.new(ActionController::Base.settings.logger)).as(Session::Manager)
     end
 
     @@session_manager : Session::Manager? = nil
