@@ -14,7 +14,7 @@ module ACAEngine::Api
           service.name = Faker::Hacker.noun + rand((1..10000)).to_s
           service.save!
 
-          sleep 1
+          sleep 2
 
           params = HTTP::Params.encode({
             "role" => Model::Driver::Role::Service.to_i.to_s,

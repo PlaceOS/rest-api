@@ -2,8 +2,7 @@ require "./helper"
 
 module ACAEngine::Api
   describe SystemTriggers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _, authorization_header = authentication
     base = SystemTriggers::NAMESPACE[0]
 
     with_server do
@@ -16,15 +15,12 @@ module ACAEngine::Api
         it "as_of query" do
           inst1 = Model::Generator.trigger_instance.save!
           inst1.persisted?.should be_true
-
-          sleep 3
-
           inst2 = Model::Generator.trigger_instance.save!
           inst2.persisted?.should be_true
 
           params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
           path = "#{base}?#{params}"
-          sleep 3
+          sleep 1
 
           result = curl(
             method: "GET",

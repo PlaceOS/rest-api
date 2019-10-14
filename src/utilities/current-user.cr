@@ -2,7 +2,7 @@ require "uri"
 
 require "engine-models/authority"
 require "engine-models/user"
-require "engine-models/user-jwt"
+require "engine-models/user_jwt"
 
 module ACAEngine::Api
   # Helper to grab user and authority from a request

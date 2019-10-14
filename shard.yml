@@ -67,6 +67,10 @@ development_dependencies:
   faker:
     github: askn/faker
 
+  # Coverage
+  coverage:
+    github: anykeyh/crystal-coverage
+
 targets:
   engine-api:
     main: src/engine-api.cr

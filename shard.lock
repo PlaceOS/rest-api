@@ -24,6 +24,10 @@ shards:
     github: spider-gazelle/connect-proxy
     version: 1.0.0
 
+  coverage:
+    github: anykeyh/crystal-coverage
+    commit: 865383b31c51130612a9f6900a9666bcbfe9a426
+
   cron_parser:
     github: kostya/cron_parser
     version: 0.2.0
@@ -38,7 +42,7 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 2816d0f7a2b48c54a92ba4b907154c798c83e17e
+    commit: 5774953e82013c74608f90423b650f2b6d65a66d
 
   etcd:
     github: aca-labs/crystal-etcd
