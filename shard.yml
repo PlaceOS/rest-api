@@ -5,7 +5,7 @@ dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 1.5
+    version: ~> 2.0
 
   # Data validation library
   active-model:
@@ -81,4 +81,3 @@ targets:
     main: src/engine-api.cr
 
 crystal: 0.30.1
-

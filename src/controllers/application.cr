@@ -18,8 +18,6 @@ module ACAEngine::Api
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name" => {order: :asc}}
 
-    self.settings.logger.level = ENV["SG_ENV"]? != "production" ? Logger::DEBUG : Logger::WARN
-
     # Callbacks
     ###########################################################################
 
@@ -31,7 +29,7 @@ module ACAEngine::Api
 
     # Set user_id from parsed JWT
     def set_user_id
-      request.user_id = user_token.id
+      logger.user_id = user_token.id
     end
 
     before_action :set_request_id
@@ -39,7 +37,7 @@ module ACAEngine::Api
     # This makes it simple to match client requests with server side logs.
     # When building microservices, this ID should be propagated to upstream services.
     def set_request_id
-      response.headers["X-Request-ID"] = request.id = UUID.random.to_s
+      response.headers["X-Request-ID"] = logger.request_id = UUID.random.to_s
     end
 
     # Callback to enforce JSON request body

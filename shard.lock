@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    version: 1.8.3
+    version: 2.0.1
 
   active-model:
     github: spider-gazelle/active-model
@@ -46,7 +46,7 @@ shards:
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
-    commit: d1a0e77ea4201191dd9a0e4b645aa28d47fbe0bf
+    commit: 82f2d1d109d110e3f570128edcac483c76d77974
 
   engine-models:
     github: aca-labs/crystal-engine-models
@@ -74,7 +74,7 @@ shards:
 
   hound-dog:
     github: aca-labs/hound-dog
-    commit: cc6a18654527997fbe381db74766a07c5eccef5e
+    commit: 9e72d589f1e063b380aa01e04a3e30fa9304b475
 
   ipaddress:
     github: Sija/ipaddress.cr
