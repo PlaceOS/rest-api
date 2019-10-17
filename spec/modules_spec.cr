@@ -17,6 +17,8 @@ module ACAEngine::Api
           connected = mod.connected.not_nil!
           mod.connected = !connected
 
+          sleep 0.1
+
           id = mod.id.not_nil!
           path = base + id
           result = curl(
@@ -63,15 +65,17 @@ module ACAEngine::Api
           mod1.save!
           mod1.persisted?.should be_true
 
+          sleep 1
+
           mod2 = Model::Generator.module
           mod2.connected = true
           mod2.save!
           mod2.persisted?.should be_true
 
+          sleep 1
+
           params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
           path = "#{base}?#{params}"
-
-          sleep 2
 
           result = curl(
             method: "GET",
@@ -97,7 +101,7 @@ module ACAEngine::Api
           params = HTTP::Params.encode({"connected" => "true"})
           path = "#{base}?#{params}"
 
-          sleep 2
+          sleep 1
 
           result = curl(
             method: "GET",
@@ -123,7 +127,7 @@ module ACAEngine::Api
           params = HTTP::Params.encode({"no_logic" => "true"})
           path = "#{base}?#{params}"
 
-          sleep 2
+          sleep 1
 
           result = curl(
             method: "GET",

@@ -30,7 +30,7 @@ module ACAEngine::Api
 
           systems.each &.save!
 
-          sleep 2
+          sleep 1
 
           params = HTTP::Params.encode({"zone_id" => zone_id})
           path = "#{base}?#{params}"
@@ -64,7 +64,7 @@ module ACAEngine::Api
 
           systems.each &.save!
 
-          sleep 2
+          sleep 1
 
           params = HTTP::Params.encode({"module_id" => mod_id})
           path = "#{base}?#{params}"

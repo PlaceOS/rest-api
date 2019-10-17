@@ -18,8 +18,17 @@ RethinkORM::Connection.configure do |settings|
   settings.db = db_name
 end
 
-at_exit do
-  # Clear test tables on exit
+Spec.before_suite do
+  ACAEngine::Model::ControlSystem.clear
+  ACAEngine::Model::Driver.clear
+  ACAEngine::Model::Module.clear
+  ACAEngine::Model::Repository.clear
+  ACAEngine::Model::Trigger.clear
+  ACAEngine::Model::TriggerInstance.clear
+  ACAEngine::Model::Zone.clear
+end
+
+Spec.after_suite do
   ACAEngine::Model::ControlSystem.clear
   ACAEngine::Model::Driver.clear
   ACAEngine::Model::Module.clear
@@ -56,7 +65,14 @@ def authentication
   authenticated_user = ACAEngine::Model::Generator.user.not_nil!
   authenticated_user.sys_admin = true
   authenticated_user.support = true
-  authenticated_user.save!
+  authenticated_user.email = authenticated_user.email.as(String) + Random.rand(9999).to_s
+  begin
+    authenticated_user.save!
+  rescue e : RethinkORM::Error::DocumentInvalid
+    inspect_error(e)
+    raise e
+  end
+
   authorization_header = {
     "Authorization" => "Bearer #{ACAEngine::Model::Generator.jwt(authenticated_user).encode}",
   }
@@ -78,10 +94,16 @@ macro test_base_index(klass, controller_klass)
   authenticated_user, authorization_header = authentication
 
   it "queries #{ {{ klass_name }} }" do
-    doc = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
+    doc = begin
+      ACAEngine::Model::Generator.{{ klass_name.id }}.save!
+    rescue e : RethinkORM::Error::DocumentInvalid
+      inspect_error(e)
+      raise e
+    end
+
     doc.persisted?.should be_true
 
-    sleep 2
+    sleep 1
 
     params = HTTP::Params.encode({"q" => doc.id.not_nil!})
     path = "#{{{controller_klass}}::NAMESPACE[0]}?#{params}"
