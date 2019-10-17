@@ -20,6 +20,8 @@ module ACAEngine::Api
 
     @control_system : Model::ControlSystem?
 
+    @core : ACAEngine::Core::Client? = nil
+
     # :nodoc:
     def core
       (@core || Core::Client.new(request_id: request.id)).as(Core::Client)

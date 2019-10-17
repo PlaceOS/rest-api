@@ -1,5 +1,6 @@
 name: engine-rest-api
 version: 1.2.0
+crystal: 0.31.1
 
 dependencies:
   # Server framework
@@ -79,5 +80,3 @@ development_dependencies:
 targets:
   engine-api:
     main: src/engine-api.cr
-
-crystal: 0.30.1
