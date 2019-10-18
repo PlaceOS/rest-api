@@ -38,17 +38,6 @@ Spec.after_suite do
   ACAEngine::Model::Zone.clear
 end
 
-# Models
-#################################################################
-
-# Helper to check if string is encrypted
-def is_encrypted?(string : String)
-  string.starts_with? '\e'
-end
-
-# API
-########################################################################
-
 # Yield an authenticated user, and a header with Authorization bearer set
 def authentication
   authenticated_user = ACAEngine::Model::Generator.user.not_nil!
