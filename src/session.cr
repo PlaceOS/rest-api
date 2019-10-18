@@ -1,4 +1,4 @@
-require "logger"
+require "action-controller/logger"
 require "tasker"
 
 # Hack around abstract base class for driver applications
@@ -48,7 +48,7 @@ class ACAEngine::Api::Session
     @ws : HTTP::WebSocket,
     @request_id : String,
     @user : ACAEngine::Model::UserJWT,
-    @logger : Logger = ACAEngine::Api.settings.logger,
+    @logger : Logger = ActionController::Base.settings.logger,
     @cache_timeout : Int32? = 60 * 5
   )
     # Register event handlers

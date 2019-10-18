@@ -41,17 +41,6 @@ end
 # Models
 #################################################################
 
-# Pretty prints document errors
-def inspect_error(error : RethinkORM::Error::DocumentInvalid)
-  errors = error.model.errors.map do |e|
-    {
-      field:   e.field,
-      message: e.message,
-    }
-  end
-  pp! errors
-end
-
 # Helper to check if string is encrypted
 def is_encrypted?(string : String)
   string.starts_with? '\e'
@@ -69,7 +58,7 @@ def authentication
   begin
     authenticated_user.save!
   rescue e : RethinkORM::Error::DocumentInvalid
-    inspect_error(e)
+    pp! e.inspect_errors
     raise e
   end
 

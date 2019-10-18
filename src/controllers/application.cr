@@ -1,6 +1,5 @@
 require "action-controller"
 require "engine-models"
-require "logger"
 require "uuid"
 
 require "../constants"
