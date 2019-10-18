@@ -202,15 +202,14 @@ module ACAEngine::Api
 
     def self.locate_module(module_id : String) : URI
       # Use consistent hashing to determine the location of the module
-      node = @@core_discovery.find(module_id)
-
+      node = @@core_discovery.find!(module_id)
       URI.new(host: node[:ip], port: node[:port])
     end
 
     # Determine URI for a system module
     def self.locate_module?(sys_id : String, module_name : String, index : Int32) : URI?
       module_id = ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index)
-      module_id ? self.locate_module(module_id: module_id) : nil
+      module_id.try &->self.locate_module(String)
     end
 
     # class CountParams < Params

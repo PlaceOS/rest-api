@@ -86,7 +86,7 @@ macro test_base_index(klass, controller_klass)
     doc = begin
       ACAEngine::Model::Generator.{{ klass_name.id }}.save!
     rescue e : RethinkORM::Error::DocumentInvalid
-      inspect_error(e)
+      pp! e.inspect_errors
       raise e
     end
 

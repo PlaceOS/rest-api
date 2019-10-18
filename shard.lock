@@ -74,7 +74,7 @@ shards:
 
   hound-dog:
     github: aca-labs/hound-dog
-    commit: 83f6e5d517a39e26bbf4cd132ca5f1c96a8b1c15
+    commit: 482790d0005ae3b87a6272b515aa6deb643a3b0a
 
   ipaddress:
     github: Sija/ipaddress.cr
