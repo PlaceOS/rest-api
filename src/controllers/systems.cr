@@ -1,5 +1,4 @@
 require "hound-dog"
-require "uuid"
 
 require "engine-core/client"
 require "engine-driver/proxy/system"
@@ -28,7 +27,7 @@ module ACAEngine::Api
     end
 
     # ACAEngine Core service discovery
-    @@core_discovery = HoundDog::Discovery.new("core")
+    @@core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
 
     # Strong params for index method
     class IndexParams < Params
@@ -329,7 +328,7 @@ module ACAEngine::Api
 
     # Lazy initializer for session_manager
     def self.session_manager
-      (@@session_manager ||= Session::Manager.new(ActionController::Base.settings.logger)).as(Session::Manager)
+      (@@session_manager ||= Session::Manager.new(@@core_discovery, ActionController::Base.settings.logger)).as(Session::Manager)
     end
 
     @@session_manager : Session::Manager? = nil

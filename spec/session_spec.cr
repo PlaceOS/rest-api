@@ -17,7 +17,6 @@ module ACAEngine::Api
       end
 
       describe "websocket API" do
-        pending "exec"
         describe "bind" do
           it "receives updates" do
             # Status to bind
@@ -59,6 +58,8 @@ module ACAEngine::Api
             updates[1..2].map(&.value.not_nil!.to_i).should eq [1, 2]
           end
         end
+
+        pending "exec"
 
         it "unbind" do
           # Status to bind

@@ -1,7 +1,7 @@
-PROD = ENV["SG_ENV"]? == "production"
-
 # Application dependencies
 require "action-controller"
+
+PROD = ENV["SG_ENV"]? == "production"
 
 # Logging configuration
 ActionController::Logger.add_tag request_id

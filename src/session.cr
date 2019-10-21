@@ -7,7 +7,9 @@ class ACAEngine::Driver; end
 require "redis"
 require "engine-driver/subscriptions"
 require "engine-driver/proxy/subscriptions"
+require "hound-dog"
 
+require "./error"
 require "./utilities/params"
 
 class ACAEngine::Api::Session
@@ -15,7 +17,10 @@ class ACAEngine::Api::Session
   class Manager
     @sessions = [] of Session
 
-    def initialize(@logger = Logger.new)
+    def initialize(
+      @discovery : HoundDog::Discovery,
+      @logger : Logger = ActionController::Logger.new
+    )
     end
 
     # Creates the session and handles the cleanup
@@ -25,7 +30,8 @@ class ACAEngine::Api::Session
         ws: ws,
         request_id: request_id,
         user: user,
-        logger: @logger
+        discovery: @discovery,
+        logger: @logger,
       )
 
       ws.on_close do |_|
@@ -48,6 +54,7 @@ class ACAEngine::Api::Session
     @ws : HTTP::WebSocket,
     @request_id : String,
     @user : ACAEngine::Model::UserJWT,
+    @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE),
     @logger : Logger = ActionController::Base.settings.logger,
     @cache_timeout : Int32? = 60 * 5
   )
@@ -177,23 +184,7 @@ class ACAEngine::Api::Session
     end
   end
 
-  # Generate an error response
-  #
-  def error_response(id : String?, error : ErrorCode, message : String?)
-    response = Response.new(
-      id: id || "",
-      type: Response::Type::Error,
-      error_code: error.to_i,
-      error_message: message || "",
-    )
-    respond(response)
-  end
-
-  # Grab metatadata from driver proxy
-  # - check function in system
-  # - check for presence of function in security against current security level
-  # - consistent hash of module_id to determine core
-  # - make exec request to correct core
+  # Grab core url for the module and dial an exec request
   #
   def exec(
     request_id : String,
@@ -203,40 +194,12 @@ class ACAEngine::Api::Session
     name : String,
     args : Array(JSON::Any)
   )
-    unless (metadata = metadata?(sys_id, module_name, index))
-      @logger.debug("websocket exec could not find module: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: mod=#{module_name}")
-      return
-    end
-
-    unless function_present?(metadata.functions, name)
-      @logger.debug("websocket exec could not find function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(request_id, ErrorCode::BadRequest, "could not find function: name=#{name}")
-      return
-    end
-
-    unless function_visible?(metadata.security, name)
-      @logger.warn("websocket exec attempted to access priviled function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(request_id, ErrorCode::AccessDenied, "attempted to access privileged function")
-      return
-    end
-
-    # TODO: Make request to core
-    # - Locate core responsible for module through consistent hashing
-    # - Make request to core
-    # - Respond with result
-    unless (module_id = module_id?(sys_id, module_name, index))
-      @logger.warn("websocket exec could not find module id: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(request_id, ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
-      return
-    end
-
-    core_url = locate_module?(module_id)
-    unless core_url
-      @logger.warn("websocket exec could not locate module's system: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(request_id, ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
-      return
-    end
+    core_url = core_for_function(
+      sys_id: sys_id,
+      module_name: module_name,
+      index: index,
+      name: name,
+    )
 
     # TODO: Validate response from the module, perhaps a Session::Update
     response = HTTP::Client.post(core_url)
@@ -249,8 +212,10 @@ class ACAEngine::Api::Session
       respond(response_message)
     else
       @logger.warn("websocket exec failed: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
-      error_response(request_id, ErrorCode::RequestFailed, response.body)
+      raise Error::Session.new(ErrorCode::RequestFailed, response.body)
     end
+  rescue e : Error::Session
+    respond(e.error_response(request_id))
   end
 
   # Bind a websocket to a module subscription
@@ -269,7 +234,8 @@ class ACAEngine::Api::Session
       end
     rescue
       @logger.debug("websocket binding could not find system: {sys: #{sys_id}, mod: #{module_name}, index: #{index}, name: #{name}}")
-      error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}")
+      respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}"))
+      return
     end
 
     # Notify success
@@ -420,9 +386,51 @@ class ACAEngine::Api::Session
 
   # TODO: Consistent hash lookup of module id to core address
   #
-  def locate_module?(module_id : String) : URI?
+  def core_for_module?(module_id : String) : URI?
     puts "noop"
     URI.parse("https://core_1")
+  end
+
+  # Construct the core url for an exec request
+  # - grab metatadata from driver proxy
+  # - check function in system
+  # - check for presence of function in security against current security level
+  # - consistent hash of module_id to determine core
+  def core_for_function(
+    sys_id : String,
+    module_name : String,
+    index : Int32,
+    name : String
+  )
+    metadata = metadata?(sys_id, module_name, index)
+    unless metadata
+      @logger.debug("websocket exec could not find module: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      raise Error::Session.new(ErrorCode::ModuleNotFound, "could not find module: mod=#{module_name}")
+    end
+
+    unless function_present?(metadata.functions, name)
+      @logger.debug("websocket exec could not find function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      raise Error::Session.new(ErrorCode::BadRequest, "could not find module: mod=#{module_name}")
+    end
+
+    unless function_visible?(metadata.security, name)
+      @logger.warn("websocket exec attempted to access priviled function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      raise Error::Session.new(ErrorCode::AccessDenied, "attempted to access privileged function")
+    end
+
+    module_id = module_id?(sys_id, module_name, index)
+    unless module_id
+      @logger.warn("websocket exec could not find module id: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      raise Error::Session.new(ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
+    end
+
+    core_url = core_for_module?(module_id)
+    unless core_url
+      @logger.warn("websocket exec could not locate module's system: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      raise Error::Session.new(ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
+    end
+
+    core_url
   end
 
   # Event handlers
@@ -464,7 +472,8 @@ class ACAEngine::Api::Session
     __send__(request) if request
   rescue e
     @logger.error(e, "websocket request failed: data=#{data} request=#{request} error=#{e.inspect_with_backtrace}")
-    error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
+    response = error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
+    respond(response)
   end
 
   # Shutdown handler
@@ -510,6 +519,19 @@ class ACAEngine::Api::Session
     @logger.warn("failed to parse: data=#{data} error=#{e.message}")
     error_response(JSON.parse(data)["id"]?.try &.as_s, ErrorCode::BadRequest, "bad request: #{e.message}")
     return
+  end
+
+  protected def error_response(
+    request_id : String?,
+    error_code : ErrorCode,
+    error_message : String?
+  )
+    Api::Session::Response.new(
+      id: request_id || "",
+      type: Api::Session::Response::Type::Error,
+      error_code: error_code.to_i,
+      error_message: error_message || "",
+    )
   end
 
   # Empty's metadata cache upon cache_timeout
