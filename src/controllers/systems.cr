@@ -23,7 +23,7 @@ module ACAEngine::Api
 
     # :nodoc:
     def core
-      (@core || Core::Client.new(request_id: request.id)).as(Core::Client)
+      (@core ||= Core::Client.new(request_id: request.id)).as(Core::Client)
     end
 
     # ACAEngine Core service discovery

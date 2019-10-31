@@ -1,13 +1,12 @@
+# # Hack around abstract base class for driver applications
+# class ACAEngine::Driver; end
+
 require "action-controller/logger"
-require "tasker"
-
-# Hack around abstract base class for driver applications
-class ACAEngine::Driver; end
-
-require "redis"
-require "engine-driver/subscriptions"
 require "engine-driver/proxy/subscriptions"
+require "engine-driver/subscriptions"
 require "hound-dog"
+require "redis"
+require "tasker"
 
 require "./error"
 require "./utilities/params"
@@ -67,7 +66,7 @@ class ACAEngine::Api::Session
     @module_id_cache = {} of String => String
 
     # Begin clearing cache
-    spawn name: "cache_cleaner" { cache_plumbing }
+    spawn(name: "cache_cleaner", same_thread: true) { cache_plumbing }
   end
 
   # Websocket API

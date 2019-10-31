@@ -126,8 +126,10 @@ def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) {})
   socket = HTTP::WebSocket.new("localhost", path, 6000)
   socket.on_message &on_message
 
-  spawn { socket.run }
+  spawn(same_thread: true) { socket.run }
+
   yield socket
+
   socket.close
 end
 

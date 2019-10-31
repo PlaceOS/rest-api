@@ -38,19 +38,19 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: dce1b8479c187e931dc31b0f4988fc5fa206f11d
+    commit: fb2e13da6de3d35c2e7cab2bd0097a65c6e07c00
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 8d79a4543e24e65def499bd33c69d3ca33aec997
+    commit: 1176541d189384acbd797dddd97b317753a1ff29
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
-    commit: 3daca5a1921f24fbf717bd4f5e86e0d656ff5c9e
+    commit: e5519528811d572e00b5dd77b89bbe0413780c02
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 7c6867fad28368fc17c176d202a9e05899ae97e7
+    commit: 3e2463582823a852b52eba7d08565ad75e9d57b3
 
   etcd:
     github: aca-labs/crystal-etcd
