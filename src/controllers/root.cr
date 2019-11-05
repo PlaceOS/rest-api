@@ -2,7 +2,7 @@ require "./application"
 
 module ACAEngine::Api
   class Root < Application
-    base "/"
+    base "/api/engine/v2/"
 
     get "/", :root do
       head :ok
