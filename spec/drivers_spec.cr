@@ -18,7 +18,7 @@ module ACAEngine::Api
 
           params = HTTP::Params.encode({
             "role" => Model::Driver::Role::Service.to_i.to_s,
-            "q"    => service.id.not_nil!,
+            "q"    => service.id.as(String),
           })
 
           path = "#{base}?#{params}"
@@ -51,7 +51,7 @@ module ACAEngine::Api
             original_name = driver.name
             driver.name = Faker::Hacker.noun
 
-            id = driver.id.not_nil!
+            id = driver.id.as(String)
             path = base + id
             result = curl(
               method: "PATCH",
@@ -69,7 +69,7 @@ module ACAEngine::Api
           it "fails if role differs" do
             driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
             driver.role = Model::Driver::Role::Device
-            id = driver.id.not_nil!
+            id = driver.id.as(String)
             path = base + id
             result = curl(
               method: "PATCH",

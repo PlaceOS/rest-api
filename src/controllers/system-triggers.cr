@@ -112,7 +112,7 @@ module ACAEngine::Api
     end
 
     def update
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       sys_trig = @sys_trig.as(Model::TriggerInstance)
 
       args = UpdateParams.from_json(body)
@@ -124,7 +124,7 @@ module ACAEngine::Api
     end
 
     def create
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       save_and_respond Model::TriggerInstance.from_json(body)
     end
 

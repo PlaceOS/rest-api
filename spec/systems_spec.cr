@@ -16,7 +16,7 @@ module ACAEngine::Api
           num_systems = 5
 
           zone = Model::Generator.zone.save!
-          zone_id = zone.id.not_nil!
+          zone_id = zone.id.as(String)
 
           systems = Array.new(size: num_systems) do
             Model::Generator.control_system
@@ -50,7 +50,7 @@ module ACAEngine::Api
           num_systems = 5
 
           mod = Model::Generator.module.save!
-          mod_id = mod.id.not_nil!
+          mod_id = mod.id.as(String)
 
           systems = Array.new(size: num_systems) do
             Model::Generator.control_system
@@ -86,7 +86,7 @@ module ACAEngine::Api
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
 
-          mod_id = mod.id.not_nil!
+          mod_id = mod.id.as(String)
           cs.update_fields(modules: [mod_id])
 
           cs.persisted?.should be_true
@@ -116,7 +116,7 @@ module ACAEngine::Api
           cs2 = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs1).save!
 
-          mod_id = mod.id.not_nil!
+          mod_id = mod.id.as(String)
 
           cs1.update_fields(modules: [mod_id])
           cs2.update_fields(modules: [mod_id])
@@ -161,7 +161,7 @@ module ACAEngine::Api
         it "start" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
-          cs.update_fields(modules: [mod.id.not_nil!])
+          cs.update_fields(modules: [mod.id.as(String)])
 
           cs.persisted?.should be_true
           mod.persisted?.should be_true
@@ -176,7 +176,7 @@ module ACAEngine::Api
           )
 
           result.status_code.should eq 200
-          Model::Module.find!(mod.id.not_nil!).running.should be_true
+          Model::Module.find!(mod.id.as(String)).running.should be_true
 
           mod.destroy
           cs.destroy
@@ -187,7 +187,7 @@ module ACAEngine::Api
           mod = Model::Generator.module(control_system: cs)
           mod.running = true
           mod.save!
-          cs.update_fields(modules: [mod.id.not_nil!])
+          cs.update_fields(modules: [mod.id.as(String)])
 
           cs.persisted?.should be_true
           mod.persisted?.should be_true
@@ -202,7 +202,7 @@ module ACAEngine::Api
           )
 
           result.status_code.should eq 200
-          Model::Module.find!(mod.id.not_nil!).running.should be_false
+          Model::Module.find!(mod.id.as(String)).running.should be_false
 
           mod.destroy
           cs.destroy
@@ -220,7 +220,7 @@ module ACAEngine::Api
             original_name = cs.name
             cs.name = Faker::Hacker.noun
 
-            id = cs.id.not_nil!
+            id = cs.id.as(String)
 
             params = HTTP::Params.encode({"version" => "0"})
             path = "#{base + id}?#{params}"
@@ -240,7 +240,7 @@ module ACAEngine::Api
 
           it "fails when version is invalid" do
             cs = Model::Generator.control_system.save!
-            id = cs.id.not_nil!
+            id = cs.id.as(String)
             cs.persisted?.should be_true
 
             params = HTTP::Params.encode({"version" => "2"})

@@ -20,7 +20,7 @@ module ACAEngine::Api
           original_name = zone.name
           zone.name = Faker::Hacker.noun*2
 
-          id = zone.id.not_nil!
+          id = zone.id.as(String)
           path = base + id
           result = curl(
             method: "PATCH",

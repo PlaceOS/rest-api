@@ -19,7 +19,7 @@ module ACAEngine::Api
 
           sleep 0.1
 
-          id = mod.id.not_nil!
+          id = mod.id.as(String)
           path = base + id
           result = curl(
             method: "PATCH",
@@ -42,10 +42,10 @@ module ACAEngine::Api
           mod = Model::Generator.module.save!
           sys = mod.control_system.not_nil!
 
-          sys.modules = [mod.id.not_nil!]
+          sys.modules = [mod.id.as(String)]
           sys.save!
 
-          params = HTTP::Params.encode({"control_system_id" => sys.id.not_nil!})
+          params = HTTP::Params.encode({"control_system_id" => sys.id.as(String)})
           path = "#{base}?#{params}"
 
           result = curl(

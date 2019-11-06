@@ -59,7 +59,7 @@ module ACAEngine::Api
     end
 
     def update
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       zone = @zone.as(Model::Zone)
 
       zone.assign_attributes_from_json(body)
@@ -67,7 +67,7 @@ module ACAEngine::Api
     end
 
     def create
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       zone = Model::Zone.from_json(body)
       save_and_respond zone
     end

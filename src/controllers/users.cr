@@ -52,7 +52,7 @@ module ACAEngine::Api
     end
 
     def update
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       user = @user.as(Model::User)
 
       if is_admin?

@@ -20,7 +20,7 @@ module ACAEngine::Api
           original_name = trigger.name
           trigger.name = Faker::Hacker.noun
 
-          id = trigger.id.not_nil!
+          id = trigger.id.as(String)
           path = base + id
           result = curl(
             method: "PATCH",

@@ -83,7 +83,7 @@ macro test_base_index(klass, controller_klass)
 
     sleep 1
 
-    params = HTTP::Params.encode({"q" => doc.id.not_nil!})
+    params = HTTP::Params.encode({"q" => doc.id.as(String)})
     path = "#{{{controller_klass}}::NAMESPACE[0]}?#{params}"
     result = curl(
       method: "GET",
@@ -114,7 +114,7 @@ macro test_crd(klass, controller_klass)
     )
 
     result.status_code.should eq 201
-    body = result.body.not_nil!
+    body = result.body.as(String)
 
     {{ klass }}.find(JSON.parse(body)["id"].as_s).try &.destroy
   end
@@ -122,7 +122,7 @@ macro test_crd(klass, controller_klass)
   it "show" do
     model = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
-    id = model.id.not_nil!
+    id = model.id.as(String)
     result = curl(
       method: "GET",
       path: base + id,
@@ -139,7 +139,7 @@ macro test_crd(klass, controller_klass)
   it "destroy" do
     model = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
-    id = model.id.not_nil!
+    id = model.id.as(String)
     result = curl(
       method: "DELETE",
       path: base + id,

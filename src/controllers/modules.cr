@@ -123,7 +123,7 @@ module ACAEngine::Api
     end
 
     def update
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       mod = @module.as(Model::Module)
       mod.assign_attributes_from_json(body)
 
@@ -141,7 +141,7 @@ module ACAEngine::Api
     end
 
     def create
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       save_and_respond(Model::Module.from_json(body))
     end
 

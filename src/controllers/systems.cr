@@ -77,7 +77,7 @@ module ACAEngine::Api
 
     # Updates a control system
     def update
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       control_system = @control_system.as(Model::ControlSystem)
 
       args = UpdateParams.new(params).validate!
@@ -92,7 +92,7 @@ module ACAEngine::Api
     end
 
     def create
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       save_and_respond Model::ControlSystem.from_json(body)
     end
 

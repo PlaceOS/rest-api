@@ -25,7 +25,7 @@ module ACAEngine::Api
     end
 
     def update
-      body = request.body.not_nil!
+      body = request.body.as(IO)
       trig = @trig.as(Model::Trigger)
 
       trig.assign_attributes_from_json(body)
@@ -33,7 +33,7 @@ module ACAEngine::Api
     end
 
     def create
-      body = request.body.not_nil!
+      body = request.body.as(IO)
 
       trig = Model::Trigger.from_json(body)
       save_and_respond trig
