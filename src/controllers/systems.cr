@@ -317,7 +317,7 @@ module ACAEngine::Api
     # Websockets
     ###########################################################################
 
-    ws("/bind", :bind) do |ws|
+    ws("/control", :control) do |ws|
       log = logger
       Systems.session_manager.create_session(
         ws: ws,

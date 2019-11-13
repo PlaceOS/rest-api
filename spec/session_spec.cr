@@ -8,7 +8,7 @@ module ACAEngine::Api
 
   describe Session do
     with_server do
-      describe "/bind" do
+      describe "systems/control" do
         it "opens a websocket session" do
           bind(base, authorization_header) do |ws|
             ws.closed?.should be_false
@@ -120,7 +120,7 @@ end
 #
 def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) {})
   bearer = auth["Authorization"].split(' ').last
-  path = "#{base}bind?bearer_token=#{bearer}"
+  path = "#{base}control?bearer_token=#{bearer}"
 
   # Create a websocket connection, then run the session
   socket = HTTP::WebSocket.new("localhost", path, 6000)

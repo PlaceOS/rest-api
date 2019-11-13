@@ -1,3 +1,8 @@
+# FIXME: Hack to allow resolution of ACAEngine::Driver class/module
+module ACAEngine; end
+
+class ACAEngine::Driver; end
+
 require "spec"
 require "random"
 require "rethinkdb-orm"

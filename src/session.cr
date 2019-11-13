@@ -1,5 +1,7 @@
-# # Hack around abstract base class for driver applications
-# class ACAEngine::Driver; end
+# FIXME: Hack to allow resolution of ACAEngine::Driver class/module
+module ACAEngine; end
+
+class ACAEngine::Driver; end
 
 require "action-controller/logger"
 require "engine-driver/proxy/subscriptions"
