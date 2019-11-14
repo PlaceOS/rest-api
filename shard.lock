@@ -50,7 +50,7 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: c495620bf7b116a4650b245b02097692b10f0f24
+    commit: 604fb8ca524b038dfb58ccddd4c391a465073f11
 
   etcd:
     github: aca-labs/crystal-etcd
@@ -146,7 +146,7 @@ shards:
 
   ssh2:
     github: spider-gazelle/ssh2.cr
-    commit: 6e902c7c47bd5e1a5b3888463cb4a5cdb4c00a47
+    commit: 71573443ff24a2ce727f0e8998bc0f65ca9da216
 
   tasker:
     github: spider-gazelle/tasker
