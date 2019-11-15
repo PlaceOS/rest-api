@@ -67,7 +67,7 @@ module ACAEngine::Api
           :zone_data   => @control_system.try &.zone_data,
         })
       else
-        render json: @control_system
+        render json: @control_system.decrypt_for!(current_user)
       end
     end
 
@@ -92,8 +92,7 @@ module ACAEngine::Api
     end
 
     def create
-      body = request.body.as(IO)
-      save_and_respond Model::ControlSystem.from_json(body)
+      save_and_respond Model::ControlSystem.from_json(request.body.as(IO))
     end
 
     def destroy
