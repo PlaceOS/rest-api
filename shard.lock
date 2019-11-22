@@ -38,19 +38,19 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: 0b5b372c633e67e7d0ae2c1ef8735fca4a439333
+    commit: 8a71243d3e18af5610ffb26fa7ff57f73efe5c99
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: c2cafb781475d43de3b80b8c4ff64c7b1a145028
+    commit: dde8c6b05b29c3826ffa183027adf20a39c9e9d1
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
-    commit: e5519528811d572e00b5dd77b89bbe0413780c02
+    commit: 026e2a1d09af80d1c9d46a80ca1d683db4f01f80
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 604fb8ca524b038dfb58ccddd4c391a465073f11
+    commit: 16fe5afdeee0f2be35c5be85e10a5c50093ee48f
 
   etcd:
     github: aca-labs/crystal-etcd
@@ -134,7 +134,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 8f540d9fd67d7fa25ccec31bf4aa8e182b5c5832
+    commit: e3655f6b9a25d932c27f32cbaf847b2668bb1f6d
 
   retriable:
     github: Sija/retriable.cr

@@ -79,7 +79,7 @@ module ACAEngine::Api
     end
 
     def is_support?
-      user_token.is_support?
+      user_token.is_support? || user_token.is_admin?
     end
 
     # Pull JWT from...

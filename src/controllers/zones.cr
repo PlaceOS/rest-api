@@ -38,7 +38,7 @@ module ACAEngine::Api
       if params.has_key? "data"
         key = params["data"]
 
-        info = zone.get_setting_for(current_user, key)
+        info = zone.master_settings.get_setting_for(current_user, key)
         if info
           render json: info
         else

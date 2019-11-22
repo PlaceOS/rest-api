@@ -12,6 +12,9 @@ module ACAEngine::Api
 
     id_param :sys_id
 
+    before_action :check_admin, except: [:index, :show, :control, :exec, :types, :functions, :state]
+    before_action :check_support, only: [:state, :functions]
+
     before_action :find_system, only: [:show, :update, :destroy, :remove,
                                        :start, :stop, :execute, :types, :functions]
 
@@ -61,13 +64,14 @@ module ACAEngine::Api
 
     # Renders a control system
     def show
+      control_system = @control_system.as(Model::ControlSystem)
       if params["complete"]?
-        render json: with_fields(@control_system, {
-          :module_data => @control_system.try &.module_data,
-          :zone_data   => @control_system.try &.zone_data,
+        render json: with_fields(control_system, {
+          :module_data => control_system.module_data,
+          :zone_data   => control_system.zone_data,
         })
       else
-        render json: @control_system.decrypt_for!(current_user)
+        render json: control_system
       end
     end
 
@@ -210,19 +214,9 @@ module ACAEngine::Api
       module_id.try &->self.locate_module(String)
     end
 
-    # class CountParams < Params
+    # class TypesParams < Params
     #   attribute module_name : String, presence: true
     # end
-    #
-
-    # # Returns the count of a module type in a system
-    # #
-    # get("/:sys_id/count", :count) do
-    #   sys = @control_system.as(Model::ControlSystem)
-    #   args = CountParams.new(params).validate!
-    #   render json: {count: sys.count(args.module_name)}
-    # end
-
     # # Looksup a module types in a system, returning a count of each type
     # #
     # get("/:sys_id/types", :types) do
