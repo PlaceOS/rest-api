@@ -50,7 +50,7 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 09221165452b229c6f605e4a58ee4a0bf2dddfef
+    commit: 8d0bb99c021aef635fa984e218ed4051fef78099
 
   etcd:
     github: aca-labs/crystal-etcd
