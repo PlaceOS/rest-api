@@ -24,13 +24,13 @@ module ACAEngine::Api
       begin
         @user_token = user_token = Model::UserJWT.decode(token)
       rescue e : JWT::Error
-        self.settings.logger.warn("bearer malformed: action=authorize! error=#{e.inspect}")
+        logger.warn("bearer malformed: action=authorize! error=#{e.inspect}")
         # Request bearer was malformed
         head :unauthorized
       end
 
       unless (authority = current_authority)
-        self.settings.logger.warn("authority not found: action=authorize! host=#{request.host}")
+        logger.warn("authority not found: action=authorize! host=#{request.host}")
         head :unauthorized
       end
 
@@ -38,7 +38,7 @@ module ACAEngine::Api
       token_domain_host = URI.parse(user_token.domain).host
       authority_domain_host = URI.parse(authority.domain.as(String)).host
       unless token_domain_host == authority_domain_host
-        self.settings.logger.warn("authority domain does not match token's: action=authorize! token=#{user_token} authority=#{authority}")
+        logger.warn("authority domain does not match token's: action=authorize! token=#{user_token} authority=#{authority}")
         head :unauthorized
       end
     end
