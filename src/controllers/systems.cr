@@ -214,17 +214,17 @@ module ACAEngine::Api
       module_id.try &->self.locate_module(String)
     end
 
-    # class TypesParams < Params
-    #   attribute module_name : String, presence: true
-    # end
-    # # Looksup a module types in a system, returning a count of each type
-    # #
-    # get("/:sys_id/types", :types) do
-    #   control_system = @control_system.as(Model::ControlSystem)
-    #   render json: control_system.modules.each_with_object({} of String => Int32) do |mod, counts|
-    #     counts[mod] = control_system.count(mod)
-    #   end
-    # end
+    # Look-up a module types in a system, returning a count of each type
+    #
+    get("/:sys_id/types", :types) do
+      control_system = @control_system.as(Model::ControlSystem)
+      modules = Model::Module.find_all(control_system.id.as(String), index: :control_system_id)
+      types = modules.each_with_object(Hash(String, Int32).new(0)) do |mod, count|
+        count[mod.name.as(String)] += 1
+      end
+
+      render json: types
+    end
 
     class StateParams < Params
       attribute lookup : Symbol

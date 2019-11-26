@@ -154,8 +154,40 @@ module ACAEngine::Api
       end
 
       describe "module function" do
-        pending "count"
-        pending "types"
+        it "types" do
+          expected = {
+            "Display"  => 2,
+            "Switcher" => 1,
+            "Camera"   => 3,
+            "Bookings" => 1,
+          }
+
+          cs = Model::Generator.control_system.save!
+          mods = expected.map do |name, count|
+            count.times.to_a.map do
+              mod = Model::Generator.module(control_system: cs)
+              mod.name = name
+              mod.save!
+            end
+          end
+
+          path = base + "#{cs.id}/types"
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          types = Hash(String, Int32).from_json(result.body)
+
+          types.should eq expected
+
+          mods.flatten.each &.destroy
+          cs.destroy
+        end
+
         pending "exec"
 
         it "start" do
