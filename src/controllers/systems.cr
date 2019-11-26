@@ -316,12 +316,13 @@ module ACAEngine::Api
         ws: ws,
         request_id: log.request_id || "",
         user: user_token,
+        logger: logger,
       )
     end
 
     # Lazy initializer for session_manager
     def self.session_manager
-      (@@session_manager ||= Session::Manager.new(@@core_discovery, ActionController::Base.settings.logger)).as(Session::Manager)
+      (@@session_manager ||= Session::Manager.new(@@core_discovery)).as(Session::Manager)
     end
 
     @@session_manager : Session::Manager? = nil

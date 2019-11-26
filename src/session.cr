@@ -19,20 +19,19 @@ class ACAEngine::Api::Session
     @sessions = [] of Session
 
     def initialize(
-      @discovery : HoundDog::Discovery,
-      @logger : Logger = ActionController::Logger.new
+      @discovery : HoundDog::Discovery
     )
     end
 
     # Creates the session and handles the cleanup
     #
-    def create_session(ws, request_id, user)
+    def create_session(ws, request_id, user, logger)
       session = Session.new(
         ws: ws,
         request_id: request_id,
         user: user,
         discovery: @discovery,
-        logger: @logger,
+        logger: logger,
       )
 
       ws.on_close do |_|
@@ -56,7 +55,7 @@ class ACAEngine::Api::Session
     @request_id : String,
     @user : ACAEngine::Model::UserJWT,
     @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE),
-    @logger : Logger = ActionController::Base.settings.logger,
+    @logger : ActionController::Logger::TaggedLogger = ActionController::Logger::TaggedLogger.new(ActionController::Base.settings.logger),
     @cache_timeout : Int32? = 60 * 5
   )
     # Register event handlers
@@ -212,7 +211,7 @@ class ACAEngine::Api::Session
       )
       respond(response_message)
     else
-      @logger.warn("websocket exec failed: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      @logger.tag(message: "websocket exec failed", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
       raise Error::Session.new(ErrorCode::RequestFailed, response.body)
     end
   rescue e : Error::Session
@@ -231,10 +230,10 @@ class ACAEngine::Api::Session
     begin
       # Check if module previously bound
       unless has_binding?(sys_id, module_name, index, name)
-        create_binding(request_id, sys_id, module_name, index, name)
+        return unless create_binding(request_id, sys_id, module_name, index, name)
       end
     rescue
-      @logger.debug("websocket binding could not find system: {sys: #{sys_id}, mod: #{module_name}, index: #{index}, name: #{name}}")
+      @logger.tag(message: "websocket binding could not find system", severity: Logger::Severity::DEBUG, sys_id: sys_id, module_name: module_name, index: index, name: name)
       respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}"))
       return
     end
@@ -333,19 +332,50 @@ class ACAEngine::Api::Session
 
   # Create a binding to a module on the Session
   #
-  def create_binding(request_id, sys_id, module_name, index, name)
+  def create_binding(request_id, sys_id, module_name, index, name) : Bool
     key = Session.binding_key(sys_id, module_name, index, name)
-    # Subscribe and set local binding
-    @bindings[key] = @@subscriptions.subscribe(sys_id, module_name, index, name) do |_, event|
-      notify_update(
-        request_id: request_id,
-        system_id: sys_id,
-        module_name: module_name,
-        status: name,
-        index: index,
-        value: event
-      )
+
+    if module_name.starts_with?("_") && !@user.is_support?
+      @logger.tag(message: "websocket binding attempted to access priviled module", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
+      error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
+      return false
     end
+
+    if module_name == "_TRIGGER_"
+      # Ensure the trigger exists
+      trig = ACAEngine::Model::TriggerInstance.find(name)
+      unless trig && trig.control_system_id == sys_id
+        @logger.tag(message: "websocket binding attempted to access unknown trigger", severity: Logger::Severity::WARN, sys_id: sys_id, trig_id: name)
+        error_response(request_id, ErrorCode::ModuleNotFound, "no trigger #{name} in system #{sys_id}")
+        return false
+      end
+
+      # Triggers should be subscribed to directly.
+      @bindings[key] = @@subscriptions.subscribe(name, "state") do |_, event|
+        notify_update(
+          request_id: request_id,
+          system_id: sys_id,
+          module_name: module_name,
+          status: name,
+          index: index,
+          value: event
+        )
+      end
+    else
+      # Subscribe and set local binding
+      @bindings[key] = @@subscriptions.subscribe(sys_id, module_name, index, name) do |_, event|
+        notify_update(
+          request_id: request_id,
+          system_id: sys_id,
+          module_name: module_name,
+          status: name,
+          index: index,
+          value: event
+        )
+      end
+    end
+
+    true
   end
 
   # Create a binding to a module on the Session
@@ -405,29 +435,29 @@ class ACAEngine::Api::Session
   )
     metadata = metadata?(sys_id, module_name, index)
     unless metadata
-      @logger.debug("websocket exec could not find module: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      @logger.tag(message: "websocket exec could not find module", severity: Logger::Severity::DEBUG, sys_id: sys_id, module_name: module_name, index: index, name: name)
       raise Error::Session.new(ErrorCode::ModuleNotFound, "could not find module: mod=#{module_name}")
     end
 
     unless function_present?(metadata.functions, name)
-      @logger.debug("websocket exec could not find function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      @logger.tag(message: "websocket exec could not find function", severity: Logger::Severity::DEBUG, sys_id: sys_id, module_name: module_name, index: index, name: name)
       raise Error::Session.new(ErrorCode::BadRequest, "could not find module: mod=#{module_name}")
     end
 
     unless function_visible?(metadata.security, name)
-      @logger.warn("websocket exec attempted to access priviled function: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      @logger.tag(message: "websocket exec attempted to access priviled function", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
       raise Error::Session.new(ErrorCode::AccessDenied, "attempted to access privileged function")
     end
 
     module_id = module_id?(sys_id, module_name, index)
     unless module_id
-      @logger.warn("websocket exec could not find module id: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      @logger.tag(message: "websocket exec could not find module id", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
       raise Error::Session.new(ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
     end
 
     core_url = core_for_module?(module_id)
     unless core_url
-      @logger.warn("websocket exec could not locate module's system: sys_id=#{sys_id} module_name=#{module_name} index=#{index} name=#{name}")
+      @logger.tag(message: "websocket exec could not locate module's system", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
       raise Error::Session.new(ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
     end
 
@@ -472,7 +502,7 @@ class ACAEngine::Api::Session
     request = parse_request(data)
     __send__(request) if request
   rescue e
-    @logger.error(e, "websocket request failed: data=#{data} request=#{request} error=#{e.inspect_with_backtrace}")
+    @logger.error("websocket request failed: data=#{data} error=#{e.inspect_with_backtrace}")
     response = error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
     respond(response)
   end
@@ -573,7 +603,7 @@ class ACAEngine::Api::Session
     when Request::Command::Ignore
       ignore
     else
-      @logger.error("unrecognised websocket command: cmd=#{request.command}")
+      @logger.tag(message: "unrecognised websocket command", cmd: request.command, severity: Logger::Severity::ERROR)
     end
   end
 end
