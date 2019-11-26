@@ -4,7 +4,8 @@ module ACAEngine::Api
   class Zones < Application
     base "/api/engine/v2/zones/"
 
-    before_action :check_admin, except: [:index, :show]
+    before_action :check_admin, except: [:index]
+    before_action :check_support, except: [:index]
     before_action :find_zone, only: [:show, :update, :destroy]
 
     @zone : Model::Zone?
@@ -19,7 +20,7 @@ module ACAEngine::Api
         # list of unique tags
         tags = params["tags"].gsub(/[^0-9a-z ]/i, "").split(/\s+/).reject(&.empty?).uniq
 
-        return head :bad_request if tags.empty?
+        head :bad_request if tags.empty?
 
         query.must({
           "tags" => tags,
@@ -33,28 +34,16 @@ module ACAEngine::Api
       render json: elastic.search(query)
     end
 
+    # BREAKING_CHANGE: param key `data` used to attempt to retrieve a setting from the zone
     def show
       zone = @zone.as(Model::Zone)
-      if params.has_key? "data"
-        key = params["data"]
-
-        info = Model::Settings.get_setting_for?(current_user, key, zone.master_settings)
-        if info
-          render json: info
-        else
-          head :not_found
-        end
+      if params.has_key? "complete"
+        # Include trigger data in response
+        render json: with_fields(zone, {
+          :trigger_data => zone.trigger_data,
+        })
       else
-        head :forbidden unless is_support? || is_admin?
-
-        if params.has_key? "complete"
-          # Include trigger data in response
-          render json: with_fields(zone, {
-            :trigger_data => zone.trigger_data,
-          })
-        else
-          render json: zone
-        end
+        render json: zone
       end
     end
 
