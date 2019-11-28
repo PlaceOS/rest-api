@@ -14,8 +14,11 @@ module ACAEngine::Api
 
     def index
       if params.has_key? "parent_id"
-        # Directly search for model's settings, and decrypt for the user
-        parent_settings = Model::Settings.for_parent(params["parent_id"])
+        parents = params["parent_id"].split(',')
+
+        # Directly search for model's settings
+        parent_settings = Model::Settings.for_parent(parents)
+        # Decrypt for the user
         parent_settings.each &.decrypt_for!(current_user)
 
         render json: parent_settings

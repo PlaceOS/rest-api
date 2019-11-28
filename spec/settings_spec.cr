@@ -9,7 +9,7 @@ module ACAEngine::Api
 
       describe "index" do
         test_base_index(klass: Model::Settings, controller_klass: Settings)
-
+        pending "returns settings for a set of parent ids"
         it "returns settings for parent id" do
           sys = Model::Generator.control_system.save!
           settings = [
