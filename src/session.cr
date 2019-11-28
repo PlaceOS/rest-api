@@ -4,8 +4,7 @@ module ACAEngine; end
 class ACAEngine::Driver; end
 
 require "action-controller/logger"
-require "engine-driver/proxy/subscriptions"
-require "engine-driver/subscriptions"
+require "engine-driver/proxy/remote_driver"
 require "hound-dog"
 require "redis"
 require "tasker"
@@ -194,28 +193,39 @@ class ACAEngine::Api::Session
     name : String,
     args : Array(JSON::Any)
   )
-    core_url = core_for_function(
+    security_level = if @user.is_admin?
+                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Admin
+                     elsif @user.is_support?
+                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Support
+                     else
+                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::User
+                     end
+
+    driver = ACAEngine::Driver::Proxy::RemoteDriver.new(
       sys_id: sys_id,
       module_name: module_name,
       index: index,
-      name: name,
+      security: security_level
     )
 
-    # TODO: Validate response from the module, perhaps a Session::Update
-    response = HTTP::Client.post(core_url)
-    if response.success?
-      response_message = Response.new(
-        id: request_id,
-        type: Response::Type::Success,
-        value: response.body,
-      )
-      respond(response_message)
-    else
-      @logger.tag(message: "websocket exec failed", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
-      raise Error::Session.new(ErrorCode::RequestFailed, response.body)
-    end
-  rescue e : Error::Session
-    respond(e.error_response(request_id))
+    response = driver.exec(name, args)
+
+    respond(Response.new(
+      id: request_id,
+      type: Response::Type::Success,
+      meta: {
+        sys:   sys_id,
+        mod:   module_name,
+        index: index,
+        name:  name,
+      },
+      value: "%{}",
+    ), response)
+  rescue e : ACAEngine::Driver::Proxy::RemoteDriver::Error
+    respond(error_response(request_id, e.error_code, e.message))
+  rescue e
+    @logger.tag(message: "failed to execute request", severity: Logger::Severity::ERROR, sys_id: sys_id, module_name: module_name, index: index, name: name)
+    respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to execute request"))
   end
 
   # Bind a websocket to a module subscription
@@ -554,7 +564,7 @@ class ACAEngine::Api::Session
 
   protected def error_response(
     request_id : String?,
-    error_code : ErrorCode,
+    error_code,
     error_message : String?
   )
     Api::Session::Response.new(
@@ -576,8 +586,17 @@ class ACAEngine::Api::Session
     end
   end
 
-  protected def respond(response : Response)
-    @ws.send(response.to_json) unless @ws.closed?
+  protected def respond(response : Response, payload = nil)
+    return if @ws.closed?
+
+    if payload
+      # Avoids parsing and serialising when payload is already in JSON format
+      partial = response.to_json
+      partial.sub(%("%{}"), payload)
+      @ws.send(partial)
+    else
+      @ws.send(response.to_json)
+    end
   end
 
   # Delegate request to correct handler
