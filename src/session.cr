@@ -65,6 +65,14 @@ class ACAEngine::Api::Session
     @metadata_cache = {} of String => ACAEngine::Driver::DriverModel::Metadata
     @module_id_cache = {} of String => String
 
+    @security_level = if @user.is_admin?
+                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Admin
+                     elsif @user.is_support?
+                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Support
+                     else
+                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::User
+                     end
+
     # Begin clearing cache
     spawn(name: "cache_cleaner", same_thread: true) { cache_plumbing }
   end
@@ -193,22 +201,13 @@ class ACAEngine::Api::Session
     name : String,
     args : Array(JSON::Any)
   )
-    security_level = if @user.is_admin?
-                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Admin
-                     elsif @user.is_support?
-                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Support
-                     else
-                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::User
-                     end
-
     driver = ACAEngine::Driver::Proxy::RemoteDriver.new(
       sys_id: sys_id,
       module_name: module_name,
-      index: index,
-      security: security_level
+      index: index
     )
 
-    response = driver.exec(name, args)
+    response = driver.exec(@security_level, name, args, request_id: @logger.request_id)
 
     respond(Response.new(
       id: request_id,
