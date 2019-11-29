@@ -66,12 +66,12 @@ class ACAEngine::Api::Session
     @module_id_cache = {} of String => String
 
     @security_level = if @user.is_admin?
-                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Admin
-                     elsif @user.is_support?
-                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Support
-                     else
-                       ACAEngine::Driver::Proxy::RemoteDriver::Clearance::User
-                     end
+                        ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Admin
+                      elsif @user.is_support?
+                        ACAEngine::Driver::Proxy::RemoteDriver::Clearance::Support
+                      else
+                        ACAEngine::Driver::Proxy::RemoteDriver::Clearance::User
+                      end
 
     # Begin clearing cache
     spawn(name: "cache_cleaner", same_thread: true) { cache_plumbing }
