@@ -174,22 +174,7 @@ class ACAEngine::Api::Session
     )
   end
 
-  @[Flags]
-  enum ErrorCode
-    ParseError     # 0
-    BadRequest     # 1
-    AccessDenied   # 2
-    RequestFailed  # 3
-    UnknownCommand # 4
-
-    SystemNotFound    # 5
-    ModuleNotFound    # 6
-    UnexpectedFailure # 7
-
-    def to_s
-      super.underscore
-    end
-  end
+  alias ErrorCode = ACAEngine::Driver::Proxy::RemoteDriver::ErrorCode
 
   # Grab core url for the module and dial an exec request
   #
