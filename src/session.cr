@@ -192,7 +192,7 @@ class ACAEngine::Api::Session
       index: index
     )
 
-    response = driver.exec(@security_level, name, args, request_id: @logger.request_id)
+    response = driver.exec(@security_level, name, args, request_id: @request_id)
 
     respond(Response.new(
       id: request_id,
@@ -377,85 +377,6 @@ class ACAEngine::Api::Session
   def delete_binding(sys_id, module_name, index, name)
     key = Session.binding_key(sys_id, module_name, index, name)
     @bindings.delete key
-  end
-
-  # Determine if the function is visible to user
-  #
-  def function_present?(functions, function)
-    functions.keys.includes?(function)
-  end
-
-  # Determine if user has access to function
-  #
-  def function_visible?(security, function)
-    # Find the access control level containing the function, if any.
-    access_control = security.find do |_, functions|
-      functions.includes? function
-    end
-
-    # No access control on the function... general access.
-    return true unless access_control
-
-    level, _ = access_control
-
-    # Check user's privilege against the function's privilege.
-    case level
-    when "support"
-      @user.is_support?
-    when "administrator"
-      @user.is_admin?
-    else
-      false
-    end
-  end
-
-  # TODO: Consistent hash lookup of module id to core address
-  #
-  def core_for_module?(module_id : String) : URI?
-    puts "noop"
-    URI.parse("https://core_1")
-  end
-
-  # Construct the core url for an exec request
-  # - grab metatadata from driver proxy
-  # - check function in system
-  # - check for presence of function in security against current security level
-  # - consistent hash of module_id to determine core
-  def core_for_function(
-    sys_id : String,
-    module_name : String,
-    index : Int32,
-    name : String
-  )
-    metadata = metadata?(sys_id, module_name, index)
-    unless metadata
-      @logger.tag(message: "websocket exec could not find module", severity: Logger::Severity::DEBUG, sys_id: sys_id, module_name: module_name, index: index, name: name)
-      raise Error::Session.new(ErrorCode::ModuleNotFound, "could not find module: mod=#{module_name}")
-    end
-
-    unless function_present?(metadata.functions, name)
-      @logger.tag(message: "websocket exec could not find function", severity: Logger::Severity::DEBUG, sys_id: sys_id, module_name: module_name, index: index, name: name)
-      raise Error::Session.new(ErrorCode::BadRequest, "could not find module: mod=#{module_name}")
-    end
-
-    unless function_visible?(metadata.security, name)
-      @logger.tag(message: "websocket exec attempted to access priviled function", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
-      raise Error::Session.new(ErrorCode::AccessDenied, "attempted to access privileged function")
-    end
-
-    module_id = module_id?(sys_id, module_name, index)
-    unless module_id
-      @logger.tag(message: "websocket exec could not find module id", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
-      raise Error::Session.new(ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
-    end
-
-    core_url = core_for_module?(module_id)
-    unless core_url
-      @logger.tag(message: "websocket exec could not locate module's system", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
-      raise Error::Session.new(ErrorCode::RequestFailed, "failed to locate module: mod=#{module_name}")
-    end
-
-    core_url
   end
 
   # Event handlers
