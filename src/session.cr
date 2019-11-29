@@ -331,7 +331,7 @@ class ACAEngine::Api::Session
 
     if module_name.starts_with?("_") && !@user.is_support?
       @logger.tag(message: "websocket binding attempted to access priviled module", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
-      error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
+      respond error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
       return false
     end
 
@@ -340,7 +340,7 @@ class ACAEngine::Api::Session
       trig = ACAEngine::Model::TriggerInstance.find(name)
       unless trig && trig.control_system_id == sys_id
         @logger.tag(message: "websocket binding attempted to access unknown trigger", severity: Logger::Severity::WARN, sys_id: sys_id, trig_id: name)
-        error_response(request_id, ErrorCode::ModuleNotFound, "no trigger #{name} in system #{sys_id}")
+        respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger #{name} in system #{sys_id}")
         return false
       end
 
