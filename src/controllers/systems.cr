@@ -12,13 +12,13 @@ module ACAEngine::Api
 
     id_param :sys_id
 
-    before_action :check_admin, except: [:index, :show, :control, :exec, :types, :functions, :state]
-    before_action :check_support, only: [:state, :functions]
+    before_action :check_admin, except: [:index, :show, :control, :execute, :types, :functions, :state, :state_lookup]
+    before_action :check_support, only: [:state, :state_lookup, :functions]
 
     before_action :find_system, only: [:show, :update, :destroy, :remove,
                                        :start, :stop, :execute, :types, :functions]
 
-    before_action :ensure_json, only: [:create, :update]
+    before_action :ensure_json, only: [:create, :update, :execute]
 
     @control_system : Model::ControlSystem?
 
@@ -163,55 +163,63 @@ module ACAEngine::Api
     # Driver Metadata, State and Status
     ###########################################################################
 
-    class ExecuteParams < Params
-      attribute sys_id : String
-
-      attribute module_name : String
-      attribute index : Int32 = 1
-
-      attribute method : String
-      attribute args : Array(JSON::Any)
-
-      validates :method, presence: true
-      validates :module_name, presence: true
-    end
-
-    # Runs a function in a system module (async request)
+    # Runs a function in a system module
     #
-    post("/:sys_id/execute", :execute) do
-      args = ExecuteParams.new(params).validate!
+    post("/:sys_id/:module_slug/:method", :execute) do
+      sys_id, module_slug, method = params["sys_id"], params["module_slug"], params["method"]
+      module_name, index = parse_module_slug(module_slug).as({String, Int32})
+      args = Array(JSON::Any).from_json(request.body.as(IO))
 
       begin
-        value = nil
-        url = Systems.locate_module?(
-          sys_id: args.sys_id.as(String),
-          module_name: args.module_name.as(String),
-          index: args.index.as(Int32),
+        driver = Driver::Proxy::RemoteDriver.new(
+          sys_id: sys_id,
+          module_name: module_name,
+          index: index
         )
-        head :not_found unless url
+
+        response = driver.exec(
+          security: Systems.driver_clearance(user_token),
+          function: method,
+          args: args,
+          request_id: logger.request_id,
+        )
+        render json: response
+      rescue e : Driver::Proxy::RemoteDriver::Error
+        message = e.error_code.to_s.gsub('_', ' ')
+        case e.error_code
+        when Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound, Driver::Proxy::RemoteDriver::ErrorCode::SystemNotFound
+          logger.tag(
+            severity: Logger::Severity::INFO,
+            message: message,
+            error: e.message,
+            sys_id: sys_id,
+          )
+          render status: :not_found, text: message
+        else
+          # when ParseError        # JSON parse failure
+          # when BadRequest        # Pre-requisite does not exist (i.e no function)
+          # when AccessDenied      # The current user does not have permissions
+          # when RequestFailed     # The request was sent and error occured in core / the module
+          # when UnknownCommand    # Not one of bind, unbind, exec, debug, ignore
+          # when UnexpectedFailure # Some other transient failure like database unavailable
+          logger.tag(
+            severity: Logger::Severity::INFO,
+            message: message,
+            error: e.message,
+            sys_id: sys_id,
+          )
+          render status: :internal_server_error, text: message
+        end
       rescue e
-        logger.error("core execute request failed: params=#{args.attributes} message=#{e.message} backtrace=#{e.inspect_with_backtrace}")
+        logger.tag(
+          severity: Logger::Severity::ERROR,
+          message: "core execute request failed",
+          error: e.message,
+          sys_id: sys_id,
+          backtrace: e.inspect_with_backtrace
+        )
         render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
       end
-
-      render json: value
-    end
-
-    # Create a core client for given module id
-    def self.core_for(module_id : String, request_id : String? = nil) : Core::Client
-      Core::Client.new(uri: self.locate_module(module_id), request_id: request_id)
-    end
-
-    def self.locate_module(module_id : String) : URI
-      # Use consistent hashing to determine the location of the module
-      node = @@core_discovery.find!(module_id)
-      URI.new(host: node[:ip], port: node[:port])
-    end
-
-    # Determine URI for a system module
-    def self.locate_module?(sys_id : String, module_name : String, index : Int32) : URI?
-      module_id = ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index)
-      module_id.try &->self.locate_module(String)
     end
 
     # Look-up a module types in a system, returning a count of each type
@@ -226,62 +234,35 @@ module ACAEngine::Api
       render json: types
     end
 
-    class StateParams < Params
-      attribute lookup : Symbol
-
-      attribute sys_id : String
-      attribute module_name : String
-      attribute index : Int32 = 1
-
-      validates :module_name, presence: true
-      validates :sys_id, presence: true
-    end
-
     # Returns the state of an associated module
     #
-    get("/:sys_id/state", :state) do
-      # Status defined as a system module
-      args = StateParams.new(params).validate!
+    get("/:sys_id/:module_slug", :state) do
+      sys_id, module_slug = params["sys_id"], params["module_slug"]
+      module_name, index = parse_module_slug(module_slug).as({String, Int32})
 
-      # Look up module's id for module on system
-      module_id = ACAEngine::Driver::Proxy::System.module_id?(
-        system_id: args.sys_id.as(String),
-        module_name: args.module_name.as(String),
-        index: args.index.as(Int32)
-      )
-
-      if module_id
-        # Grab driver state proxy
-        storage = ACAEngine::Driver::Storage.new(module_id)
-
-        # Perform lookup, otherwise dump state
-        render json: ((lookup = args.lookup) ? storage[lookup] : storage.to_h)
-      else
-        head :not_found
-      end
+      render json: module_state(sys_id, module_name, index)
     end
 
-    class FunctionsParams < Params
-      attribute sys_id : String
-      attribute module_name : String
-      attribute index : Int32 = 1
+    # Returns the state lookup for a given key on a module
+    #
+    get("/:sys_id/:module_slug/:key", :state_lookup) do
+      sys_id, key, module_slug = params["sys_id"], params["key"], params["module_slug"]
+      module_name, index = parse_module_slug(module_slug).as({String, Int32})
 
-      validates :module_name, presence: true
+      render json: module_state(sys_id, module_name, index, key)
     end
 
     # Lists functions available on the driver
     # Filters higher privilege functions.
-    get("/:sys_id/functions", :functions) do
-      args = FunctionsParams.new(params).validate!
-
+    get("/:sys_id/functions/:module_slug", :functions) do
+      sys_id, module_slug = params["sys_id"], params["module_slug"]
+      module_name, index = parse_module_slug(module_slug).as({String, Int32})
       metadata = ACAEngine::Driver::Proxy::System.driver_metadata?(
-        system_id: args.sys_id.as(String),
-        module_name: args.module_name.as(String),
-        index: args.index.as(Int32),
+        system_id: sys_id,
+        module_name: module_name,
+        index: index,
       )
-
       head :not_found unless metadata
-
       hidden_functions = if user_token.is_admin?
                            # All functions available to admin
                            [] of String
@@ -307,6 +288,31 @@ module ACAEngine::Api
       render json: response
     end
 
+    def module_state(sys_id : String, module_name : String, index : Int32, key : String? = nil)
+      # Look up module's id for module on system
+      module_id = ACAEngine::Driver::Proxy::System.module_id?(
+        system_id: sys_id,
+        module_name: module_name,
+        index: index
+      )
+
+      if module_id
+        # Grab drive(r state proxy
+        storage = ACAEngine::Driver::Storage.new(module_id)
+        # Perform lookup, otherwise dump state
+        key ? storage[key] : storage.to_h
+      end
+    end
+
+    def parse_module_slug(module_slug : String) : {String, Int32}?
+      if module_slug.count('_') == 1
+        module_name, index = module_slug.split('_')
+        ({module_name, index.to_i})
+      else
+        head :bad_request
+      end
+    end
+
     # Websockets
     ###########################################################################
 
@@ -320,9 +326,49 @@ module ACAEngine::Api
       )
     end
 
+    # Helpers
+    ###########################################################################
+
+    def self.driver_clearance(user : Model::User | Model::UserJWT)
+      if user.is_admin?
+        Driver::Proxy::RemoteDriver::Clearance::Admin
+      elsif user.is_support?
+        Driver::Proxy::RemoteDriver::Clearance::Support
+      else
+        Driver::Proxy::RemoteDriver::Clearance::User
+      end
+    end
+
+    def self.locate_module(module_id : String) : URI
+      # Use consistent hashing to determine the location of the module
+      node = @@core_discovery.find!(module_id)
+      URI.new(host: node[:ip], port: node[:port])
+    end
+
+    # Determine URI for a system module
+    def self.locate_module?(sys_id : String, module_name : String, index : Int32) : URI?
+      module_id = ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index)
+      module_id.try &->self.locate_module(String)
+    end
+
+    # Create a core client for given module id
+    def self.core_for(module_id : String, request_id : String? = nil) : Core::Client
+      Core::Client.new(uri: self.locate_module(module_id), request_id: request_id)
+    end
+
     # Lazy initializer for session_manager
     def self.session_manager
       (@@session_manager ||= Session::Manager.new(@@core_discovery)).as(Session::Manager)
+    end
+
+    def self.driver_security_clearance(user : Model::User | Model::UserJWT)
+      if user.is_admin?
+        Driver::Proxy::RemoteDriver::Clearance::Admin
+      elsif user.is_support?
+        Driver::Proxy::RemoteDriver::Clearance::Support
+      else
+        Driver::Proxy::RemoteDriver::Clearance::User
+      end
     end
 
     @@session_manager : Session::Manager? = nil
