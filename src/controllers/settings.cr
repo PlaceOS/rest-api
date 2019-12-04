@@ -31,26 +31,29 @@ module ACAEngine::Api
     end
 
     def show
-      render json: @settings.as(Model::Settings).decrypt_for!(current_user)
+      render json: current_settings.decrypt_for!(current_user)
     end
 
     def update
-      body = request.body.as(IO)
-      settings = @settings.as(Model::Settings)
-
-      settings.assign_attributes_from_json(body)
-      save_and_respond settings
+      current_settings.assign_attributes_from_json(request.body.as(IO))
+      save_and_respond current_settings
     end
 
     def create
-      body = request.body.as(IO)
-      settings = Model::Settings.from_json(body)
-      save_and_respond settings
+      save_and_respond Model::Settings.from_json(request.body.as(IO))
     end
 
     def destroy
-      @settings.try &.destroy
+      current_settings.destroy
       head :ok
+    end
+
+    # Helpers
+    ###########################################################################
+
+    def current_settings : Model::Settings
+      return @settings.as(Model::Settings) if @settings
+      find_settings
     end
 
     def find_settings

@@ -22,14 +22,13 @@ module ACAEngine::Api
 
     @control_system : Model::ControlSystem?
 
+    # Websocket API session manager
+    @@session_manager : Session::Manager? = nil
+
+    # Core API client
     @core : ACAEngine::Core::Client? = nil
 
-    # :nodoc:
-    def core
-      (@core ||= Core::Client.new(request_id: request.id)).as(Core::Client)
-    end
-
-    # ACAEngine Core service discovery
+    # Core service discovery
     @@core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
 
     # Strong params for index method
@@ -64,14 +63,13 @@ module ACAEngine::Api
 
     # Renders a control system
     def show
-      control_system = @control_system.as(Model::ControlSystem)
       if params["complete"]?
-        render json: with_fields(control_system, {
-          :module_data => control_system.module_data,
-          :zone_data   => control_system.zone_data,
+        render json: with_fields(current_system, {
+          :module_data => current_system.module_data,
+          :zone_data   => current_system.zone_data,
         })
       else
-        render json: control_system
+        render json: current_system
       end
     end
 
@@ -81,15 +79,14 @@ module ACAEngine::Api
 
     # Updates a control system
     def update
-      body = request.body.as(IO)
-      control_system = @control_system.as(Model::ControlSystem)
-
       args = UpdateParams.new(params).validate!
       version = args.version.as(Int32)
 
+      control_system = current_system
+
       head :conflict if version != control_system.version
 
-      control_system.assign_attributes_from_json(body)
+      control_system.assign_attributes_from_json(request.body.as(IO))
       control_system.version = version + 1
 
       save_and_respond(control_system)
@@ -100,30 +97,23 @@ module ACAEngine::Api
     end
 
     def destroy
-      @control_system.try &.destroy
+      current_system.destroy
       head :ok
     end
 
-    class RemoveParams < Params
-      attribute module_id : String, presence: true
-    end
-
     # Removes the module from the system and deletes it if not used elsewhere
+    # BREAKING CHANGE: Removed 'module_id' query param, now in the path
     #
-    post("/:sys_id/remove", :remove) do
-      control_system = @control_system.as(Model::ControlSystem)
-      args = RemoveParams.new(params).validate!
+    post("/:sys_id/remove/:module_id", :remove) do
+      control_system = current_system
+      module_id = params["module_id"]
 
-      module_id = args.module_id.as(String)
-      modules = control_system.modules || [] of String
-
-      if modules.includes? module_id
+      if control_system.modules.try &.includes?(module_id)
         control_system.modules_will_change!
         control_system.modules.try &.delete(module_id)
+        control_system.save! # TODO: with_cas: true
 
-        control_system.save! # with_cas: true
-
-        # keep if any other ControlSystem is using the module
+        # Keep if any other ControlSystem is using the module
         keep = Model::ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }
         unless keep
           Model::Module.find(module_id).try &.destroy
@@ -140,7 +130,7 @@ module ACAEngine::Api
     #
     # FIXME: Optimise query
     post("/:sys_id/start", :start) do
-      modules = @control_system.as(Model::ControlSystem).modules || [] of String
+      modules = current_system.modules || [] of String
       Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: true)
       end
@@ -152,7 +142,7 @@ module ACAEngine::Api
     #
     # FIXME: Optimise query
     post("/:sys_id/stop", :stop) do
-      modules = @control_system.as(Model::ControlSystem).modules || [] of String
+      modules = current_system.modules || [] of String
       Model::Module.find_all(modules).each do |mod|
         mod.update_fields(running: false)
       end
@@ -188,12 +178,7 @@ module ACAEngine::Api
         message = e.error_code.to_s.gsub('_', ' ')
         case e.error_code
         when Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound, Driver::Proxy::RemoteDriver::ErrorCode::SystemNotFound
-          logger.tag(
-            severity: Logger::Severity::INFO,
-            message: message,
-            error: e.message,
-            sys_id: sys_id,
-          )
+          logger.tag_info(message, error: e.message, sys_id: sys_id)
           render status: :not_found, text: message
         else
           # when ParseError        # JSON parse failure
@@ -202,22 +187,11 @@ module ACAEngine::Api
           # when RequestFailed     # The request was sent and error occured in core / the module
           # when UnknownCommand    # Not one of bind, unbind, exec, debug, ignore
           # when UnexpectedFailure # Some other transient failure like database unavailable
-          logger.tag(
-            severity: Logger::Severity::INFO,
-            message: message,
-            error: e.message,
-            sys_id: sys_id,
-          )
+          logger.tag_info(message, error: e.message, sys_id: sys_id)
           render status: :internal_server_error, text: message
         end
       rescue e
-        logger.tag(
-          severity: Logger::Severity::ERROR,
-          message: "core execute request failed",
-          error: e.message,
-          sys_id: sys_id,
-          backtrace: e.inspect_with_backtrace
-        )
+        logger.tag_error("core execute request failed", error: e.message, sys_id: sys_id, backtrace: e.inspect_with_backtrace)
         render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
       end
     end
@@ -225,8 +199,7 @@ module ACAEngine::Api
     # Look-up a module types in a system, returning a count of each type
     #
     get("/:sys_id/types", :types) do
-      control_system = @control_system.as(Model::ControlSystem)
-      modules = Model::Module.find_all(control_system.id.as(String), index: :control_system_id)
+      modules = Model::Module.find_all(current_system.id.as(String), index: :control_system_id)
       types = modules.each_with_object(Hash(String, Int32).new(0)) do |mod, count|
         count[mod.name.as(String)] += 1
       end
@@ -329,18 +302,8 @@ module ACAEngine::Api
     # Helpers
     ###########################################################################
 
-    def self.driver_clearance(user : Model::User | Model::UserJWT)
-      if user.is_admin?
-        Driver::Proxy::RemoteDriver::Clearance::Admin
-      elsif user.is_support?
-        Driver::Proxy::RemoteDriver::Clearance::Support
-      else
-        Driver::Proxy::RemoteDriver::Clearance::User
-      end
-    end
-
+    # Use consistent hashing to determine the location of the module
     def self.locate_module(module_id : String) : URI
-      # Use consistent hashing to determine the location of the module
       node = @@core_discovery.find!(module_id)
       URI.new(host: node[:ip], port: node[:port])
     end
@@ -356,12 +319,8 @@ module ACAEngine::Api
       Core::Client.new(uri: self.locate_module(module_id), request_id: request_id)
     end
 
-    # Lazy initializer for session_manager
-    def self.session_manager
-      (@@session_manager ||= Session::Manager.new(@@core_discovery)).as(Session::Manager)
-    end
-
-    def self.driver_security_clearance(user : Model::User | Model::UserJWT)
+    # Determine user's Driver execution privilege
+    def self.driver_clearance(user : Model::User | Model::UserJWT)
       if user.is_admin?
         Driver::Proxy::RemoteDriver::Clearance::Admin
       elsif user.is_support?
@@ -371,7 +330,20 @@ module ACAEngine::Api
       end
     end
 
-    @@session_manager : Session::Manager? = nil
+    # Lazy initializer for session_manager
+    def self.session_manager
+      (@@session_manager ||= Session::Manager.new(@@core_discovery)).as(Session::Manager)
+    end
+
+    # Lazy initializer for core client
+    def core
+      (@core ||= Core::Client.new(request_id: request.id)).as(Core::Client)
+    end
+
+    def current_system : Model::ControlSystem
+      return @control_system.as(Model::ControlSystem) if @control_system
+      find_system
+    end
 
     def find_system
       # Find will raise a 404 (not found) if there is an error

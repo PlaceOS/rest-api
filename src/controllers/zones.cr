@@ -36,34 +36,36 @@ module ACAEngine::Api
 
     # BREAKING_CHANGE: param key `data` used to attempt to retrieve a setting from the zone
     def show
-      zone = @zone.as(Model::Zone)
       if params.has_key? "complete"
         # Include trigger data in response
-        render json: with_fields(zone, {
-          :trigger_data => zone.trigger_data,
+        render json: with_fields(current_zone, {
+          :trigger_data => current_zone.trigger_data,
         })
       else
-        render json: zone
+        render json: current_zone
       end
     end
 
     def update
-      body = request.body.as(IO)
-      zone = @zone.as(Model::Zone)
-
-      zone.assign_attributes_from_json(body)
-      save_and_respond zone
+      current_zone.assign_attributes_from_json(request.body.as(IO))
+      save_and_respond current_zone
     end
 
     def create
-      body = request.body.as(IO)
-      zone = Model::Zone.from_json(body)
-      save_and_respond zone
+      save_and_respond Model::Zone.from_json(request.body.as(IO))
     end
 
     def destroy
-      @zone.try &.destroy
+      current_zone.destroy
       head :ok
+    end
+
+    # Helpers
+    ###########################################################################
+
+    def current_zone : Model::Zone
+      return @zone.as(Model::Zone) if @zone
+      find_zone
     end
 
     def find_zone

@@ -25,7 +25,7 @@ module ACAEngine::Api
       attribute running : Bool
     end
 
-    # TODO: Refactor, strictly a port from ruby-engine
+    # TODO: Refactor, a port from ruby-engine
     def index
       args = IndexParams.new(params)
 
@@ -119,13 +119,12 @@ module ACAEngine::Api
     end
 
     def show
-      render json: @module
+      render json: current_module
     end
 
     def update
-      body = request.body.as(IO)
-      mod = @module.as(Model::Module)
-      mod.assign_attributes_from_json(body)
+      mod = current_module
+      mod.assign_attributes_from_json(request.body.as(IO))
 
       if mod.save
         # TODO: Update control; Ruby engine starts the module instance
@@ -146,7 +145,7 @@ module ACAEngine::Api
     end
 
     def destroy
-      @module.try &.destroy
+      current_module.destroy
       head :ok
     end
 
@@ -155,14 +154,14 @@ module ACAEngine::Api
     ##
 
     post(":id/start", :start) do
-      mod = @module.as(Model::Module)
+      mod = current_module
       head :ok if mod.running == true
 
       mod.update_fields(running: true)
 
       # Changes cleared on a successful update
       if mod.running_changed?
-        logger.error("controller=Modules action=start module_id=#{mod.id} event=failed")
+        logger.tag_error(controller: "Modules", action: "start", module_id: mod.id, event: "failed")
         head :internal_server_error
       else
         head :ok
@@ -170,36 +169,34 @@ module ACAEngine::Api
     end
 
     post(":id/stop", :stop) do
-      mod = @module.as(Model::Module)
-      head :ok if mod.running == false
+      mod = current_module
+      head :ok unless mod.running
 
       mod.update_fields(running: false)
 
       # Changes cleared on a successful update
       if mod.running_changed?
-        logger.error("controller=Modules action=stop module_id=#{mod.id} event=failed")
+        logger.tag_error(controller: "Modules", action: "stop", module_id: mod.id, event: "failed")
         head :internal_server_error
       else
         head :ok
       end
     end
 
-    # Returns the value of the requested status variable
-    # Or dumps the complete status state of the module
+    # Dumps the complete status state of the module
     get(":id/state", :state) do
-      mod = @module.as(Model::Module)
+      render json: module_state(current_module)
+    end
 
-      # Grab driver state proxy
-      storage = ACAEngine::Driver::Storage.new(mod.id.as(String))
-
-      # Perform lookup, otherwise dump state
-      render json: ((lookup = params["lookup"]?) ? storage[lookup] : storage.to_h)
+    # Returns the value of the requested status variable
+    get(":id/state/:key", :state_lookup) do
+      render json: module_state(current_module, params["key"])
     end
 
     post(":id/ping", :ping) do
-      mod = @module.as(Model::Module)
+      mod = current_module
       if mod.role == Model::Driver::Role::Logic
-        logger.debug("controller=Modules action=ping module_id=#{mod.id} role=#{mod.role}")
+        logger.tag_debug(controller: "Modules", action: "ping", module_id: mod.id, role: mod.role)
         head :not_acceptable
       else
         pinger = Pinger.new(mod.hostname.as(String), count: 3)
@@ -211,6 +208,22 @@ module ACAEngine::Api
           exception: pinger.exception,
         }
       end
+    end
+
+    post(":id/exec/:method", :execute) do
+    end
+
+    # Helpers
+    ############################################################################
+
+    def module_state(mod : Model::Module, key : String? = nil)
+      storage = Driver::Storage.new(mod.id.as(String))
+      key ? storage[key] : storage.to_h
+    end
+
+    def current_module : Model::Module
+      return @module.as(Model::Module) if @module
+      find_module
     end
 
     def find_module

@@ -33,13 +33,12 @@ module ACAEngine::Api
     end
 
     def show
-      render json: @driver
+      render json: current_driver
     end
 
     def update
-      body = request.body.as(IO)
-      driver = @driver.as(Model::Driver)
-      driver.assign_attributes_from_json(body)
+      driver = current_driver
+      driver.assign_attributes_from_json(request.body.as(IO))
 
       # Must destroy and re-add to change driver type
       render :unprocessable_entity, text: "Error: role must not change" if driver.role_changed?
@@ -48,13 +47,20 @@ module ACAEngine::Api
     end
 
     def create
-      body = request.body.as(IO)
-      save_and_respond(Model::Driver.from_json(body))
+      save_and_respond(Model::Driver.from_json(request.body.as(IO)))
     end
 
     def destroy
-      @driver.try &.destroy
+      current_driver.destroy
       head :ok
+    end
+
+    #  Helpers
+    ###########################################################################
+
+    def current_driver : Model::Driver
+      return @driver.as(Model::Driver) if @driver
+      find_driver
     end
 
     def find_driver

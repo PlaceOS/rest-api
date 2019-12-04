@@ -6,7 +6,7 @@ dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 2.0
+    branch: master
 
   # Data validation library
   active-model:

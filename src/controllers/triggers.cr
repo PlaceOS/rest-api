@@ -21,27 +21,30 @@ module ACAEngine::Api
     end
 
     def show
-      render json: @trig
+      render json: current_trigger
     end
 
     def update
-      body = request.body.as(IO)
-      trig = @trig.as(Model::Trigger)
-
-      trig.assign_attributes_from_json(body)
+      trig = current_trigger
+      trig.assign_attributes_from_json(request.body.as(IO))
       save_and_respond(trig)
     end
 
     def create
-      body = request.body.as(IO)
-
-      trig = Model::Trigger.from_json(body)
-      save_and_respond trig
+      save_and_respond Model::Trigger.from_json(request.body.as(IO))
     end
 
     def destroy
-      @trig.try &.destroy # expires the cache in after callback
+      current_trigger.destroy # expires the cache in after callback
       head :ok
+    end
+
+    # Helpers
+    ###########################################################################
+
+    def current_trigger
+      return @trig.as(Model::Trigger) if @trig
+      find_trigger
     end
 
     def find_trigger

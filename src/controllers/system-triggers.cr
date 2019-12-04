@@ -68,6 +68,41 @@ module ACAEngine::Api
       }
     end
 
+    def show
+      if is_support? && !is_admin?
+        render json: restrict_attributes(current_sys_trig, except: ["webhook_secret"])
+      else
+        render json: current_sys_trig
+      end
+    end
+
+    class UpdateParams < Params
+      attribute enabled : Bool
+      attribute important : Bool
+    end
+
+    def update
+      args = UpdateParams.from_json(request.body.as(IO))
+
+      sys_trig = current_sys_trig
+      sys_trig.enabled = args.enabled unless args.enabled.nil?
+      sys_trig.important = args.important unless args.important.nil?
+
+      save_and_respond(sys_trig)
+    end
+
+    def create
+      save_and_respond Model::TriggerInstance.from_json(request.body.as(IO))
+    end
+
+    def destroy
+      current_sys_trig.destroy # Expires the cache in after callback
+      head :ok
+    end
+
+    # Helpers
+    ###########################################################################
+
     # Render a collection of TriggerInstances
     # - excludes :webhook_secret if authorized user has a support role
     # - includes :name, :id of parent ControlSystem if passed trigger id
@@ -97,40 +132,9 @@ module ACAEngine::Api
       end
     end
 
-    def show
-      sys_trig = @sys_trig.as(Model::TriggerInstance)
-      if is_support? && !is_admin?
-        render json: restrict_attributes(sys_trig, except: ["webhook_secret"])
-      else
-        render json: sys_trig
-      end
-    end
-
-    class UpdateParams < Params
-      attribute enabled : Bool
-      attribute important : Bool
-    end
-
-    def update
-      body = request.body.as(IO)
-      sys_trig = @sys_trig.as(Model::TriggerInstance)
-
-      args = UpdateParams.from_json(body)
-
-      sys_trig.enabled = args.enabled unless args.enabled.nil?
-      sys_trig.important = args.important unless args.important.nil?
-
-      save_and_respond(sys_trig)
-    end
-
-    def create
-      body = request.body.as(IO)
-      save_and_respond Model::TriggerInstance.from_json(body)
-    end
-
-    def destroy
-      @sys_trig.try &.destroy # Expires the cache in after callback
-      head :ok
+    def current_sys_trig : Model::TriggerInstance
+      return @sys_trig.as(Model::TriggerInstance) if @sys_trig
+      find_sys_trig
     end
 
     def find_sys_trig

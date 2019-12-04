@@ -209,7 +209,7 @@ module ACAEngine
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
-      @logger.tag(message: "failed to execute request", severity: Logger::Severity::ERROR, sys_id: sys_id, module_name: module_name, index: index, name: name)
+      @logger.tag_error("failed to execute request", sys_id: sys_id, module_name: module_name, index: index, name: name)
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to execute request"))
     end
 
@@ -228,7 +228,7 @@ module ACAEngine
           return unless create_binding(request_id, sys_id, module_name, index, name)
         end
       rescue
-        @logger.tag(message: "websocket binding could not find system", severity: Logger::Severity::DEBUG, sys_id: sys_id, module_name: module_name, index: index, name: name)
+        @logger.tag_debug("websocket binding could not find system", sys_id: sys_id, module_name: module_name, index: index, name: name)
         respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}"))
         return
       end
@@ -331,7 +331,7 @@ module ACAEngine
       key = Session.binding_key(sys_id, module_name, index, name)
 
       if module_name.starts_with?("_") && !@user.is_support?
-        @logger.tag(message: "websocket binding attempted to access priviled module", severity: Logger::Severity::WARN, sys_id: sys_id, module_name: module_name, index: index, name: name)
+        @logger.tag_warn("websocket binding attempted to access priviled module", sys_id: sys_id, module_name: module_name, index: index, name: name)
         respond error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
         return false
       end
@@ -340,7 +340,7 @@ module ACAEngine
         # Ensure the trigger exists
         trig = Model::TriggerInstance.find(name)
         unless trig && trig.control_system_id == sys_id
-          @logger.tag(message: "websocket binding attempted to access unknown trigger", severity: Logger::Severity::WARN, sys_id: sys_id, trig_id: name)
+          @logger.tag_warn("websocket binding attempted to access unknown trigger", sys_id: sys_id, trig_id: name)
           respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger #{name} in system #{sys_id}")
           return false
         end
@@ -418,7 +418,7 @@ module ACAEngine
       request = parse_request(data)
       __send__(request) if request
     rescue e
-      @logger.error("websocket request failed: data=#{data} error=#{e.inspect_with_backtrace}")
+      @logger.tag_error("websocket request failed", data: data, error: e.inspect_with_backtrace)
       response = error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
       respond(response)
     end
@@ -463,7 +463,7 @@ module ACAEngine
     def parse_request(data) : Request?
       Request.from_json(data)
     rescue e
-      @logger.warn("failed to parse: data=#{data} error=#{e.message}")
+      @logger.tag_warn("failed to parse", data: data, error: e.message)
       error_response(JSON.parse(data)["id"]?.try &.as_s, ErrorCode::BadRequest, "bad request: #{e.message}")
       return
     end
@@ -528,7 +528,7 @@ module ACAEngine
       when Request::Command::Ignore
         ignore
       else
-        @logger.tag(message: "unrecognised websocket command", cmd: request.command, severity: Logger::Severity::ERROR)
+        @logger.tag_error("unrecognised websocket command", cmd: request.command)
       end
     end
   end

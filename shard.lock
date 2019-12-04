@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    version: 2.1.0
+    commit: 9d6f20a31db772296d603ea08ae3f084cae85432
 
   active-model:
     github: spider-gazelle/active-model
@@ -38,11 +38,11 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: d05354a6b3d94230e48fd164c1c577a65c3cfd73
+    commit: 77d9a58c6ee91091bc2ef8ac58c1defc8d20e40b
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: c4e4689c9828fdc1025b17fd3be4c5da30318090
+    commit: 854de3cc5b0ed4aa208128692f30dba82b96ee85
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
@@ -50,7 +50,7 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: fd5a4448dbd2443d643c1c180d7d1efa19a56b88
+    commit: ed4fbc26961501a0800f4913f2924c03706dd2f8
 
   etcd:
     github: aca-labs/crystal-etcd
@@ -70,7 +70,7 @@ shards:
 
   hardware:
     github: crystal-community/hardware
-    version: 0.4.0
+    version: 0.5.0
 
   hound-dog:
     github: aca-labs/hound-dog

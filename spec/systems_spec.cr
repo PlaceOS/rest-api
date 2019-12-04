@@ -93,8 +93,7 @@ module ACAEngine::Api
           mod.persisted?.should be_true
           cs.modules.not_nil!.should contain mod_id
 
-          params = HTTP::Params.encode({module_id: mod_id})
-          path = base + "#{cs.id}/remove?#{params}"
+          path = base + "#{cs.id}/remove/#{mod_id}"
 
           result = curl(
             method: "POST",
@@ -128,8 +127,7 @@ module ACAEngine::Api
           cs1.modules.not_nil!.should contain mod_id
           cs2.modules.not_nil!.should contain mod_id
 
-          params = HTTP::Params.encode({module_id: mod_id})
-          path = base + "#{cs1.id}/remove?#{params}"
+          path = base + "#{cs1.id}/remove/#{mod_id}"
 
           result = curl(
             method: "POST",

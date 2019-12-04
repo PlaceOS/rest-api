@@ -20,7 +20,7 @@ module ACAEngine::Api
     def show
       return notify if params["exec"]? == "true"
 
-      render json: @trigger.as(Model::TriggerInstance)
+      render json: current_trigger
     end
 
     # Triggers the webhook
@@ -29,8 +29,8 @@ module ACAEngine::Api
     #  * Perform payload before actions
     #  * Perform payload after actions
     post("/:id/notify", :notify) do
-      trig = @trigger.as(Model::TriggerInstance)
-      webhook = @webhook.as(Model::Trigger::Conditions::Webhook)
+      trig = current_trigger
+      webhook = current_webhook
 
       case webhook.type
       when Model::Trigger::Conditions::Webhook::Type::PayloadOnly
@@ -98,6 +98,20 @@ module ACAEngine::Api
 
       @webhook = webhook
       @trigger = trig
+    end
+
+    def current_webhook
+      return @webhook.as(Model::Trigger::Conditions::Webhook) if @webhook
+      find_hook
+
+      current_webhook
+    end
+
+    def current_trigger
+      return @trigger.as(Model::TriggerInstance) if @trigger
+      find_hook
+
+      current_trigger
     end
   end
 end
