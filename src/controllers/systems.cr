@@ -8,11 +8,15 @@ require "../session"
 
 module ACAEngine::Api
   class Systems < Application
+    include Utils::CoreHelper
+
     base "/api/engine/v2/systems/"
 
     id_param :sys_id
 
-    before_action :check_admin, except: [:index, :show, :control, :execute, :types, :functions, :state, :state_lookup]
+    before_action :check_admin, except: [:index, :show, :control, :execute,
+                                         :types, :functions, :state, :state_lookup]
+
     before_action :check_support, only: [:state, :state_lookup, :functions]
 
     before_action :find_system, only: [:show, :update, :destroy, :remove,
@@ -30,6 +34,7 @@ module ACAEngine::Api
 
     # Core service discovery
     @@core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
+    class_getter core_discovery
 
     # Strong params for index method
     class IndexParams < Params
@@ -160,40 +165,12 @@ module ACAEngine::Api
       module_name, index = parse_module_slug(module_slug).as({String, Int32})
       args = Array(JSON::Any).from_json(request.body.as(IO))
 
-      begin
-        driver = Driver::Proxy::RemoteDriver.new(
-          sys_id: sys_id,
-          module_name: module_name,
-          index: index
-        )
-
-        response = driver.exec(
-          security: Systems.driver_clearance(user_token),
-          function: method,
-          args: args,
-          request_id: logger.request_id,
-        )
-        render json: response
-      rescue e : Driver::Proxy::RemoteDriver::Error
-        message = e.error_code.to_s.gsub('_', ' ')
-        case e.error_code
-        when Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound, Driver::Proxy::RemoteDriver::ErrorCode::SystemNotFound
-          logger.tag_info(message, error: e.message, sys_id: sys_id)
-          render status: :not_found, text: message
-        else
-          # when ParseError        # JSON parse failure
-          # when BadRequest        # Pre-requisite does not exist (i.e no function)
-          # when AccessDenied      # The current user does not have permissions
-          # when RequestFailed     # The request was sent and error occured in core / the module
-          # when UnknownCommand    # Not one of bind, unbind, exec, debug, ignore
-          # when UnexpectedFailure # Some other transient failure like database unavailable
-          logger.tag_info(message, error: e.message, sys_id: sys_id)
-          render status: :internal_server_error, text: message
-        end
-      rescue e
-        logger.tag_error("core execute request failed", error: e.message, sys_id: sys_id, backtrace: e.inspect_with_backtrace)
-        render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
-      end
+      driver = Driver::Proxy::RemoteDriver.new(
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index
+      )
+      driver_execute(driver, method, args)
     end
 
     # Look-up a module types in a system, returning a count of each type
@@ -317,17 +294,6 @@ module ACAEngine::Api
     # Create a core client for given module id
     def self.core_for(module_id : String, request_id : String? = nil) : Core::Client
       Core::Client.new(uri: self.locate_module(module_id), request_id: request_id)
-    end
-
-    # Determine user's Driver execution privilege
-    def self.driver_clearance(user : Model::User | Model::UserJWT)
-      if user.is_admin?
-        Driver::Proxy::RemoteDriver::Clearance::Admin
-      elsif user.is_support?
-        Driver::Proxy::RemoteDriver::Clearance::Support
-      else
-        Driver::Proxy::RemoteDriver::Clearance::User
-      end
     end
 
     # Lazy initializer for session_manager

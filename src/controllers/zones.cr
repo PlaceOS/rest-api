@@ -34,7 +34,7 @@ module ACAEngine::Api
       render json: elastic.search(query)
     end
 
-    # BREAKING_CHANGE: param key `data` used to attempt to retrieve a setting from the zone
+    # BREAKING CHANGE: param key `data` used to attempt to retrieve a setting from the zone
     def show
       if params.has_key? "complete"
         # Include trigger data in response
@@ -59,6 +59,11 @@ module ACAEngine::Api
       current_zone.destroy
       head :ok
     end
+
+    # # TODO: Module in zone exec
+    # post("/:id/exec/:module_slug/:method") do
+    #   module_slug, method = params["module_slug"], params["method"]
+    # end
 
     # Helpers
     ###########################################################################

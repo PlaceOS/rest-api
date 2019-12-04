@@ -6,12 +6,14 @@ require "./application"
 
 module ACAEngine::Api
   class Modules < Application
+    include Utils::CoreHelper
+
     base "/api/engine/v2/modules/"
 
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]
 
-    before_action :ensure_json, only: [:create, :update]
+    before_action :ensure_json, only: [:create, :update, :execute]
     before_action :find_module, only: [:show, :update, :destroy, :ping, :state]
 
     @module : Model::Module?
@@ -211,6 +213,18 @@ module ACAEngine::Api
     end
 
     post(":id/exec/:method", :execute) do
+      method = params["method"]
+      args = Array(JSON::Any).from_json(request.body.as(IO))
+      mod = current_module
+
+      driver = Driver::Proxy::RemoteDriver.new(
+        module_id: mod.id.as(String),
+        sys_id: mod.control_system_id.as(String),
+        module_name: mod.name.as(String),
+        discovery: Systems.core_discovery,
+      )
+
+      driver_execute(driver, method, args)
     end
 
     # Helpers
