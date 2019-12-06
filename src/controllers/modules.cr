@@ -1,5 +1,4 @@
 require "pinger"
-
 require "engine-driver/storage"
 
 require "./application"
@@ -151,10 +150,7 @@ module ACAEngine::Api
       head :ok
     end
 
-    ##
-    # Additional Functions:
-    ##
-
+    # Starts a module
     post(":id/start", :start) do
       mod = current_module
       head :ok if mod.running == true
@@ -170,6 +166,7 @@ module ACAEngine::Api
       end
     end
 
+    # Stops a module
     post(":id/stop", :stop) do
       mod = current_module
       head :ok unless mod.running
@@ -183,6 +180,42 @@ module ACAEngine::Api
       else
         head :ok
       end
+    end
+
+    # Executes a command on a module
+    post(":id/exec/:method", :execute) do
+      id, method = params["id"], params["method"]
+      mod = current_module
+      module_name = mod.name.as(String)
+      sys_id = mod.control_system_id.as(String)
+      args = Array(JSON::Any).from_json(request.body.as(IO))
+
+      remote_driver = Driver::Proxy::RemoteDriver.new(
+        module_id: id,
+        sys_id: sys_id,
+        module_name: module_name,
+        discovery: Systems.core_discovery,
+      )
+      response = remote_driver.exec(
+        security: driver_clearance(user_token),
+        function: method,
+        args: args,
+        request_id: logger.request_id,
+      )
+      render json: response
+    rescue e : Driver::Proxy::RemoteDriver::Error
+      driver_execute_error_response(e)
+    rescue e
+      logger.tag_error(
+        message: "core execute request failed",
+        error: e.message,
+        sys_id: sys_id,
+        module_id: id,
+        method: method,
+        module_name: module_name,
+        backtrace: e.inspect_with_backtrace,
+      )
+      render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
     end
 
     # Dumps the complete status state of the module
@@ -210,21 +243,6 @@ module ACAEngine::Api
           exception: pinger.exception,
         }
       end
-    end
-
-    post(":id/exec/:method", :execute) do
-      method = params["method"]
-      args = Array(JSON::Any).from_json(request.body.as(IO))
-      mod = current_module
-
-      driver = Driver::Proxy::RemoteDriver.new(
-        module_id: mod.id.as(String),
-        sys_id: mod.control_system_id.as(String),
-        module_name: mod.name.as(String),
-        discovery: Systems.core_discovery,
-      )
-
-      driver_execute(driver, method, args)
     end
 
     # Helpers

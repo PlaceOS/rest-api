@@ -162,15 +162,27 @@ module ACAEngine::Api
     #
     post("/:sys_id/:module_slug/:method", :execute) do
       sys_id, module_slug, method = params["sys_id"], params["module_slug"], params["method"]
-      module_name, index = parse_module_slug(module_slug).as({String, Int32})
+      module_name, index = Driver::Proxy.get_parts(module_slug)
       args = Array(JSON::Any).from_json(request.body.as(IO))
 
-      driver = Driver::Proxy::RemoteDriver.new(
+      remote_driver = Driver::Proxy::RemoteDriver.new(
         sys_id: sys_id,
         module_name: module_name,
         index: index
       )
-      driver_execute(driver, method, args)
+
+      response = remote_driver.exec(
+        security: driver_clearance(user_token),
+        function: method,
+        args: args,
+        request_id: logger.request_id,
+      )
+      render json: response
+    rescue e : Driver::Proxy::RemoteDriver::Error
+      driver_execute_error_response(e)
+    rescue e
+      logger.tag_error("core execute request failed", error: e.message, sys_id: sys_id, module_name: module_name, backtrace: e.inspect_with_backtrace)
+      render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
     end
 
     # Look-up a module types in a system, returning a count of each type
@@ -188,7 +200,7 @@ module ACAEngine::Api
     #
     get("/:sys_id/:module_slug", :state) do
       sys_id, module_slug = params["sys_id"], params["module_slug"]
-      module_name, index = parse_module_slug(module_slug).as({String, Int32})
+      module_name, index = Driver::Proxy.get_parts(module_slug)
 
       render json: module_state(sys_id, module_name, index)
     end
@@ -197,7 +209,7 @@ module ACAEngine::Api
     #
     get("/:sys_id/:module_slug/:key", :state_lookup) do
       sys_id, key, module_slug = params["sys_id"], params["key"], params["module_slug"]
-      module_name, index = parse_module_slug(module_slug).as({String, Int32})
+      module_name, index = Driver::Proxy.get_parts(module_slug)
 
       render json: module_state(sys_id, module_name, index, key)
     end
@@ -206,8 +218,8 @@ module ACAEngine::Api
     # Filters higher privilege functions.
     get("/:sys_id/functions/:module_slug", :functions) do
       sys_id, module_slug = params["sys_id"], params["module_slug"]
-      module_name, index = parse_module_slug(module_slug).as({String, Int32})
-      metadata = ACAEngine::Driver::Proxy::System.driver_metadata?(
+      module_name, index = Driver::Proxy.get_parts(module_slug)
+      metadata = Driver::Proxy::System.driver_metadata?(
         system_id: sys_id,
         module_name: module_name,
         index: index,
@@ -251,15 +263,6 @@ module ACAEngine::Api
         storage = ACAEngine::Driver::Storage.new(module_id)
         # Perform lookup, otherwise dump state
         key ? storage[key] : storage.to_h
-      end
-    end
-
-    def parse_module_slug(module_slug : String) : {String, Int32}?
-      if module_slug.count('_') == 1
-        module_name, index = module_slug.split('_')
-        ({module_name, index.to_i})
-      else
-        head :bad_request
       end
     end
 

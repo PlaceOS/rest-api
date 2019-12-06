@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    commit: 9d6f20a31db772296d603ea08ae3f084cae85432
+    commit: 4937bad23f62aa10918be2468d7ad9f2607ecac1
 
   active-model:
     github: spider-gazelle/active-model
@@ -38,19 +38,19 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: 77d9a58c6ee91091bc2ef8ac58c1defc8d20e40b
+    commit: 3d509353678c89f27bd1350c463d0c0400d1c06a
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: fe7a9e2c06c133a52ca1924992d558082f9cead3
+    commit: 807cd9fb6acac98a12e782ded26a205e1cb53545
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
-    commit: 026e2a1d09af80d1c9d46a80ca1d683db4f01f80
+    commit: 8a70a9e3823e774577838d813cb9d91c7bab3c90
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: ed4fbc26961501a0800f4913f2924c03706dd2f8
+    commit: edf7154b9472ca7ec181a6543aaa73475e919950
 
   etcd:
     github: aca-labs/crystal-etcd
@@ -126,7 +126,7 @@ shards:
 
   redis:
     github: stefanwille/crystal-redis
-    version: 2.2.1
+    version: 2.5.0
 
   rendezvous-hash:
     github: caspiano/rendezvous-hash

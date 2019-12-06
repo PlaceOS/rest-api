@@ -516,17 +516,13 @@ module ACAEngine
         name:        request.name,
       }
       case request.command
+      when Request::Command::Bind   then bind(**arguments)
+      when Request::Command::Unbind then unbind(**arguments)
+      when Request::Command::Debug  then debug
+      when Request::Command::Ignore then ignore
       when Request::Command::Exec
         args = request.args.as(Array(JSON::Any))
         exec(**arguments.merge({args: args}))
-      when Request::Command::Bind
-        bind(**arguments)
-      when Request::Command::Unbind
-        unbind(**arguments)
-      when Request::Command::Debug
-        debug
-      when Request::Command::Ignore
-        ignore
       else
         @logger.tag_error("unrecognised websocket command", cmd: request.command)
       end
