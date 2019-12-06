@@ -53,6 +53,10 @@ dependencies:
     github: spider-gazelle/pinger
     version: ~> 1.0
 
+  # A familiar abstraction over native Fibers
+  promise:
+    github: spider-gazelle/promise
+
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm

@@ -114,7 +114,7 @@ shards:
 
   promise:
     github: spider-gazelle/promise
-    version: 1.3.0
+    version: 1.4.2
 
   protobuf:
     github: jeromegn/protobuf.cr

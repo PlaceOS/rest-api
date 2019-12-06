@@ -1,7 +1,10 @@
+require "promise"
+
 require "./application"
 
 module ACAEngine::Api
   class Zones < Application
+    include Utils::CoreHelper
     base "/api/engine/v2/zones/"
 
     before_action :check_admin, except: [:index]
@@ -60,10 +63,79 @@ module ACAEngine::Api
       head :ok
     end
 
-    # # TODO: Module in zone exec
-    # post("/:id/exec/:module_slug/:method") do
-    #   module_slug, method = params["module_slug"], params["method"]
-    # end
+    private enum ExecStatus
+      Success
+      Failure
+      Missing
+    end
+
+    # Execute a method on a module across all systems in a Zone
+    post("/:id/exec/:module_slug/:method") do
+      zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
+      args = Array(JSON::Any).from_json(request.body.as(IO))
+      module_name, index = Driver::Proxy.get_parts(module_slug)
+
+      # TODO: Promise callback renders external values nillable?
+      # execute_results = Promise.map(current_zone.systems) do |system|
+      execute_results = current_zone.systems.map do |system|
+        system_id = system.id.as(String)
+        remote_driver = Driver::Proxy::RemoteDriver.new(
+          sys_id: system_id,
+          module_name: module_name.as(String),
+          index: index.as(Int32)
+        )
+
+        response = remote_driver.exec(
+          security: driver_clearance(user_token),
+          function: method.as(String),
+          args: args.as(Array(JSON::Any)),
+          request_id: logger.request_id.as(String),
+        )
+
+        logger.tag_debug(
+          message: "successful module exec",
+          system_id: system_id,
+          module_name: module_name,
+          index: index,
+          method: method,
+          output: response
+        )
+
+        {system_id.as(String), ExecStatus::Success}
+      rescue e : Driver::Proxy::RemoteDriver::Error
+        driver_execute_error_response(e, respond: false)
+        if e.error_code == Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound
+          {system_id.as(String), ExecStatus::Missing}
+        else
+          {system_id.as(String), ExecStatus::Failure}
+        end
+      end
+
+      response = {success: [] of String, failure: [] of String, module_missing: [] of String}
+      execute_results.each do |system_id, status|
+        key = case status
+              when ExecStatus::Success then :success
+              when ExecStatus::Failure then :failures
+              when ExecStatus::Missing then :module_missing
+              end.as(Symbol) # TODO: remove once merged https://github.com/crystal-lang/crystal/pull/8424
+        response[key] << system_id
+      end
+
+      render json: response
+    rescue e : Driver::Proxy::RemoteDriver::Error
+      driver_execute_error_response(e)
+    rescue e
+      logger.tag_error(
+        message: "core execute request failed",
+        error: e.message,
+        zone_id: zone_id,
+        module_name: module_name,
+        index: index,
+        method: method,
+        backtrace: e.inspect_with_backtrace,
+      )
+      render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
+    end
 
     # Helpers
     ###########################################################################

@@ -211,8 +211,8 @@ module ACAEngine::Api
         error: e.message,
         sys_id: sys_id,
         module_id: id,
-        method: method,
         module_name: module_name,
+        method: method,
         backtrace: e.inspect_with_backtrace,
       )
       render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error

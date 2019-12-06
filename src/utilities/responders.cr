@@ -35,33 +35,32 @@ module ACAEngine::Api
     end
 
     # RemoteDriver Execute error responder
-    def driver_execute_error_response(error : Driver::Proxy::RemoteDriver::Error)
+    def driver_execute_error_response(error : Driver::Proxy::RemoteDriver::Error, respond : Bool = true)
+      status, severity = case error.error_code
+                         when Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound,
+                              Driver::Proxy::RemoteDriver::ErrorCode::SystemNotFound
+                           {HTTP::Status::NOT_FOUND, Logger::Severity::INFO}
+                         when Driver::Proxy::RemoteDriver::ErrorCode::ParseError,
+                              Driver::Proxy::RemoteDriver::ErrorCode::BadRequest,
+                              Driver::Proxy::RemoteDriver::ErrorCode::UnknownCommand
+                           {HTTP::Status::BAD_REQUEST, Logger::Severity::ERROR}
+                         when Driver::Proxy::RemoteDriver::ErrorCode::RequestFailed,
+                              Driver::Proxy::RemoteDriver::ErrorCode::UnexpectedFailure
+                           {HTTP::Status::INTERNAL_SERVER_ERROR, Logger::Severity::INFO}
+                         when Driver::Proxy::RemoteDriver::ErrorCode::AccessDenied
+                           {HTTP::Status::UNAUTHORIZED, Logger::Severity::INFO}
+                         end.not_nil! # TODO: remove once merged https://github.com/crystal-lang/crystal/pull/8424
       message = error.error_code.to_s.gsub('_', ' ')
-      meta = {
-        message:     error.message || "",
-        error:       message,
-        sys_id:      error.system_id,
+      logger.tag(
+        message: error.message || "",
+        severity: severity,
+        error: message,
+        sys_id: error.system_id,
         module_name: error.module_name,
-        index:       error.index,
-      }
-      case error.error_code
-      when Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound,
-           Driver::Proxy::RemoteDriver::ErrorCode::SystemNotFound
-        logger.tag_info(**meta)
-        render status: :not_found, text: message
-      when Driver::Proxy::RemoteDriver::ErrorCode::ParseError,
-           Driver::Proxy::RemoteDriver::ErrorCode::BadRequest,
-           Driver::Proxy::RemoteDriver::ErrorCode::UnknownCommand
-        logger.tag_error(**meta.merge({remote_backtrace: error.remote_backtrace}))
-        render status: :bad_request, text: message
-      when Driver::Proxy::RemoteDriver::ErrorCode::RequestFailed,
-           Driver::Proxy::RemoteDriver::ErrorCode::UnexpectedFailure
-        logger.tag_info(**meta.merge({remote_backtrace: error.remote_backtrace}))
-        render status: :internal_server_error, text: message
-      when Driver::Proxy::RemoteDriver::ErrorCode::AccessDenied
-        logger.tag_info(**meta)
-        head :unauthorized
-      end
+        index: error.index,
+        remote_backtrace: error.remote_backtrace,
+      )
+      render(status: status, text: message) if respond
     end
   end
 end
