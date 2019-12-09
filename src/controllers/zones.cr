@@ -83,21 +83,14 @@ module ACAEngine::Api
           index: index.as(Int32)
         )
 
-        response = remote_driver.exec(
+        output = remote_driver.exec(
           security: driver_clearance(user_token),
           function: method.as(String),
           args: args.as(Array(JSON::Any)),
           request_id: logger.request_id.as(String),
         )
 
-        logger.tag_debug(
-          message: "successful module exec",
-          system_id: system_id,
-          module_name: module_name,
-          index: index,
-          method: method,
-          output: response
-        )
+        logger.tag_debug("module exec success", system_id: system_id, module_name: module_name, index: index, method: method, output: output)
 
         {system_id.as(String), ExecStatus::Success}
       rescue e : Driver::Proxy::RemoteDriver::Error
@@ -109,7 +102,7 @@ module ACAEngine::Api
         end
       end.get.not_nil!.to_a.compact # TODO implement Promise.compact_map
 
-      response = results.each_with_object({
+      response_object = results.each_with_object({
         success:        [] of String,
         failure:        [] of String,
         module_missing: [] of String,
@@ -121,9 +114,7 @@ module ACAEngine::Api
         end.as(Array(String)) << id
       end
 
-      render json: response
-    rescue e : Driver::Proxy::RemoteDriver::Error
-      handle_execute_error(e)
+      render json: response_object
     rescue e
       logger.tag_error(
         message: "core execute request failed",
