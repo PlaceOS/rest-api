@@ -35,7 +35,9 @@ module ACAEngine::Api
     end
 
     # RemoteDriver Execute error responder
-    def driver_execute_error_response(error : Driver::Proxy::RemoteDriver::Error, respond : Bool = true)
+    #
+    # With respond = `true`, method acts as a logging function
+    def handle_execute_error(error : Driver::Proxy::RemoteDriver::Error, respond : Bool = true)
       status, severity = case error.error_code
                          when Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound,
                               Driver::Proxy::RemoteDriver::ErrorCode::SystemNotFound

@@ -75,9 +75,7 @@ module ACAEngine::Api
       args = Array(JSON::Any).from_json(request.body.as(IO))
       module_name, index = Driver::Proxy.get_parts(module_slug)
 
-      # TODO: Promise callback renders external values nillable?
-      # execute_results = Promise.map(current_zone.systems) do |system|
-      execute_results = current_zone.systems.map do |system|
+      results = Promise.map(current_zone.systems) do |system|
         system_id = system.id.as(String)
         remote_driver = Driver::Proxy::RemoteDriver.new(
           sys_id: system_id,
@@ -103,27 +101,29 @@ module ACAEngine::Api
 
         {system_id.as(String), ExecStatus::Success}
       rescue e : Driver::Proxy::RemoteDriver::Error
-        driver_execute_error_response(e, respond: false)
+        handle_execute_error(e, respond: false)
         if e.error_code == Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound
           {system_id.as(String), ExecStatus::Missing}
         else
           {system_id.as(String), ExecStatus::Failure}
         end
-      end
+      end.get.not_nil!.to_a.compact # TODO implement Promise.compact_map
 
-      response = {success: [] of String, failure: [] of String, module_missing: [] of String}
-      execute_results.each do |system_id, status|
-        key = case status
-              when ExecStatus::Success then :success
-              when ExecStatus::Failure then :failures
-              when ExecStatus::Missing then :module_missing
-              end.as(Symbol) # TODO: remove once merged https://github.com/crystal-lang/crystal/pull/8424
-        response[key] << system_id
+      response = results.each_with_object({
+        success:        [] of String,
+        failure:        [] of String,
+        module_missing: [] of String,
+      }) do |(id, status), obj|
+        case status
+        when ExecStatus::Success then obj[:success]
+        when ExecStatus::Failure then obj[:failure]
+        when ExecStatus::Missing then obj[:module_missing]
+        end.as(Array(String)) << id
       end
 
       render json: response
     rescue e : Driver::Proxy::RemoteDriver::Error
-      driver_execute_error_response(e)
+      handle_execute_error(e)
     rescue e
       logger.tag_error(
         message: "core execute request failed",

@@ -204,7 +204,7 @@ module ACAEngine::Api
       )
       render json: response
     rescue e : Driver::Proxy::RemoteDriver::Error
-      driver_execute_error_response(e)
+      handle_execute_error(e)
     rescue e
       logger.tag_error(
         message: "core execute request failed",

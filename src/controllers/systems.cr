@@ -179,7 +179,7 @@ module ACAEngine::Api
       )
       render json: response
     rescue e : Driver::Proxy::RemoteDriver::Error
-      driver_execute_error_response(e)
+      handle_execute_error(e)
     rescue e
       logger.tag_error("core execute request failed", error: e.message, sys_id: sys_id, module_name: module_name, backtrace: e.inspect_with_backtrace)
       render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
