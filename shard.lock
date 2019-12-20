@@ -10,11 +10,15 @@ shards:
 
   active-model:
     github: spider-gazelle/active-model
-    commit: 339ec3f53aaf863cf5c70937161320bab459ce28
+    commit: cfb070793fd53cc20c799761aa5fe8b195e75739
 
   ameba:
     github: veelenga/ameba
     version: 0.10.1
+
+  bindata:
+    github: spider-gazelle/bindata
+    version: 1.2.0
 
   bisect:
     github: spider-gazelle/bisect
@@ -38,19 +42,19 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: 3d509353678c89f27bd1350c463d0c0400d1c06a
+    commit: 71162b31327bce4ba9368d91d6ae18481d64caad
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 807cd9fb6acac98a12e782ded26a205e1cb53545
+    commit: 7e701ed3da0109349d184ff349b558ff3d0ed980
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
-    commit: 8a70a9e3823e774577838d813cb9d91c7bab3c90
+    commit: bfa2743f534fd486ac04076605c44f37ddfb9b5b
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: edf7154b9472ca7ec181a6543aaa73475e919950
+    commit: 5e7e400cde10d586d277dff6820be424d4ae11de
 
   etcd:
     github: aca-labs/crystal-etcd
@@ -58,7 +62,7 @@ shards:
 
   exec_from:
     github: aca-labs/exec_from
-    version: 1.0.2
+    commit: 0372de93356432eed1c1aa7c55f97cf9ecc14553
 
   faker:
     github: askn/faker
@@ -82,7 +86,7 @@ shards:
 
   jwt:
     github: crystal-community/jwt
-    version: 1.1.2
+    version: 1.4.0
 
   kilt:
     github: jeromegn/kilt
@@ -98,7 +102,7 @@ shards:
 
   openssl_ext:
     github: stakach/openssl_ext
-    version: 1.0.0
+    version: 1.2.0
 
   pinger:
     github: spider-gazelle/pinger
@@ -114,7 +118,7 @@ shards:
 
   promise:
     github: spider-gazelle/promise
-    version: 1.4.2
+    version: 1.4.3
 
   protobuf:
     github: jeromegn/protobuf.cr
