@@ -132,8 +132,7 @@ module ACAEngine::Api
     ###########################################################################
 
     def current_zone : Model::Zone
-      return @zone.as(Model::Zone) if @zone
-      find_zone
+      @zone || find_zone
     end
 
     def find_zone

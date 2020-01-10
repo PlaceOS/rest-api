@@ -52,8 +52,7 @@ module ACAEngine::Api
     ###########################################################################
 
     def current_settings : Model::Settings
-      return @settings.as(Model::Settings) if @settings
-      find_settings
+      @settings || find_settings
     end
 
     def find_settings

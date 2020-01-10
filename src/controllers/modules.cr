@@ -254,8 +254,7 @@ module ACAEngine::Api
     end
 
     def current_module : Model::Module
-      return @module.as(Model::Module) if @module
-      find_module
+      @module || find_module
     end
 
     def find_module

@@ -43,8 +43,7 @@ module ACAEngine::Api
     ###########################################################################
 
     def current_trigger
-      return @trig.as(Model::Trigger) if @trig
-      find_trigger
+      @trig || find_trigger
     end
 
     def find_trigger
