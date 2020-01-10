@@ -7,7 +7,7 @@ module ACAEngine::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_repo, only: [:show, :update, :destroy]
+    before_action :find_repo, only: [:show, :update, :destroy, :drivers, :commits]
 
     @repo : Model::Repository?
 
@@ -38,6 +38,28 @@ module ACAEngine::Api
     def destroy
       current_repo.destroy
       head :ok
+    end
+
+    get "/:id/drivers", :drivers do
+      reporitory = current_repo.folder_name.not_nil!
+
+      # Request to core:
+      # "/api/core/v1/drivers/?repository=#{reporitory}"
+      # Returns: `["path/to/file.cr"]`
+      core_client = Api::Systems.core_for(reporitory, logger.request_id)
+      render json: core_client.drivers(reporitory)
+    end
+
+    get "/:id/commits", :commits do
+      number_of_commits = (params["count"]? || "50").to_i
+      reporitory = current_repo.folder_name.not_nil!
+      file_name = params["driver"]
+
+      # Request to core:
+      # "/api/core/v1/drivers/#{file_name}/?repository=#{reporitory}&count=#{number_of_commits}"
+      # Returns: `[{commit:, date:, author:, subject:}]`
+      core_client = Api::Systems.core_for(reporitory, logger.request_id)
+      render json: core_client.driver(file_name, reporitory, number_of_commits)
     end
 
     #  Helpers
