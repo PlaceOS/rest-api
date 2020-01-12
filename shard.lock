@@ -34,7 +34,7 @@ shards:
 
   cron_parser:
     github: kostya/cron_parser
-    version: 0.2.0
+    version: 0.3.0
 
   crystal-rethinkdb:
     github: kingsleyh/crystal-rethinkdb
@@ -46,11 +46,11 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: 92c1bf4b58bdfc3d368394a702b7f09f557190ff
+    commit: e9cb330eb52d234ff2f3745cd3c919a1e84b6bfc
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 3c72ac508839603b430eea809591ff05516746ab
+    commit: 8a42b8d7bac0a22b7a6cf8b9b6b03ef4d06ac221
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
