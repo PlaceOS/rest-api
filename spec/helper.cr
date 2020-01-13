@@ -85,7 +85,7 @@ macro test_base_index(klass, controller_klass)
     end
 
     doc.persisted?.should be_true
-    sleep 1.05
+    sleep 1.2
 
     params = HTTP::Params.encode({"q" => doc.id.as(String)})
     path = "#{{{controller_klass}}::NAMESPACE[0]}?#{params}"

@@ -41,13 +41,13 @@ module ACAEngine::Api
     end
 
     get "/:id/drivers", :drivers do
-      reporitory = current_repo.folder_name.not_nil!
+      repository = current_repo.folder_name.not_nil!
 
       # Request to core:
-      # "/api/core/v1/drivers/?repository=#{reporitory}"
+      # "/api/core/v1/drivers/?repository=#{repository}"
       # Returns: `["path/to/file.cr"]`
-      core_client = Api::Systems.core_for(reporitory, logger.request_id)
-      render json: core_client.drivers(reporitory)
+      core_client = Api::Systems.core_for(repository, logger.request_id)
+      render json: core_client.drivers(repository)
     end
 
     get "/:id/commits", :commits do
@@ -59,22 +59,22 @@ module ACAEngine::Api
       # "/api/core/v1/drivers/#{file_name}/?repository=#{reporitory}&count=#{number_of_commits}"
       # Returns: `[{commit:, date:, author:, subject:}]`
       core_client = Api::Systems.core_for(reporitory, logger.request_id)
-      render json: core_client.driver(file_name, reporitory, number_of_commits)
+      render json: core_client.driver(file_name, repository, number_of_commits)
     end
 
     get "/:id/details", :commits do
-      reporitory = current_repo.folder_name.not_nil!
+      repository = current_repo.folder_name.not_nil!
       driver = params["driver"]
       commit = params["commit"]
 
       # Request to core:
-      # "/api/core/v1/drivers/#{file_name}/details?repository=#{reporitory}&count=#{number_of_commits}"
+      # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
       # Returns: `[{commit:, date:, author:, subject:}]`
       core_client = Api::Systems.core_for(driver, logger.request_id)
 
       # The raw JSON string is returned
-      response.headers["Content-Type"] = "application/json"
-      render text: core_client.driver_details(driver, commit, reporitory)
+      response.headers["Content-Type"] = "Application/json"
+      render text: core_client.driver_details(driver, commit, repository)
     end
 
     #  Helpers
