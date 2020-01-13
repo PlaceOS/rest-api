@@ -133,8 +133,7 @@ module ACAEngine::Api
     end
 
     def current_sys_trig : Model::TriggerInstance
-      return @sys_trig.as(Model::TriggerInstance) if @sys_trig
-      find_sys_trig
+      @sys_trig || find_sys_trig
     end
 
     def find_sys_trig

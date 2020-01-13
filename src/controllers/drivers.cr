@@ -59,8 +59,7 @@ module ACAEngine::Api
     ###########################################################################
 
     def current_driver : Model::Driver
-      return @driver.as(Model::Driver) if @driver
-      find_driver
+      @driver || find_driver
     end
 
     def find_driver

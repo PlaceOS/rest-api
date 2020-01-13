@@ -310,8 +310,7 @@ module ACAEngine::Api
     end
 
     def current_system : Model::ControlSystem
-      return @control_system.as(Model::ControlSystem) if @control_system
-      find_system
+      @control_system || find_system
     end
 
     def find_system

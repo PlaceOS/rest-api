@@ -81,14 +81,12 @@ module ACAEngine::Api
     # end
 
     protected def find_user
-      @user = Model::User.find!(params["id"]?) unless @user
+      @user || (@user = Model::User.find!(params["id"]?))
     end
 
     protected def check_authorization
-      find_user unless @user
-
       # Does the current user have permission to perform the current action
-      head :forbidden unless (@user.try &.id) == current_user.id || is_admin?
+      head :forbidden unless (find_user.try &.id) == current_user.id || is_admin?
     end
   end
 end
