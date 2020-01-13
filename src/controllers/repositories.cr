@@ -7,7 +7,7 @@ module ACAEngine::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_repo, only: [:show, :update, :destroy, :drivers, :commits]
+    before_action :find_repo, only: [:show, :update, :destroy, :drivers, :commits, :details]
 
     @repo : Model::Repository?
 
@@ -62,7 +62,7 @@ module ACAEngine::Api
       render json: core_client.driver(file_name, repository, number_of_commits)
     end
 
-    get "/:id/details", :commits do
+    get "/:id/details", :details do
       repository = current_repo.folder_name.not_nil!
       driver = params["driver"]
       commit = params["commit"]
