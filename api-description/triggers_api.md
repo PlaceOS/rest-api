@@ -10,23 +10,25 @@ Has the regular CRUD methods for the model
 
 https://github.com/aca-labs/crystal-engine-models/blob/master/src/engine-models/trigger.cr
 
-```
+```yaml
 {
-  "name": "string", (required)
+  "name": "string",
   "description": "string",
   "conditions": {
-    "comparisons": [Array of Comparison objects]
+    "comparisons": [Array of Comparison objects],
     "time_dependents": [Array of Time objects]
-  }
+  },
   "actions": {
     "functions": [Array of functions to call],
     "mailers": [Array of emails to send]
-  }
+  },
 
-  "enable_webhook": true / false
-  "supported_methods": ["POST", "GET"]  (the verbs supported by this web hook when enabled - GET POST PUT PATCH DELETE)
+  # Should instances of this trigger enable a webhook?
+  "enable_webhook": true,
 
-  "important": true / false
+  # (the verbs supported by this web hook when enabled - GET POST PUT PATCH DELETE)
+  "supported_methods": ["POST", "GET"],
+  "important": false
 }
 ```
 
