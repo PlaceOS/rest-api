@@ -52,13 +52,13 @@ module ACAEngine::Api
 
     get "/:id/commits", :commits do
       number_of_commits = (params["count"]? || "50").to_i
-      reporitory = current_repo.folder_name.not_nil!
+      repository = current_repo.folder_name.not_nil!
       file_name = params["driver"]
 
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/?repository=#{reporitory}&count=#{number_of_commits}"
       # Returns: `[{commit:, date:, author:, subject:}]`
-      core_client = Api::Systems.core_for(reporitory, logger.request_id)
+      core_client = Api::Systems.core_for(repository, logger.request_id)
       render json: core_client.driver(file_name, repository, number_of_commits)
     end
 
