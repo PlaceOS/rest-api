@@ -56,7 +56,7 @@ module ACAEngine::Api
       file_name = params["driver"]
 
       # Request to core:
-      # "/api/core/v1/drivers/#{file_name}/?repository=#{reporitory}&count=#{number_of_commits}"
+      # "/api/core/v1/drivers/#{file_name}/?repository=#{repository}&count=#{number_of_commits}"
       # Returns: `[{commit:, date:, author:, subject:}]`
       core_client = Api::Systems.core_for(repository, logger.request_id)
       render json: core_client.driver(file_name, repository, number_of_commits)

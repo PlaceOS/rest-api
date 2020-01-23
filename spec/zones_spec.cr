@@ -9,11 +9,11 @@ module ACAEngine::Api
     with_server do
       test_404(base, model_name: Model::Zone.table_name, headers: authorization_header)
 
-      describe "index" do
+      describe "index", tags: "search" do
         test_base_index(klass: Model::Zone, controller_klass: Zones)
       end
 
-      describe "CRUD operations" do
+      describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Zone, controller_klass: Zones)
         it "update" do
           zone = Model::Generator.zone.save!

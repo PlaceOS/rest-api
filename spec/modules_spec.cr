@@ -9,7 +9,7 @@ module ACAEngine::Api
     with_server do
       test_404(base, model_name: Model::Module.table_name, headers: authorization_header)
 
-      describe "CRUD operations" do
+      describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Module, controller_klass: Modules)
 
         it "update" do
@@ -35,7 +35,7 @@ module ACAEngine::Api
         end
       end
 
-      describe "index" do
+      describe "index", tags: "search" do
         test_base_index(klass: Model::Module, controller_klass: Modules)
 
         it "looks up by system_id" do

@@ -52,10 +52,6 @@ module ACAEngine::Api
             "ignore_connected" => [false],
             "connected"        => [connected],
           })
-          unless connected
-            query.filter({"ignore_connected" => nil}) # FIXME: dubious... field with default, unlikely to be nil
-            query.should({"ignore_connected" => [false]})
-          end
         end
 
         if (running = args.running)

@@ -7,8 +7,8 @@ module ACAEngine::Api
     with_server do
       test_404(base, model_name: Model::Settings.table_name, headers: authorization_header)
 
-      describe "index" do
-        test_base_index(klass: Model::Settings, controller_klass: Settings)
+      describe "index", tags: "search" do
+        pending "searchs on keys"
         pending "returns settings for a set of parent ids"
         it "returns settings for parent id" do
           sys = Model::Generator.control_system.save!
@@ -38,7 +38,7 @@ module ACAEngine::Api
         end
       end
 
-      describe "CRUD operations" do
+      describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Settings, controller_klass: Settings)
         it "update" do
           settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!

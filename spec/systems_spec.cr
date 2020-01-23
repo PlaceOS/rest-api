@@ -9,7 +9,7 @@ module ACAEngine::Api
     with_server do
       test_404(base, model_name: Model::ControlSystem.table_name, headers: authorization_header)
 
-      describe "index" do
+      describe "index", tags: "search" do
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
         it "filters systems by zones" do
@@ -42,8 +42,8 @@ module ACAEngine::Api
 
           result.status_code.should eq 200
 
-          returned_ids = (JSON.parse(result.body)["results"].as_a.compact_map &.["id"].as_s).sort
-          returned_ids.should eq (expected_systems.compact_map &.id).sort
+          returned_ids = JSON.parse(result.body)["results"].as_a.compact_map(&.["id"].as_s).sort
+          returned_ids.should eq expected_systems.compact_map(&.id).sort
         end
 
         it "filters systems by modules" do
@@ -239,7 +239,7 @@ module ACAEngine::Api
         end
       end
 
-      describe "CRUD operations" do
+      describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::ControlSystem, controller_klass: Systems)
 
         describe "update" do

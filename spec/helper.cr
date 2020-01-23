@@ -64,7 +64,7 @@ end
 
 # Check application responds with 404 when model not present
 def test_404(base, model_name, headers)
-  it "404s if #{model_name} isn't present in database" do
+  it "404s if #{model_name} isn't present in database", tags: "search" do
     id = "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
     path = base + id
     result = curl("GET", path: path, headers: headers)
@@ -72,11 +72,12 @@ def test_404(base, model_name, headers)
   end
 end
 
+# Test search on name field
 macro test_base_index(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
   authenticated_user, authorization_header = authentication
 
-  it "queries #{ {{ klass_name }} }" do
+  it "queries #{ {{ klass_name }} }", tags: "search" do
     doc = begin
       ACAEngine::Model::Generator.{{ klass_name.id }}.save!
     rescue e : RethinkORM::Error::DocumentInvalid
@@ -87,8 +88,8 @@ macro test_base_index(klass, controller_klass)
     doc.persisted?.should be_true
     sleep 1.2
 
-    params = HTTP::Params.encode({"q" => doc.id.as(String)})
-    path = "#{{{controller_klass}}::NAMESPACE[0]}?#{params}"
+    params = HTTP::Params.encode({"q" => doc.name.as(String)})
+    path = "#{{{controller_klass}}::NAMESPACE[0].rstrip('/')}?#{params}"
     result = curl(
       method: "GET",
       path: path,

@@ -7,7 +7,7 @@ module ACAEngine::Api
     base = Drivers::NAMESPACE[0]
 
     with_server do
-      describe "index" do
+      describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
         it "filters queries by driver role" do
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
@@ -42,7 +42,7 @@ module ACAEngine::Api
 
       test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
 
-      describe "CRUD operations" do
+      describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Driver, controller_klass: Drivers)
 
         describe "update" do

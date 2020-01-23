@@ -9,11 +9,11 @@ module ACAEngine::Api
     with_server do
       test_404(base, model_name: Model::Trigger.table_name, headers: authorization_header)
 
-      describe "index" do
+      describe "index", tags: "search" do
         test_base_index(klass: Model::Trigger, controller_klass: Triggers)
       end
 
-      describe "CRUD operations" do
+      describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Trigger, controller_klass: Triggers)
         it "update" do
           trigger = Model::Generator.trigger.save!

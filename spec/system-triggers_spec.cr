@@ -11,7 +11,7 @@ module ACAEngine::Api
         model_name: Model::TriggerInstance.table_name,
         headers: authorization_header,
       )
-      describe "index" do
+      describe "index", tags: "search" do
         it "as_of query" do
           inst1 = Model::Generator.trigger_instance.save!
           inst1.persisted?.should be_true
@@ -41,7 +41,7 @@ module ACAEngine::Api
         end
       end
 
-      describe "CRUD operations" do
+      describe "CRUD operations", tags: "crud" do
         it "create" do
           sys = Model::Generator.control_system.save!
           trigger_instance = Model::Generator.trigger_instance

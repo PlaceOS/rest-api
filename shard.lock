@@ -62,11 +62,11 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 3f734b214776c1f8c0c0bb18f512e1f289b47e9a
+    commit: 98acd836d37380ebaa8d56c4eb214d19d377f41c
 
   etcd:
     github: aca-labs/crystal-etcd
-    commit: 6f483ebd6a587909dfcaf133637e6d07a5dbd655
+    commit: b95bc066057cf1284f48f9980f8707c6c3d43e6b
 
   exec_from:
     github: aca-labs/exec_from
@@ -86,7 +86,7 @@ shards:
 
   hound-dog:
     github: aca-labs/hound-dog
-    commit: 2b9cc3e026ba57470d57c8900867444718207299
+    commit: 9c811ef491b6efb958b7a70069c70c070f86a81c
 
   ipaddress:
     github: Sija/ipaddress.cr
@@ -106,7 +106,7 @@ shards:
 
   neuroplastic:
     github: aca-labs/neuroplastic
-    version: 1.3.1
+    commit: 2e764788efa0e59f8b24605e3d71770459f3fb3a
 
   openssl_ext:
     github: stakach/openssl_ext

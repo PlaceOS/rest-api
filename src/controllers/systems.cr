@@ -33,8 +33,7 @@ module ACAEngine::Api
     @core : ACAEngine::Core::Client? = nil
 
     # Core service discovery
-    @@core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
-    class_getter core_discovery
+    class_getter core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
 
     # Strong params for index method
     class IndexParams < Params
@@ -50,15 +49,15 @@ module ACAEngine::Api
 
       # Filter systems via zone_id
       if (zone_id = args.zone_id)
-        query.filter({
-          "zones.keyword" => [zone_id],
+        query.must({
+          "zones" => [zone_id],
         })
       end
 
       # Filter via module_id
       if (module_id = args.module_id)
-        query.filter({
-          "modules.keyword" => [module_id],
+        query.must({
+          "modules" => [module_id],
         })
       end
 
@@ -304,7 +303,7 @@ module ACAEngine::Api
       (@@session_manager ||= Session::Manager.new(@@core_discovery)).as(Session::Manager)
     end
 
-    # Lazy initializer for core client
+    # Lazy getter for core client
     def core
       (@core ||= Core::Client.new(request_id: request.id)).as(Core::Client)
     end
