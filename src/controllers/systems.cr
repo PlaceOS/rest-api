@@ -10,6 +10,8 @@ module ACAEngine::Api
   class Systems < Application
     include Utils::CoreHelper
 
+    alias RemoteDriver = ::ACAEngine::Driver::Proxy::RemoteDriver
+
     base "/api/engine/v2/systems/"
 
     id_param :sys_id
@@ -161,10 +163,10 @@ module ACAEngine::Api
     #
     post("/:sys_id/:module_slug/:method", :execute) do
       sys_id, module_slug, method = params["sys_id"], params["module_slug"], params["method"]
-      module_name, index = Driver::Proxy.get_parts(module_slug)
+      module_name, index = RemoteDriver.get_parts(module_slug)
       args = Array(JSON::Any).from_json(request.body.as(IO))
 
-      remote_driver = Driver::Proxy::RemoteDriver.new(
+      remote_driver = RemoteDriver.new(
         sys_id: sys_id,
         module_name: module_name,
         index: index
@@ -177,7 +179,7 @@ module ACAEngine::Api
         request_id: logger.request_id,
       )
       render json: response
-    rescue e : Driver::Proxy::RemoteDriver::Error
+    rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e
       logger.tag_error("core execute request failed", error: e.message, sys_id: sys_id, module_name: module_name, backtrace: e.inspect_with_backtrace)
@@ -199,7 +201,7 @@ module ACAEngine::Api
     #
     get("/:sys_id/:module_slug", :state) do
       sys_id, module_slug = params["sys_id"], params["module_slug"]
-      module_name, index = Driver::Proxy.get_parts(module_slug)
+      module_name, index = RemoteDriver.get_parts(module_slug)
 
       render json: module_state(sys_id, module_name, index)
     end
@@ -208,7 +210,7 @@ module ACAEngine::Api
     #
     get("/:sys_id/:module_slug/:key", :state_lookup) do
       sys_id, key, module_slug = params["sys_id"], params["key"], params["module_slug"]
-      module_name, index = Driver::Proxy.get_parts(module_slug)
+      module_name, index = RemoteDriver.get_parts(module_slug)
 
       render json: module_state(sys_id, module_name, index, key)
     end
@@ -217,8 +219,8 @@ module ACAEngine::Api
     # Filters higher privilege functions.
     get("/:sys_id/functions/:module_slug", :functions) do
       sys_id, module_slug = params["sys_id"], params["module_slug"]
-      module_name, index = Driver::Proxy.get_parts(module_slug)
-      metadata = Driver::Proxy::System.driver_metadata?(
+      module_name, index = RemoteDriver.get_parts(module_slug)
+      metadata = ::ACAEngine::Driver::Proxy::System.driver_metadata?(
         system_id: sys_id,
         module_name: module_name,
         index: index,
@@ -251,7 +253,7 @@ module ACAEngine::Api
 
     def module_state(sys_id : String, module_name : String, index : Int32, key : String? = nil)
       # Look up module's id for module on system
-      module_id = ACAEngine::Driver::Proxy::System.module_id?(
+      module_id = ::ACAEngine::Driver::Proxy::System.module_id?(
         system_id: sys_id,
         module_name: module_name,
         index: index
@@ -289,7 +291,7 @@ module ACAEngine::Api
 
     # Determine URI for a system module
     def self.locate_module?(sys_id : String, module_name : String, index : Int32) : URI?
-      module_id = ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index)
+      module_id = ::ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index)
       module_id.try &->self.locate_module(String)
     end
 
