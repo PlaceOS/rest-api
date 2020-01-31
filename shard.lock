@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    commit: aab97fea685b1ad641b9628e6c4e885054ece477
+    commit: 5f21856f2805ff903ba985b3c71976c30100783f
 
   active-model:
     github: spider-gazelle/active-model
@@ -50,11 +50,11 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: 74ca2e0b45ba4e6671951345c5362059ab12e094
+    commit: f9b3fe5116d229fc56a933c9d35775e5baa3181e
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 5afc2c32e0197437c639439e4affa2d7b753ef0b
+    commit: f7c99b570c77b16484ff1bcc4733a90937c8c0d9
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
@@ -66,7 +66,7 @@ shards:
 
   etcd:
     github: aca-labs/crystal-etcd
-    commit: 985c76878617ad0c9b659f9c73f1ce4a3d48a8db
+    commit: d2a9829c3c2160647ecc8e3aaed3eb7990c14032
 
   exec_from:
     github: aca-labs/exec_from
@@ -86,7 +86,7 @@ shards:
 
   hound-dog:
     github: aca-labs/hound-dog
-    commit: 9c811ef491b6efb958b7a70069c70c070f86a81c
+    commit: 4b769c2caf873139a024517103df029594906cd0
 
   ipaddress:
     github: Sija/ipaddress.cr
