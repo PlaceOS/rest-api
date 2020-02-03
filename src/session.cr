@@ -414,6 +414,8 @@ module ACAEngine
     # Request handler
     #
     protected def on_message(data)
+      return @ws.send("pong") if data == "ping"
+
       # Execute the request
       request = parse_request(data)
       __send__(request) if request
