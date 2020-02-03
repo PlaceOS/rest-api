@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    commit: 5f21856f2805ff903ba985b3c71976c30100783f
+    commit: d0d05315c62923f4f5abd455da4b988d68e7f3de
 
   active-model:
     github: spider-gazelle/active-model
@@ -50,7 +50,7 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: f9b3fe5116d229fc56a933c9d35775e5baa3181e
+    commit: 802135113a286c3d2e0ea3f4c3cb6743426017a0
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
@@ -86,7 +86,7 @@ shards:
 
   hound-dog:
     github: aca-labs/hound-dog
-    commit: 4b769c2caf873139a024517103df029594906cd0
+    commit: d03b830eef527b44d5f03cdbae4534fb0d3d8f06
 
   ipaddress:
     github: Sija/ipaddress.cr
@@ -138,11 +138,11 @@ shards:
 
   rendezvous-hash:
     github: caspiano/rendezvous-hash
-    version: 0.2.2
+    version: 0.3.1
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: e3655f6b9a25d932c27f32cbaf847b2668bb1f6d
+    commit: 994b644d62378f5c691c7eb6562b737321898edc
 
   retriable:
     github: Sija/retriable.cr
