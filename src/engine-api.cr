@@ -1,5 +1,5 @@
 require "option_parser"
-require "./config"
+require "http/client"
 
 # Server defaults
 port = 3000
@@ -29,6 +29,17 @@ OptionParser.parse(ARGV.dup) do |parser|
     exit 0
   end
 
+  parser.on("-h URL", "--health=URL", "Perform a basic health check by requesting the URL") do |url|
+    begin
+      response = HTTP::Client.get url
+      exit 0 if (200..499).includes? response.status_code
+      exit 1
+    rescue error
+      error.inspect_with_backtrace(STDOUT)
+      exit 2
+    end
+  end
+
   parser.on("-h", "--help", "Show this help") do
     puts parser
     exit 0
@@ -46,6 +57,10 @@ end
 
 # Load the routes
 puts "Launching #{ACAEngine::Api::APP_NAME} v#{ACAEngine::Api::VERSION}"
+
+# Requiring config here ensures that the option parser runs before
+# we attempt to connect to redis etc.
+require "./config"
 server = ActionController::Server.new(port, host)
 
 # Start clustering
