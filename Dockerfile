@@ -50,5 +50,5 @@ COPY --from=0 /etc/hosts /etc/hosts
 
 # Run the app binding on port 3000
 EXPOSE 3000
-HEALTHCHECK CMD ["/engine-api", "-h", "http://127.0.0.1:3000/api/engine/v2/"]
+HEALTHCHECK CMD ["/engine-api", "-c", "http://127.0.0.1:3000/api/engine/v2/"]
 CMD ["/engine-api", "-b", "0.0.0.0", "-p", "3000"]

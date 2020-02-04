@@ -29,10 +29,11 @@ OptionParser.parse(ARGV.dup) do |parser|
     exit 0
   end
 
-  parser.on("-h URL", "--health=URL", "Perform a basic health check by requesting the URL") do |url|
+  parser.on("-c URL", "--curl=URL", "Perform a basic health check by requesting the URL") do |url|
     begin
       response = HTTP::Client.get url
       exit 0 if (200..499).includes? response.status_code
+      puts "health check failed, received response code #{response.status_code}"
       exit 1
     rescue error
       error.inspect_with_backtrace(STDOUT)
