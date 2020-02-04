@@ -65,6 +65,7 @@ Signal::TERM.trap &terminate
 # Start the server
 server.run do
   puts "Listening on #{server.print_addresses}"
+  STDOUT.flush
 end
 
 # Shutdown message

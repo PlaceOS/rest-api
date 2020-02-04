@@ -114,7 +114,7 @@ shards:
 
   pinger:
     github: spider-gazelle/pinger
-    version: 1.0.0
+    version: 1.0.1
 
   pool:
     github: ysbaddaden/pool
