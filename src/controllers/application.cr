@@ -49,7 +49,7 @@ module ACAEngine::Api
     # Error Handlers
     ###########################################################################
 
-    # 400 if resource not present
+    # 400 if unable to parse some JSON passed by a client
     rescue_from JSON::MappingError do |error|
       logger.debug error
 
