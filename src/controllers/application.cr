@@ -49,6 +49,19 @@ module ACAEngine::Api
     # Error Handlers
     ###########################################################################
 
+    # 400 if resource not present
+    rescue_from JSON::MappingError do |error|
+      logger.debug error
+
+      head :bad_request
+    end
+
+    rescue_from JSON::ParseException do |error|
+      logger.debug error
+
+      head :bad_request
+    end
+
     # 403 if user role invalid for a route
     rescue_from Error::Unauthorized do |error|
       logger.debug error
