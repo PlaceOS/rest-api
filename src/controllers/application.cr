@@ -53,13 +53,21 @@ module ACAEngine::Api
     rescue_from JSON::MappingError do |error|
       logger.debug error
 
-      head :bad_request
+      if PROD
+        render :bad_request, text: error.message
+      else
+        render :bad_request, text: error.inspect_with_backtrace
+      end
     end
 
     rescue_from JSON::ParseException do |error|
       logger.debug error
 
-      head :bad_request
+      if PROD
+        render :bad_request, text: error.message
+      else
+        render :bad_request, text: error.inspect_with_backtrace
+      end
     end
 
     # 403 if user role invalid for a route
