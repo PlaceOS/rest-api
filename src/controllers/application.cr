@@ -26,7 +26,7 @@ module ACAEngine::Api
       response.headers["X-Total-Count"] = total_items.to_s
       response.headers["Accept-Ranges"] = item_type
       response.headers["Content-Range"] = "#{item_type} #{range_start}-#{range_end}/#{total_items}"
-      if route && range_end != total_items
+      if range_end < total_items
         response.headers["Link"] = %(<#{route}?offset=#{range_end + 1}&limit=#{query.limit}>; rel="next")
       end
       data[:results]
