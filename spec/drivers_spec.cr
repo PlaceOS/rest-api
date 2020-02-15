@@ -30,7 +30,7 @@ module ACAEngine::Api
           )
 
           result.status_code.should eq 200
-          results = JSON.parse(result.body)["results"].as_a
+          results = JSON.parse(result.body).as_a
 
           all_service_roles = results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }
           contains_search_term = results.any? { |r| r["id"] == service.id }
