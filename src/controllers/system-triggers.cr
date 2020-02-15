@@ -60,12 +60,8 @@ module ACAEngine::Api
       # Include parent documents in the search
       query.has_parent(parent: Model::Trigger, parent_index: Model::Trigger.table_name)
 
-      results = elastic.search(query)[:results]
-      system_triggers = render_system_triggers(results, args.trigger_id)
-      render json: {
-        results: system_triggers,
-        total:   system_triggers.size,
-      }
+      results = paginate_results(elastic, query)
+      render json: render_system_triggers(results, args.trigger_id)
     end
 
     def show

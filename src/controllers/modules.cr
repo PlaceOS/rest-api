@@ -35,10 +35,8 @@ module ACAEngine::Api
         cs = Model::ControlSystem.find!(sys_id)
         modules = cs.modules || [] of String
         results = Model::Module.find_all(modules).to_a
-        render json: {
-          total:   results.size,
-          results: results,
-        }
+        response.headers["X-Total-Count"] = results.size.to_s
+        render json: results
       else # we use Elasticsearch
         elastic = Model::Module.elastic
         query = elastic.query(params)
@@ -71,10 +69,10 @@ module ACAEngine::Api
         end
 
         query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
-        search_results = elastic.search(query)
+        search_results = paginate_results(elastic, query)
 
         # Include subset of association data with results
-        includes = search_results[:results].map do |d|
+        includes = search_results.map do |d|
           sys = d.control_system
           driver = d.driver
 
@@ -108,10 +106,7 @@ module ACAEngine::Api
           })
         end
 
-        render json: {
-          total:   search_results[:total],
-          results: includes,
-        }
+        render json: includes
       end
     end
 

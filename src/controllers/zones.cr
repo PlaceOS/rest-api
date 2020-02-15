@@ -34,7 +34,7 @@ module ACAEngine::Api
         query.search_field "name"
       end
 
-      render json: elastic.search(query)
+      render json: paginate_results(elastic, query)
     end
 
     # BREAKING CHANGE: param key `data` used to attempt to retrieve a setting from the zone

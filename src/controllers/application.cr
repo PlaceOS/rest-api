@@ -17,6 +17,21 @@ module ACAEngine::Api
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name" => {order: :asc}}
 
+    def paginate_results(elastic, query, route = base_route)
+      data = elastic.search(query)
+      range_start = query.offset
+      range_end = data[:results].size + range_start
+      total_items = data[:total]
+      item_type = elastic.elastic_index
+      response.headers["X-Total-Count"] = total_items.to_s
+      response.headers["Accept-Ranges"] = item_type
+      response.headers["Content-Range"] = "#{item_type} #{range_start}-#{range_end}/#{total_items}"
+      if route && range_end != total_items
+        response.headers["Link"] = %(<#{route}?offset=#{range_end + 1}&limit=#{query.limit}>; rel="next")
+      end
+      data[:results]
+    end
+
     # Callbacks
     ###########################################################################
 
