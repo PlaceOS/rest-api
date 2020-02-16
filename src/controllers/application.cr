@@ -24,7 +24,7 @@ module ACAEngine::Api
       total_items = data[:total]
       item_type = elastic.elastic_index
       response.headers["X-Total-Count"] = total_items.to_s
-      response.headers["Accept-Ranges"] = item_type
+      # response.headers["Accept-Ranges"] = item_type
       response.headers["Content-Range"] = "#{item_type} #{range_start}-#{range_end}/#{total_items}"
       if range_end < total_items
         response.headers["Link"] = %(<#{route}?offset=#{range_end + 1}&limit=#{query.limit}>; rel="next")
@@ -85,24 +85,27 @@ module ACAEngine::Api
       end
     end
 
-    # 403 if user role invalid for a route
+    # 401 if no bearer token
     rescue_from Error::Unauthorized do |error|
       logger.debug error
+      head :unauthorized
+    end
 
+    # 403 if user role invalid for a route
+    rescue_from Error::Forbidden do |error|
+      logger.debug error
       head :forbidden
     end
 
     # 404 if resource not present
     rescue_from RethinkORM::Error::DocumentNotFound do |error|
       logger.debug error
-
       head :not_found
     end
 
     # 422 if resource fails validation before mutation
     rescue_from Error::InvalidParams do |error|
       logger.debug error
-
       render status: :unprocessable_entity, json: error.params.errors.map(&.to_s)
     end
   end

@@ -19,19 +19,19 @@ module ACAEngine::Api
       token = acquire_token
 
       # Request must have a bearer token
-      head :unauthorized unless token
+      raise Error::Unauthorized.new unless token
 
       begin
         @user_token = user_token = Model::UserJWT.decode(token)
       rescue e : JWT::Error
         logger.tag_warn("bearer malformed", action: "authorize!", error: e.inspect)
         # Request bearer was malformed
-        head :unauthorized
+        raise Error::Unauthorized.new "bearer malformed"
       end
 
       unless (authority = current_authority)
         logger.tag_warn("authority not found", action: "authorize!", host: request.host)
-        head :unauthorized
+        raise Error::Unauthorized.new "authority not found"
       end
 
       # Token and authority domains must match
@@ -39,21 +39,23 @@ module ACAEngine::Api
       authority_domain_host = URI.parse(authority.domain.as(String)).host
       unless token_domain_host == authority_domain_host
         logger.tag_warn("authority domain does not match token's", action: "authorize!", token: user_token, authority: authority)
-        head :unauthorized
+        raise Error::Unauthorized.new "authority domain does not match token's"
       end
+    rescue e
+      # ensure that the user token is nil if this function ever errors.
+      @user_token = nil
+      raise e
     end
 
     # Obtains user referenced by user_token id
     def current_user : Model::User
       return @current_user.as(Model::User) unless @current_user.nil?
-
       @current_user = Model::User.find!(user_token.id)
     end
 
     # Obtains the authority for the request's host
     def current_authority : Model::Authority?
       return @current_authority.as(Model::Authority) unless @current_authority.nil?
-
       @current_authority = Model::Authority.find_by_domain(request.host)
     end
 
@@ -66,12 +68,12 @@ module ACAEngine::Api
 
     # Read admin status from supplied request JWT
     def check_admin
-      raise Error::Unauthorized.new unless is_admin?
+      raise Error::Forbidden.new unless is_admin?
     end
 
     # Read support status from supplied request JWT
     def check_support
-      raise Error::Unauthorized.new unless is_support?
+      raise Error::Forbidden.new unless is_support?
     end
 
     def is_admin?
@@ -79,7 +81,8 @@ module ACAEngine::Api
     end
 
     def is_support?
-      user_token.is_support? || user_token.is_admin?
+      token = user_token
+      token.is_support? || token.is_admin?
     end
 
     # Pull JWT from...
