@@ -85,12 +85,37 @@ module ACAEngine::Api
 
     # Updates a control system
     def update
-      args = UpdateParams.new(params).validate!
-      version = args.version.as(Int32)
+      args = UpdateParams.new(params)
+      begin
+        args.validate!
+      rescue
+        message = "system version number required"
+        respond_with(:bad_request) do
+          text message
+          json({
+            error: {
+              code: 400,
+              message: message
+            }
+          })
+        end
+      end
 
+      version = args.version.as(Int32)
       control_system = current_system
 
-      head :conflict if version != control_system.version
+      if version != control_system.version
+        message = "attempting to edit an old version"
+        respond_with(:conflict) do
+          text message
+          json({
+            error: {
+              code: 409,
+              message: message
+            }
+          })
+        end
+      end
 
       control_system.assign_attributes_from_json(request.body.as(IO))
       control_system.version = version + 1

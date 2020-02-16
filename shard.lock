@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    commit: be5f8b5194ffa6c3eb3727abb799001dc499bf31
+    commit: 6b8a41799119cd9d2d9267b7718829960422206c
 
   active-model:
     github: spider-gazelle/active-model
