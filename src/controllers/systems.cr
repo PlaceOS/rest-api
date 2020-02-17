@@ -90,11 +90,11 @@ module ACAEngine::Api
         args.version.not_nil!
       rescue
         message = "missing system version parameter"
-        respond_with(:bad_request) do
+        respond_with(:precondition_failed) do
           text message
           json({
             error: {
-              code:    400,
+              code:    412,
               message: message,
             },
           })
