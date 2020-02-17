@@ -92,12 +92,7 @@ module ACAEngine::Api
         message = "missing system version parameter"
         respond_with(:precondition_failed) do
           text message
-          json({
-            error: {
-              code:    412,
-              message: message,
-            },
-          })
+          json({error: message})
         end
       end
 
@@ -106,12 +101,7 @@ module ACAEngine::Api
         message = "attempting to edit an old version"
         respond_with(:conflict) do
           text message
-          json({
-            error: {
-              code:    409,
-              message: message,
-            },
-          })
+          json({error: message})
         end
       end
 

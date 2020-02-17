@@ -69,9 +69,18 @@ module ACAEngine::Api
       logger.debug error
 
       if PROD
-        render :bad_request, text: error.message
+        respond_with(:bad_request) do
+          text error.message
+          json({error: error.message})
+        end
       else
-        render :bad_request, text: error.inspect_with_backtrace
+        respond_with(:bad_request) do
+          text error.inspect_with_backtrace
+          json({
+            error:     error.message,
+            backtrace: error.backtrace?,
+          })
+        end
       end
     end
 
@@ -79,9 +88,18 @@ module ACAEngine::Api
       logger.debug error
 
       if PROD
-        render :bad_request, text: error.message
+        respond_with(:bad_request) do
+          text error.message
+          json({error: error.message})
+        end
       else
-        render :bad_request, text: error.inspect_with_backtrace
+        respond_with(:bad_request) do
+          text error.inspect_with_backtrace
+          json({
+            error:     error.message,
+            backtrace: error.backtrace?,
+          })
+        end
       end
     end
 
