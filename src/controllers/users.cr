@@ -18,7 +18,7 @@ module ACAEngine::Api
 
     # Render the current user
     get("/current", :current) do
-      render json: current_user
+      render json: current_user.as_admin_json
     end
 
     def index
