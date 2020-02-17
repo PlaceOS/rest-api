@@ -1,13 +1,6 @@
-FROM crystallang/crystal:0.33.0
+FROM crystallang/crystal:0.33.0-alpine
 
 WORKDIR /app
-
-# Add
-# - ping (not in base xenial image the crystal image is based off)
-# - curl
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y iputils-ping curl && \
-    rm -rf /var/lib/apt/lists/*
 
 # Install shards for caching
 COPY shard.yml shard.yml
@@ -44,8 +37,6 @@ COPY --from=0 /bin/ping /ping
 COPY --from=0 /bin/ping6 /ping6
 
 # These are required for communicating with external services
-COPY --from=0 /lib/x86_64-linux-gnu/libnss_dns.so.2 /lib/x86_64-linux-gnu/libnss_dns.so.2
-COPY --from=0 /lib/x86_64-linux-gnu/libresolv.so.2 /lib/x86_64-linux-gnu/libresolv.so.2
 COPY --from=0 /etc/hosts /etc/hosts
 
 # Run the app binding on port 3000
