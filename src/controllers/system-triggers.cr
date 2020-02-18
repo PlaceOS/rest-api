@@ -87,6 +87,8 @@ module ACAEngine::Api
       save_and_respond(sys_trig)
     end
 
+    put "/" { update }
+
     def create
       save_and_respond Model::TriggerInstance.from_json(request.body.as(IO))
     end

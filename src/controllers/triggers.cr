@@ -30,6 +30,8 @@ module ACAEngine::Api
       save_and_respond(trig)
     end
 
+    put "/" { update }
+
     def create
       save_and_respond Model::Trigger.from_json(request.body.as(IO))
     end

@@ -46,6 +46,8 @@ module ACAEngine::Api
       save_and_respond driver
     end
 
+    put "/" { update }
+
     def create
       save_and_respond(Model::Driver.from_json(request.body.as(IO)))
     end

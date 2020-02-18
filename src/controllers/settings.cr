@@ -26,7 +26,7 @@ module ACAEngine::Api
         elastic = Model::Settings.elastic
         query = elastic.query(params)
 
-        render json: elastic.search(query)
+        render json: paginate_results(elastic, query)
       end
     end
 
@@ -38,6 +38,8 @@ module ACAEngine::Api
       current_settings.assign_attributes_from_json(request.body.as(IO))
       save_and_respond current_settings
     end
+
+    put "/" { update }
 
     def create
       save_and_respond Model::Settings.from_json(request.body.as(IO))

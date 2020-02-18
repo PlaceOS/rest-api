@@ -111,6 +111,8 @@ module ACAEngine::Api
       save_and_respond(control_system)
     end
 
+    put "/" { update }
+
     def create
       save_and_respond Model::ControlSystem.from_json(request.body.as(IO))
     end

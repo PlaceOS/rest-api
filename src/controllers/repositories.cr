@@ -31,6 +31,8 @@ module ACAEngine::Api
       save_and_respond repo
     end
 
+    put "/" { update }
+
     def create
       save_and_respond(Model::Repository.from_json(request.body.as(IO)))
     end

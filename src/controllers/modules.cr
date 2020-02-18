@@ -131,6 +131,8 @@ module ACAEngine::Api
       end
     end
 
+    put "/" { update }
+
     def create
       body = request.body.as(IO)
       save_and_respond(Model::Module.from_json(body))

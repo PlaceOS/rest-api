@@ -37,6 +37,8 @@ module ACAEngine::Api
         save_and_respond auth
       end
 
+      put "/" { update }
+
       def create
         save_and_respond(Model::{{auth_type.id}}Authentication.from_json(request.body.as(IO)))
       end

@@ -54,6 +54,8 @@ module ACAEngine::Api
       save_and_respond current_zone
     end
 
+    put "/" { update }
+
     def create
       save_and_respond Model::Zone.from_json(request.body.as(IO))
     end

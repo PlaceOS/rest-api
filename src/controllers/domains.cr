@@ -28,6 +28,8 @@ module ACAEngine::Api
       save_and_respond domain
     end
 
+    put "/" { update }
+
     def create
       save_and_respond(Model::Authority.from_json(request.body.as(IO)))
     end

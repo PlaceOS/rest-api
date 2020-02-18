@@ -63,6 +63,8 @@ module ACAEngine::Api
       save_and_respond user
     end
 
+    put "/" { update }
+
     #
     # Destroy user, revoke authentication.
     # TODO: Make this available when there is a clean up option for User
