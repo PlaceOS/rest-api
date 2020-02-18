@@ -42,7 +42,7 @@ module ACAEngine::Api
 
           result.status_code.should eq 200
 
-          returned_ids = JSON.parse(result.body)["results"].as_a.compact_map(&.["id"].as_s).sort
+          returned_ids = JSON.parse(result.body).as_a.compact_map(&.["id"].as_s).sort
           returned_ids.should eq expected_systems.compact_map(&.id).sort
         end
 
@@ -76,7 +76,7 @@ module ACAEngine::Api
 
           result.status_code.should eq 200
 
-          returned_ids = (JSON.parse(result.body)["results"].as_a.compact_map &.["id"].as_s).sort
+          returned_ids = (JSON.parse(result.body).as_a.compact_map &.["id"].as_s).sort
           returned_ids.should eq (expected_systems.compact_map &.id).sort
         end
       end

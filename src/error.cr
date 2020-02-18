@@ -11,6 +11,9 @@ module ACAEngine::Api
     class Unauthorized < Error
     end
 
+    class Forbidden < Error
+    end
+
     class InvalidParams < Error
       getter params
 

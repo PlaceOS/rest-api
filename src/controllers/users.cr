@@ -18,7 +18,7 @@ module ACAEngine::Api
 
     # Render the current user
     get("/current", :current) do
-      render json: current_user
+      render json: current_user.as_admin_json
     end
 
     def index
@@ -30,8 +30,7 @@ module ACAEngine::Api
       authority_id = params["authority_id"]?
       query.filter({"authority_id" => [authority_id]}) if authority_id
 
-      results = elastic.search(query)[:results].map &.as_admin_json
-
+      results = paginate_results(elastic, query).map &.as_admin_json
       render json: results
     end
 

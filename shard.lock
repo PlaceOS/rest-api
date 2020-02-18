@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    commit: d0d05315c62923f4f5abd455da4b988d68e7f3de
+    commit: 6b8a41799119cd9d2d9267b7718829960422206c
 
   active-model:
     github: spider-gazelle/active-model
@@ -50,7 +50,7 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: 802135113a286c3d2e0ea3f4c3cb6743426017a0
+    commit: f77c9da50e7da70a981da84f0318c115d5b60ca2
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
@@ -58,15 +58,15 @@ shards:
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
-    commit: e09581450f054a16d58015859182a8976159706b
+    commit: 7b32c61f56cec44e871b09e924240a129b4bc666
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 98acd836d37380ebaa8d56c4eb214d19d377f41c
+    commit: 0955a7013d947a6ad9b8ebd3a4eb38b7849a86dc
 
   etcd:
     github: aca-labs/crystal-etcd
-    commit: d2a9829c3c2160647ecc8e3aaed3eb7990c14032
+    commit: d9288cf651d178724fd93294b7c4171d57cdfbc9
 
   exec_from:
     github: aca-labs/exec_from
@@ -106,7 +106,7 @@ shards:
 
   neuroplastic:
     github: aca-labs/neuroplastic
-    commit: 2e764788efa0e59f8b24605e3d71770459f3fb3a
+    commit: ee1cf93d3888e938dcf9025b6b88dbc42cb979ab
 
   openssl_ext:
     github: stakach/openssl_ext
@@ -130,7 +130,7 @@ shards:
 
   protobuf:
     github: jeromegn/protobuf.cr
-    version: 2.1.2
+    version: 2.2.0
 
   redis:
     github: stefanwille/crystal-redis
@@ -154,7 +154,7 @@ shards:
 
   ssh2:
     github: spider-gazelle/ssh2.cr
-    version: 1.2.3
+    version: 1.2.4
 
   tasker:
     github: spider-gazelle/tasker

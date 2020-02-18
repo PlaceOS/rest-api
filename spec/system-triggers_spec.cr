@@ -31,7 +31,7 @@ module ACAEngine::Api
             path: path,
             headers: authorization_header,
           )
-          results = JSON.parse(result.body)["results"].as_a
+          results = JSON.parse(result.body).as_a
 
           contains_correct = results.any? { |r| r["id"] == inst1.id }
           contains_incorrect = results.any? { |r| r["id"] == inst2.id }

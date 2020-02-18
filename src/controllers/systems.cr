@@ -64,7 +64,7 @@ module ACAEngine::Api
       end
 
       query.sort(NAME_SORT_ASC)
-      render json: elastic.search(query)
+      render json: paginate_results(elastic, query)
     end
 
     # Renders a control system
@@ -85,12 +85,25 @@ module ACAEngine::Api
 
     # Updates a control system
     def update
-      args = UpdateParams.new(params).validate!
-      version = args.version.as(Int32)
+      version = begin
+        args = UpdateParams.new(params).validate!
+        args.version.not_nil!
+      rescue
+        message = "missing system version parameter"
+        respond_with(:precondition_failed) do
+          text message
+          json({error: message})
+        end
+      end
 
       control_system = current_system
-
-      head :conflict if version != control_system.version
+      if version != control_system.version
+        message = "attempting to edit an old version"
+        respond_with(:conflict) do
+          text message
+          json({error: message})
+        end
+      end
 
       control_system.assign_attributes_from_json(request.body.as(IO))
       control_system.version = version + 1

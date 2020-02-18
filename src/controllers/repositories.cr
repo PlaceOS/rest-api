@@ -15,7 +15,7 @@ module ACAEngine::Api
       elastic = Model::Repository.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
-      render json: elastic.search(query)
+      render json: paginate_results(elastic, query)
     end
 
     def show

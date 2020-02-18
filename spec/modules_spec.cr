@@ -55,8 +55,8 @@ module ACAEngine::Api
           )
 
           body = JSON.parse(result.body)
-          body["total"].should eq 1
-          body["results"][0]["id"].should eq mod.id
+          result.headers["X-Total-Count"].should eq "1"
+          body[0]["id"].should eq mod.id
         end
 
         it "as_of query" do
@@ -83,7 +83,7 @@ module ACAEngine::Api
             headers: authorization_header,
           )
 
-          results = JSON.parse(result.body)["results"].as_a
+          results = JSON.parse(result.body).as_a
 
           contains_correct = results.any? { |r| r["id"] == mod1.id }
           contains_incorrect = results.any? { |r| r["id"] == mod2.id }
@@ -109,7 +109,7 @@ module ACAEngine::Api
             headers: authorization_header,
           )
 
-          results = JSON.parse(result.body)["results"].as_a
+          results = JSON.parse(result.body).as_a
 
           all_connected = results.all? { |r| r["connected"] != "true" }
           contains_created = results.any? { |r| r["id"] == mod.id }
@@ -135,7 +135,7 @@ module ACAEngine::Api
             headers: authorization_header,
           )
 
-          results = JSON.parse(result.body)["results"].as_a
+          results = JSON.parse(result.body).as_a
 
           no_logic = results.all? { |r| r["role"] != Model::Driver::Role::Logic.to_i }
           contains_created = results.any? { |r| r["id"] == mod.id }

@@ -99,7 +99,7 @@ macro test_base_index(klass, controller_klass)
     puts result.body unless result.success?
 
     result.status_code.should eq 200
-    contains_search_term = JSON.parse(result.body)["results"].as_a.any? { |result| result["id"] == doc.id }
+    contains_search_term = JSON.parse(result.body).as_a.any? { |result| result["id"] == doc.id }
     contains_search_term.should be_true
   end
 end
