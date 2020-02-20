@@ -6,12 +6,12 @@ dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    branch: master
+    version: ~> 2.3.4
 
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
-    branch: master
+    version: ~> 1.8.2
 
   # Email validations
   CrystalEmail:
@@ -36,7 +36,7 @@ dependencies:
   # Service discovery
   hound-dog:
     github: aca-labs/hound-dog
-    branch: master
+    version: ~> 1.1.4
 
   # JSON Web Token support
   jwt:
@@ -45,7 +45,7 @@ dependencies:
   # Elasticsearch extension for RethinkORM
   neuroplastic:
     github: aca-labs/neuroplastic
-    version: 1.3.3
+    version: ~> 1.3.3
 
   # Performs ping requests
   pinger:

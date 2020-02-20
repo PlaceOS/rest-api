@@ -6,11 +6,11 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    commit: 6b8a41799119cd9d2d9267b7718829960422206c
+    version: 2.3.4
 
   active-model:
     github: spider-gazelle/active-model
-    commit: cfb070793fd53cc20c799761aa5fe8b195e75739
+    version: 1.8.2
 
   ameba:
     github: veelenga/ameba
@@ -50,11 +50,11 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: f77c9da50e7da70a981da84f0318c115d5b60ca2
+    commit: 43a4469df752b88c6c7d16d99db2a9b69ed53d0c
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 258c605fd0b4e2a0df4687b3e39cc3fe539eb925
+    commit: 0f0d965e90b4f2fdd0b48b86652f8e6bb01662aa
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
@@ -62,11 +62,11 @@ shards:
 
   engine-models:
     github: aca-labs/crystal-engine-models
-    commit: 0955a7013d947a6ad9b8ebd3a4eb38b7849a86dc
+    commit: 4d4c497f3927d1e9d75fec72a776e5330045a847
 
   etcd:
     github: aca-labs/crystal-etcd
-    commit: d9288cf651d178724fd93294b7c4171d57cdfbc9
+    commit: 12882aa078618c4c134bbd4fd92c3d27602e1eeb
 
   exec_from:
     github: aca-labs/exec_from
@@ -106,7 +106,7 @@ shards:
 
   neuroplastic:
     github: aca-labs/neuroplastic
-    commit: ee1cf93d3888e938dcf9025b6b88dbc42cb979ab
+    commit: 090e63375a5c12d81fb006e737c28bb3a325f27c
 
   openssl_ext:
     github: stakach/openssl_ext
@@ -142,7 +142,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 994b644d62378f5c691c7eb6562b737321898edc
+    commit: 38784393f6de59f1b9b97f7c673e1db0560dfb91
 
   retriable:
     github: Sija/retriable.cr
