@@ -16,7 +16,7 @@ module ACAEngine::Api
     alias RemoteDriver = ::ACAEngine::Driver::Proxy::RemoteDriver
 
     # Triggers the webhook
-    def notify(method_type : String)
+    def notify(method_type : String) # ameba:disable Metrics/CyclomaticComplexity
       trigger_instance = current_trigger_instance
       trigger = current_trigger
 
@@ -50,7 +50,8 @@ module ACAEngine::Api
             expects_arguments = method_signature.size > 0
 
             # ensure any remaining remaining arguments are optional
-            method_signature.each_with_index do |(_argument, type_details), index|
+            # TODO: remove ameba:disable upon next version of ameba
+            method_signature.each_with_index do |(_argument, type_details), index| # ameba:disable Lint/UselessAssign
               case index
               when 0
                 if type_details[0].starts_with?("String")
