@@ -131,7 +131,8 @@ module ACAEngine::Api
       end
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:id" { update }
 
     def create
       body = request.body.as(IO)

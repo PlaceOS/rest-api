@@ -14,7 +14,7 @@ module ACAEngine::Api
 
     before_action :ensure_json, only: [:update]
 
-    @user : Model::User?
+    getter user : Model::User?
 
     # Render the current user
     get("/current", :current) do
@@ -63,7 +63,8 @@ module ACAEngine::Api
       save_and_respond user
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:id" { update }
 
     #
     # Destroy user, revoke authentication.
@@ -82,7 +83,7 @@ module ACAEngine::Api
     # end
 
     protected def find_user
-      @user || (@user = Model::User.find!(params["id"]?))
+      user || (@user = Model::User.find!(params["id"]?))
     end
 
     protected def check_authorization

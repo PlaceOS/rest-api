@@ -26,7 +26,7 @@ module ACAEngine::Api
 
     before_action :ensure_json, only: [:create, :update, :execute]
 
-    @control_system : Model::ControlSystem?
+    getter control_system : Model::ControlSystem?
 
     # Websocket API session manager
     @@session_manager : Session::Manager? = nil
@@ -111,7 +111,8 @@ module ACAEngine::Api
       save_and_respond(control_system)
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:sys_id" { update }
 
     def create
       save_and_respond Model::ControlSystem.from_json(request.body.as(IO))
@@ -326,7 +327,7 @@ module ACAEngine::Api
     end
 
     def current_system : Model::ControlSystem
-      @control_system || find_system
+      control_system || find_system
     end
 
     def find_system

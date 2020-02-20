@@ -9,8 +9,7 @@ module ACAEngine::Api
 
     before_action :find_settings, only: [:show, :update, :destroy]
 
-    @settings : Model::Settings?
-    getter :settings
+    getter settings : Model::Settings?
 
     def index
       if params.has_key? "parent_id"
@@ -39,7 +38,8 @@ module ACAEngine::Api
       save_and_respond current_settings
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:id" { update }
 
     def create
       save_and_respond Model::Settings.from_json(request.body.as(IO))
@@ -54,7 +54,7 @@ module ACAEngine::Api
     ###########################################################################
 
     def current_settings : Model::Settings
-      @settings || find_settings
+      settings || find_settings
     end
 
     def find_settings

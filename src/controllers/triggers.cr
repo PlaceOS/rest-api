@@ -10,7 +10,7 @@ module ACAEngine::Api
     before_action :ensure_json, only: [:create, :update]
     before_action :find_trigger, only: [:show, :update, :destroy]
 
-    @trig : Model::Trigger?
+    getter trig : Model::Trigger?
 
     def index
       elastic = Model::Trigger.elastic
@@ -30,7 +30,8 @@ module ACAEngine::Api
       save_and_respond(trig)
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:id" { update }
 
     def create
       save_and_respond Model::Trigger.from_json(request.body.as(IO))
@@ -45,7 +46,7 @@ module ACAEngine::Api
     ###########################################################################
 
     def current_trigger
-      @trig || find_trigger
+      trig || find_trigger
     end
 
     def find_trigger

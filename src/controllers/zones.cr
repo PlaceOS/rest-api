@@ -11,8 +11,7 @@ module ACAEngine::Api
     before_action :check_support, except: [:index]
     before_action :find_zone, only: [:show, :update, :destroy]
 
-    @zone : Model::Zone?
-    getter :zone
+    getter zone : Model::Zone?
 
     def index
       elastic = Model::Zone.elastic
@@ -54,7 +53,8 @@ module ACAEngine::Api
       save_and_respond current_zone
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:id" { update }
 
     def create
       save_and_respond Model::Zone.from_json(request.body.as(IO))
@@ -134,7 +134,7 @@ module ACAEngine::Api
     ###########################################################################
 
     def current_zone : Model::Zone
-      @zone || find_zone
+      zone || find_zone
     end
 
     def find_zone

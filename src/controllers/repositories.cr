@@ -31,7 +31,8 @@ module ACAEngine::Api
       save_and_respond repo
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:id" { update }
 
     def create
       save_and_respond(Model::Repository.from_json(request.body.as(IO)))

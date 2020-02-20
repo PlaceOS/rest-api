@@ -13,7 +13,7 @@ module ACAEngine::Api
     before_action :ensure_json, only: [:create, :update]
     before_action :find_sys_trig, only: [:show, :update, :destroy]
 
-    @sys_trig : Model::TriggerInstance?
+    getter sys_trig : Model::TriggerInstance?
 
     class IndexParams < Params
       attribute control_system_id : String
@@ -87,7 +87,8 @@ module ACAEngine::Api
       save_and_respond(sys_trig)
     end
 
-    put "/" { update }
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:trig_id" { update }
 
     def create
       save_and_respond Model::TriggerInstance.from_json(request.body.as(IO))
@@ -131,7 +132,7 @@ module ACAEngine::Api
     end
 
     def current_sys_trig : Model::TriggerInstance
-      @sys_trig || find_sys_trig
+      sys_trig || find_sys_trig
     end
 
     def find_sys_trig
