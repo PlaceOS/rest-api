@@ -1,6 +1,6 @@
 # Crystal ACAEngine REST API
 
-[![Build Status](https://travis-ci.org/aca-labs/crystal-engine-rest-api.svg?branch=master)](https://travis-ci.org/aca-labs/crystal-engine-rest-api)
+[![Build Status](https://travis-ci.com/acaengine/rest-api.svg?branch=master)](https://travis-ci.com/acaengine/rest-api)
 
 ## Testing
 
@@ -28,6 +28,6 @@ Once compiled you are left with a binary `./engine-api`
 ## Inspecting minimal images
 
 1. To view the env vars use `docker inspect api` and find the `Env` section
-2. for a better view of env vars `docker inspect -f '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' api`
+2. For a better view of env vars `docker inspect -f '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' api`
 3. To signal the process use `docker kill -s USR1 api` (debug mode)
 4. To signal the process use `docker kill -s USR2 api` (default mode)
