@@ -301,8 +301,9 @@ module ACAEngine::Api
 
     # Use consistent hashing to determine the location of the module
     def self.locate_module(module_id : String) : URI
-      node = @@core_discovery.find(module_id)
-      URI.new(host: node[:ip], port: node[:port])
+      node = @@core_discovery.find?(module_id)
+      raise "no core instances registered!" unless node
+      node[:uri]
     end
 
     # Determine URI for a system module

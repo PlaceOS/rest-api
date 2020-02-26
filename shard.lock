@@ -54,7 +54,7 @@ shards:
 
   engine-driver:
     github: aca-labs/crystal-engine-driver
-    commit: 0f0d965e90b4f2fdd0b48b86652f8e6bb01662aa
+    commit: 964b68a3211d87643bbf53e4ed6e5ee9e553d2dd
 
   engine-drivers:
     github: aca-labs/crystal-engine-drivers
@@ -66,7 +66,7 @@ shards:
 
   etcd:
     github: aca-labs/crystal-etcd
-    commit: 12882aa078618c4c134bbd4fd92c3d27602e1eeb
+    version: 0.3.1
 
   exec_from:
     github: aca-labs/exec_from
@@ -86,7 +86,7 @@ shards:
 
   hound-dog:
     github: aca-labs/hound-dog
-    commit: d03b830eef527b44d5f03cdbae4534fb0d3d8f06
+    version: 2.0.2
 
   ipaddress:
     github: Sija/ipaddress.cr
@@ -142,10 +142,10 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 38784393f6de59f1b9b97f7c673e1db0560dfb91
+    commit: 2f5b11243252658876f915683f4aeaf0d720e152
 
   retriable:
-    github: Sija/retriable.cr
+    github: sija/retriable.cr
     version: 0.2.0
 
   rwlock:
@@ -167,4 +167,8 @@ shards:
   tokenizer:
     github: spider-gazelle/tokenizer
     version: 1.1.0
+
+  ulid:
+    github: aca-labs/ulid
+    version: 0.1.2
 
