@@ -287,10 +287,10 @@ module ACAEngine::Api
     ###########################################################################
 
     ws("/control", :control) do |ws|
-      log = logger
+      logger.debug { "WebSocket API request" }
       Systems.session_manager.create_session(
         ws: ws,
-        request_id: log.request_id || "",
+        request_id: logger.request_id || "",
         user: user_token,
         logger: logger,
       )

@@ -23,21 +23,15 @@ RethinkORM::Connection.configure do |settings|
   settings.db = db_name
 end
 
-Spec.before_suite do
-  ACAEngine::Model::ControlSystem.clear
-  ACAEngine::Model::Driver.clear
-  ACAEngine::Model::Module.clear
-  ACAEngine::Model::Repository.clear
-  ACAEngine::Model::Trigger.clear
-  ACAEngine::Model::TriggerInstance.clear
-  ACAEngine::Model::Zone.clear
-end
+Spec.before_suite { clear_tables }
+Spec.after_suite { clear_tables }
 
-Spec.after_suite do
+def clear_tables
   ACAEngine::Model::ControlSystem.clear
   ACAEngine::Model::Driver.clear
   ACAEngine::Model::Module.clear
   ACAEngine::Model::Repository.clear
+  ACAEngine::Model::Settings.clear
   ACAEngine::Model::Trigger.clear
   ACAEngine::Model::TriggerInstance.clear
   ACAEngine::Model::Zone.clear

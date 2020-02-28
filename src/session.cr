@@ -35,6 +35,7 @@ module ACAEngine
         )
 
         ws.on_close do |_|
+          logger.debug { "Session CLOSE" }
           session.cleanup
           @sessions.delete(session)
         end
@@ -50,6 +51,8 @@ module ACAEngine
     # Background task to clear module metadata caches
     @cache_cleaner : Tasker::Task?
 
+    getter ws : HTTP::WebSocket
+
     def initialize(
       @ws : HTTP::WebSocket,
       @request_id : String,
@@ -59,8 +62,15 @@ module ACAEngine
       @cache_timeout : Int32? = 60 * 5
     )
       # Register event handlers
-      @ws.on_message(&->on_message(String))
-      @ws.on_ping { |_| @ws.pong }
+      @ws.on_message do |message|
+        @logger.debug { "Session TEXT (#{message})" }
+        on_message(message)
+      end
+
+      @ws.on_ping do
+        @logger.debug { "Session PING" }
+        @ws.pong
+      end
 
       # NOTE: Might need a rw-lock/concurrent-map due to cache cleaning fiber
       @metadata_cache = {} of String => Driver::DriverModel::Metadata
