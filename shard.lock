@@ -54,7 +54,7 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: 26cb6d31aa2032fa7f476789ac8f6b75e852ac80
+    commit: 1574a08bc23e58d6b877abf8ec06a73c3fa0de5f
 
   engine-driver:
     github: acaengine/driver
