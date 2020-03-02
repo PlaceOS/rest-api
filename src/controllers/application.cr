@@ -35,6 +35,8 @@ module ACAEngine::Api
     # Callbacks
     ###########################################################################
 
+    before_action :set_request_id
+
     # All routes are authenticated
     before_action :authorize!
 
@@ -45,8 +47,6 @@ module ACAEngine::Api
     def set_user_id
       logger.user_id = user_token.id
     end
-
-    before_action :set_request_id
 
     # This makes it simple to match client requests with server side logs.
     # When building microservices, this ID should be propagated to upstream services.

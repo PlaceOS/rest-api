@@ -283,7 +283,7 @@ module ACAEngine::Api
       end
     end
 
-    # Websockets
+    # Websocket API
     ###########################################################################
 
     ws("/control", :control) do |ws|
