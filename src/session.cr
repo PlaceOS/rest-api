@@ -34,6 +34,8 @@ module ACAEngine
           logger: logger,
         )
 
+        @sessions << session
+
         ws.on_close do |_|
           logger.debug { "Session CLOSE" }
           session.cleanup

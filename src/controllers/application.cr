@@ -37,8 +37,8 @@ module ACAEngine::Api
 
     before_action :set_request_id
 
-    # All routes are authenticated
-    before_action :authorize!
+    # All routes are authenticated, except root
+    before_action :authorize!, except: [:root]
 
     # Simplifies determining user's requests in server-side logs
     before_action :set_user_id
@@ -66,7 +66,7 @@ module ACAEngine::Api
 
     # 400 if unable to parse some JSON passed by a client
     rescue_from JSON::MappingError do |error|
-      logger.debug error
+      logger.debug { error.inspect_with_backtrace }
 
       if PROD
         respond_with(:bad_request) do
@@ -85,7 +85,7 @@ module ACAEngine::Api
     end
 
     rescue_from JSON::ParseException do |error|
-      logger.debug error
+      logger.debug { error.inspect_with_backtrace }
 
       if PROD
         respond_with(:bad_request) do
@@ -105,26 +105,27 @@ module ACAEngine::Api
 
     # 401 if no bearer token
     rescue_from Error::Unauthorized do |error|
-      logger.debug error
+      logger.debug { error }
       head :unauthorized
     end
 
     # 403 if user role invalid for a route
     rescue_from Error::Forbidden do |error|
-      logger.debug error
+      logger.debug { error.inspect_with_backtrace }
       head :forbidden
     end
 
     # 404 if resource not present
     rescue_from RethinkORM::Error::DocumentNotFound do |error|
-      logger.debug error
+      logger.debug { error.inspect_with_backtrace }
       head :not_found
     end
 
     # 422 if resource fails validation before mutation
     rescue_from Error::InvalidParams do |error|
-      logger.debug error
-      render status: :unprocessable_entity, json: error.params.errors.map(&.to_s)
+      model_errors = error.params.errors.map(&.to_s)
+      logger.tag_debug(model_errors: model_errors, error: error.inspect_with_backtrace)
+      render status: :unprocessable_entity, json: model_errors
     end
   end
 end

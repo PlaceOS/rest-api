@@ -1,6 +1,6 @@
 name: engine-rest-api
 version: 1.3.2
-crystal: 0.32.0
+crystal: 0.33.0
 
 dependencies:
   # Server framework
@@ -30,7 +30,7 @@ dependencies:
 
   # Database view
   engine-models:
-    github: aca-labs/crystal-engine-models
+    github: acaengine/models
     branch: master
 
   # Service discovery
@@ -59,7 +59,7 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    branch: master
+    version: ~> 2.4.3
 
   # Scheduling
   tasker:
