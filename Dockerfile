@@ -13,7 +13,7 @@ COPY ./src /app/src
 
 # Build application
 ENV UNAME_AT_COMPILE_TIME=true
-RUN crystal build --error-trace /app/src/engine-api.cr
+RUN crystal build --release --debug --error-trace /app/src/engine-api.cr
 
 # Extract dependencies
 RUN ldd /app/engine-api | tr -s '[:blank:]' '\n' | grep '^/' | \
