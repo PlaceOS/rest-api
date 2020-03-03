@@ -11,6 +11,7 @@ require "tasker"
 
 require "./error"
 require "./utilities/params"
+require "./utilities/severity_converter"
 
 module ACAEngine
   class Api::Session
@@ -672,16 +673,5 @@ module ACAEngine
         @logger.tag_error("unrecognised websocket command", cmd: request.command)
       end
     end
-  end
-end
-
-# Serialization for severity fields of models
-module SeverityConverter
-  def self.to_json(value : Logger::Severity, json : JSON::Builder)
-    json.string(value.to_s.downcase)
-  end
-
-  def self.from_json(value : JSON::PullParser) : Logger::Severity
-    Logger::Severity.new(value)
   end
 end
