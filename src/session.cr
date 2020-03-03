@@ -141,43 +141,27 @@ module ACAEngine
       property args : Array(JSON::Any)?
     end
 
+    alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
+
     # Websocket API Response
     struct Response
       include JSON::Serializable
-
-      def initialize(
-        @id : Int64,
-        @type,
-        @error_code = nil,
-        @error_message = nil,
-        @value = nil,
-        @meta = nil
-      )
-      end
-
-      # Request type
-      enum Type
-        Success
-        Notify
-        Error
-
-        def to_json(json)
-          json.string(to_s.downcase)
-        end
-      end
-
-      @[JSON::Field(key: "id")]
       property id : Int64
-
       property type : Type
 
-      @[JSON::Field(key: "code")]
       property error_code : Int32?
+
       @[JSON::Field(key: "msg")]
-      property error_message : String?
+      property message : String?
 
       property value : String?
       property meta : Metadata?
+
+      @[JSON::Field(key: "mod")]
+      property module_id : String?
+
+      @[JSON::Field(converter: SeverityConverter)]
+      property level : Logger::Severity?
 
       alias Metadata = NamedTuple(
         sys: String,
@@ -185,9 +169,30 @@ module ACAEngine
         index: Int32,
         name: String,
       )
-    end
 
-    alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
+      def initialize(
+        @id : Int64,
+        @type,
+        @error_code = nil,
+        @message = nil,
+        @value = nil,
+        @module_id = nil,
+        @meta = nil
+      )
+      end
+
+      # Response type
+      enum Type
+        Success
+        Notify
+        Error
+        Debug
+
+        def to_json(json)
+          json.string(to_s.downcase)
+        end
+      end
+    end
 
     # Grab core url for the module and dial an exec request
     #
@@ -199,6 +204,16 @@ module ACAEngine
       name : String,
       args : Array(JSON::Any)
     )
+      @logger.tag_debug(
+        message: "Session (exec)",
+        ws_request_id: request_id,
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+        args: args
+      )
+
       driver = Driver::Proxy::RemoteDriver.new(
         sys_id: sys_id,
         module_name: module_name,
@@ -221,7 +236,14 @@ module ACAEngine
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
-      @logger.tag_error("failed to execute request", sys_id: sys_id, module_name: module_name, index: index, name: name)
+      @logger.tag_error(
+        message: "failed to execute request",
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+        error: e.message
+      )
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to execute request"))
     end
 
@@ -234,6 +256,14 @@ module ACAEngine
       index : Int32,
       name : String
     )
+      @logger.tag_debug(
+        message: "Session (bind)",
+        ws_request_id: request_id,
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+      )
       begin
         # Check if module previously bound
         unless has_binding?(sys_id, module_name, index, name)
@@ -261,6 +291,17 @@ module ACAEngine
         },
       )
       respond(response)
+    rescue e
+      @logger.tag_error(
+        message: "failed to bind",
+        ws_request_id: request_id,
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+        error: e.message
+      )
+      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to bind"))
     end
 
     # Unbind a websocket from a module subscription
@@ -272,18 +313,109 @@ module ACAEngine
       index : Int32,
       name : String
     )
+      @logger.tag_debug(
+        message: "Session (unbind)",
+        ws_request_id: request_id,
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+      )
+
       subscription = delete_binding(sys_id, module_name, index, name)
       @@subscriptions.unsubscribe(subscription) if subscription
 
       respond(Response.new(id: request_id, type: Response::Type::Success))
+    rescue e : Driver::Proxy::RemoteDriver::Error
+      respond(error_response(request_id, e.error_code, e.message))
+    rescue e
+      @logger.tag_error(
+        message: "failed to unbind",
+        ws_request_id: request_id,
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+        error: e.message
+      )
+      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to unbind"))
     end
 
-    def debug
-      raise "#debug unimplemented"
+    private getter debug_sessions = {} of {String, String, Int32} => HTTP::WebSocket
+
+    def debug(
+      request_id : Int64,
+      sys_id : String,
+      module_name : String,
+      index : Int32,
+      name : String
+    )
+      existing_socket = debug_sessions[{sys_id, module_name, index}]?
+
+      if (!existing_socket) || (existing_socket && existing_socket.closed?)
+        driver = Driver::Proxy::RemoteDriver.new(
+          sys_id: sys_id,
+          module_name: module_name,
+          index: index
+        )
+
+        module_id = driver.module_id?
+
+        ws = driver.debug
+        ws.on_message do |message|
+          respond(
+            Response.new(
+              id: request_id,
+              module_id: module_id,
+              type: Response::Type::Debug,
+              message: message,
+              meta: {
+                sys:   sys_id,
+                mod:   module_name,
+                index: index,
+                name:  name,
+              },
+            ))
+        end
+
+        spawn ws.run
+        debug_sessions[{sys_id, module_name, index}] = ws
+      end
+
+      respond(Response.new(id: request_id, type: Response::Type::Success))
+    rescue e
+      @logger.tag_error(
+        message: "failed to attach debugger",
+        ws_request_id: request_id,
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+        error: e.message
+      )
+      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to attach debugger"))
     end
 
-    def ignore
-      raise "#ignore unimplemented"
+    def ignore(
+      request_id : Int64,
+      sys_id : String,
+      module_name : String,
+      index : Int32,
+      name : String
+    )
+      debug_sessions.delete({sys_id, module_name, index})
+      respond(Response.new(id: request_id, type: Response::Type::Success))
+    rescue e
+      @logger.tag_error(
+        message: "failed to detach debugger",
+        ws_request_id: request_id,
+        sys_id: sys_id,
+        module_name: module_name,
+        index: index,
+        name: name,
+        error: e.message
+      )
+      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to detach debugger"))
     end
 
     ##############################################################################
@@ -485,13 +617,13 @@ module ACAEngine
     protected def error_response(
       request_id : Int64?,
       error_code,
-      error_message : String?
+      message : String?
     )
       Api::Session::Response.new(
         id: request_id || 0_i64,
         type: Api::Session::Response::Type::Error,
         error_code: error_code.to_i,
-        error_message: error_message || "",
+        message: message || "",
       )
     end
 
@@ -512,8 +644,7 @@ module ACAEngine
       if payload
         # Avoids parsing and serialising when payload is already in JSON format
         partial = response.to_json
-        partial.sub(%("%{}"), payload)
-        @ws.send(partial)
+        @ws.send(partial.sub(%("%{}"), payload))
       else
         @ws.send(response.to_json)
       end
@@ -532,8 +663,8 @@ module ACAEngine
       case request.command
       when Request::Command::Bind   then bind(**arguments)
       when Request::Command::Unbind then unbind(**arguments)
-      when Request::Command::Debug  then debug
-      when Request::Command::Ignore then ignore
+      when Request::Command::Debug  then debug(**arguments)
+      when Request::Command::Ignore then ignore(**arguments)
       when Request::Command::Exec
         args = request.args.as(Array(JSON::Any))
         exec(**arguments.merge({args: args}))
@@ -541,5 +672,16 @@ module ACAEngine
         @logger.tag_error("unrecognised websocket command", cmd: request.command)
       end
     end
+  end
+end
+
+# Serialization for severity fields of models
+module SeverityConverter
+  def self.to_json(value : Logger::Severity, json : JSON::Builder)
+    json.string(value.to_s.downcase)
+  end
+
+  def self.from_json(value : JSON::PullParser) : Logger::Severity
+    Logger::Severity.new(value)
   end
 end

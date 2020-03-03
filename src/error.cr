@@ -1,5 +1,3 @@
-require "rethinkdb-orm"
-
 module ACAEngine::Api
   class Error < Exception
     getter message
@@ -34,7 +32,7 @@ module ACAEngine::Api
           id: request_id,
           type: Api::Session::Response::Type::Error,
           error_code: error_code.to_i,
-          error_message: message,
+          message: message,
         )
       end
     end
