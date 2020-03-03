@@ -105,7 +105,7 @@ module ACAEngine::Api
 
     # 401 if no bearer token
     rescue_from Error::Unauthorized do |error|
-      logger.debug { error }
+      logger.debug { error.message }
       head :unauthorized
     end
 
@@ -117,7 +117,7 @@ module ACAEngine::Api
 
     # 404 if resource not present
     rescue_from RethinkORM::Error::DocumentNotFound do |error|
-      logger.debug { error.inspect_with_backtrace }
+      logger.debug { error.message }
       head :not_found
     end
 
