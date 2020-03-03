@@ -34,6 +34,5 @@ end
 # Add handlers that should run before your application
 ActionController::Server.before(
   ActionController::ErrorHandler.new(!PROD, ["X-Request-ID"]),
-  ActionController::LogHandler.new(filters),
-  HTTP::CompressHandler.new
+  ActionController::LogHandler.new(filters)
 )
