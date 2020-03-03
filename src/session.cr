@@ -1,6 +1,4 @@
 # FIXME: Hack to allow resolution of ACAEngine::Driver class/module
-module ACAEngine; end
-
 class ACAEngine::Driver; end
 
 require "action-controller/logger"
@@ -19,9 +17,7 @@ module ACAEngine
     class Manager
       @sessions = [] of Session
 
-      def initialize(
-        @discovery : HoundDog::Discovery
-      )
+      def initialize(@discovery : HoundDog::Discovery)
       end
 
       # Creates the session and handles the cleanup
@@ -95,7 +91,7 @@ module ACAEngine
     ##############################################################################
 
     # A websocket API request
-    class Request
+    struct Request
       include JSON::Serializable
       include JSON::Serializable::Strict
 
@@ -178,6 +174,7 @@ module ACAEngine
         @message = nil,
         @value = nil,
         @module_id = nil,
+        @level = nil,
         @meta = nil
       )
       end
@@ -344,6 +341,8 @@ module ACAEngine
 
     private getter debug_sessions = {} of {String, String, Int32} => HTTP::WebSocket
 
+    # Attach websocket to debug output of a module
+    #
     def debug(
       request_id : Int64,
       sys_id : String,
@@ -351,9 +350,11 @@ module ACAEngine
       index : Int32,
       name : String
     )
+      # NOTE: In the interest of saving a redis lookup, the frontend passes
+      #       the module_id, rather than name.
       existing_socket = debug_sessions[{sys_id, module_name, index}]?
 
-      if (!existing_socket) || (existing_socket && existing_socket.closed?)
+      if !existing_socket || existing_socket.closed?
         driver = Driver::Proxy::RemoteDriver.new(
           module_id: module_name,
           sys_id: sys_id,
@@ -367,6 +368,7 @@ module ACAEngine
               id: request_id,
               module_id: module_name,
               type: Response::Type::Debug,
+              level: Logger::Severity::DEBUG,
               message: message,
               meta: {
                 sys:   sys_id,
@@ -395,6 +397,8 @@ module ACAEngine
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to attach debugger"))
     end
 
+    # Detach websocket from module debug output
+    #
     def ignore(
       request_id : Int64,
       sys_id : String,
@@ -402,7 +406,9 @@ module ACAEngine
       index : Int32,
       name : String
     )
-      debug_sessions.delete({sys_id, module_name, index})
+      socket = debug_sessions.delete({sys_id, module_name, index})
+      # Close the socket if it was present
+      socket.try(&.close)
       respond(Response.new(id: request_id, type: Response::Type::Success))
     rescue e
       @logger.tag_error(
@@ -458,15 +464,6 @@ module ACAEngine
     def has_binding?(sys_id, module_name, index, name)
       @bindings.has_key? Session.binding_key(sys_id, module_name, index, name)
     end
-
-    alias RedisMessage = NamedTuple(
-      request_id: Int64,
-      sys_id: String,
-      mod_name: String,
-      index: Int32,
-      status: String,
-      value: String,
-    )
 
     # Create a binding to a module on the Session
     #
