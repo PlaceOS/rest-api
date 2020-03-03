@@ -26,7 +26,7 @@ module ACAEngine::Api
               driver_proxy = ACAEngine::Driver::Storage.new mod.id.as(String)
 
               ws.send Session::Request.new(
-                id: RANDOM.hex(7),
+                id: rand(10).to_i64,
                 sys_id: control_system.id.as(String),
                 module_name: mod.custom_name.as(String),
                 name: status_name,
@@ -67,7 +67,7 @@ module ACAEngine::Api
 
           results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
             request = {
-              id:          RANDOM.hex(7),
+              id:          rand(10).to_i64,
               sys_id:      control_system.id.as(String),
               module_name: mod.custom_name.as(String),
               name:        status_name,

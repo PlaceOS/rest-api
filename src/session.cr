@@ -118,7 +118,7 @@ module ACAEngine
       )
       end
 
-      property id : UInt64
+      property id : Int64
 
       # Module location metadata
       @[JSON::Field(key: "sys")]
@@ -146,7 +146,7 @@ module ACAEngine
       include JSON::Serializable
 
       def initialize(
-        @id,
+        @id : Int64,
         @type,
         @error_code = nil,
         @error_message = nil,
@@ -167,7 +167,7 @@ module ACAEngine
       end
 
       @[JSON::Field(key: "id")]
-      property id : String
+      property id : Int64
 
       property type : Type
 
@@ -192,7 +192,7 @@ module ACAEngine
     # Grab core url for the module and dial an exec request
     #
     def exec(
-      request_id : String,
+      request_id : Int64,
       sys_id : String,
       module_name : String,
       index : Int32,
@@ -228,7 +228,7 @@ module ACAEngine
     # Bind a websocket to a module subscription
     #
     def bind(
-      request_id : String,
+      request_id : Int64,
       sys_id : String,
       module_name : String,
       index : Int32,
@@ -266,7 +266,7 @@ module ACAEngine
     # Unbind a websocket from a module subscription
     #
     def unbind(
-      request_id : String,
+      request_id : Int64,
       sys_id : String,
       module_name : String,
       index : Int32,
@@ -329,7 +329,7 @@ module ACAEngine
     end
 
     alias RedisMessage = NamedTuple(
-      request_id: String,
+      request_id: Int64,
       sys_id: String,
       mod_name: String,
       index: Int32,
@@ -478,17 +478,17 @@ module ACAEngine
       Request.from_json(data)
     rescue e
       @logger.tag_warn("failed to parse", data: data, error: e.message)
-      error_response(JSON.parse(data)["id"]?.try &.as_s, ErrorCode::BadRequest, "bad request: #{e.message}")
+      error_response(JSON.parse(data)["id"]?.try &.as_i64, ErrorCode::BadRequest, "bad request: #{e.message}")
       return
     end
 
     protected def error_response(
-      request_id : String?,
+      request_id : Int64?,
       error_code,
       error_message : String?
     )
       Api::Session::Response.new(
-        id: request_id || "",
+        id: request_id || 0_i64,
         type: Api::Session::Response::Type::Error,
         error_code: error_code.to_i,
         error_message: error_message || "",
