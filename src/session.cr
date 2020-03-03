@@ -118,7 +118,7 @@ module ACAEngine
       )
       end
 
-      property id : String
+      property id : UInt64
 
       # Module location metadata
       @[JSON::Field(key: "sys")]
