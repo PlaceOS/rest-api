@@ -354,19 +354,17 @@ module ACAEngine
 
       if (!existing_socket) || (existing_socket && existing_socket.closed?)
         driver = Driver::Proxy::RemoteDriver.new(
+          module_id: module_name,
           sys_id: sys_id,
           module_name: module_name,
-          index: index
         )
-
-        module_id = driver.module_id?
 
         ws = driver.debug
         ws.on_message do |message|
           respond(
             Response.new(
               id: request_id,
-              module_id: module_id,
+              module_id: module_name,
               type: Response::Type::Debug,
               message: message,
               meta: {
@@ -578,7 +576,9 @@ module ACAEngine
       # Unbind all modules
       @bindings.clear
 
-      # TODO: Ignore (stop debugging) all modules
+      # Ignore (stop debugging) all modules
+      debug_sessions.each_value { |socket| socket.close }
+      debug_sessions.clear
     end
 
     # Utilities
