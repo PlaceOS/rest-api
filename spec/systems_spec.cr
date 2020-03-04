@@ -161,7 +161,7 @@ module ACAEngine::Api
           }
 
           cs = Model::Generator.control_system.save!
-          mods = expected.map do |name, count|
+          mods = expected.flat_map do |name, count|
             count.times.to_a.map do
               mod = Model::Generator.module(control_system: cs)
               mod.name = name
@@ -182,11 +182,21 @@ module ACAEngine::Api
 
           types.should eq expected
 
-          mods.flatten.each &.destroy
+          mods.each &.destroy
           cs.destroy
         end
 
-        pending "exec"
+        pending "functions" do
+          # Set a key in redis
+        end
+
+        pending "state" do
+          # Set a key in redis
+        end
+
+        pending "state_lookup" do
+          # Set a key in redis
+        end
 
         it "start" do
           cs = Model::Generator.control_system.save!

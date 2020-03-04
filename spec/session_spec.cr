@@ -59,8 +59,6 @@ module ACAEngine::Api
           end
         end
 
-        pending "exec"
-
         it "unbind" do
           # Status to bind
           status_name = "nugget"
@@ -95,6 +93,8 @@ module ACAEngine::Api
           # Check for successful unbind response
           updates.shift.type.should eq Session::Response::Type::Success
         end
+
+        pending "exec"
         pending "debug"
         pending "ignore"
       end
@@ -150,7 +150,7 @@ def test_websocket_api(base, authorization_header)
 
   # Set metadata in redis to allow binding to module
   sys_lookup = ACAEngine::Driver::Storage.new(control_system.id.as(String), "system")
-  lookup_key = "#{mod.custom_name}\x021"
+  lookup_key = "#{mod.custom_name}/1"
   sys_lookup[lookup_key] = mod.id.as(String)
 
   bind(base, authorization_header, on_message) do |ws|
