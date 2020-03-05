@@ -43,6 +43,46 @@ module ACAEngine::Api
       head :ok
     end
 
+    post "/:id/pull", :pull do
+      result = Repositories.pull_repository(current_repo)
+      if result
+        destroyed, commit_hash = result
+        if destroyed
+          head :not_found
+        else
+          render json: {commit_hash: commit_hash}
+        end
+      else
+        head :request_timeout
+      end
+    end
+
+    def self.pull_repository(repository : Model::Repository)
+      # Set the repository commit hash to head
+      repository.update_fields(commit_hash: "head")
+
+      # Initiate changefeed on the document's commit_hash
+      changefeed = Model::Repository.changes(repository.id.as(String))
+
+      # TODO: add timeout logic
+      # Wait until the commit hash is not head
+      # timeout of 20 seconds?
+      found_repo = begin
+        update_event = changefeed.find do |event|
+          repo = event[:value]
+          repo.destroyed? || repo.commit_hash != "head"
+        end
+        update_event.try &.[:value]
+      rescue
+        nil
+      ensure
+        # Terminate the changefeed
+        changefeed.stop
+      end
+
+      {found_repo.destroyed?, found_repo.commit_hash} if found_repo
+    end
+
     get "/:id/drivers", :drivers do
       repository = current_repo.folder_name.not_nil!
 
