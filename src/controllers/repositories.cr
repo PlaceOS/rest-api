@@ -64,15 +64,24 @@ module ACAEngine::Api
       # Initiate changefeed on the document's commit_hash
       changefeed = Model::Repository.changes(repository.id.as(String))
 
-      # TODO: add timeout logic
-      # Wait until the commit hash is not head
-      # timeout of 20 seconds?
+      # Wait until the commit hash is not head with a timeout of 20 seconds
       found_repo = begin
-        update_event = changefeed.find do |event|
-          repo = event[:value]
-          repo.destroyed? || repo.commit_hash != "head"
+        channel = Channel(Model::Repository?).new(1)
+
+        spawn do
+          update_event = changefeed.find do |event|
+            repo = event[:value]
+            repo.destroyed? || repo.commit_hash != "head"
+          end
+          channel.send(update_event.try &.[:value])
         end
-        update_event.try &.[:value]
+
+        select
+        when received = channel.receive
+          received
+        when timeout(20.seconds)
+          raise "timeout waiting for repository update"
+        end
       rescue
         nil
       ensure
