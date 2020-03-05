@@ -56,10 +56,13 @@ dependencies:
   promise:
     github: spider-gazelle/promise
 
+  crystal-rethinkdb:
+    github: aca-labs/crystal-rethinkdb
+    branch: threadsafe
+
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: ~> 2.4.3
 
   # Scheduling
   tasker:

@@ -1,8 +1,9 @@
-docs
-lib
+*.DS_Store
+*.dwarf
 .crystal
 .shards
-engine-api
-*.dwarf
+.vscode
 bin
-*.DS_Store
+docs
+engine-api
+lib
