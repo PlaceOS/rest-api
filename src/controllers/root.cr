@@ -36,13 +36,5 @@ module ACAEngine::Api
       )
       head response.status_code
     end
-
-    get "/cluster_details" do
-      details = {} of String => String
-      Api::Systems.core_discovery.nodes.each do |node|
-        details[node[:name]] = node[:uri].to_s
-      end
-      render json: details
-    end
   end
 end
