@@ -32,7 +32,7 @@ module ACAEngine::Api
         details[node[:name]] = node[:uri].to_s
       end
 
-      if params[:include_status]?
+      if params["include_status"]?
         request_id = logger.request_id || UUID.random.to_s
 
         # Returns [{id:, hostname:, id:, cpu_count:, core_cpu:, total_cpu:, memory_total:, memory_usage:, core_memory:}]
@@ -94,7 +94,7 @@ module ACAEngine::Api
       raise "failed to get processes on #{core_id} => #{host}" unless response.success?
       drivers = LoadedDrivers.from_json(response.body)
 
-      if params[:include_status]?
+      if params["include_status"]?
         render json: Promise.all(details.map { |driver, modules|
           Promise.defer {
             response = HTTP::Client.get(
