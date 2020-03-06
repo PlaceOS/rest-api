@@ -95,7 +95,7 @@ module ACAEngine::Api
       drivers = LoadedDrivers.from_json(response.body)
 
       if params["include_status"]?
-        render json: Promise.all(details.map { |driver, modules|
+        render json: Promise.all(drivers.map { |driver, modules|
           Promise.defer {
             response = HTTP::Client.get(
               "#{host}/api/core/v1/status/driver?path=#{driver}",
