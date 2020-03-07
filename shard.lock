@@ -32,10 +32,6 @@ shards:
     github: spider-gazelle/connect-proxy
     version: 1.0.0
 
-  coverage:
-    github: anykeyh/crystal-coverage
-    commit: 865383b31c51130612a9f6900a9666bcbfe9a426
-
   cron_parser:
     github: kostya/cron_parser
     version: 0.3.0
@@ -54,7 +50,7 @@ shards:
 
   engine-core:
     github: aca-labs/crystal-engine-core
-    commit: bd78965e72f1778e73323ac0c1c0f37f0adfc907
+    commit: d995514c196b437e2f2dd9cd2cbc39dde43ebbbe
 
   engine-driver:
     github: acaengine/driver
@@ -146,7 +142,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 1bdc4210236a20fb01e88c13b59dab397938ae75
+    commit: 979edf4d20453f23b0104cfa14ab7164201e16e4
 
   retriable:
     github: sija/retriable.cr

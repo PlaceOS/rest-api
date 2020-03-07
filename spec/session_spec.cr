@@ -63,27 +63,23 @@ module ACAEngine::Api
           # Status to bind
           status_name = "nugget"
 
+          id = rand(10).to_i64
           results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
             request = {
-              id:          rand(10).to_i64,
+              id:          id,
               sys_id:      control_system.id.as(String),
               module_name: mod.custom_name.as(String),
               name:        status_name,
               command:     Session::Request::Command::Bind,
             }
             ws.send Session::Request.new(**request).to_json
+            sleep 0.1
             ws.send Session::Request.new(**request.merge({command: Session::Request::Command::Bind})).to_json
+            sleep 0.1
           end
 
           updates, control_system, mod = results
-
-          expected_meta = {
-            sys:   control_system.id,
-            mod:   mod.custom_name,
-            index: 1,
-            name:  status_name,
-          }
-
+          expected_meta = {sys: control_system.id, mod: mod.custom_name, index: 1, name: status_name}
           # Check all messages received
           updates.size.should eq 2
           # Check all responses correct metadata

@@ -22,21 +22,14 @@ module ACAEngine::Api
           })
 
           path = "#{base}?#{params}"
+          found = until_expected("GET", path, authorization_header) do |response|
+            results = JSON.parse(response.body).as_a
+            all_service_roles = results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }
+            contains_search_term = results.any? { |r| r["id"] == service.id }
+            all_service_roles && contains_search_term
+          end
 
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
-
-          result.status_code.should eq 200
-          results = JSON.parse(result.body).as_a
-
-          all_service_roles = results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }
-          contains_search_term = results.any? { |r| r["id"] == service.id }
-
-          all_service_roles.should be_true
-          contains_search_term.should be_true
+          found.should be_true
         end
       end
 

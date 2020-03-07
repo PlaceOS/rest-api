@@ -30,20 +30,15 @@ module ACAEngine::Api
 
           systems.each &.save!
 
-          sleep 1
-
           params = HTTP::Params.encode({"zone_id" => zone_id})
           path = "#{base}?#{params}"
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
 
-          result.status_code.should eq 200
+          found = until_expected("GET", path, authorization_header) do |response|
+            returned_ids = JSON.parse(response.body).as_a.compact_map(&.["id"].as_s).sort
+            returned_ids == expected_systems.compact_map(&.id).sort
+          end
 
-          returned_ids = JSON.parse(result.body).as_a.compact_map(&.["id"].as_s).sort
-          returned_ids.should eq expected_systems.compact_map(&.id).sort
+          found.should be_true
         end
 
         it "filters systems by modules" do
@@ -61,23 +56,16 @@ module ACAEngine::Api
           expected_systems.each do |sys|
             sys.modules = [mod_id]
           end
-
           systems.each &.save!
-
-          sleep 1
 
           params = HTTP::Params.encode({"module_id" => mod_id})
           path = "#{base}?#{params}"
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
+          found = until_expected("GET", path, authorization_header) do |response|
+            returned_ids = JSON.parse(response.body).as_a.compact_map(&.["id"].as_s).sort
+            returned_ids == expected_systems.compact_map(&.id).sort
+          end
 
-          result.status_code.should eq 200
-
-          returned_ids = (JSON.parse(result.body).as_a.compact_map &.["id"].as_s).sort
-          returned_ids.should eq (expected_systems.compact_map &.id).sort
+          found.should be_true
         end
       end
 

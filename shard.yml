@@ -79,9 +79,8 @@ development_dependencies:
   faker:
     github: askn/faker
 
-  # Coverage
-  coverage:
-    github: anykeyh/crystal-coverage
+  retriable:
+    github: sija/retriable.cr
 
 targets:
   engine-api:

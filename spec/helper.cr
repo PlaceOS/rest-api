@@ -3,9 +3,11 @@ module ACAEngine; end
 
 class ACAEngine::Driver; end
 
-require "spec"
+require "http"
 require "random"
 require "rethinkdb-orm"
+require "retriable"
+require "spec"
 
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
@@ -27,14 +29,16 @@ Spec.before_suite { clear_tables }
 Spec.after_suite { clear_tables }
 
 def clear_tables
-  ACAEngine::Model::ControlSystem.clear
-  ACAEngine::Model::Driver.clear
-  ACAEngine::Model::Module.clear
-  ACAEngine::Model::Repository.clear
-  ACAEngine::Model::Settings.clear
-  ACAEngine::Model::Trigger.clear
-  ACAEngine::Model::TriggerInstance.clear
-  ACAEngine::Model::Zone.clear
+  parallel(
+    ACAEngine::Model::ControlSystem.clear,
+    ACAEngine::Model::Driver.clear,
+    ACAEngine::Model::Module.clear,
+    ACAEngine::Model::Repository.clear,
+    ACAEngine::Model::Settings.clear,
+    ACAEngine::Model::Trigger.clear,
+    ACAEngine::Model::TriggerInstance.clear,
+    ACAEngine::Model::Zone.clear,
+  )
 end
 
 # Yield an authenticated user, and a header with Authorization bearer set
@@ -66,6 +70,39 @@ def test_404(base, model_name, headers)
   end
 end
 
+def until_expected(method, path, headers, &block : HTTP::Client::Response -> Bool)
+  channel = Channel(Bool).new
+  spawn do
+    before = Time.utc
+    begin
+      Retriable.retry(max_elapsed_time: 2.seconds, on: {Exception => /retry/}) do
+        result = curl(method: method, path: path, headers: headers)
+        result.status_code.should eq 200
+        puts result.body unless result.success?
+        expected = block.call result
+
+        raise Exception.new("retry") unless expected || channel.closed?
+        channel.send(true) if expected
+      end
+    rescue e
+      raise e unless e.message == "retry"
+    ensure
+      after = Time.utc
+      puts "took #{(after - before).milliseconds}ms"
+    end
+  end
+
+  spawn do
+    sleep 5
+    channel.close
+  rescue
+  end
+
+  success = channel.receive?
+  channel.close
+  !!success
+end
+
 # Test search on name field
 macro test_base_index(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
@@ -80,21 +117,15 @@ macro test_base_index(klass, controller_klass)
     end
 
     doc.persisted?.should be_true
-    sleep 1.2
-
     params = HTTP::Params.encode({"q" => doc.name.as(String)})
     path = "#{{{controller_klass}}::NAMESPACE[0].rstrip('/')}?#{params}"
-    result = curl(
-      method: "GET",
-      path: path,
-      headers: authorization_header,
-    )
+    header = authorization_header
 
-    puts result.body unless result.success?
+    found = until_expected("GET", path, header) do |response|
+      JSON.parse(response.body).as_a.any? { |result| result["id"] == doc.id }
+    end
 
-    result.status_code.should eq 200
-    contains_search_term = JSON.parse(result.body).as_a.any? { |result| result["id"] == doc.id }
-    contains_search_term.should be_true
+    found.should be_true
   end
 end
 

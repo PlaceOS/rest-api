@@ -25,7 +25,6 @@ module ACAEngine::Api
       unavailable_drivers: Array(String),
     )
 
-
     def index
       details = {} of String => String
       Api::Systems.core_discovery.nodes.each do |node|
@@ -105,7 +104,7 @@ module ACAEngine::Api
             driver_status = DriverStatus.from_json(response.body)
 
             {
-              driver: driver,
+              driver:  driver,
               modules: modules,
             }.merge driver_status
           }

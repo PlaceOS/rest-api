@@ -125,7 +125,7 @@ module ACAEngine::Api
       core_client = Api::Systems.core_for(driver, logger.request_id)
 
       # The raw JSON string is returned
-      response.headers["Content-Type"] = "Application/json"
+      response.headers["Content-Type"] = "application/json"
       render text: core_client.driver_details(driver, commit, repository)
     end
 

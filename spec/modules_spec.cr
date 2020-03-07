@@ -48,15 +48,14 @@ module ACAEngine::Api
           params = HTTP::Params.encode({"control_system_id" => sys.id.as(String)})
           path = "#{base}?#{params}"
 
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
+          found = until_expected("GET", path, authorization_header) do |response|
+            body = JSON.parse(response.body)
+            got_one = response.headers["X-Total-Count"] == "1"
+            right_one = body[0]["id"] == mod.id
+            got_one && right_one
+          end
 
-          body = JSON.parse(result.body)
-          result.headers["X-Total-Count"].should eq "1"
-          body[0]["id"].should eq mod.id
+          found.should be_true
         end
 
         it "as_of query" do
@@ -65,31 +64,26 @@ module ACAEngine::Api
           mod1.save!
           mod1.persisted?.should be_true
 
-          sleep 1
+          sleep 0.5
 
           mod2 = Model::Generator.module
           mod2.connected = true
           mod2.save!
           mod2.persisted?.should be_true
 
-          sleep 1
+          sleep 0.5
 
           params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
           path = "#{base}?#{params}"
 
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
+          found = until_expected("GET", path, authorization_header) do |response|
+            results = JSON.parse(response.body).as_a
+            contains_correct = results.any? { |r| r["id"] == mod1.id }
+            contains_incorrect = results.any? { |r| r["id"] == mod2.id }
+            contains_correct && !contains_incorrect
+          end
 
-          results = JSON.parse(result.body).as_a
-
-          contains_correct = results.any? { |r| r["id"] == mod1.id }
-          contains_incorrect = results.any? { |r| r["id"] == mod2.id }
-
-          contains_correct.should be_true
-          contains_incorrect.should be_false
+          found.should be_true
         end
 
         it "connected query" do
@@ -101,21 +95,16 @@ module ACAEngine::Api
           params = HTTP::Params.encode({"connected" => "true"})
           path = "#{base}?#{params}"
 
-          sleep 1
+          found = until_expected("GET", path, authorization_header) do |response|
+            results = JSON.parse(response.body).as_a
 
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
+            all_connected = results.all? { |r| r["connected"] != "true" }
+            contains_created = results.any? { |r| r["id"] == mod.id }
 
-          results = JSON.parse(result.body).as_a
+            all_connected && contains_created
+          end
 
-          all_connected = results.all? { |r| r["connected"] != "true" }
-          contains_created = results.any? { |r| r["id"] == mod.id }
-
-          all_connected.should be_true
-          contains_created.should be_true
+          found.should be_true
         end
 
         it "no logic query" do
@@ -127,21 +116,16 @@ module ACAEngine::Api
           params = HTTP::Params.encode({"no_logic" => "true"})
           path = "#{base}?#{params}"
 
-          sleep 1
+          found = until_expected("GET", path, authorization_header) do |response|
+            results = JSON.parse(response.body).as_a
 
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
+            no_logic = results.all? { |r| r["role"] != Model::Driver::Role::Logic.to_i }
+            contains_created = results.any? { |r| r["id"] == mod.id }
 
-          results = JSON.parse(result.body).as_a
+            no_logic && contains_created
+          end
 
-          no_logic = results.all? { |r| r["role"] != Model::Driver::Role::Logic.to_i }
-          contains_created = results.any? { |r| r["id"] == mod.id }
-
-          no_logic.should be_true
-          contains_created.should be_true
+          found.should be_true
         end
       end
 
