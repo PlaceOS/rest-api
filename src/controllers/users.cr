@@ -2,7 +2,7 @@ require "oauth2"
 
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Users < Application
     include Utils::CurrentUser
 

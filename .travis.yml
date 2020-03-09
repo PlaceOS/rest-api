@@ -1,4 +1,3 @@
-sudo: required
 language: crystal
 
 services:
@@ -11,9 +10,9 @@ before_install:
   # Add etcd 3.3.13
   - docker run --net="host" -p "2379:2379" -p "2380:2380" -e ALLOW_NONE_AUTHENTICATION=yes -d bitnami/etcd:3.3.13
   # Add rethinkdb 2.3.6
-  - docker run --net="host" -p "29015:29015" -p "28015:28015" -d acalabs/rethinkdb:2.3.6
+  - docker run --net="host" -p "29015:29015" -p "28015:28015" -d rethinkdb:2.4
   # Add latest rubber-soul (mirrors RethinkDB tables to elasticsearch indices)
-  - docker run --net="host" -e RETHINKDB_DB="engine_production" -e RETHINKDB_PORT="28015" -e RETHINKDB_HOST="127.0.0.1" -e ES_PORT="9200" -e ES_HOST="127.0.0.1" --restart=always -d acalabs/rubber-soul:latest
+  - docker run --net="host" -e RETHINKDB_DB="place_production" -e RETHINKDB_PORT="28015" -e RETHINKDB_HOST="127.0.0.1" -e ES_PORT="9200" -e ES_HOST="127.0.0.1" --restart=always -d acaengine/rubber-soul:latest
 
 env:
   # Set spider-gazelle environment

@@ -1,7 +1,7 @@
-# FIXME: Hack to allow resolution of ACAEngine::Driver class/module
-module ACAEngine; end
+# FIXME: Hack to allow resolution of PlaceOS::Driver class/module
+module PlaceOS; end
 
-class ACAEngine::Driver; end
+class PlaceOS::Driver; end
 
 require "http"
 require "random"
@@ -16,10 +16,10 @@ require "../lib/action-controller/spec/curl_context"
 require "../src/config"
 
 # Generators for Engine models
-require "engine-models/spec/generator"
+require "models/spec/generator"
 
 # Configure DB
-db_name = "engine_#{ENV["SG_ENV"]? || "development"}"
+db_name = "place_#{ENV["SG_ENV"]? || "development"}"
 
 RethinkORM::Connection.configure do |settings|
   settings.db = db_name
@@ -30,20 +30,20 @@ Spec.after_suite { clear_tables }
 
 def clear_tables
   parallel(
-    ACAEngine::Model::ControlSystem.clear,
-    ACAEngine::Model::Driver.clear,
-    ACAEngine::Model::Module.clear,
-    ACAEngine::Model::Repository.clear,
-    ACAEngine::Model::Settings.clear,
-    ACAEngine::Model::Trigger.clear,
-    ACAEngine::Model::TriggerInstance.clear,
-    ACAEngine::Model::Zone.clear,
+    PlaceOS::Model::ControlSystem.clear,
+    PlaceOS::Model::Driver.clear,
+    PlaceOS::Model::Module.clear,
+    PlaceOS::Model::Repository.clear,
+    PlaceOS::Model::Settings.clear,
+    PlaceOS::Model::Trigger.clear,
+    PlaceOS::Model::TriggerInstance.clear,
+    PlaceOS::Model::Zone.clear,
   )
 end
 
 # Yield an authenticated user, and a header with Authorization bearer set
 def authentication
-  authenticated_user = ACAEngine::Model::Generator.user.not_nil!
+  authenticated_user = PlaceOS::Model::Generator.user.not_nil!
   authenticated_user.sys_admin = true
   authenticated_user.support = true
   authenticated_user.email = authenticated_user.email.as(String) + Random.rand(9999).to_s
@@ -55,7 +55,7 @@ def authentication
   end
 
   authorization_header = {
-    "Authorization" => "Bearer #{ACAEngine::Model::Generator.jwt(authenticated_user).encode}",
+    "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user).encode}",
   }
   {authenticated_user, authorization_header}
 end
@@ -110,7 +110,7 @@ macro test_base_index(klass, controller_klass)
 
   it "queries #{ {{ klass_name }} }", tags: "search" do
     doc = begin
-      ACAEngine::Model::Generator.{{ klass_name.id }}.save!
+      PlaceOS::Model::Generator.{{ klass_name.id }}.save!
     rescue e : RethinkORM::Error::DocumentInvalid
       pp! e.inspect_errors
       raise e
@@ -135,7 +135,7 @@ macro test_crd(klass, controller_klass)
   authenticated_user, authorization_header = authentication
 
   it "create" do
-    body = ACAEngine::Model::Generator.{{ klass_name.id }}.to_json
+    body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
     result = curl(
       method: "POST",
       path: base,
@@ -150,7 +150,7 @@ macro test_crd(klass, controller_klass)
   end
 
   it "show" do
-    model = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
+    model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
     id = model.id.as(String)
     result = curl(
@@ -167,7 +167,7 @@ macro test_crd(klass, controller_klass)
   end
 
   it "destroy" do
-    model = ACAEngine::Model::Generator.{{ klass_name.id }}.save!
+    model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
     id = model.id.as(String)
     result = curl(

@@ -8,7 +8,7 @@ Has the regular CRUD methods for the model
 
 ## Model:
 
-https://github.com/aca-labs/crystal-engine-models/blob/master/src/engine-models/trigger.cr
+https://github.com/placeos/models/blob/master/src/models/trigger.cr
 
 ```yaml
 {

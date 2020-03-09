@@ -1,6 +1,6 @@
 require "./helper"
 
-module ACAEngine::Api
+module PlaceOS::Api
   describe Triggers do
     # ameba:disable Lint/UselessAssign
     authenticated_user, authorization_header = authentication

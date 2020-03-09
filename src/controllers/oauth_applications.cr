@@ -1,6 +1,6 @@
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class OAuthApplications < Application
     base "/api/engine/v2/oauth_apps/"
 

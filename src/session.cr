@@ -1,8 +1,8 @@
-# FIXME: Hack to allow resolution of ACAEngine::Driver class/module
-class ACAEngine::Driver; end
+# FIXME: Hack to allow resolution of PlaceOS::Driver class/module
+class PlaceOS::Driver; end
 
 require "action-controller/logger"
-require "engine-driver/proxy/remote_driver"
+require "driver/proxy/remote_driver"
 require "hound-dog"
 require "redis"
 require "tasker"
@@ -11,7 +11,7 @@ require "./error"
 require "./utilities/params"
 require "./utilities/severity_converter"
 
-module ACAEngine
+module PlaceOS
   class Api::Session
     # Stores sessions until their websocket closes
     class Manager

@@ -1,6 +1,6 @@
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Webhook < Application
     base "/api/engine/v2/webhook/"
 
@@ -13,7 +13,7 @@ module ACAEngine::Api
       render json: current_trigger
     end
 
-    alias RemoteDriver = ::ACAEngine::Driver::Proxy::RemoteDriver
+    alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
     # Triggers the webhook
     def notify(method_type : String) # ameba:disable Metrics/CyclomaticComplexity

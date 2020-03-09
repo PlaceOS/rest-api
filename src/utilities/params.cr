@@ -1,6 +1,6 @@
 require "active-model"
 
-module ACAEngine::Api
+module PlaceOS::Api
   abstract class Params < ActiveModel::Model
     # Helpers for model validations
     include ActiveModel::Validation

@@ -1,6 +1,6 @@
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   AUTH_TYPES = {"Ldap", "Saml", "OAuth"}
   {% for auth_type in AUTH_TYPES %}
     class {{auth_type.id}}Authentications < Application

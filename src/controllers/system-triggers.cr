@@ -1,6 +1,6 @@
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class SystemTriggers < Application
     include Utils::CurrentUser
 

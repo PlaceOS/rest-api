@@ -1,6 +1,6 @@
 require "./helper"
 
-module ACAEngine::Api
+module PlaceOS::Api
   describe Root do
     with_server do
       _, authorization_header = authentication

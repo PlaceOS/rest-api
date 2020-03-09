@@ -1,10 +1,10 @@
 require "uri"
 
-require "engine-models/authority"
-require "engine-models/user"
-require "engine-models/user_jwt"
+require "models/authority"
+require "models/user"
+require "models/user_jwt"
 
-module ACAEngine::Api
+module PlaceOS::Api
   # Helper to grab user and authority from a request
   module Utils::CurrentUser
     @user_token : Model::UserJWT?

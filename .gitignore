@@ -5,5 +5,5 @@
 .vscode
 bin
 docs
-engine-api
+rest-api
 lib

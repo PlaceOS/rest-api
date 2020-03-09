@@ -1,6 +1,6 @@
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Drivers < Application
     base "/api/engine/v2/drivers/"
 

@@ -17,11 +17,11 @@ GET http://localhost:8080/api/engine/v2/cluster?include_status=true
   {
     "id": "01E2PRBSNE4GXM9WGVM7M3KEZX",
     "compiled_drivers": [
-      "drivers_aca_private_helper_fe33588"
+      "drivers_place_private_helper_fe33588"
     ],
     "available_repositories": [
       "drivers",
-      "aca-drivers"
+      "place-drivers"
     ],
     "running_drivers": 1,
     "module_instances": 1,
@@ -55,7 +55,7 @@ GET http://localhost:8080/api/engine/v2/cluster/01E2PRBSNE4GXM9WGVM7M3KEZX?inclu
 [
   {
     # This is the process name
-    "driver": "/app/bin/drivers/drivers_aca_private_helper_fe33588",
+    "driver": "/app/bin/drivers/drivers_place_private_helper_fe33588",
     # module ids that are running on the process
     "modules": [
       "mod-ETbLjPMTRfb"
@@ -77,4 +77,4 @@ GET http://localhost:8080/api/engine/v2/cluster/01E2PRBSNE4GXM9WGVM7M3KEZX?inclu
 
 Terminates a process on the core causing core to re-launch the process
 
-DELETE http://localhost:8080/api/engine/v2/cluster/01E2PRBSNE4GXM9WGVM7M3KEZX?driver=/app/bin/drivers/drivers_aca_private_helper_fe33588
+DELETE http://localhost:8080/api/engine/v2/cluster/01E2PRBSNE4GXM9WGVM7M3KEZX?driver=/app/bin/drivers/drivers_place_private_helper_fe33588

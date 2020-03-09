@@ -1,4 +1,4 @@
-module ACAEngine::Api
+module PlaceOS::Api
   module Utils::CoreHelper
     # Determine a user's Driver execution privilege
     def driver_clearance(user : Model::User | Model::UserJWT)

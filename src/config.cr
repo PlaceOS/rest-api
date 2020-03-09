@@ -1,7 +1,7 @@
-# FIXME: Hack to allow resolution of ACAEngine::Driver class/module
-module ACAEngine; end
+# FIXME: Hack to allow resolution of PlaceOS::Driver class/module
+module PlaceOS; end
 
-class ACAEngine::Driver; end
+class PlaceOS::Driver; end
 
 # Application dependencies
 require "action-controller"

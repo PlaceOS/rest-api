@@ -2,7 +2,7 @@ require "promise"
 
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Zones < Application
     include Utils::CoreHelper
     base "/api/engine/v2/zones/"
@@ -75,7 +75,7 @@ module ACAEngine::Api
     post("/:id/exec/:module_slug/:method") do
       zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
       args = Array(JSON::Any).from_json(request.body.as(IO))
-      module_name, index = ::ACAEngine::Driver::Proxy::RemoteDriver.get_parts(module_slug)
+      module_name, index = ::PlaceOS::Driver::Proxy::RemoteDriver.get_parts(module_slug)
 
       results = Promise.map(current_zone.systems) do |system|
         system_id = system.id.as(String)

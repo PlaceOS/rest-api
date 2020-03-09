@@ -9,7 +9,7 @@ process_count = 1
 
 # Command line options
 OptionParser.parse(ARGV.dup) do |parser|
-  parser.banner = "Usage: #{ACAEngine::Api::APP_NAME} [arguments]"
+  parser.banner = "Usage: #{PlaceOS::Api::APP_NAME} [arguments]"
 
   parser.on("-b HOST", "--bind=HOST", "Specifies the server host") { |h| host = h }
   parser.on("-p PORT", "--port=PORT", "Specifies the server port") { |p| port = p.to_i }
@@ -25,7 +25,7 @@ OptionParser.parse(ARGV.dup) do |parser|
   end
 
   parser.on("-v", "--version", "Display the application version") do
-    puts "#{ACAEngine::Api::APP_NAME} v#{ACAEngine::Api::VERSION}"
+    puts "#{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION}"
     exit 0
   end
 
@@ -57,7 +57,7 @@ OptionParser.parse(ARGV.dup) do |parser|
 end
 
 # Load the routes
-puts "Launching #{ACAEngine::Api::APP_NAME} v#{ACAEngine::Api::VERSION}"
+puts "Launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION}"
 
 # Requiring config here ensures that the option parser runs before
 # we attempt to connect to redis etc.
@@ -85,4 +85,4 @@ server.run do
 end
 
 # Shutdown message
-puts "#{ACAEngine::Api::APP_NAME} leaps through the veldt\n"
+puts "#{PlaceOS::Api::APP_NAME} leaps through the veldt\n"

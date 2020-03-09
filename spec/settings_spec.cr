@@ -1,6 +1,6 @@
 require "./helper"
 
-module ACAEngine::Api
+module PlaceOS::Api
   describe Settings do
     _, authorization_header = authentication
     base = Api::Settings::NAMESPACE[0]

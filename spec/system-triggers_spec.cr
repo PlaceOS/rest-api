@@ -1,6 +1,6 @@
 require "./helper"
 
-module ACAEngine::Api
+module PlaceOS::Api
   describe SystemTriggers do
     _, authorization_header = authentication
     base = SystemTriggers::NAMESPACE[0]
@@ -108,8 +108,8 @@ module ACAEngine::Api
         end
 
         it "destroy" do
-          sys = ACAEngine::Model::Generator.control_system.save!
-          model = ACAEngine::Model::Generator.trigger_instance
+          sys = PlaceOS::Model::Generator.control_system.save!
+          model = PlaceOS::Model::Generator.trigger_instance
           model.control_system = sys
 
           model.save!

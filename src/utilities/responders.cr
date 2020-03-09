@@ -1,6 +1,6 @@
 require "http"
 
-module ACAEngine::Api
+module PlaceOS::Api
   module Utils::Responders
     # Shortcut to save a record and render a response
     def save_and_respond(resource)

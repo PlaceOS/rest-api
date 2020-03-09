@@ -1,6 +1,6 @@
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Repositories < Application
     base "/api/engine/v2/repositories/"
 
@@ -121,7 +121,7 @@ module ACAEngine::Api
 
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
-      # Returns: https://github.com/aca-labs/crystal-engine-driver/blob/master/docs/command_line_options.md#discovery-and-defaults
+      # Returns: https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
       core_client = Api::Systems.core_for(driver, logger.request_id)
 
       # The raw JSON string is returned

@@ -1,6 +1,6 @@
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Settings < Application
     base "/api/engine/v2/settings/"
 

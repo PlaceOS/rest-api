@@ -1,4 +1,4 @@
-module ACAEngine::Api
+module PlaceOS::Api
   class Error < Exception
     getter message
 

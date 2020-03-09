@@ -1,16 +1,16 @@
 require "hound-dog"
 
-require "engine-core/client"
-require "engine-driver/proxy/system"
+require "core/client"
+require "driver/proxy/system"
 
 require "./application"
 require "../session"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Systems < Application
     include Utils::CoreHelper
 
-    alias RemoteDriver = ::ACAEngine::Driver::Proxy::RemoteDriver
+    alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
     base "/api/engine/v2/systems/"
 
@@ -32,7 +32,7 @@ module ACAEngine::Api
     @@session_manager : Session::Manager? = nil
 
     # Core API client
-    @core : ACAEngine::Core::Client? = nil
+    @core : PlaceOS::Core::Client? = nil
 
     # Core service discovery
     class_getter core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
@@ -236,7 +236,7 @@ module ACAEngine::Api
     get("/:sys_id/functions/:module_slug", :functions) do
       sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
-      metadata = ::ACAEngine::Driver::Proxy::System.driver_metadata?(
+      metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(
         system_id: sys_id,
         module_name: module_name,
         index: index,
@@ -261,7 +261,7 @@ module ACAEngine::Api
         {
           arity:  arguments.size,
           params: arguments,
-          order: arguments.keys,
+          order:  arguments.keys,
         }
       end
 
@@ -270,7 +270,7 @@ module ACAEngine::Api
 
     def module_state(sys_id : String, module_name : String, index : Int32, key : String? = nil)
       # Look up module's id for module on system
-      module_id = ::ACAEngine::Driver::Proxy::System.module_id?(
+      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
         system_id: sys_id,
         module_name: module_name,
         index: index
@@ -278,7 +278,7 @@ module ACAEngine::Api
 
       if module_id
         # Grab drive(r state proxy
-        storage = ACAEngine::Driver::Storage.new(module_id)
+        storage = PlaceOS::Driver::Storage.new(module_id)
         # Perform lookup, otherwise dump state
         key ? storage[key] : storage.to_h
       end
@@ -309,7 +309,7 @@ module ACAEngine::Api
 
     # Determine URI for a system module
     def self.locate_module?(sys_id : String, module_name : String, index : Int32) : URI?
-      module_id = ::ACAEngine::Driver::Proxy::System.module_id?(sys_id, module_name, index)
+      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(sys_id, module_name, index)
       module_id.try &->self.locate_module(String)
     end
 

@@ -1,12 +1,12 @@
 require "action-controller"
-require "engine-models"
+require "models"
 require "uuid"
 
 require "../constants"
 require "../error"
 require "../utilities/*"
 
-module ACAEngine::Api
+module PlaceOS::Api
   private abstract class Application < ActionController::Base
     # Helpers for controller responses
     include Utils::Responders

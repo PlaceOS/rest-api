@@ -1,7 +1,7 @@
 require "promise"
 require "./application"
 
-module ACAEngine::Api
+module PlaceOS::Api
   class Cluster < Application
     base "/api/engine/v2/cluster/"
     before_action :check_admin

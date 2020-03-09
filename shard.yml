@@ -1,4 +1,4 @@
-name: engine-rest-api
+name: rest-api
 version: 1.3.2
 crystal: 0.33.0
 
@@ -19,18 +19,18 @@ dependencies:
     version: ~> 0.2.4
 
   # For core client
-  engine-core:
-    github: aca-labs/crystal-engine-core
+  core:
+    github: placeos/core
     branch: master
 
   # For driver state helpers
-  engine-driver:
-    github: aca-labs/crystal-engine-driver
+  driver:
+    github: placeos/driver
     branch: master
 
   # Database view
-  engine-models:
-    github: acaengine/models
+  models:
+    github: placeos/models
     branch: master
 
   # Service discovery
@@ -83,5 +83,5 @@ development_dependencies:
     github: sija/retriable.cr
 
 targets:
-  engine-api:
-    main: src/engine-api.cr
+  rest-api:
+    main: src/rest-api.cr

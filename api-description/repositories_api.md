@@ -9,7 +9,7 @@ Supports standard CRUD methods for the model
 
 ## Model:
 
-https://github.com/aca-labs/crystal-engine-models/blob/master/src/engine-models/repository.cr#L18-L25
+https://github.com/placeos/models/blob/master/src/models/repository.cr#L18-L25
 
 ```
 {
@@ -35,4 +35,4 @@ Where Interface is like a link to a www UI repository and Driver is a driver rep
   * Returns an array of: `[{commit:, date:, author:, subject:}]`
 * Get the details of a driver: `/api/engine/v2/repositories/:repo_id/details?driver=URL_escaped_driver_name_from_the_drivers_request&commit=selected_commit_hash`
   * Returns:
-https://github.com/aca-labs/crystal-engine-driver/blob/master/docs/command_line_options.md#discovery-and-defaults
+https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
