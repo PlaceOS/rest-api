@@ -363,12 +363,14 @@ module PlaceOS
 
         ws = driver.debug
         ws.on_message do |message|
+          level, message = Tuple(Logger::Severity, String).from_json(message)
+
           respond(
             Response.new(
               id: request_id,
               module_id: module_name,
               type: Response::Type::Debug,
-              level: Logger::Severity::DEBUG,
+              level: level,
               message: message,
               meta: {
                 sys:   sys_id,
