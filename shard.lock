@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    commit: 64a3dfd140f9845565a36e709d2d8425370cc8d0
+    commit: 8e7c586a32be98499e77e9d39152146b4c212b74
 
   cron_parser:
     github: kostya/cron_parser
@@ -54,7 +54,7 @@ shards:
 
   driver:
     github: placeos/driver
-    commit: 136ae2c8c11f817a37d25b28b1faca28f27cf33a
+    commit: 9327e72aa6bd784a1d85185c408bed18345a566f
 
   drivers:
     github: placeos/drivers
@@ -98,7 +98,7 @@ shards:
 
   models:
     github: placeos/models
-    commit: c88461cda10a2e06b7dfdb5cc040a12a749e11d4
+    commit: 2c69a77e712b03f7253b3b3a40948159e6c24b0b
 
   murmur3:
     github: aca-labs/murmur3
