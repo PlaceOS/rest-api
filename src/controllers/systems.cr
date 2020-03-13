@@ -241,7 +241,12 @@ module PlaceOS::Api
         module_name: module_name,
         index: index,
       )
-      head :not_found unless metadata
+
+      unless metadata
+        logger.debug { "metadata not found for #{module_slug} on #{sys_id}" }
+        head :not_found
+      end
+
       hidden_functions = if user_token.is_admin?
                            # All functions available to admin
                            [] of String

@@ -54,14 +54,14 @@ module PlaceOS::Api
             method_signature.each_with_index do |(_argument, type_details), index| # ameba:disable Lint/UselessAssign
               case index
               when 0
-                if type_details[0].starts_with?("String")
+                if type_details[0].as_s.starts_with?("String")
                   args << JSON::Any.new(method_type)
                 else
                   can_be_called = false unless type_details.size > 1
                   expects_arguments = false
                 end
               when 1
-                if expects_arguments && type_details[0].starts_with?("String")
+                if expects_arguments && type_details[0].as_s.starts_with?("String")
                   args << JSON::Any.new(body_data)
                 else
                   can_be_called = false unless type_details.size > 1
