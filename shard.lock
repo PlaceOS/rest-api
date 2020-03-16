@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    commit: 8e7c586a32be98499e77e9d39152146b4c212b74
+    commit: 9f717772bbbdc4794de624ca473d9bf68cafbcf2
 
   cron_parser:
     github: kostya/cron_parser

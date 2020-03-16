@@ -12,7 +12,7 @@ before_install:
   # Add rethinkdb 2.3.6
   - docker run --net="host" -p "29015:29015" -p "28015:28015" -d rethinkdb:2.4
   # Add latest rubber-soul (mirrors RethinkDB tables to elasticsearch indices)
-  - docker run --net="host" -e RETHINKDB_DB="place_production" -e RETHINKDB_PORT="28015" -e RETHINKDB_HOST="127.0.0.1" -e ES_PORT="9200" -e ES_HOST="127.0.0.1" --restart=always -d acaengine/rubber-soul:latest
+  - docker run --net="host" -e RETHINKDB_DB="place_production" -e RETHINKDB_PORT="28015" -e RETHINKDB_HOST="127.0.0.1" -e ES_PORT="9200" -e ES_HOST="127.0.0.1" --restart=always -d placeos/rubber-soul:latest
 
 env:
   # Set spider-gazelle environment
