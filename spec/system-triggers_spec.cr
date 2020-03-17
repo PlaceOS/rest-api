@@ -74,7 +74,7 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          response_model = Model::TriggerInstance.from_json(result.body).not_nil!
+          response_model = Model::TriggerInstance.from_trusted_json(result.body).not_nil!
           response_model.id.should eq id
 
           sys.destroy
@@ -101,10 +101,11 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          updated = Model::TriggerInstance.from_json(result.body)
+          updated = Model::TriggerInstance.from_trusted_json(result.body)
 
           updated.id.should eq trigger_instance.id
           updated.important.should_not eq original_importance
+          updated.destroy
         end
 
         it "destroy" do

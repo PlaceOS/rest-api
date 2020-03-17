@@ -54,7 +54,7 @@ module PlaceOS::Api
             )
             result.success?.should be_true
 
-            updated = Model::Driver.from_json(result.body)
+            updated = Model::Driver.from_trusted_json(result.body)
             updated.id.should eq driver.id
             updated.name.should_not eq original_name
           end

@@ -146,7 +146,8 @@ macro test_crd(klass, controller_klass)
     result.status_code.should eq 201
     body = result.body.as(String)
 
-    {{ klass }}.find(JSON.parse(body)["id"].as_s).try &.destroy
+    response_model = {{ klass.id }}.from_trusted_json(result.body).not_nil!
+    response_model.destroy
   end
 
   it "show" do
@@ -160,7 +161,7 @@ macro test_crd(klass, controller_klass)
     )
 
     result.status_code.should eq 200
-    response_model = {{ klass.id }}.from_json(result.body).not_nil!
+    response_model = {{ klass.id }}.from_trusted_json(result.body).not_nil!
     response_model.id.should eq id
 
     model.destroy

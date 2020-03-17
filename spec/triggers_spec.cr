@@ -30,10 +30,11 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          updated = Model::Trigger.from_json(result.body)
+          updated = Model::Trigger.from_trusted_json(result.body)
 
           updated.id.should eq trigger.id
           updated.name.should_not eq original_name
+          updated.destroy
         end
       end
     end

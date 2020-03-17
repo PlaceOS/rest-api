@@ -29,7 +29,7 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          updated = Model::Module.from_json(result.body)
+          updated = Model::Module.from_trusted_json(result.body)
           updated.id.should eq mod.id
           updated.connected.should eq !connected
         end

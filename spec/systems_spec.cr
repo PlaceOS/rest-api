@@ -295,7 +295,7 @@ module PlaceOS::Api
             )
 
             result.status_code.should eq 200
-            updated = Model::ControlSystem.from_json(result.body)
+            updated = Model::ControlSystem.from_trusted_json(result.body)
             updated.id.should eq cs.id
             updated.name.should_not eq original_name
           end

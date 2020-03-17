@@ -25,7 +25,11 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          returned_settings = Array(Model::Settings).from_json(result.body).sort_by!(&.encryption_level.not_nil!)
+
+          returned_settings = JSON.parse(result.body).as_a.map { |m|
+            Model::Settings.from_trusted_json(m.to_json)
+          }.sort_by!(&.encryption_level.not_nil!)
+
           returned_clear, returned_admin, returned_never_displayed = returned_settings
 
           returned_clear.id.should eq clear.id
@@ -55,10 +59,11 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          updated = Model::Settings.from_json(result.body)
+          updated = Model::Settings.from_trusted_json(result.body)
 
           updated.id.should eq settings.id
           updated.settings_string.should_not eq original_settings
+          updated.destroy
         end
       end
     end

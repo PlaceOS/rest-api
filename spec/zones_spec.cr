@@ -30,10 +30,11 @@ module PlaceOS::Api
           )
 
           result.success?.should be_true
-          updated = Model::Zone.from_json(result.body)
+          updated = Model::Zone.from_trusted_json(result.body)
 
           updated.id.should eq zone.id
           updated.name.should_not eq original_name
+          updated.destroy
         end
       end
     end
