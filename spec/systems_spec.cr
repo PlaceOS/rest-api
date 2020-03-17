@@ -13,6 +13,8 @@ module PlaceOS::Api
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
         it "filters systems by zones" do
+          Model::ControlSystem.clear
+
           num_systems = 5
 
           zone = Model::Generator.zone.save!

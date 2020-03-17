@@ -72,9 +72,10 @@ module PlaceOS::Api
         search_results = paginate_results(elastic, query)
 
         # Include subset of association data with results
-        includes = search_results.map do |d|
+        includes = search_results.compact_map do |d|
           sys = d.control_system
           driver = d.driver
+          next unless driver
 
           # Most human readable module data is contained in driver
           driver_field = restrict_attributes(
@@ -87,23 +88,27 @@ module PlaceOS::Api
             ]
           )
 
-          # Include control system on logic modules so it is possible
+          # Include control system on Logic modules so it is possible
           # to display the inherited settings
-          sys_field = restrict_attributes(
-            sys,
-            only: [
-              "name",
-              "settings",
-            ],
-            fields: {
-              :zone_data => sys.try &.zone_data,
-            }
-          )
+          sys_field = if sys
+                        restrict_attributes(
+                          sys,
+                          only: [
+                            "name",
+                            "settings",
+                          ],
+                          fields: {
+                            :zone_data => sys.zone_data,
+                          }
+                        )
+                      else
+                        nil
+                      end
 
           with_fields(d, {
             :control_system => sys_field,
             :driver         => driver_field,
-          })
+          }.compact)
         end
 
         render json: includes
