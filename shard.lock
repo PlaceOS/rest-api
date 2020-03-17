@@ -44,6 +44,10 @@ shards:
     github: aca-labs/crystal-rethinkdb
     commit: be7e36c37c12b8d20dd5efd170425054ecc61a66
 
+  db:
+    github: crystal-lang/crystal-db
+    version: 0.8.0
+
   debug:
     github: Sija/debug.cr
     version: 1.1.0
@@ -98,15 +102,15 @@ shards:
 
   models:
     github: placeos/models
-    commit: 2c69a77e712b03f7253b3b3a40948159e6c24b0b
+    commit: f5eb5d7c6b1d869d015009676808273b3edea7ac
 
   murmur3:
     github: aca-labs/murmur3
     commit: 7cbe25c0ca8d052c9d98c377c824dcb0e038c790
 
   neuroplastic:
-    github: aca-labs/neuroplastic
-    commit: 090e63375a5c12d81fb006e737c28bb3a325f27c
+    github: spider-gazelle/neuroplastic
+    version: 1.3.5
 
   openssl_ext:
     github: stakach/openssl_ext

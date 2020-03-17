@@ -123,17 +123,32 @@ module PlaceOS::Api
       head :ok
     end
 
-    # Removes the module from the system and deletes it if not used elsewhere
-    # BREAKING CHANGE: Removed 'module_id' query param, now in the path
+    # Adds the module from the system if it doesn't already exist
     #
-    post("/:sys_id/remove/:module_id", :remove) do
+    put("/:sys_id/modules/:module_id", :add_module) do
+      control_system = current_system
+      module_id = params["module_id"]
+
+      head :ok if control_system.modules.try &.includes?(module_id)
+      head :not_found unless Model::Module.find(module_id)
+
+      control_system.modules_will_change!
+      control_system.modules.try &.push(module_id)
+      control_system.save! # TODO: with_cas and version field
+
+      head :ok
+    end
+
+    # Removes the module from the system and deletes it if not used elsewhere
+    #
+    delete("/:sys_id/modules/:module_id", :remove_module) do
       control_system = current_system
       module_id = params["module_id"]
 
       if control_system.modules.try &.includes?(module_id)
         control_system.modules_will_change!
         control_system.modules.try &.delete(module_id)
-        control_system.save! # TODO: with_cas: true
+        control_system.save! # TODO: with_cas and version field
 
         # Keep if any other ControlSystem is using the module
         keep = Model::ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }

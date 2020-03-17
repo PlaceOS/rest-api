@@ -69,22 +69,21 @@ module PlaceOS::Api
         end
       end
 
-      describe "remove" do
-        it "module if not in use by another ControlSystem" do
+      describe "/:sys_id/modules/:module_id" do
+        it "removes if not in use by another ControlSystem" do
           cs = Model::Generator.control_system.save!
-          mod = Model::Generator.module(control_system: cs).save!
+          mod = Model::Generator.module.save!
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
 
           mod_id = mod.id.as(String)
           cs.update_fields(modules: [mod_id])
-
-          cs.persisted?.should be_true
-          mod.persisted?.should be_true
           cs.modules.not_nil!.should contain mod_id
 
-          path = base + "#{cs.id}/remove/#{mod_id}"
+          path = base + "#{cs.id}/modules/#{mod_id}"
 
           result = curl(
-            method: "POST",
+            method: "DELETE",
             path: path,
             headers: authorization_header,
           )
@@ -95,30 +94,29 @@ module PlaceOS::Api
           cs.modules.not_nil!.should_not contain mod_id
 
           Model::Module.find(mod_id).should be_nil
-          cs.destroy
+          {mod, cs}.each &.destroy
         end
 
         it "keeps module if in use by another ControlSystem" do
           cs1 = Model::Generator.control_system.save!
           cs2 = Model::Generator.control_system.save!
-          mod = Model::Generator.module(control_system: cs1).save!
-
-          mod_id = mod.id.as(String)
-
-          cs1.update_fields(modules: [mod_id])
-          cs2.update_fields(modules: [mod_id])
-
+          mod = Model::Generator.module.save!
           cs1.persisted?.should be_true
           cs2.persisted?.should be_true
           mod.persisted?.should be_true
 
+          mod_id = mod.id.as(String)
+          # Add module to systems
+          cs1.update_fields(modules: [mod_id])
+          cs2.update_fields(modules: [mod_id])
+
           cs1.modules.not_nil!.should contain mod_id
           cs2.modules.not_nil!.should contain mod_id
 
-          path = base + "#{cs1.id}/remove/#{mod_id}"
+          path = base + "#{cs1.id}/modules/#{mod_id}"
 
           result = curl(
-            method: "POST",
+            method: "DELETE",
             path: path,
             headers: authorization_header,
           )
@@ -133,9 +131,45 @@ module PlaceOS::Api
 
           Model::Module.find(mod_id).should_not be_nil
 
-          mod.destroy
-          cs1.destroy
-          cs2.destroy
+          {mod, cs1, cs2}.each &.destroy
+        end
+
+        it "adds a module if not present" do
+          cs = Model::Generator.control_system.save!
+          mod = Model::Generator.module.save!
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
+
+          mod_id = mod.id.as(String)
+          path = base + "#{cs.id}/modules/#{mod_id}"
+
+          result = curl(
+            method: "PUT",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+
+          cs = Model::ControlSystem.find!(cs.id)
+          cs.modules.not_nil!.should contain mod_id
+          {cs, mod}.each &.destroy
+        end
+
+        it "404s if added module does not exist" do
+          cs = Model::Generator.control_system.save!
+          cs.persisted?.should be_true
+
+          path = base + "#{cs.id}/modules/mod-th15do35n073x157"
+
+          result = curl(
+            method: "PUT",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 404
+          cs.destroy
         end
       end
 
