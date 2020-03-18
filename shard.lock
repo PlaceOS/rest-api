@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    commit: d37910c2153d8a47eb8a9fa103f1c71606c4a06a
+    commit: 1d7d09460d038f46aa169d028f06d82bbe84ff42
 
   cron_parser:
     github: kostya/cron_parser
@@ -102,7 +102,7 @@ shards:
 
   models:
     github: placeos/models
-    commit: f5eb5d7c6b1d869d015009676808273b3edea7ac
+    commit: 1cde370154a96b00ad2b4d207eb0837daf044042
 
   murmur3:
     github: aca-labs/murmur3
