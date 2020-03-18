@@ -18,7 +18,11 @@ module PlaceOS::Api
 
     # Render the current user
     get("/current", :current) do
-      render json: current_user.as_admin_json
+      begin
+        render json: current_user.as_admin_json
+      rescue e : RethinkORM::Error::DocumentNotFound
+        head :unauthorized
+      end
     end
 
     def index
