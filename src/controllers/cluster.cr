@@ -16,13 +16,18 @@ module PlaceOS::Api
       core_memory: Int64,
     )
 
+    alias DriverError = NamedTuple(
+      name: String,
+      reason: String,
+    )
+
     alias ClusterDetails = NamedTuple(
       compiled_drivers: Array(String),
       available_repositories: Array(String),
       running_drivers: Int32,
       module_instances: Int32,
-      unavailable_repositories: Array(String),
-      unavailable_drivers: Array(String),
+      unavailable_repositories: Array(DriverError),
+      unavailable_drivers: Array(DriverError),
     )
 
     def index
