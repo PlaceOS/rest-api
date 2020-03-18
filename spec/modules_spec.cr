@@ -17,8 +17,6 @@ module PlaceOS::Api
           connected = mod.connected.not_nil!
           mod.connected = !connected
 
-          sleep 0.1
-
           id = mod.id.as(String)
           path = base + id
           result = curl(
@@ -27,6 +25,8 @@ module PlaceOS::Api
             body: mod.to_json,
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
+
+          sleep 0.1
 
           result.status_code.should eq 200
           updated = Model::Module.from_trusted_json(result.body)

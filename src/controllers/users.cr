@@ -8,7 +8,7 @@ module PlaceOS::Api
 
     base "/api/engine/v2/users/"
 
-    before_action :find_user, only: [:destroy, :update, :create]
+    before_action :find_user, only: [:destroy, :update, :show]
     before_action :check_admin, only: [:index, :destroy, :create]
     before_action :check_authorization, only: [:update]
 
