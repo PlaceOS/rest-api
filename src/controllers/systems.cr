@@ -146,14 +146,24 @@ module PlaceOS::Api
       module_id = params["module_id"]
 
       if control_system.modules.try &.includes?(module_id)
-        control_system.modules_will_change!
-        control_system.modules.try &.delete(module_id)
-        control_system.save! # TODO: with_cas and version field
+        Model::ControlSystem.table_query do |q|
+          q
+            .get(control_system.id)
+            .replace { |sys|
+              sys.merge({
+                "modules" => sys["modules"].set_difference([module_id]),
+                "version" => sys["version"] + 1,
+              })
+            }
+        end
 
         # Keep if any other ControlSystem is using the module
         keep = Model::ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }
-        unless keep
-          Model::Module.find(module_id).try &.destroy
+        if keep
+          logger.info "module still in use"
+        else
+          logger.info "module #{module_id} removed as not in any other systems"
+          Model::Module.find(module_id).try(&.destroy)
         end
       end
 
