@@ -175,7 +175,7 @@ module PlaceOS::Api
         end
       end
 
-      head :ok
+      render json: Model::ControlSystem.find!(control_system.id)
     end
 
     # Module Functions
