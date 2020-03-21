@@ -125,23 +125,31 @@ module PlaceOS::Api
 
     # Adds the module from the system if it doesn't already exist
     #
-    put("/:sys_id/modules/:module_id", :add_module) do
+    put("/:sys_id/module/:module_id", :add_module) do
       control_system = current_system
       module_id = params["module_id"]
 
       head :ok if control_system.modules.try &.includes?(module_id)
       head :not_found unless Model::Module.find(module_id)
 
-      control_system.modules_will_change!
-      control_system.modules.try &.push(module_id)
-      control_system.save! # TODO: with_cas and version field
+      Model::ControlSystem.table_query do |q|
+        q
+          .get(control_system.id)
+          .replace { |sys|
+            sys.merge({
+              "modules" => sys["modules"].append(module_id),
+              "version" => sys["version"] + 1,
+            })
+          }
+      end
 
-      head :ok
+      # Return the latest version of the control system
+      render json: Model::ControlSystem.find!(control_system.id)
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
     #
-    delete("/:sys_id/modules/:module_id", :remove_module) do
+    delete("/:sys_id/module/:module_id", :remove_module) do
       control_system = current_system
       module_id = params["module_id"]
 
