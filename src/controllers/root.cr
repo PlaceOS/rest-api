@@ -4,7 +4,7 @@ module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version]
+    before_action :check_admin, except: [:root, :healthz, :version, :signal]
 
     get "/", :root do
       head :ok
@@ -19,6 +19,19 @@ module PlaceOS::Api
         app:     APP_NAME,
         version: VERSION,
       }
+    end
+
+    # Can be used in a similar manner to a webhook for drivers
+    post "/signal", :signal do
+      channel = params["channel"]
+      payload = if body = request.body
+                  body.gets_to_end
+                else
+                  ""
+                end
+
+      ::PlaceOS::Driver::Storage.redis_pool.publish("placeos/#{channel}", payload)
+      head :ok
     end
 
     post "/reindex", :reindex do
