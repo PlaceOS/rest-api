@@ -183,26 +183,29 @@ module PlaceOS::Api
 
     # Start modules
     #
-    # FIXME: Optimise query
     post("/:sys_id/start", :start) do
-      modules = current_system.modules || [] of String
-      Model::Module.find_all(modules).each do |mod|
-        mod.update_fields(running: true)
-      end
+      Systems.module_running_state(running: true, control_system: current_system)
 
       head :ok
     end
 
     # Stop modules
     #
-    # FIXME: Optimise query
     post("/:sys_id/stop", :stop) do
-      modules = current_system.modules || [] of String
-      Model::Module.find_all(modules).each do |mod|
-        mod.update_fields(running: false)
-      end
+      Systems.module_running_state(running: false, control_system: current_system)
 
       head :ok
+    end
+
+    # Toggle the running state of ControlSystem's Module
+    #
+    protected def self.module_running_state(control_system : Model::ControlSystem, running : Bool)
+      modules = control_system.modules || [] of String
+      Model::Module.table_query do |q|
+        q.get_all(modules).replace do |mod|
+          mod.merge({:running => running})
+        end
+      end
     end
 
     # Driver Metadata, State and Status
