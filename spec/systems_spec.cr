@@ -188,7 +188,7 @@ module PlaceOS::Api
           mods = expected.flat_map do |name, count|
             count.times.to_a.map do
               mod = Model::Generator.module(control_system: cs)
-              mod.name = name
+              mod.custom_name = name
               mod.save!
             end
           end
@@ -211,15 +211,12 @@ module PlaceOS::Api
         end
 
         pending "functions" do
-          # Set a key in redis
         end
 
         pending "state" do
-          # Set a key in redis
         end
 
         pending "state_lookup" do
-          # Set a key in redis
         end
 
         it "start" do

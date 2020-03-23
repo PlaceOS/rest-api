@@ -240,7 +240,7 @@ module PlaceOS::Api
     get("/:sys_id/types", :types) do
       modules = Model::Module.find_all(current_system.id.as(String), index: :control_system_id)
       types = modules.each_with_object(Hash(String, Int32).new(0)) do |mod, count|
-        count[mod.name.as(String)] += 1
+        count[mod.resolved_name.as(String)] += 1
       end
 
       render json: types
