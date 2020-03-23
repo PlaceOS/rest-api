@@ -77,9 +77,13 @@ def until_expected(method, path, headers, &block : HTTP::Client::Response -> Boo
     begin
       Retriable.retry(max_elapsed_time: 2.seconds, on: {Exception => /retry/}) do
         result = curl(method: method, path: path, headers: headers)
-        result.status_code.should eq 200
-        puts result.body unless result.success?
-        expected = block.call result
+
+        unless result.success?
+          puts "\nrequest failed with: #{result.status_code}"
+          puts result.body
+        end
+
+        expected = block.call(result)
 
         raise Exception.new("retry") unless expected || channel.closed?
         channel.send(true) if expected

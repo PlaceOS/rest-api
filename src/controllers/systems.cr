@@ -168,9 +168,9 @@ module PlaceOS::Api
         # Keep if any other ControlSystem is using the module
         keep = Model::ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }
         if keep
-          logger.info "module still in use"
+          logger.info "module (#{module_id}) still in use"
         else
-          logger.info "module #{module_id} removed as not in any other systems"
+          logger.info "module (#{module_id}) removed as not in any other systems"
           Model::Module.find(module_id).try(&.destroy)
         end
       end

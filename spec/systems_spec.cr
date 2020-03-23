@@ -71,18 +71,17 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:sys_id/modules/:module_id" do
+      describe "/:sys_id/module/:module_id" do
         it "removes if not in use by another ControlSystem" do
           cs = Model::Generator.control_system.save!
-          mod = Model::Generator.module.save!
+          mod = Model::Generator.module(control_system: cs).save!
           cs.persisted?.should be_true
           mod.persisted?.should be_true
 
           mod_id = mod.id.as(String)
           cs.update_fields(modules: [mod_id])
-          cs.modules.not_nil!.should contain mod_id
 
-          path = base + "#{cs.id}/modules/#{mod_id}"
+          path = base + "#{cs.id}/module/#{mod_id}"
 
           result = curl(
             method: "DELETE",
@@ -92,11 +91,13 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          cs = Model::ControlSystem.find!(cs.id)
-          cs.modules.not_nil!.should_not contain mod_id
+          cs = Model::ControlSystem.find(cs.id)
+
+          cs.should_not be_nil
+          cs.not_nil!.modules.not_nil!.should_not contain mod_id
 
           Model::Module.find(mod_id).should be_nil
-          {mod, cs}.each &.destroy
+          {mod, cs}.each &.try &.destroy
         end
 
         it "keeps module if in use by another ControlSystem" do
@@ -115,7 +116,7 @@ module PlaceOS::Api
           cs1.modules.not_nil!.should contain mod_id
           cs2.modules.not_nil!.should contain mod_id
 
-          path = base + "#{cs1.id}/modules/#{mod_id}"
+          path = base + "#{cs1.id}/module/#{mod_id}"
 
           result = curl(
             method: "DELETE",
@@ -143,7 +144,7 @@ module PlaceOS::Api
           mod.persisted?.should be_true
 
           mod_id = mod.id.as(String)
-          path = base + "#{cs.id}/modules/#{mod_id}"
+          path = base + "#{cs.id}/module/#{mod_id}"
 
           result = curl(
             method: "PUT",
@@ -162,7 +163,7 @@ module PlaceOS::Api
           cs = Model::Generator.control_system.save!
           cs.persisted?.should be_true
 
-          path = base + "#{cs.id}/modules/mod-th15do35n073x157"
+          path = base + "#{cs.id}/module/mod-th15do35n073x157"
 
           result = curl(
             method: "PUT",

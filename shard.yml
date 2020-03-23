@@ -56,9 +56,9 @@ dependencies:
   promise:
     github: spider-gazelle/promise
 
-  crystal-rethinkdb:
+  rethinkdb:
     github: aca-labs/crystal-rethinkdb
-    branch: threadsafe
+    branch: master
 
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:

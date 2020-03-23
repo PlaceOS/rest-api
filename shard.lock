@@ -34,15 +34,11 @@ shards:
 
   core:
     github: placeos/core
-    commit: 419dd5159c57034e39928aef8d4c6c2de4c6605d
+    commit: 1f0e42f7c1921966fef0f37a0a918fbc6ea15dc8
 
   cron_parser:
     github: kostya/cron_parser
     version: 0.3.0
-
-  crystal-rethinkdb:
-    github: aca-labs/crystal-rethinkdb
-    commit: be7e36c37c12b8d20dd5efd170425054ecc61a66
 
   db:
     github: crystal-lang/crystal-db
@@ -102,7 +98,7 @@ shards:
 
   models:
     github: placeos/models
-    commit: 91c7a77df3968853d52b90e2671b3394769ce8d7
+    commit: 3df4dcfa261518c8788a11f094b3cb395ae2a55e
 
   murmur3:
     github: aca-labs/murmur3
