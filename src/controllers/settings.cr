@@ -53,6 +53,12 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
+    # Get an ordered hierarchy of Settings for the model
+    #
+    def self.collated_settings(user : Model::User, model : Model::ControlSystem | Model::Module)
+      model.settings_hierarchy.reverse.map!(&.decrypt_for!(user))
+    end
+
     def current_settings : Model::Settings
       settings || find_settings
     end
