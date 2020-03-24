@@ -2,6 +2,7 @@ require "pinger"
 require "driver/storage"
 
 require "./application"
+require "./settings"
 
 module PlaceOS::Api
   class Modules < Application
@@ -169,6 +170,12 @@ module PlaceOS::Api
     def destroy
       current_module.destroy
       head :ok
+    end
+
+    # Receive the collated settings for a module
+    #
+    get(":id/settings", :settings) do
+      render json: Api::Settings.collated_settings(current_user, current_module)
     end
 
     # Starts a module

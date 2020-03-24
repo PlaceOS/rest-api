@@ -4,6 +4,7 @@ require "core/client"
 require "driver/proxy/system"
 
 require "./application"
+require "./settings"
 require "../session"
 
 module PlaceOS::Api
@@ -121,6 +122,12 @@ module PlaceOS::Api
     def destroy
       current_system.destroy
       head :ok
+    end
+
+    # Receive the collated settings for a system
+    #
+    get(":sys_id/settings", :settings) do
+      render json: Api::Settings.collated_settings(current_user, current_system)
     end
 
     # Adds the module from the system if it doesn't already exist

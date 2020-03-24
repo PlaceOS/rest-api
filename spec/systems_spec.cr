@@ -176,6 +176,45 @@ module PlaceOS::Api
         end
       end
 
+      describe "/:sys_id/settings" do
+        it "collates System settings" do
+          control_system = Model::Generator.control_system.save!
+          control_system_settings_string = %(frangos: 1)
+          Model::Generator.settings(control_system: control_system, settings_string: control_system_settings_string).save!
+
+          zone0 = Model::Generator.zone.save!
+          zone0_settings_string = %(screen: 1)
+          Model::Generator.settings(zone: zone0, settings_string: zone0_settings_string).save!
+          zone1 = Model::Generator.zone.save!
+          zone1_settings_string = %(meme: 2)
+          Model::Generator.settings(zone: zone1, settings_string: zone1_settings_string).save!
+
+          control_system.zones = [zone0.id.as(String), zone1.id.as(String)]
+          control_system.update!
+
+          expected_settings_ids = [
+            control_system.master_settings,
+            zone1.master_settings,
+            zone0.master_settings,
+          ].flat_map(&.compact_map(&.id)).reverse
+
+          path = "#{base}#{control_system.id}/settings"
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.success?.should be_true
+
+          settings = Array(Hash(String, JSON::Any)).from_json(result.body)
+          settings_hierarchy_ids = settings.map { |s| s["id"].to_s }
+
+          settings_hierarchy_ids.should eq expected_settings_ids
+          {control_system, zone0, zone1}.each &.destroy
+        end
+      end
+
       describe "module function" do
         it "types" do
           expected = {

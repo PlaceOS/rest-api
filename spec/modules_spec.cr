@@ -129,6 +129,51 @@ module PlaceOS::Api
         end
       end
 
+      describe "/:id/settings" do
+        it "collates Module settings" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+          driver_settings_string = %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)
+          Model::Generator.settings(driver: driver, settings_string: driver_settings_string).save!
+
+          control_system = Model::Generator.control_system.save!
+          control_system_settings_string = %(frangos: 1)
+          Model::Generator.settings(control_system: control_system, settings_string: control_system_settings_string).save!
+
+          zone = Model::Generator.zone.save!
+          zone_settings_string = %(screen: 1)
+          Model::Generator.settings(zone: zone, settings_string: zone_settings_string).save!
+
+          control_system.zones = [zone.id.as(String)]
+          control_system.update!
+
+          mod = Model::Generator.module(driver: driver, control_system: control_system).save!
+          module_settings_string = %(value: 2\n)
+          Model::Generator.settings(mod: mod, settings_string: module_settings_string).save!
+
+          expected_settings_ids = [
+            mod.master_settings,
+            control_system.master_settings,
+            zone.master_settings,
+            driver.master_settings,
+          ].flat_map(&.compact_map(&.id)).reverse
+
+          path = "#{base}#{mod.id}/settings"
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.success?.should be_true
+
+          settings = Array(Hash(String, JSON::Any)).from_json(result.body)
+          settings_hierarchy_ids = settings.map { |s| s["id"].to_s }
+
+          settings_hierarchy_ids.should eq expected_settings_ids
+          {mod, control_system, zone, driver}.each &.destroy
+        end
+      end
+
       describe "ping" do
         it "fails for logic module" do
           driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
