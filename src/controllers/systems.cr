@@ -135,11 +135,11 @@ module PlaceOS::Api
       Model::ControlSystem.table_query do |q|
         q
           .get(control_system.id)
-          .replace { |sys|
-            sys.merge({
-              "modules" => sys["modules"].append(module_id),
+          .update { |sys|
+            {
+              "modules" => sys["modules"].set_insert(module_id),
               "version" => sys["version"] + 1,
-            })
+            }
           }
       end
 
@@ -157,11 +157,11 @@ module PlaceOS::Api
         Model::ControlSystem.table_query do |q|
           q
             .get(control_system.id)
-            .replace { |sys|
-              sys.merge({
+            .update { |sys|
+              {
                 "modules" => sys["modules"].set_difference([module_id]),
                 "version" => sys["version"] + 1,
-              })
+              }
             }
         end
 
@@ -201,11 +201,7 @@ module PlaceOS::Api
     #
     protected def self.module_running_state(control_system : Model::ControlSystem, running : Bool)
       modules = control_system.modules || [] of String
-      Model::Module.table_query do |q|
-        q.get_all(modules).replace do |mod|
-          mod.merge({:running => running})
-        end
-      end
+      Model::Module.table_query &.get_all(modules).update({"running" => running})
     end
 
     # Driver Metadata, State and Status
