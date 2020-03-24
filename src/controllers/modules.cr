@@ -36,6 +36,28 @@ module PlaceOS::Api
         modules = cs.modules || [] of String
         results = Model::Module.find_all(modules).to_a
         response.headers["X-Total-Count"] = results.size.to_s
+
+        # Include subset of association data with results
+        results = results.compact_map do |d|
+          driver = d.driver
+          next unless driver
+
+          # Most human readable module data is contained in driver
+          driver_field = restrict_attributes(
+            driver,
+            only: [
+              "name",
+              "description",
+              "module_name",
+              "settings",
+            ]
+          )
+
+          with_fields(d, {
+            :driver => driver_field,
+          }.compact)
+        end
+
         render json: results
       else # we use Elasticsearch
         elastic = Model::Module.elastic
