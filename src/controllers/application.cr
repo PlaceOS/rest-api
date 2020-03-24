@@ -59,7 +59,7 @@ module PlaceOS::Api
 
     # Callback to enforce JSON request body
     protected def ensure_json
-      unless request.headers["Content-Type"]? == "application/json"
+      unless request.headers["Content-Type"]?.try(&.starts_with?("application/json"))
         render status: :not_acceptable, text: "Accepts: application/json"
       end
     end
