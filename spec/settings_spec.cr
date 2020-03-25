@@ -59,8 +59,22 @@ module PlaceOS::Api
           )
 
           result.success?.should be_true
+          result.headers["X-Total-Count"].should eq "2"
+          result.headers["Content-Range"].should eq "sets 0-2/2"
 
           Array(JSON::Any).from_json(result.body).size.should eq 2
+
+          result = curl(
+            method: "GET",
+            path: File.join(base, "/#{setting.id}/history?limit=1"),
+            headers: authorization_header
+          )
+
+          link = %(</api/engine/v2/settings/#{setting.id}/history?limit=1&offset=2>; rel="next")
+          result.success?.should be_true
+          result.headers["X-Total-Count"].should eq "2"
+          result.headers["Content-Range"].should eq "sets 0-1/2"
+          result.headers["Link"].should eq link
 
           {sys, setting}.each &.destroy
         end

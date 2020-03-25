@@ -61,11 +61,37 @@ module PlaceOS::Api
       # Privilege respecting decrypted settings history
       history.each &.decrypt_for!(current_user)
 
+      total = Api::Settings.history_count(current_settings)
+      range_start = offset
+      range_end = history.size + range_start
+
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "sets #{range_start}-#{range_end}/#{total}"
+
+      # Set link
+      if range_end < total
+        params["offset"] = (range_end + 1).to_s
+        params["limit"] = limit.to_s
+        query_params = params.compact_map { |key, value| "#{key}=#{value}" unless key == "id" }.join("&")
+        path = File.join(base_route, "/#{current_settings.id}/history")
+        response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
+      end
+
       render json: history
     end
 
     # Helpers
     ###########################################################################
+
+    # TODO: Optimise, get total query size from the response from rethinkdb
+    def self.history_count(settings : Model::Settings) : Int32
+      Model::Settings.table_query do |q|
+        q
+          .get_all([settings.parent_id.as(String)], index: :parent_id)
+          .filter({settings_id: settings.id.as(String)})
+          .count
+      end.as_i
+    end
 
     # Get an ordered hierarchy of Settings for the model
     #

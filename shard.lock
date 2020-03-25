@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    commit: 5f03afaeba2f20dcf2f05a24c4104518fac433c1
+    commit: 8d23e2b136515094222c27d9fe9c14358cb112be
 
   cron_parser:
     github: kostya/cron_parser
@@ -142,7 +142,7 @@ shards:
 
   rethinkdb:
     github: aca-labs/crystal-rethinkdb
-    version: 0.2.2
+    version: 0.2.3
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
