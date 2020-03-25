@@ -233,7 +233,8 @@ module PlaceOS::Api
         args: args,
         request_id: logger.request_id,
       )
-      render json: response
+      response.headers["Content-Type"] = "application/json"
+      render text: response
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e
