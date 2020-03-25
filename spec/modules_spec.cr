@@ -172,6 +172,52 @@ module PlaceOS::Api
           settings_hierarchy_ids.should eq expected_settings_ids
           {mod, control_system, zone, driver}.each &.destroy
         end
+
+        it "returns an empty array for a logic module without associated settings" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+
+          control_system = Model::Generator.control_system.save!
+
+          zone = Model::Generator.zone.save!
+
+          control_system.zones = [zone.id.as(String)]
+          control_system.update!
+
+          mod = Model::Generator.module(driver: driver, control_system: control_system).save!
+          path = "#{base}#{mod.id}/settings"
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          unless result.success?
+            puts "\ncode: #{result.status_code} body: #{result.body}"
+          end
+
+          result.success?.should be_true
+          Array(JSON::Any).from_json(result.body).should be_empty
+        end
+
+        it "returns an empty array for a module without associated settings" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+          mod = Model::Generator.module(driver: driver).save!
+          path = "#{base}#{mod.id}/settings"
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          unless result.success?
+            puts "\ncode: #{result.status_code} body: #{result.body}"
+          end
+
+          result.success?.should be_true
+          Array(JSON::Any).from_json(result.body).should be_empty
+        end
       end
 
       describe "ping" do

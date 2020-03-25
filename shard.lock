@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    commit: 22e1b02232e71a909ebca1a5b03928b71ea589d4
+    commit: 5f03afaeba2f20dcf2f05a24c4104518fac433c1
 
   cron_parser:
     github: kostya/cron_parser
@@ -54,11 +54,11 @@ shards:
 
   driver:
     github: placeos/driver
-    commit: daf2f25f414ed2dc78565e200a84852dcc351db0
+    commit: 864a8050eff8957fba2c7606decb1776dbd7c310
 
   drivers:
     github: placeos/drivers
-    commit: f256eb7c1fe57e3e5954338c5da78150e9c62930
+    commit: 726aa1289d6d2ec74d650acff7ccfc2c3b719b37
 
   etcd:
     github: aca-labs/crystal-etcd
@@ -98,7 +98,7 @@ shards:
 
   models:
     github: placeos/models
-    commit: 37be713d94b15df07db5e661ae704be7dbae2976
+    commit: f9c87c0a1d6be568862cd0a50be622cb50822431
 
   murmur3:
     github: aca-labs/murmur3
@@ -146,7 +146,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: ce27d9fd152dda4bc52d41ce528a77f34166ec50
+    commit: 2231504e1473a337099121270fd97bc3edd4005d
 
   retriable:
     github: sija/retriable.cr

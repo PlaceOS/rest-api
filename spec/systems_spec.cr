@@ -213,6 +213,30 @@ module PlaceOS::Api
           settings_hierarchy_ids.should eq expected_settings_ids
           {control_system, zone0, zone1}.each &.destroy
         end
+
+        it "returns an empty array for a system without associated settings" do
+          control_system = Model::Generator.control_system.save!
+
+          zone0 = Model::Generator.zone.save!
+          zone1 = Model::Generator.zone.save!
+
+          control_system.zones = [zone0.id.as(String), zone1.id.as(String)]
+          control_system.save!
+          path = "#{base}#{control_system.id}/settings"
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          unless result.success?
+            puts "\ncode: #{result.status_code} body: #{result.body}"
+          end
+
+          result.success?.should be_true
+          Array(JSON::Any).from_json(result.body).should be_empty
+        end
       end
 
       describe "module function" do
