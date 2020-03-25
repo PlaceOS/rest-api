@@ -227,14 +227,14 @@ module PlaceOS::Api
         index: index
       )
 
-      response = remote_driver.exec(
+      ret_val = remote_driver.exec(
         security: driver_clearance(user_token),
         function: method,
         args: args,
         request_id: logger.request_id,
       )
       response.headers["Content-Type"] = "application/json"
-      render text: response
+      render text: ret_val
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e
