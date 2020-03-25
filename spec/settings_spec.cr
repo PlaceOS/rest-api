@@ -42,6 +42,30 @@ module PlaceOS::Api
         end
       end
 
+      describe "history" do
+        it "returns history for a master setting" do
+          sys = Model::Generator.control_system.save!
+
+          setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
+          setting.settings_string = "tree: 1"
+          setting.save!
+          setting.settings_string = "tree: 10"
+          setting.save!
+
+          result = curl(
+            method: "GET",
+            path: File.join(base, "/#{setting.id}/history"),
+            headers: authorization_header
+          )
+
+          result.success?.should be_true
+
+          Array(JSON::Any).from_json(result.body).size.should eq 2
+
+          {sys, setting}.each &.destroy
+        end
+      end
+
       describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Settings, controller_klass: Settings)
         it "update" do

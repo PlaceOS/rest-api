@@ -50,6 +50,20 @@ module PlaceOS::Api
       head :ok
     end
 
+    # Returns history for a particular Setting
+    #
+    get "/:id/history", :history do
+      offset = params["offset"]?.try(&.to_i) || 0
+      limit = params["limit"]?.try(&.to_i) || 15
+
+      history = current_settings.history(offset: offset, limit: limit)
+
+      # Privilege respecting decrypted settings history
+      history.each &.decrypt_for!(current_user)
+
+      render json: history
+    end
+
     # Helpers
     ###########################################################################
 
