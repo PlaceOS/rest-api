@@ -208,7 +208,12 @@ module PlaceOS::Api
     #
     protected def self.module_running_state(control_system : Model::ControlSystem, running : Bool)
       modules = control_system.modules || [] of String
-      Model::Module.table_query &.get_all(modules).update({"running" => running})
+      Model::Module.table_query do |q|
+        q
+          .get_all(modules)
+          .filter({ignore_startstop: false})
+          .update({running: running})
+      end
     end
 
     # Driver Metadata, State and Status
