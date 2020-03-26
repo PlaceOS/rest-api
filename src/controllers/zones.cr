@@ -7,7 +7,7 @@ module PlaceOS::Api
     include Utils::CoreHelper
     base "/api/engine/v2/zones/"
 
-    before_action :check_admin, except: [:index]
+    before_action :check_admin, except: [:index, :show]
     before_action :check_support, except: [:index]
     before_action :find_zone, only: [:show, :update, :destroy]
 
@@ -17,6 +17,13 @@ module PlaceOS::Api
       elastic = Model::Zone.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
+
+      # Limit results to the children of this parent
+      if params.has_key? "parent"
+        query.must({
+          "parent_id" => [params["parent"]],
+        })
+      end
 
       if params.has_key? "tags"
         # list of unique tags
