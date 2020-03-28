@@ -54,7 +54,7 @@ module PlaceOS::Api
       name = metadata[:name]
       head :bad_request if name.nil? || name.empty?
 
-      # TODO:: use database filters
+    current_zone.metadata.where(name: name).first?
       meta = current_zone.metadata.to_a.select! { |data| data.name == name }.shift?
 
       if meta
