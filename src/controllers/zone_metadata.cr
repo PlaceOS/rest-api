@@ -100,11 +100,7 @@ module PlaceOS::Api
     end
 
     def build_metadata(metadata, filter : String?)
-      if filter
-        current_zone.metadata.where(name: filter).to_a
-      else
-        metadata.to_a
-      end
+      metadata = current_zone.metadata.where(name: filter) if filter
 
       results = {} of String? => Metadata
       metadata.each do |data|
