@@ -80,7 +80,7 @@ module PlaceOS::Api
       name = params["name"]?
       head :bad_request unless name
 
-      current_zone.metadata.where(name: name).to_a.each do |meta|
+      current_zone.metadata.where(name: name).each do |meta|
         meta.destroy
       end
 
