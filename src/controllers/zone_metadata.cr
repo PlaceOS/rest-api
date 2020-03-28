@@ -5,6 +5,8 @@ require "./application"
 module PlaceOS::Api
   class ZoneMetadata < Application
     include Utils::CoreHelper
+
+    # NOTE:: this API shares the base zones route
     base "/api/engine/v2/zones/:id"
 
     before_action :check_support, only: [:update, :destroy]
@@ -54,8 +56,7 @@ module PlaceOS::Api
       name = metadata[:name]
       head :bad_request if name.nil? || name.empty?
 
-    current_zone.metadata.where(name: name).first?
-      meta = current_zone.metadata.to_a.select! { |data| data.name == name }.shift?
+      meta = current_zone.metadata.where(name: name).first?
 
       if meta
         # Update existing
@@ -77,8 +78,7 @@ module PlaceOS::Api
       name = params["name"]?
       head :bad_request unless name
 
-      # TODO:: use database filters
-      current_zone.metadata.to_a.select! { |data| data.name == name }.each do |meta|
+      current_zone.metadata.where(name: name).to_a.each do |meta|
         meta.destroy
       end
 
@@ -99,8 +99,7 @@ module PlaceOS::Api
 
     def build_metadata(metadata, filter : String?)
       if filter
-        # TODO:: use database filters
-        metadata.to_a.select! { |data| data.name == filter }
+        current_zone.metadata.where(name: filter).to_a
       else
         metadata.to_a
       end
