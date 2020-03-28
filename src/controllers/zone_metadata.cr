@@ -74,6 +74,8 @@ module PlaceOS::Api
       save_and_respond meta
     end
 
+    put "/metadata" { update }
+
     delete "/metadata", :destroy do
       name = params["name"]?
       head :bad_request unless name
