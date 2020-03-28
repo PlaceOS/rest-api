@@ -16,8 +16,7 @@ module PlaceOS::Api
       name: String?,
       description: String?,
       details: JSON::Any?,
-      zone_id: String?
-    )
+      zone_id: String?)
 
     get "/metadata", :get_metadata do
       results = build_metadata(current_zone.metadata, params["name"]?)
@@ -32,13 +31,12 @@ module PlaceOS::Api
 
       results = [] of NamedTuple(
         zone: Model::Zone,
-        metadata: Hash(String?, Metadata)
-      )
+        metadata: Hash(String?, Metadata))
 
       children.each do |zone|
         results.push({
-          zone: zone,
-          metadata: build_metadata(zone.metadata, filter)
+          zone:     zone,
+          metadata: build_metadata(zone.metadata, filter),
         })
       end
 
@@ -54,7 +52,7 @@ module PlaceOS::Api
 
       # We need a name to lookup the metadata
       name = metadata[:name]
-      head :bad_request unless name && !name.empty?
+      head :bad_request if name.nil? || name.empty?
 
       # TODO:: use database filters
       meta = current_zone.metadata.to_a.select! { |data| data.name == name }.shift?
@@ -110,10 +108,10 @@ module PlaceOS::Api
       results = {} of String? => Metadata
       metadata.each do |data|
         results[data.name] = {
-          name: data.name,
+          name:        data.name,
           description: data.description,
-          details: data.details,
-          zone_id: data.zone_id,
+          details:     data.details,
+          zone_id:     data.zone_id,
         }
       end
       results
