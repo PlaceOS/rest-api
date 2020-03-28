@@ -9,7 +9,7 @@ module PlaceOS::Api
     # NOTE:: this API shares the base zones route
     base "/api/engine/v2/zones/:id"
 
-    before_action :check_support, only: [:update, :destroy]
+    before_action :check_support, only: [:update, :alt_update, :destroy]
     before_action :find_zone
 
     getter zone : Model::Zone?
@@ -74,7 +74,7 @@ module PlaceOS::Api
       save_and_respond meta
     end
 
-    put "/metadata" { update }
+    put "/metadata", :alt_update { update }
 
     delete "/metadata", :destroy do
       name = params["name"]?
