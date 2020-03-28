@@ -111,7 +111,6 @@ module PlaceOS::Api
           zone_id:     data.zone_id,
         }
       end
-      results
     end
   end
 end
