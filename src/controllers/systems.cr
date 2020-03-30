@@ -250,7 +250,7 @@ module PlaceOS::Api
     # Look-up a module types in a system, returning a count of each type
     #
     get("/:sys_id/types", :types) do
-      modules = Model::Module.find_all(current_system.id.as(String), index: :control_system_id)
+      modules = Model::Module.in_control_system(current_system.id.as(String))
       types = modules.each_with_object(Hash(String, Int32).new(0)) do |mod, count|
         count[mod.resolved_name.as(String)] += 1
       end
