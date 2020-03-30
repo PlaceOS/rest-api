@@ -96,7 +96,7 @@ module PlaceOS::Api
     # Get an ordered hierarchy of Settings for the model
     #
     def self.collated_settings(user : Model::User, model : Model::ControlSystem | Model::Module)
-      collated = model.settings_hierarchy.reverse
+      collated = model.settings_hierarchy.reverse!
       collated.each &.decrypt_for!(user)
       collated
     end

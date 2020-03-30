@@ -155,7 +155,7 @@ module PlaceOS::Api
             control_system.master_settings,
             zone.master_settings,
             driver.master_settings,
-          ].flat_map(&.compact_map(&.id)).reverse
+          ].flat_map(&.compact_map(&.id)).reverse!
 
           path = "#{base}#{mod.id}/settings"
           result = curl(
