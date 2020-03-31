@@ -16,7 +16,6 @@ module PlaceOS::Api
     getter sys_trig : Model::TriggerInstance?
 
     class IndexParams < Params
-      attribute control_system_id : String
       attribute important : Bool = false
       attribute triggered : Bool = false
       attribute trigger_id : String
@@ -27,11 +26,10 @@ module PlaceOS::Api
       elastic = Model::TriggerInstance.elastic
       query = elastic.query(params)
       args = IndexParams.new(params)
+      control_system_id = params["sys_id"]
 
       # Filter by system ID
-      if (control_system_id = args.control_system_id)
-        query.filter({"control_system_id" => [control_system_id]})
-      end
+      query.filter({"control_system_id" => [control_system_id]})
 
       # Filter by trigger ID
       if (trigger_id = args.trigger_id)
