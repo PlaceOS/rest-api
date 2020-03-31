@@ -33,7 +33,7 @@ module PlaceOS::Api
 
       results = [] of NamedTuple(
         zone: Model::Zone,
-        metadata: Hash(String?, Metadata))
+        metadata: Hash(String, Metadata))
 
       children.each do |zone|
         results.push({
