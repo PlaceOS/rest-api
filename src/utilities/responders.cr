@@ -12,13 +12,13 @@ module PlaceOS::Api
       end
     end
 
-    def with_fields(model, fields)
-      attr = JSON.parse(model.to_json).as_h
-      attr.merge(fields)
+    # Merge fields into object
+    def with_fields(model, fields) : Hash
+      attrs = Hash(String, JSON::Any).from_json(model.to_json)
+      attrs.merge(fields)
     end
 
     # Restrict model attributes
-    # FIXME: _incredibly_ inefficient, optimise
     def restrict_attributes(
       model,
       only : Array(String)? = nil,   # Attributes to keep
@@ -26,12 +26,11 @@ module PlaceOS::Api
       fields : Hash? = nil           # Additional fields
     ) : Hash
       # Necessary for fields with converters defined
-      attrs = JSON.parse(model.to_json).as_h
+      attrs = Hash(String, JSON::Any).from_json(model.to_json)
       attrs.select!(only) if only
       attrs.reject!(except) if except
-      attrs.merge(fields) if fields
 
-      fields ? attrs.merge(fields) : attrs
+      fields && !fields.empty? ? attrs.merge(fields) : attrs
     end
 
     # RemoteDriver Execute error responder
