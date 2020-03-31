@@ -122,7 +122,7 @@ module PlaceOS::Api
           result = curl(method: "DELETE", path: path, headers: authorization_header)
           result.status_code.should eq 200
 
-          Model::TriggerInstance.find(id).should be_nil
+          Model::TriggerInstance.find(id.as(String)).should be_nil
         end
       end
     end

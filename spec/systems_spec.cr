@@ -91,7 +91,7 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          cs = Model::ControlSystem.find(cs.id)
+          cs = Model::ControlSystem.find(cs.id.as(String))
 
           cs.should_not be_nil
           cs.not_nil!.modules.not_nil!.should_not contain mod_id
@@ -126,8 +126,8 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          cs1 = Model::ControlSystem.find!(cs1.id)
-          cs2 = Model::ControlSystem.find!(cs2.id)
+          cs1 = Model::ControlSystem.find!(cs1.id.as(String))
+          cs2 = Model::ControlSystem.find!(cs2.id.as(String))
 
           cs1.modules.not_nil!.should_not contain mod_id
           cs2.modules.not_nil!.should contain mod_id
@@ -154,7 +154,7 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          cs = Model::ControlSystem.find!(cs.id)
+          cs = Model::ControlSystem.from_trusted_json(result.body)
           cs.modules.not_nil!.should contain mod_id
           {cs, mod}.each &.destroy
         end
@@ -251,11 +251,14 @@ module PlaceOS::Api
           cs = Model::Generator.control_system.save!
           mods = expected.flat_map do |name, count|
             count.times.to_a.map do
-              mod = Model::Generator.module(control_system: cs)
+              mod = Model::Generator.module
               mod.custom_name = name
               mod.save!
             end
           end
+
+          cs.modules = mods.compact_map(&.id)
+          cs.update!
 
           path = base + "#{cs.id}/types"
 

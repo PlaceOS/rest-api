@@ -67,7 +67,7 @@ module PlaceOS::Api
 
     def find_driver
       # Find will raise a 404 (not found) if there is an error
-      @driver = Model::Driver.find!(params["id"]?)
+      @driver = Model::Driver.find!(params["id"])
     end
   end
 end

@@ -40,8 +40,7 @@ module PlaceOS::Api
 
         it "looks up by system_id" do
           mod = Model::Generator.module.save!
-          sys = mod.control_system.not_nil!
-
+          sys = Model::Generator.control_system
           sys.modules = [mod.id.as(String)]
           sys.save!
 

@@ -27,7 +27,6 @@ module PlaceOS::Api
       attribute running : Bool
     end
 
-    # TODO: Refactor, a port from ruby-engine
     def index
       args = IndexParams.new(params)
 
@@ -35,11 +34,9 @@ module PlaceOS::Api
       if (sys_id = args.control_system_id)
         cs = Model::ControlSystem.find!(sys_id)
         modules = cs.modules || [] of String
-        results = Model::Module.find_all(modules).to_a
-        response.headers["X-Total-Count"] = results.size.to_s
 
         # Include subset of association data with results
-        results = results.compact_map do |d|
+        results = Model::Module.find_all(modules).compact_map do |d|
           driver = d.driver
           next unless driver
 
@@ -57,8 +54,9 @@ module PlaceOS::Api
           with_fields(d, {
             :driver => driver_field,
           }.compact)
-        end
+        end.to_a
 
+        response.headers["X-Total-Count"] = results.size.to_s
         render json: results
       else # we use Elasticsearch
         elastic = Model::Module.elastic
@@ -287,7 +285,7 @@ module PlaceOS::Api
 
     def find_module
       # Find will raise a 404 (not found) if there is an error
-      @module = Model::Module.find!(params["id"]?)
+      @module = Model::Module.find!(params["id"])
     end
   end
 end

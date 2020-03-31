@@ -138,7 +138,7 @@ module PlaceOS::Api
 
     def find_repo
       # Find will raise a 404 (not found) if there is an error
-      @repo = Model::Repository.find!(params["id"]?)
+      @repo = Model::Repository.find!(params["id"])
     end
   end
 end
