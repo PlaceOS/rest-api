@@ -26,7 +26,7 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          returned_settings = JSON.parse(result.body).as_a.map { |m|
+          returned_settings = Array(JSON::Any).from_json(result.body).map { |m|
             Model::Settings.from_trusted_json(m.to_json)
           }.sort_by!(&.encryption_level.not_nil!)
 

@@ -29,25 +29,28 @@ module PlaceOS::Api
           expected_systems.each do |sys|
             sys.zones = [zone_id]
           end
-
           systems.each &.save!
+
+          expected_ids = expected_systems.compact_map(&.id)
+          total_ids = expected_ids.size
 
           params = HTTP::Params.encode({"zone_id" => zone_id})
           path = "#{base}?#{params}"
 
           found = until_expected("GET", path, authorization_header) do |response|
-            returned_ids = JSON.parse(response.body).as_a.compact_map(&.["id"].as_s).sort
-            returned_ids == expected_systems.compact_map(&.id).sort
+            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+            (returned_ids | expected_ids).size == total_ids
           end
 
           found.should be_true
         end
 
         it "filters systems by modules" do
+          Model::ControlSystem.clear
           num_systems = 5
 
           mod = Model::Generator.module.save!
-          mod_id = mod.id.as(String)
+          module_id = mod.id.as(String)
 
           systems = Array.new(size: num_systems) do
             Model::Generator.control_system
@@ -56,15 +59,19 @@ module PlaceOS::Api
           # Add the zone to a subset of systems
           expected_systems = systems.shuffle[0..2]
           expected_systems.each do |sys|
-            sys.modules = [mod_id]
+            sys.modules = [module_id]
           end
           systems.each &.save!
 
-          params = HTTP::Params.encode({"module_id" => mod_id})
+          expected_ids = expected_systems.compact_map(&.id)
+          total_ids = expected_ids.size
+
+          params = HTTP::Params.encode({"module_id" => module_id})
           path = "#{base}?#{params}"
+
           found = until_expected("GET", path, authorization_header) do |response|
-            returned_ids = JSON.parse(response.body).as_a.compact_map(&.["id"].as_s).sort
-            returned_ids == expected_systems.compact_map(&.id).sort
+            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+            (returned_ids | expected_ids).size == total_ids
           end
 
           found.should be_true
