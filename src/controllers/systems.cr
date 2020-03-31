@@ -151,7 +151,7 @@ module PlaceOS::Api
       end
 
       # Return the latest version of the control system
-      render json: Model::ControlSystem.find!(control_system.id)
+      render json: Model::ControlSystem.find!(control_system.id.as(String))
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
@@ -182,7 +182,8 @@ module PlaceOS::Api
         end
       end
 
-      render json: Model::ControlSystem.find!(control_system.id)
+      # Return the latest version of the control system
+      render json: Model::ControlSystem.find!(control_system.id.as(String))
     end
 
     # Module Functions
@@ -384,7 +385,7 @@ module PlaceOS::Api
 
     def find_system
       # Find will raise a 404 (not found) if there is an error
-      @control_system = Model::ControlSystem.find!(params["sys_id"]?)
+      @control_system = Model::ControlSystem.find!(params["sys_id"])
     end
   end
 end

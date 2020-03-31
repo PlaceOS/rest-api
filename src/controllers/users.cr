@@ -87,7 +87,7 @@ module PlaceOS::Api
     # end
 
     protected def find_user
-      user || (@user = Model::User.find!(params["id"]?))
+      user || (@user = Model::User.find!(params["id"]))
     end
 
     protected def check_authorization

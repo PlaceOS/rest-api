@@ -51,7 +51,7 @@ module PlaceOS::Api
 
     def find_trigger
       # Find will raise a 404 (not found) if there is an error
-      @trig = Model::Trigger.find!(params["id"]?)
+      @trig = Model::Trigger.find!(params["id"])
     end
   end
 end

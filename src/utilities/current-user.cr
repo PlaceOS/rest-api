@@ -56,7 +56,7 @@ module PlaceOS::Api
     # Obtains the authority for the request's host
     def current_authority : Model::Authority?
       return @current_authority.as(Model::Authority) unless @current_authority.nil?
-      @current_authority = Model::Authority.find_by_domain(request.host)
+      @current_authority = Model::Authority.find_by_domain(request.host.as(String))
     end
 
     # Getter for user_token
