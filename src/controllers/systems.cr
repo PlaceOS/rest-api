@@ -135,23 +135,19 @@ module PlaceOS::Api
     put("/:sys_id/module/:module_id", :add_module) do
       control_system = current_system
       module_id = params["module_id"]
+      modules = control_system.modules
+      control_system_id = control_system.id.as(String)
 
-      head :ok if control_system.modules.try &.includes?(module_id)
-      head :not_found unless Model::Module.find(module_id)
+      head :not_found unless Model::Module.exists?(module_id)
 
-      Model::ControlSystem.table_query do |q|
-        q
-          .get(control_system.id)
-          .update { |sys|
-            {
-              "modules" => sys["modules"].set_insert(module_id),
-              "version" => sys["version"] + 1,
-            }
-          }
+      module_present = modules.try(&.includes?(module_id)) || Model::ControlSystem.add_module(control_system_id, module_id)
+
+      unless module_present
+        render text: "Failed to add ControlSystem Module", status: :internal_server_error
       end
 
       # Return the latest version of the control system
-      render json: Model::ControlSystem.find!(control_system.id.as(String))
+      render json: Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
@@ -159,31 +155,17 @@ module PlaceOS::Api
     delete("/:sys_id/module/:module_id", :remove_module) do
       control_system = current_system
       module_id = params["module_id"]
+      modules = control_system.modules
+      control_system_id = control_system.id.as(String)
 
-      if control_system.modules.try &.includes?(module_id)
-        Model::ControlSystem.table_query do |q|
-          q
-            .get(control_system.id)
-            .update { |sys|
-              {
-                "modules" => sys["modules"].set_difference([module_id]),
-                "version" => sys["version"] + 1,
-              }
-            }
-        end
+      module_removed = !modules.try(&.includes?(module_id)) || Model::ControlSystem.remove_module(control_system_id, module_id)
 
-        # Keep if any other ControlSystem is using the module
-        keep = Model::ControlSystem.using_module(module_id).any? { |sys| sys.id != control_system.id }
-        if keep
-          logger.info "module (#{module_id}) still in use"
-        else
-          logger.info "module (#{module_id}) removed as not in any other systems"
-          Model::Module.find(module_id).try(&.destroy)
-        end
+      unless module_removed
+        render text: "Failed to remove ControlSystem Module", status: :internal_server_error
       end
 
       # Return the latest version of the control system
-      render json: Model::ControlSystem.find!(control_system.id.as(String))
+      render json: Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
     end
 
     # Module Functions
@@ -385,7 +367,7 @@ module PlaceOS::Api
 
     def find_system
       # Find will raise a 404 (not found) if there is an error
-      @control_system = Model::ControlSystem.find!(params["sys_id"])
+      @control_system = Model::ControlSystem.find!(params["sys_id"], runopts: {"read_mode" => "majority"})
     end
   end
 end

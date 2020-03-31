@@ -49,7 +49,7 @@ module PlaceOS::Api
 
     def find_domain
       # Find will raise a 404 (not found) if there is an error
-      @domain = Model::Authority.find!(params["id"])
+      @domain = Model::Authority.find!(params["id"], runopts: {"read_mode" => "majority"})
     end
   end
 end

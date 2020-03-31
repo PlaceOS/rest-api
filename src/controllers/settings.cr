@@ -107,7 +107,7 @@ module PlaceOS::Api
 
     def find_settings
       # Find will raise a 404 (not found) if there is an error
-      @settings = Model::Settings.find!(params["id"])
+      @settings = Model::Settings.find!(params["id"], runopts: {"read_mode" => "majority"})
     end
   end
 end

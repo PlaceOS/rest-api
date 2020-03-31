@@ -49,7 +49,7 @@ module PlaceOS::Api
 
     def find_app
       # Find will raise a 404 (not found) if there is an error
-      @app = Model::DoorkeeperApplication.find!(params["id"])
+      @app = Model::DoorkeeperApplication.find!(params["id"], runopts: {"read_mode" => "majority"})
     end
   end
 end

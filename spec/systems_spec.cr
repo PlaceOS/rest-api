@@ -153,7 +153,6 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-
           cs = Model::ControlSystem.from_trusted_json(result.body)
           cs.modules.not_nil!.should contain mod_id
           {cs, mod}.each &.destroy

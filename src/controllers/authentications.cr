@@ -58,7 +58,7 @@ module PlaceOS::Api
 
       def find_auth
         # Find will raise a 404 (not found) if there is an error
-        @auth = Model::{{auth_type.id}}Authentication.find!(params["id"])
+        @auth = Model::{{auth_type.id}}Authentication.find!(params["id"], runopts: {"read_mode" => "majority"})
       end
     end
   {% end %}

@@ -146,7 +146,7 @@ module PlaceOS::Api
 
     def find_zone
       # Find will raise a 404 (not found) if there is an error
-      @zone = Model::Zone.find!(params["id"])
+      @zone = Model::Zone.find!(params["id"], runopts: {"read_mode" => "majority"})
     end
   end
 end

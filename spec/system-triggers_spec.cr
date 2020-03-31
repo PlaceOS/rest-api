@@ -58,7 +58,6 @@ module PlaceOS::Api
 
           result.status_code.should eq 201
           body = result.body.not_nil!
-
           Model::TriggerInstance.find(JSON.parse(body)["id"].as_s).try &.destroy
         end
 

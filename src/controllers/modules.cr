@@ -285,7 +285,7 @@ module PlaceOS::Api
 
     def find_module
       # Find will raise a 404 (not found) if there is an error
-      @module = Model::Module.find!(params["id"])
+      @module = Model::Module.find!(params["id"], runopts: {"read_mode" => "majority"})
     end
   end
 end
