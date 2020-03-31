@@ -113,20 +113,26 @@ macro test_base_index(klass, controller_klass)
   authenticated_user, authorization_header = authentication
 
   it "queries #{ {{ klass_name }} }", tags: "search" do
-    doc = begin
-      PlaceOS::Model::Generator.{{ klass_name.id }}.save!
+    name = UUID.random.to_s
+    begin
+      doc = PlaceOS::Model::Generator.{{ klass_name.id }}
+      doc.name = name
+      doc.save!
     rescue e : RethinkORM::Error::DocumentInvalid
       pp! e.inspect_errors
       raise e
     end
 
     doc.persisted?.should be_true
-    params = HTTP::Params.encode({"q" => doc.name.as(String)})
+    params = HTTP::Params.encode({"q" => name})
     path = "#{{{controller_klass}}::NAMESPACE[0].rstrip('/')}?#{params}"
     header = authorization_header
 
     found = until_expected("GET", path, header) do |response|
-      JSON.parse(response.body).as_a.any? { |result| result["id"] == doc.id }
+      Array(Hash(String, JSON::Any))
+        .from_json(response.body)
+        .map(&.["id"].as_s)
+        .any?(doc.id)
     end
 
     found.should be_true

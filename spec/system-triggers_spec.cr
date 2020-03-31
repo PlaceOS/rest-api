@@ -24,20 +24,15 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
           path = "#{base}?#{params}"
 
-          sleep 1
+          correct_response = until_expected("GET", path, authorization_header) do |response|
+            results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+            contains_correct = results.any?(inst1.id)
+            contains_incorrect = results.any?(inst2.id)
 
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
-          results = JSON.parse(result.body).as_a
+            !results.empty? && contains_correct && !contains_incorrect
+          end
 
-          contains_correct = results.any? { |r| r["id"] == inst1.id }
-          contains_incorrect = results.any? { |r| r["id"] == inst2.id }
-
-          contains_correct.should be_true
-          contains_incorrect.should be_false
+          correct_response.should be_true
         end
       end
 

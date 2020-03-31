@@ -14,8 +14,6 @@ module PlaceOS::Api
           service.name = Faker::Hacker.noun + rand((1..10000)).to_s
           service.save!
 
-          sleep 1
-
           params = HTTP::Params.encode({
             "role" => Model::Driver::Role::Service.to_i.to_s,
             "q"    => service.id.as(String),
@@ -23,10 +21,10 @@ module PlaceOS::Api
 
           path = "#{base}?#{params}"
           found = until_expected("GET", path, authorization_header) do |response|
-            results = JSON.parse(response.body).as_a
+            results = Array(Hash(String, JSON::Any)).from_json(response.body)
             all_service_roles = results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }
             contains_search_term = results.any? { |r| r["id"] == service.id }
-            all_service_roles && contains_search_term
+            !results.empty? && all_service_roles && contains_search_term
           end
 
           found.should be_true
