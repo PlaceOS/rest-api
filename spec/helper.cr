@@ -97,7 +97,7 @@ def until_expected(method, path, headers, &block : HTTP::Client::Response -> Boo
   end
 
   spawn do
-    sleep 5
+    sleep 3
     channel.close
   rescue
   end
