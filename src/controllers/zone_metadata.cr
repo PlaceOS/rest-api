@@ -31,9 +31,7 @@ module PlaceOS::Api
       children = current_zone.children.to_a
       children.unshift(current_zone)
 
-      results = [] of NamedTuple(
-        zone: Model::Zone,
-        metadata: Hash(String, Metadata))
+      results = [] of NamedTuple(zone: Model::Zone, metadata: Hash(String, Metadata))
 
       children.each do |zone|
         results.push({
@@ -96,7 +94,7 @@ module PlaceOS::Api
 
     def find_zone
       # Find will raise a 404 (not found) if there is an error
-      @zone = Model::Zone.find!(params["id"]?)
+      @zone = Model::Zone.find!(params["id"])
     end
 
     def build_metadata(metadata, filter : String?)
