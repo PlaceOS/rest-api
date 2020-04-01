@@ -42,6 +42,9 @@ module PlaceOS::Api
     class IndexParams < Params
       attribute zone_id : String
       attribute module_id : String
+      attribute features : String
+      attribute capacity : Int32
+      attribute bookable : Bool
     end
 
     # Query ControlSystem resources
@@ -51,16 +54,41 @@ module PlaceOS::Api
       args = IndexParams.new(params)
 
       # Filter systems via zone_id
-      if (zone_id = args.zone_id)
+      if zone_id = args.zone_id
         query.must({
           "zones" => [zone_id],
         })
       end
 
       # Filter via module_id
-      if (module_id = args.module_id)
+      if module_id = args.module_id
         query.must({
           "modules" => [module_id],
+        })
+      end
+
+      # Filter by features
+      if features = args.features
+        features = features.split(',')
+        query.must({
+          "features" => features,
+        })
+      end
+
+      # filter by capacity
+      if capacity = args.capacity
+        query.range({
+          "capacity" => {
+            :gte => capacity,
+          },
+        })
+      end
+
+      # filter by bookable
+      bookable = args.bookable
+      if !bookable.nil?
+        query.must({
+          "bookable" => [bookable],
         })
       end
 
