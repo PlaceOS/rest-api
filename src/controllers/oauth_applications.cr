@@ -15,6 +15,14 @@ module PlaceOS::Api
       elastic = Model::DoorkeeperApplication.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
+
+      # filter by authority
+      if params.has_key? "authority"
+        query.must({
+          "owner_id" => [params["authority"]],
+        })
+      end
+
       render json: paginate_results(elastic, query)
     end
 
