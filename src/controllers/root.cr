@@ -18,6 +18,8 @@ module PlaceOS::Api
       render json: {
         app:     APP_NAME,
         version: VERSION,
+        commit: BUILD_COMMIT,
+        build_time: BUILD_TIME,
       }
     end
 

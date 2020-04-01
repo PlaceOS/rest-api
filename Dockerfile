@@ -1,5 +1,8 @@
 FROM crystallang/crystal:0.33.0-alpine
 
+# Set the commit through a build arg
+ARG PLACE_COMMIT "DEV"
+
 WORKDIR /app
 
 # Install shards for caching
@@ -12,8 +15,9 @@ RUN shards install --production
 COPY ./src /app/src
 
 # Build application
-ENV UNAME_AT_COMPILE_TIME=true
-RUN crystal build --release --debug --error-trace /app/src/rest-api.cr
+RUN UNAME_AT_COMPILE_TIME=true \
+    PLACE_COMMIT=$PLACE_COMMIT \
+    crystal build --release --debug --error-trace /app/src/rest-api.cr
 
 # Extract dependencies
 RUN ldd /app/rest-api | tr -s '[:blank:]' '\n' | grep '^/' | \
