@@ -11,18 +11,26 @@ module PlaceOS::Api
         model_name: Model::TriggerInstance.table_name,
         headers: authorization_header,
       )
+
       describe "index", tags: "search" do
         it "as_of query" do
-          inst1 = Model::Generator.trigger_instance.save!
+          sys = Model::Generator.control_system.save!
+          path = base.gsub(/:sys_id/, sys.id)
+
+          inst1 = Model::Generator.trigger_instance
+          inst1.control_system = sys
+          inst1.save!
           inst1.persisted?.should be_true
 
           sleep 1
 
-          inst2 = Model::Generator.trigger_instance.save!
+          inst2 = Model::Generator.trigger_instance
+          inst2.control_system = sys
+          inst2.save!
           inst2.persisted?.should be_true
 
           params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
-          path = "#{base}?#{params}"
+          path = "#{path}?#{params}"
 
           correct_response = until_expected("GET", path, authorization_header) do |response|
             results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
@@ -40,7 +48,7 @@ module PlaceOS::Api
         it "create" do
           sys = Model::Generator.control_system.save!
           trigger_instance = Model::Generator.trigger_instance
-          trigger_instance.control_system
+          trigger_instance.control_system = sys
           body = trigger_instance.to_json
 
           path = base.gsub(/:sys_id/, sys.id)
