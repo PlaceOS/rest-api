@@ -27,6 +27,8 @@ module PlaceOS::Api
       attribute running : Bool
     end
 
+    DRIVER_ATTRIBUTES = %w(name description)
+
     def index
       args = IndexParams.new(params)
 
@@ -43,12 +45,7 @@ module PlaceOS::Api
           # Most human readable module data is contained in driver
           driver_field = restrict_attributes(
             driver,
-            only: [
-              "name",
-              "description",
-              "module_name",
-              "settings",
-            ]
+            only: DRIVER_ATTRIBUTES,
           )
 
           with_fields(d, {
@@ -101,12 +98,7 @@ module PlaceOS::Api
           # Most human readable module data is contained in driver
           driver_field = restrict_attributes(
             driver,
-            only: [
-              "name",
-              "description",
-              "module_name",
-              "settings",
-            ]
+            only: DRIVER_ATTRIBUTES,
           )
 
           # Include control system on Logic modules so it is possible
@@ -116,7 +108,6 @@ module PlaceOS::Api
                           sys,
                           only: [
                             "name",
-                            "settings",
                           ],
                           fields: {
                             :zone_data => sys.zone_data,
@@ -137,7 +128,14 @@ module PlaceOS::Api
     end
 
     def show
-      render json: current_module
+      complete = params["complete"]? == "true"
+      mod = current_module
+
+      response = !complete ? mod : with_fields(mod, {
+        :driver => restrict_attributes(mod.driver, only: DRIVER_ATTRIBUTES),
+      })
+
+      render json: response
     end
 
     def update
@@ -145,10 +143,9 @@ module PlaceOS::Api
       mod.assign_attributes_from_json(request.body.as(IO))
 
       if mod.save
-        # TODO: Update control; Ruby engine starts the module instance
         driver = mod.driver
         serialised = !driver ? mod : with_fields(mod, {
-          :driver => restrict_attributes(driver, only: ["name", "module_name"]),
+          :driver => restrict_attributes(driver, only: DRIVER_ATTRIBUTES),
         })
 
         render json: serialised

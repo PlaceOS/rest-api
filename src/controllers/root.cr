@@ -16,9 +16,9 @@ module PlaceOS::Api
 
     get "/version", :version do
       render json: {
-        app:     APP_NAME,
-        version: VERSION,
-        commit: BUILD_COMMIT,
+        app:        APP_NAME,
+        version:    VERSION,
+        commit:     BUILD_COMMIT,
         build_time: BUILD_TIME,
       }
     end
