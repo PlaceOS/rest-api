@@ -1,7 +1,7 @@
 FROM crystallang/crystal:0.33.0-alpine
 
 # Set the commit through a build arg
-ARG PLACE_COMMIT "DEV"
+ARG PLACE_COMMIT="DEV"
 
 WORKDIR /app
 
