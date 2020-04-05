@@ -7,7 +7,7 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_repo, only: [:show, :update, :destroy, :drivers, :commits, :details]
+    before_action :find_repo, only: [:show, :update, :update_alt, :destroy, :drivers, :commits, :details]
 
     @repo : Model::Repository?
 
@@ -32,7 +32,7 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id" { update }
+    put "/:id", :update_alt { update }
 
     def create
       save_and_respond(Model::Repository.from_json(request.body.as(IO)))

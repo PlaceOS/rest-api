@@ -7,8 +7,8 @@ module PlaceOS::Api
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
 
-    before_action :ensure_json, only: [:create, :update]
-    before_action :find_trigger, only: [:show, :update, :destroy]
+    before_action :ensure_json, only: [:create, :update, :update_alt]
+    before_action :find_trigger, only: [:show, :update, :update_alt, :destroy]
 
     getter trig : Model::Trigger?
 
@@ -31,7 +31,7 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id" { update }
+    put "/:id", :update_alt { update }
 
     def create
       save_and_respond Model::Trigger.from_json(request.body.as(IO))

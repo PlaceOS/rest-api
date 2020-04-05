@@ -10,9 +10,9 @@ module PlaceOS::Api
 
     before_action :find_user, only: [:destroy, :update, :show]
     before_action :check_admin, only: [:index, :destroy, :create]
-    before_action :check_authorization, only: [:update]
+    before_action :check_authorization, only: [:update, :update_alt]
 
-    before_action :ensure_json, only: [:update]
+    before_action :ensure_json, only: [:update, :update_alt]
 
     getter user : Model::User?
 
@@ -68,7 +68,7 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id" { update }
+    put "/:id", :update_alt { update }
 
     #
     # Destroy user, revoke authentication.

@@ -7,11 +7,11 @@ module PlaceOS::Api
     base "/api/engine/v2/systems/:sys_id/triggers/"
     id_param :trig_id
 
-    before_action :check_admin, only: [:create, :update, :destroy]
+    before_action :check_admin, only: [:create, :update, :update_alt, :destroy]
     before_action :check_support, only: [:index, :show]
 
-    before_action :ensure_json, only: [:create, :update]
-    before_action :find_sys_trig, only: [:show, :update, :destroy]
+    before_action :ensure_json, only: [:create, :update, :update_alt]
+    before_action :find_sys_trig, only: [:show, :update, :update_alt, :destroy]
 
     getter sys_trig : Model::TriggerInstance?
 
@@ -86,7 +86,7 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:trig_id" { update }
+    put "/:trig_id", :update_alt { update }
 
     def create
       save_and_respond Model::TriggerInstance.from_json(request.body.as(IO))

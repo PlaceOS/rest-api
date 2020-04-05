@@ -9,7 +9,7 @@ module PlaceOS::Api
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, except: [:index]
-    before_action :find_zone, only: [:show, :update, :destroy]
+    before_action :find_zone, only: [:show, :update, :update_alt, :destroy]
 
     getter zone : Model::Zone?
 
@@ -61,7 +61,7 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id" { update }
+    put "/:id", :update_alt { update }
 
     def create
       save_and_respond Model::Zone.from_json(request.body.as(IO))

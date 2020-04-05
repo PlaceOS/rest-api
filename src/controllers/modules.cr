@@ -13,8 +13,8 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]
 
-    before_action :ensure_json, only: [:create, :update, :execute]
-    before_action :find_module, only: [:show, :update, :destroy, :ping, :state]
+    before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
+    before_action :find_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
 
     @module : Model::Module?
 
@@ -155,7 +155,7 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id" { update }
+    put "/:id", :update_alt { update }
 
     def create
       body = request.body.as(IO)
