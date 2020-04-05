@@ -7,7 +7,7 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_driver, only: [:show, :update, :update_alt, :destroy]
+    before_action :find_driver, only: [:show, :update, :update_alt, :destroy, :recompile]
 
     @driver : Model::Driver?
 
@@ -56,6 +56,17 @@ module PlaceOS::Api
     def destroy
       current_driver.destroy
       head :ok
+    end
+
+    post "/:id/recompile", :recompile do
+      driver = current_driver
+      commit = driver.commit.not_nil!
+      if commit.starts_with?("RECOMPILE")
+        head :already_reported
+      else
+        driver.commit = "RECOMPILE-#{commit}"
+        save_and_respond driver
+      end
     end
 
     #  Helpers
