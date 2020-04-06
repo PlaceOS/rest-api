@@ -78,6 +78,31 @@ module PlaceOS::Api
         end
       end
 
+      describe "/:sys_id/zones" do
+        it "lists zones for a system" do
+          control_system = Model::Generator.control_system.save!
+
+          zone0 = Model::Generator.zone.save!
+          zone1 = Model::Generator.zone.save!
+
+          control_system.zones = [zone0.id.as(String), zone1.id.as(String)]
+          control_system.save!
+
+          path = base + "#{control_system.id}/zones"
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          documents = Array(Hash(String, JSON::Any)).from_json(result.body)
+          documents.size.should eq 2
+          documents.map { |d| d["id"].as_s }.sort.should eq [zone0.id, zone1.id]
+        end
+      end
+
       describe "/:sys_id/module/:module_id" do
         it "removes if not in use by another ControlSystem" do
           cs = Model::Generator.control_system.save!

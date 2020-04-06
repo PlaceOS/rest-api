@@ -152,9 +152,27 @@ module PlaceOS::Api
       head :ok
     end
 
+    # Return all zones for this system
+    #
+    get "/:sys_id/zones" do
+      zones = current_system.zones || [] of String
+
+      # Save the DB hit if there are no zones on the system
+      documents = if zones.empty?
+                    [] of Model::Zone
+                  else
+                    Model::Zone.get_all(zones).to_a
+                  end
+
+      response_size = documents.size
+      response.headers["X-Total-Count"] = response_size.to_s
+      response.headers["Content-Range"] = "#{Model::Zone.table_name} 0-#{response_size}/#{response_size}"
+      render json: documents
+    end
+
     # Receive the collated settings for a system
     #
-    get(":sys_id/settings", :settings) do
+    get("/:sys_id/settings", :settings) do
       render json: Api::Settings.collated_settings(current_user, current_system)
     end
 
