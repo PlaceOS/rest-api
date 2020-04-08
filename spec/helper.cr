@@ -6,7 +6,7 @@ class PlaceOS::Driver; end
 require "http"
 require "random"
 require "rethinkdb-orm"
-require "retriable"
+require "simple_retry"
 require "spec"
 
 # Helper methods for testing controllers (curl, with_server, context)
@@ -75,7 +75,7 @@ def until_expected(method, path, headers, &block : HTTP::Client::Response -> Boo
   spawn do
     before = Time.utc
     begin
-      Retriable.retry(max_elapsed_time: 2.seconds, on: {Exception => /retry/}) do
+      SimpleRetry.try_to(base_interval: 50.milliseconds, max_elapsed_time: 2.seconds, retry_on: Exception) do
         result = curl(method: method, path: path, headers: headers)
 
         unless result.success?

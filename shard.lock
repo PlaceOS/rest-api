@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    commit: 8aaa75970f851b2e678738def5f9de2d9c790b7c
+    commit: 4a2ba32b5f947faeac8a4b3cf16458ee4dd9510c
 
   cron_parser:
     github: kostya/cron_parser
@@ -42,7 +42,7 @@ shards:
 
   db:
     github: crystal-lang/crystal-db
-    version: 0.8.0
+    version: 0.9.0
 
   debug:
     github: Sija/debug.cr
@@ -54,15 +54,15 @@ shards:
 
   driver:
     github: placeos/driver
-    commit: b91938e148c53fcfb22a14991ed7c7c3bfdd4660
+    commit: 9aca0b093a17b0e6cc84925b720c1e132aae7351
 
   drivers:
     github: placeos/drivers
-    commit: 6718d6f4796dd4b16c7e0b1ef99f96302627bc8a
+    commit: d15d9b2660351a0917dccac955aa06ff04ac5bb5
 
   etcd:
     github: aca-labs/crystal-etcd
-    version: 0.3.1
+    version: 0.3.2
 
   exec_from:
     github: aca-labs/exec_from
@@ -155,6 +155,10 @@ shards:
   rwlock:
     github: spider-gazelle/readers-writer
     version: 1.0.5
+
+  simple_retry:
+    github: spider-gazelle/simple_retry
+    version: 1.1.0
 
   ssh2:
     github: spider-gazelle/ssh2.cr

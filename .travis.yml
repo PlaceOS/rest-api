@@ -7,12 +7,12 @@ services:
 before_install:
   # Add elasticsearch 7.2.x
   - docker run --net="host" -p "9300:9300" -p "9200:9200" -e discovery.type=single-node -d blacktop/elasticsearch:7.2
-  # Add etcd 3.3.13
-  - docker run --net="host" -p "2379:2379" -p "2380:2380" -e ALLOW_NONE_AUTHENTICATION=yes -d bitnami/etcd:3.3.13
   # Add rethinkdb 2.3.6
   - docker run --net="host" -p "29015:29015" -p "28015:28015" -d rethinkdb:2.4
   # Add latest rubber-soul (mirrors RethinkDB tables to elasticsearch indices)
   - docker run --net="host" -e RETHINKDB_DB="place_production" -e RETHINKDB_PORT="28015" -e RETHINKDB_HOST="127.0.0.1" -e ES_PORT="9200" -e ES_HOST="127.0.0.1" --restart=always -d placeos/rubber-soul:latest
+  # Add etcd 3.3.13
+  - docker run --net="host" -p "2379:2379" -p "2380:2380" -e ALLOW_NONE_AUTHENTICATION=yes -d bitnami/etcd:3.3.13
 
 env:
   # Set spider-gazelle environment
@@ -27,7 +27,7 @@ before_script:
 
 script:
   # Specs
-  - crystal spec --no-debug
+  - crystal spec
   # Linter
   - bin/ameba
   # Formatter

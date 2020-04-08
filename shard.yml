@@ -1,5 +1,5 @@
 name: rest-api
-version: 1.4.0
+version: 1.4.1
 crystal: 0.33.0
 
 dependencies:
@@ -79,8 +79,9 @@ development_dependencies:
   faker:
     github: askn/faker
 
-  retriable:
-    github: sija/retriable.cr
+  # Retry
+  simple_retry:
+    github: spider-gazelle/simple_retry
 
 targets:
   rest-api:
