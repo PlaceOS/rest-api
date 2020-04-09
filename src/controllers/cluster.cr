@@ -75,9 +75,10 @@ module PlaceOS::Api
       launch_count: Int32,
       launch_time: Int64,
 
-      percentage_cpu: Float64,
-      memory_total: Int64,
-      memory_usage: Int64,
+      # These will not be available if running == false
+      percentage_cpu: Float64?,
+      memory_total: Int64?,
+      memory_usage: Int64?,
     )
 
     def show
@@ -105,8 +106,21 @@ module PlaceOS::Api
               "#{host}/api/core/v1/status/driver?path=#{driver}",
               headers: HTTP::Headers{"X-Request-ID" => request_id},
             )
-            raise "failed to get driver status for #{core_id} => #{host} : #{driver}" unless response.success?
-            driver_status = DriverStatus.from_json(response.body)
+            driver_status = if response.success?
+                              DriverStatus.from_json(response.body)
+                            else
+                              # Indicate an error
+                              DriverStatus.new(
+                                running: false,
+                                module_instances: -1,
+                                last_exit_code: -1,
+                                launch_count: -1,
+                                launch_time: -1_i64,
+                                percentage_cpu: nil,
+                                memory_total: nil,
+                                memory_usage: nil,
+                              )
+                            end
 
             {
               driver:  driver,
