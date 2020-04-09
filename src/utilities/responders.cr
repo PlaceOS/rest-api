@@ -50,7 +50,9 @@ module PlaceOS::Api
                            {HTTP::Status::INTERNAL_SERVER_ERROR, Logger::Severity::INFO}
                          when Driver::Proxy::RemoteDriver::ErrorCode::AccessDenied
                            {HTTP::Status::UNAUTHORIZED, Logger::Severity::INFO}
-                         end.not_nil! # TODO: remove once merged https://github.com/crystal-lang/crystal/pull/8424
+                         else
+                           raise "unexpected error code #{error.error_code}"
+                         end
       message = error.error_code.to_s.gsub('_', ' ')
       logger.tag(
         message: error.message || "",
