@@ -1,41 +1,40 @@
 name: rest-api
-version: 1.4.1
+version: 1.5.0
 
 dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 2.3.4
+    version: ~> 2.3
 
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
-    branch: master
 
   # Email validations
   CrystalEmail:
     github: Nephos/CrystalEmail
-    version: ~> 0.2.4
+    version: ~> 0.2
 
   # For core client
   core:
     github: placeos/core
-    branch: master
+    version: ~> 1.0
 
   # For driver state helpers
   driver:
     github: placeos/driver
-    branch: master
+    version: ~> 1.2
 
   # Database view
   models:
     github: placeos/models
-    branch: master
+    version: ~> 1.0
 
   # Service discovery
   hound-dog:
-    github: aca-labs/hound-dog
-    branch: master
+    github: place-labs/hound-dog
+    version: ~> 2.2
 
   # JSON Web Token support
   jwt:
@@ -43,8 +42,8 @@ dependencies:
 
   # Elasticsearch extension for RethinkORM
   neuroplastic:
-    github: aca-labs/neuroplastic
-    branch: master
+    github: spider-gazelle/neuroplastic
+    version: ~> 1.4
 
   # Performs ping requests
   pinger:
@@ -56,8 +55,7 @@ dependencies:
     github: spider-gazelle/promise
 
   rethinkdb:
-    github: aca-labs/crystal-rethinkdb
-    branch: master
+    github: place-labs/crystal-rethinkdb
 
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
@@ -66,7 +64,7 @@ dependencies:
   # Scheduling
   tasker:
     github: spider-gazelle/tasker
-    version: ~> 1.2.1
+    version: ~> 1.2
 
   redis:
     github: stefanwille/crystal-redis
@@ -76,7 +74,6 @@ development_dependencies:
   # Linter
   ameba:
     github: veelenga/ameba
-    version: ~> 0.10.0
 
   # Mock data generation
   faker:

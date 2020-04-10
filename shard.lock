@@ -6,15 +6,15 @@ shards:
 
   action-controller:
     github: spider-gazelle/action-controller
-    version: 2.3.4
+    version: 2.4.0
 
   active-model:
     github: spider-gazelle/active-model
-    commit: cfb070793fd53cc20c799761aa5fe8b195e75739
+    version: 1.8.2
 
   ameba:
     github: veelenga/ameba
-    version: 0.10.1
+    version: 0.12.0
 
   bindata:
     github: spider-gazelle/bindata
@@ -25,8 +25,8 @@ shards:
     version: 1.2.0
 
   clustering:
-    github: aca-labs/clustering
-    commit: ea98ee378793b91eb6586073d2cd5817613c2926
+    github: place-labs/clustering
+    version: 1.0.2
 
   connect-proxy:
     github: spider-gazelle/connect-proxy
@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    commit: 7585842599f4d7aa36efd30a5fb4a2470e343ab6
+    version: 1.0.0
 
   cron_parser:
     github: kostya/cron_parser
@@ -54,19 +54,19 @@ shards:
 
   driver:
     github: placeos/driver
-    commit: a4cfc0e4b9b1ca4b1852daf46eeec1f608f098e3
+    version: 1.2.0
 
   drivers:
     github: placeos/drivers
-    commit: 11217b22113f305b2309d54da24413b9465ea5a8
+    version: 1.1.0
 
   etcd:
-    github: aca-labs/crystal-etcd
-    commit: 04b6fec8601132d16fb46d4af88d0d301cadcf2d
+    github: place-labs/crystal-etcd
+    version: 1.0.0
 
   exec_from:
-    github: aca-labs/exec_from
-    commit: a7118c27d21183d93c7095a0bcd3e616b86dc82a
+    github: place-labs/exec_from
+    version: 1.2.0
 
   faker:
     github: askn/faker
@@ -81,8 +81,8 @@ shards:
     version: 0.5.0
 
   hound-dog:
-    github: aca-labs/hound-dog
-    commit: 6e85ea6c6719fbafdafcc608bff17be661b5bbb6
+    github: place-labs/hound-dog
+    version: 2.2.1
 
   ipaddress:
     github: Sija/ipaddress.cr
@@ -98,7 +98,7 @@ shards:
 
   models:
     github: placeos/models
-    commit: 61ea9dce46bdf1dc00e42f0865f4387b1954aadc
+    version: 1.0.0
 
   murmur3:
     github: aca-labs/murmur3
@@ -106,7 +106,7 @@ shards:
 
   neuroplastic:
     github: spider-gazelle/neuroplastic
-    commit: 083c5bfebf40a0618c3faf84e90e77225369a509
+    version: 1.4.0
 
   openssl_ext:
     github: stakach/openssl_ext
@@ -141,12 +141,12 @@ shards:
     version: 0.3.1
 
   rethinkdb:
-    github: aca-labs/crystal-rethinkdb
-    commit: 59ae037ab40a46fb4721b6c85b39c5f895687bd9
+    github: place-labs/crystal-rethinkdb
+    version: 1.0.0
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    commit: 9500a46dd6139221a7253423f74535464707e0da
+    version: 2.8.0
 
   rwlock:
     github: spider-gazelle/readers-writer
@@ -173,6 +173,6 @@ shards:
     version: 1.1.0
 
   ulid:
-    github: aca-labs/ulid
+    github: place-labs/ulid
     version: 0.1.2
 
