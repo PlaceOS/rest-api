@@ -58,7 +58,7 @@ module PlaceOS::Api
       head :ok
     end
 
-    post "/:id/recompile", :recompile do
+    post("/:id/recompile", :recompile) do
       driver = current_driver
       commit = driver.commit.not_nil!
       if commit.starts_with?("RECOMPILE")
@@ -67,6 +67,26 @@ module PlaceOS::Api
         driver.commit = "RECOMPILE-#{commit}"
         save_and_respond driver
       end
+    end
+
+    # Check if the core responsible for the driver has finished compilation
+    #
+    get("/:id/compiled", :compiled) do
+      driver = current_driver
+      file_name = URI.encode(driver.file_name.as(String))
+      commit = driver.commit.as(String)
+      tag = driver.id.as(String)
+      repository = driver.repository
+
+      unless repository
+        logger.error { "failed to load" }
+        head :internal_server_error
+      end
+
+      core_client = Api::Systems.core_for(file_name, logger.request_id)
+      compiled = core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
+
+      render json: compiled
     end
 
     #  Helpers
