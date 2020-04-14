@@ -268,6 +268,13 @@ module PlaceOS::Api
       end
     end
 
+    post(":id/load", :load) do
+      module_id = current_module.id.as(String)
+      core_client = Api::Systems.core_for(module_id, logger.request_id)
+
+      render json: core_client.load(module_id)
+    end
+
     # Helpers
     ############################################################################
 

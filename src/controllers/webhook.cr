@@ -50,8 +50,7 @@ module PlaceOS::Api
             expects_arguments = method_signature.size > 0
 
             # ensure any remaining remaining arguments are optional
-            # TODO: remove ameba:disable upon next version of ameba
-            method_signature.each_with_index do |(_argument, type_details), index| # ameba:disable Lint/UselessAssign
+            method_signature.each_with_index do |(_argument, type_details), index|
               case index
               when 0
                 if type_details[0].as_s.starts_with?("String")
