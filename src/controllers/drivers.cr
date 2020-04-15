@@ -92,7 +92,6 @@ module PlaceOS::Api
         logger.warn { "Driver<#{driver.id}> not compiled" }
         head :not_found
       end
-
     end
 
     #  Helpers
