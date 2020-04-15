@@ -37,6 +37,7 @@ module PlaceOS::Api
               driver_proxy[status_name] = 1
               sleep 0.1
               driver_proxy[status_name] = 2
+              sleep 0.1
             end
 
             updates, control_system, mod = results

@@ -79,14 +79,20 @@ module PlaceOS::Api
       repository = driver.repository
 
       unless repository
-        logger.error { "failed to load" }
+        logger.error { "failed to load Driver<#{driver.id}>'s Repository<#{driver.repository_id}>" }
         head :internal_server_error
       end
 
       core_client = Api::Systems.core_for(file_name, logger.request_id)
-      compiled = core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
 
-      render json: compiled
+      if core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
+        logger.info { "Driver<#{driver.id}> is compiled" }
+        head :ok
+      else
+        logger.warn { "Driver<#{driver.id}> not compiled" }
+        head :not_found
+      end
+
     end
 
     #  Helpers
