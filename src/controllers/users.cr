@@ -48,21 +48,15 @@ module PlaceOS::Api
     end
 
     def create
-      user = Model::User.new(params)
+      user = Model::User.from_json(request.body.as(IO))
       user.authority = current_authority.as(Model::Authority)
 
       save_and_respond user
     end
 
     def update
-      body = request.body.as(IO)
       user = @user.as(Model::User)
-
-      if is_admin?
-        user.assign_attributes_from_trusted_json(body)
-      else
-        user.assign_attributes_from_json(body)
-      end
+      user.assign_attributes_from_json(request.body.as(IO))
 
       save_and_respond user
     end
