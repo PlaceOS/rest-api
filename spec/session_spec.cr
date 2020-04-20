@@ -21,7 +21,6 @@ module PlaceOS::Api
           it "receives updates" do
             # Status to bind
             status_name = "nugget"
-            # ameba:disable Lint/ShadowingOuterLocalVar
             results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
               # Create a storage proxy
               driver_proxy = PlaceOS::Driver::Storage.new mod.id.as(String)
@@ -66,7 +65,6 @@ module PlaceOS::Api
           status_name = "nugget"
 
           id = rand(10).to_i64
-          # ameba:disable Lint/ShadowingOuterLocalVar
           results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
             request = {
               id:          id,

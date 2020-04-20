@@ -38,8 +38,8 @@ module PlaceOS::Api
         modules = cs.modules || [] of String
 
         # Include subset of association data with results
-        results = Model::Module.find_all(modules).compact_map do |d|
-          driver = d.driver
+        results = Model::Module.find_all(modules).compact_map do |mod|
+          driver = mod.driver
           next unless driver
 
           # Most human readable module data is contained in driver
@@ -48,9 +48,10 @@ module PlaceOS::Api
             only: DRIVER_ATTRIBUTES,
           )
 
-          with_fields(d, {
-            :driver => driver_field,
-          }.compact)
+          with_fields(mod, {
+            :driver   => driver_field,
+            :compiled => Api::Modules.driver_compiled?(mod, logger.request_id),
+          })
         end.to_a
 
         response.headers["X-Total-Count"] = results.size.to_s
@@ -277,6 +278,30 @@ module PlaceOS::Api
 
     # Helpers
     ############################################################################
+
+    def self.driver_compiled?(mod : Model::Module, request_id = "Migrate to Log")
+      driver = mod.driver
+      unless driver
+        # logger.error { "failed to load Module<#{mod.id}>'s Driver<#{mod.driver_id}>" }
+        return false
+      end
+
+      file_name = URI.encode(driver.file_name.as(String))
+      commit = driver.commit.as(String)
+      tag = driver.id.as(String)
+      repository = driver.repository
+
+      unless repository
+        # logger.error { "failed to load Driver<#{driver.id}>'s Repository<#{driver.repository_id}>" }
+        return false
+      end
+
+      folder_name = repository.folder_name.as(String)
+
+      # TODO: Grab the request id from the Log context
+      core_client = Api::Systems.core_for(mod.id.as(String), request_id)
+      core_client.driver_compiled?(file_name: file_name, repository: folder_name, commit: commit, tag: tag)
+    end
 
     def module_state(mod : Model::Module, key : String? = nil)
       storage = Driver::Storage.new(mod.id.as(String))

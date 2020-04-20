@@ -34,7 +34,7 @@ shards:
 
   core:
     github: placeos/core
-    version: 1.1.0
+    version: 1.1.4
 
   cron_parser:
     github: kostya/cron_parser
@@ -82,7 +82,7 @@ shards:
 
   hound-dog:
     github: place-labs/hound-dog
-    version: 2.2.1
+    version: 2.3.1
 
   ipaddress:
     github: Sija/ipaddress.cr
