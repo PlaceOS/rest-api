@@ -66,19 +66,10 @@ module PlaceOS::Api
 
     #
     # Destroy user, revoke authentication.
-    # TODO: Make this available when there is a clean up option for User
-    # def destroy
-    #   @user = User.find(id)
-    #   if defined?(::UserCleanup)
-    #     @user.destroy
-    #     head :ok
-    #   else
-    #     ::Auth::Authentication.for_user(@user.id).each do |auth|
-    #       auth.destroy
-    #     end
-    #     @user.destroy
-    #   end
-    # end
+    def destroy
+      @user.destroy
+      head :ok
+    end
 
     protected def find_user
       user || (@user = Model::User.find!(params["id"], runopts: {"read_mode" => "majority"}))
