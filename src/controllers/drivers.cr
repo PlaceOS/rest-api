@@ -33,7 +33,16 @@ module PlaceOS::Api
     end
 
     def show
-      render json: current_driver
+      driver = current_driver
+      include_compilation_status = !params.has_key?("compilation_status") || params["compilation_status"] != "false"
+
+      if include_compilation_status
+        render json: with_fields(driver, {
+          :compilation_status => Api::Drivers.compilation_status(driver, logger.request_id),
+        })
+      else
+        render json: driver
+      end
     end
 
     def update
@@ -94,6 +103,28 @@ module PlaceOS::Api
       end
     end
 
+    # Returns the compilation status of a driver across the cluster
+    def self.compilation_status(
+      driver : Model::Driver,
+      request_id : String? = "migrate to Log"
+    )
+      file_name = driver.file_name.as(String)
+      commit = driver.commit.as(String)
+      repository_folder = driver.repository.as(Model::Repository).folder_name.as(String)
+      tag = driver.id.as(String)
+
+      nodes = Api::Systems.core_discovery.node_hash
+      result = Promise.all(nodes.map { |name, uri|
+        Promise.defer {
+          Core::Client.client(uri, request_id) { |client|
+            {name, client.driver_compiled?(file_name, commit, repository_folder, tag)}
+          }
+        }
+      }).get
+
+      Hash(String, Bool).from_key_values(result)
+    end
+
     #  Helpers
     ###########################################################################
 
@@ -104,6 +135,14 @@ module PlaceOS::Api
     def find_driver
       # Find will raise a 404 (not found) if there is an error
       @driver = Model::Driver.find!(params["id"], runopts: {"read_mode" => "majority"})
+    end
+  end
+end
+
+class Hash(K, V)
+  def self.from_key_values(kvs : Array(Tuple(K, V)))
+    kvs.each_with_object({} of K => V) do |(k, v), hash|
+      hash[k] = v
     end
   end
 end
