@@ -6,7 +6,24 @@ module PlaceOS::Api
     base "/api/engine/v2/cluster/"
     before_action :check_admin
 
-    alias ClusterLoad = NamedTuple(
+    def index
+      details = Api::Systems.core_discovery.node_hash
+
+      if params["include_status"]?
+        request_id = logger.request_id || UUID.random.to_s
+
+        # Returns Array(NodeStatus)
+        render json: Promise.all(details.map { |name, uri|
+          Promise.defer { Cluster.node_status(name, uri, request_id) }
+        }).get
+      end
+
+      # returns {"id" => "host"}
+      render json: details
+    end
+
+    alias NodeStatus = NamedTuple(
+      id: String,
       hostname: String,
       cpu_count: Int32,
       core_cpu: Float64,
@@ -14,57 +31,40 @@ module PlaceOS::Api
       memory_total: Int64,
       memory_usage: Int64,
       core_memory: Int64,
-    )
-
-    alias DriverError = NamedTuple(
-      name: String,
-      reason: String,
-    )
-
-    alias ClusterDetails = NamedTuple(
       compiled_drivers: Array(String),
       available_repositories: Array(String),
       running_drivers: Int32,
       module_instances: Int32,
-      unavailable_repositories: Array(DriverError),
-      unavailable_drivers: Array(DriverError),
+      unavailable_repositories: Array(NodeError),
+      unavailable_drivers: Array(NodeError),
     )
 
-    def index
-      details = {} of String => String
-      Api::Systems.core_discovery.nodes.each do |node|
-        details[node[:name]] = node[:uri].to_s
+    alias NodeError = NamedTuple(name: String, reason: String)
+
+    def self.node_status(name : String, uri : URI, request_id : String) : NodeStatus
+      Core::Client.client(uri, request_id) do |client|
+        # Get the cluster details (number of drivers running, errors etc)
+        core_status = client.core_status
+        # Get the cluster load
+        core_load = client.core_load
+
+        {
+          id:                       name,
+          hostname:                 core_load.hostname.to_s,
+          cpu_count:                core_load.cpu_count,
+          core_cpu:                 core_load.core_cpu,
+          total_cpu:                core_load.total_cpu,
+          memory_total:             core_load.memory_total,
+          memory_usage:             core_load.memory_usage,
+          core_memory:              core_load.core_memory,
+          compiled_drivers:         core_status.compiled_drivers,
+          available_repositories:   core_status.available_repositories,
+          running_drivers:          core_status.running_drivers,
+          module_instances:         core_status.module_instances,
+          unavailable_repositories: core_status.unavailable_repositories,
+          unavailable_drivers:      core_status.unavailable_drivers,
+        }
       end
-
-      if params["include_status"]?
-        request_id = logger.request_id || UUID.random.to_s
-
-        # Returns [{id:, hostname:, id:, cpu_count:, core_cpu:, total_cpu:, memory_total:, memory_usage:, core_memory:}]
-        render json: Promise.all(details.map { |name, host|
-          Promise.defer {
-            # Get the cluster details (number of drivers running, errors etc)
-            response = HTTP::Client.get(
-              "#{host}/api/core/v1/status/",
-              headers: HTTP::Headers{"X-Request-ID" => request_id},
-            )
-            raise "failed to get status for #{name} => #{host}" unless response.success?
-            core_overview = ClusterDetails.from_json(response.body)
-
-            # Get the cluster load
-            response = HTTP::Client.get(
-              "#{host}/api/core/v1/status/load",
-              headers: HTTP::Headers{"X-Request-ID" => request_id},
-            )
-            raise "failed to get load for #{name} => #{host}" unless response.success?
-            core_load = ClusterLoad.from_json(response.body)
-
-            core_overview.merge(core_load).merge({id: name})
-          }
-        }).get
-      end
-
-      # returns {"id" => "host"}
-      render json: details
     end
 
     alias LoadedDrivers = Hash(String, Array(String))
@@ -84,74 +84,57 @@ module PlaceOS::Api
     def show
       core_id = params["id"]
 
-      details = {} of String => String
-      Api::Systems.core_discovery.nodes.each do |node|
-        details[node[:name]] = node[:uri].to_s
-      end
-
-      host = details[core_id]
+      uri = Api::Systems.core_discovery.node_hash[core_id]
       request_id = logger.request_id || UUID.random.to_s
 
-      response = HTTP::Client.get(
-        "#{host}/api/core/v1/status/loaded",
-        headers: HTTP::Headers{"X-Request-ID" => request_id},
-      )
-      raise "failed to get processes on #{core_id} => #{host}" unless response.success?
-      drivers = LoadedDrivers.from_json(response.body)
+      Core::Client.client(uri, request_id) do |client|
+        drivers = client.loaded
 
-      if params["include_status"]?
-        render json: Promise.all(drivers.map { |driver, modules|
-          Promise.defer {
-            response = HTTP::Client.get(
-              "#{host}/api/core/v1/status/driver?path=#{driver}",
-              headers: HTTP::Headers{"X-Request-ID" => request_id},
-            )
-            driver_status = if response.success?
-                              DriverStatus.from_json(response.body)
-                            else
-                              # Indicate an error
-                              DriverStatus.new(
-                                running: false,
-                                module_instances: -1,
-                                last_exit_code: -1,
-                                launch_count: -1,
-                                launch_time: -1_i64,
-                                percentage_cpu: nil,
-                                memory_total: nil,
-                                memory_usage: nil,
-                              )
-                            end
-
-            {
-              driver:  driver,
-              modules: modules,
-            }.merge driver_status
-          }
-        }).get
+        if params["include_status"]?
+          render json: Promise.all(drivers.map { |driver, modules|
+            Promise.defer { Cluster.driver_status(driver, modules, client) }
+          }).get
+        else
+          # returns: {"/app/bin/drivers/drivers_name_fe33588": ["mod-ETbLjPMTRfb"]}
+          render json: drivers
+        end
       end
+    end
 
-      # returns: {"/app/bin/drivers/drivers_name_fe33588": ["mod-ETbLjPMTRfb"]}
-      render json: drivers
+    def self.driver_status(driver_path, modules, client : Core::Client)
+      driver_status = client.driver_status(driver_path)
+      {
+        running:          driver_status.running,
+        module_instances: driver_status.module_instances,
+        last_exit_code:   driver_status.last_exit_code,
+        launch_count:     driver_status.launch_count,
+        launch_time:      driver_status.launch_time,
+        percentage_cpu:   driver_status.percentage_cpu,
+        memory_total:     driver_status.memory_total,
+        memory_usage:     driver_status.memory_usage,
+        driver:           driver_path,
+        modules:          modules,
+      }
     end
 
     def destroy
       core_id = params["id"]
       driver = params["driver"]
 
-      details = {} of String => String
-      Api::Systems.core_discovery.nodes.each do |node|
-        details[node[:name]] = node[:uri].to_s
-      end
-
-      host = details[core_id]
+      uri = Api::Systems.core_discovery.node_hash[core_id]
       request_id = logger.request_id || UUID.random.to_s
 
-      response = HTTP::Client.post(
-        "#{host}/api/core/v1/chaos/terminate?path=#{driver}",
-        headers: HTTP::Headers{"X-Request-ID" => request_id},
-      )
-
-      head response.status_code
+      if Core::Client.client(uri, request_id) { |client| client.terminate(driver) }
+        head :ok
+      else
+        head :not_found
+      end
     end
+  end
+end
+
+class URI
+  def to_json(json : JSON::Builder)
+    json.string to_s
   end
 end

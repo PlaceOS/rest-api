@@ -32,9 +32,6 @@ module PlaceOS::Api
     # Websocket API session manager
     @@session_manager : Session::Manager? = nil
 
-    # Core API client
-    @core : PlaceOS::Core::Client? = nil
-
     # Core service discovery
     class_getter core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
 
@@ -397,14 +394,16 @@ module PlaceOS::Api
       Core::Client.new(uri: self.locate_module(module_id), request_id: request_id)
     end
 
+    # Create a core client and yield it to a block
+    def self.core_for(module_id : String, request_id : String? = nil, & : Core::Client -> V) forall V
+      Core::Client.client(uri: self.locate_module(module_id), request_id: request_id) do |client|
+        yield client
+      end
+    end
+
     # Lazy initializer for session_manager
     def self.session_manager
       (@@session_manager ||= Session::Manager.new(@@core_discovery)).as(Session::Manager)
-    end
-
-    # Lazy getter for core client
-    def core
-      (@core ||= Core::Client.new(request_id: request.id)).as(Core::Client)
     end
 
     def current_system : Model::ControlSystem
