@@ -67,7 +67,7 @@ module PlaceOS::Api
     #
     # Destroy user, revoke authentication.
     def destroy
-      @user.destroy
+      @user.try &.destroy
       head :ok
     end
 
