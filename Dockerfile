@@ -16,7 +16,7 @@ COPY ./src /app/src
 # Build application
 RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_COMMIT=$PLACE_COMMIT \
-    crystal build --release --debug --error-trace /app/src/rest-api.cr
+    crystal build --release --debug --error-trace /app/src/app.cr -o /app/rest-api
 
 # Extract dependencies
 RUN ldd /app/rest-api | tr -s '[:blank:]' '\n' | grep '^/' | \

@@ -262,14 +262,14 @@ module PlaceOS::Api
         security: driver_clearance(user_token),
         function: method,
         args: args,
-        request_id: logger.request_id,
+        request_id: request_id,
       )
       response.headers["Content-Type"] = "application/json"
       render text: ret_val
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e
-      logger.tag_error("core execute request failed", error: e.message, sys_id: sys_id, module_name: module_name, backtrace: e.inspect_with_backtrace)
+      Log.error(exception: e) { {message: "core execute request failed", sys_id: sys_id, module_name: module_name} }
       render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
     end
 
@@ -314,7 +314,7 @@ module PlaceOS::Api
       )
 
       unless metadata
-        logger.debug { "metadata not found for #{module_slug} on #{sys_id}" }
+        Log.debug { "metadata not found for #{module_slug} on #{sys_id}" }
         head :not_found
       end
 
@@ -364,12 +364,11 @@ module PlaceOS::Api
     ###########################################################################
 
     ws("/control", :control) do |ws|
-      logger.debug { "WebSocket API request" }
+      Log.debug { "WebSocket API request" }
       Systems.session_manager.create_session(
         ws: ws,
-        request_id: logger.request_id || "",
+        request_id: request_id,
         user: user_token,
-        logger: logger,
       )
     end
 

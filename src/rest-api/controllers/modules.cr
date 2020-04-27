@@ -50,7 +50,7 @@ module PlaceOS::Api
 
           with_fields(mod, {
             :driver   => driver_field,
-            :compiled => Api::Modules.driver_compiled?(mod, logger.request_id),
+            :compiled => Api::Modules.driver_compiled?(mod, request_id),
           })
         end.to_a
 
@@ -183,7 +183,7 @@ module PlaceOS::Api
 
       # Changes cleared on a successful update
       if mod.running_changed?
-        logger.tag_error(controller: "Modules", action: "start", module_id: mod.id, event: "failed")
+        Log.error { {controller: "Modules", action: "start", module_id: mod.id, event: "failed"} }
         head :internal_server_error
       else
         head :ok
@@ -199,7 +199,7 @@ module PlaceOS::Api
 
       # Changes cleared on a successful update
       if mod.running_changed?
-        logger.tag_error(controller: "Modules", action: "stop", module_id: mod.id, event: "failed")
+        Log.error { {controller: "Modules", action: "stop", module_id: mod.id, event: "failed"} }
         head :internal_server_error
       else
         head :ok
@@ -224,21 +224,19 @@ module PlaceOS::Api
         security: driver_clearance(user_token),
         function: method,
         args: args,
-        request_id: logger.request_id,
+        request_id: request_id,
       )
       render json: response
     rescue e : Driver::Proxy::RemoteDriver::Error
       handle_execute_error(e)
     rescue e
-      logger.tag_error(
-        message: "core execute request failed",
-        error: e.message,
-        sys_id: sys_id,
-        module_id: id,
+      Log.error(exception: e) { {
+        message:     "core execute request failed",
+        sys_id:      sys_id,
+        module_id:   id,
         module_name: module_name,
-        method: method,
-        backtrace: e.inspect_with_backtrace,
-      )
+        method:      method,
+      } }
       render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
     end
 
@@ -255,7 +253,7 @@ module PlaceOS::Api
     post(":id/ping", :ping) do
       mod = current_module
       if mod.role == Model::Driver::Role::Logic
-        logger.tag_debug(controller: "Modules", action: "ping", module_id: mod.id, role: mod.role)
+        Log.debug { {controller: "Modules", action: "ping", module_id: mod.id, role: mod.role.to_s} }
         head :not_acceptable
       else
         pinger = Pinger.new(mod.hostname.as(String), count: 3)
@@ -271,7 +269,7 @@ module PlaceOS::Api
 
     post(":id/load", :load) do
       module_id = current_module.id.as(String)
-      core_client = Api::Systems.core_for(module_id, logger.request_id)
+      core_client = Api::Systems.core_for(module_id, request_id)
 
       render json: core_client.load(module_id)
     end
@@ -279,10 +277,10 @@ module PlaceOS::Api
     # Helpers
     ############################################################################
 
-    def self.driver_compiled?(mod : Model::Module, request_id = "Migrate to Log")
+    def self.driver_compiled?(mod : Model::Module, request_id : String)
       driver = mod.driver
       unless driver
-        # logger.error { "failed to load Module<#{mod.id}>'s Driver<#{mod.driver_id}>" }
+        Log.error { "failed to load Module<#{mod.id}>'s Driver<#{mod.driver_id}>" }
         return false
       end
 
@@ -292,7 +290,7 @@ module PlaceOS::Api
       repository = driver.repository
 
       unless repository
-        # logger.error { "failed to load Driver<#{driver.id}>'s Repository<#{driver.repository_id}>" }
+        Log.error { "failed to load Driver<#{driver.id}>'s Repository<#{driver.repository_id}>" }
         return false
       end
 

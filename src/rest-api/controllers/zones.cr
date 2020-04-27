@@ -96,10 +96,10 @@ module PlaceOS::Api
           security: driver_clearance(user_token),
           function: method.as(String),
           args: args.as(Array(JSON::Any)),
-          request_id: logger.request_id.as(String),
+          request_id: request_id,
         )
 
-        logger.tag_debug("module exec success", system_id: system_id, module_name: module_name, index: index, method: method, output: output)
+        Log.debug { {message: "module exec success", system_id: system_id, module_name: module_name, index: index, method: method, output: output} }
 
         {system_id.as(String), ExecStatus::Success}
       rescue e : Driver::Proxy::RemoteDriver::Error
@@ -125,15 +125,13 @@ module PlaceOS::Api
 
       render json: response_object
     rescue e
-      logger.tag_error(
-        message: "core execute request failed",
-        error: e.message,
-        zone_id: zone_id,
+      Log.error(exception: e) { {
+        message:     "core execute request failed",
+        zone_id:     zone_id,
         module_name: module_name,
-        index: index,
-        method: method,
-        backtrace: e.inspect_with_backtrace,
-      )
+        index:       index,
+        method:      method,
+      } }
       render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
     end
 

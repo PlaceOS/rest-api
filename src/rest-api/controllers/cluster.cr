@@ -10,8 +10,6 @@ module PlaceOS::Api
       details = Api::Systems.core_discovery.node_hash
 
       if params["include_status"]?
-        request_id = logger.request_id || UUID.random.to_s
-
         # Returns Array(NodeStatus)
         render json: Promise.all(details.map { |name, uri|
           Promise.defer { Cluster.node_status(name, uri, request_id) }
@@ -83,10 +81,7 @@ module PlaceOS::Api
 
     def show
       core_id = params["id"]
-
       uri = Api::Systems.core_discovery.node_hash[core_id]
-      request_id = logger.request_id || UUID.random.to_s
-
       Core::Client.client(uri, request_id) do |client|
         drivers = client.loaded
 
@@ -122,8 +117,6 @@ module PlaceOS::Api
       driver = params["driver"]
 
       uri = Api::Systems.core_discovery.node_hash[core_id]
-      request_id = logger.request_id || UUID.random.to_s
-
       if Core::Client.client(uri, request_id) { |client| client.terminate(driver) }
         head :ok
       else

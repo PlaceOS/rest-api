@@ -25,7 +25,7 @@ module PlaceOS::Api
       trigger_uri.path = "/api/triggers/v2/webhook?id=#{trigger_instance.id}&secret=#{trigger_instance.webhook_secret}"
       trigger_response = HTTP::Client.post(
         trigger_uri,
-        headers: HTTP::Headers{"X-Request-ID" => logger.request_id || ""}
+        headers: HTTP::Headers{"X-Request-ID" => request_id}
       )
 
       # Execute the requested method
@@ -79,7 +79,7 @@ module PlaceOS::Api
               function: exec_params.method.as(String),
               args: args,
               named_args: nil,
-              request_id: logger.request_id
+              request_id: request_id
             )
 
             # We expect that the method being called is aware of its role as a trigger
@@ -99,14 +99,14 @@ module PlaceOS::Api
                   head response_code
                 end
               rescue
-                logger.warn "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}"
+                Log.warn { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
               end
             end
           else
-            logger.warn "invalid function signature for trigger #{trigger_instance.id} - #{exec_params.friendly}"
+            Log.warn { "invalid function signature for trigger #{trigger_instance.id} - #{exec_params.friendly}" }
           end
         else
-          logger.warn "attempt to execute function on trigger #{trigger_instance.id} - #{exec_params.friendly}"
+          Log.warn { "attempt to execute function on trigger #{trigger_instance.id} - #{exec_params.friendly}" }
         end
       end
 
@@ -117,7 +117,7 @@ module PlaceOS::Api
     {% for http_method in ActionController::Router::HTTP_METHODS.reject { |verb| verb == "head" } %}
       {{http_method.id}} "/:id/notify" do
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
-        logger.warn "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}"
+        Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
         head :not_found
       end
     {% end %}

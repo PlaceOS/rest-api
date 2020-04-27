@@ -24,13 +24,13 @@ module PlaceOS::Api
       begin
         @user_token = user_token = Model::UserJWT.decode(token)
       rescue e : JWT::Error
-        logger.tag_warn("bearer malformed", action: "authorize!", error: e.inspect)
+        Log.warn(exception: e) { {message: "bearer malformed", action: "authorize!"} }
         # Request bearer was malformed
         raise Error::Unauthorized.new "bearer malformed"
       end
 
       unless (authority = current_authority)
-        logger.tag_warn("authority not found", action: "authorize!", host: request.host)
+        Log.warn { {message: "authority not found", action: "authorize!", host: request.host} }
         raise Error::Unauthorized.new "authority not found"
       end
 
@@ -38,7 +38,7 @@ module PlaceOS::Api
       token_domain_host = URI.parse(user_token.domain).host
       authority_domain_host = URI.parse(authority.domain.as(String)).host
       unless token_domain_host == authority_domain_host
-        logger.tag_warn("authority domain does not match token's", action: "authorize!", token: user_token, authority: authority)
+        Log.warn { {message: "authority domain does not match token's", action: "authorize!", token_domain: user_token.aud, authority_domain: authority.domain} }
         raise Error::Unauthorized.new "authority domain does not match token's"
       end
     rescue e

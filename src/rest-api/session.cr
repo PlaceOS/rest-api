@@ -1,7 +1,7 @@
 # FIXME: Hack to allow resolution of PlaceOS::Driver class/module
 class PlaceOS::Driver; end
 
-require "action-controller/logger"
+require "log"
 require "driver/proxy/remote_driver"
 require "hound-dog"
 require "redis"
@@ -13,6 +13,8 @@ require "./utilities/severity_converter"
 
 module PlaceOS
   class Api::Session
+    Log = ::Log.for(self)
+
     # Stores sessions until their websocket closes
     class Manager
       @sessions = [] of Session
@@ -22,19 +24,18 @@ module PlaceOS
 
       # Creates the session and handles the cleanup
       #
-      def create_session(ws, request_id, user, logger)
+      def create_session(ws, request_id, user)
         session = Session.new(
           ws: ws,
           request_id: request_id,
           user: user,
           discovery: @discovery,
-          logger: logger,
         )
 
         @sessions << session
 
         ws.on_close do |_|
-          logger.debug { "Session CLOSE" }
+          Log.debug { "Session CLOSE" }
           session.cleanup
           @sessions.delete(session)
         end
@@ -57,17 +58,16 @@ module PlaceOS
       @request_id : String,
       @user : Model::UserJWT,
       @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE),
-      @logger : ActionController::Logger::TaggedLogger = ActionController::Logger::TaggedLogger.new(ActionController::Base.settings.logger),
       @cache_timeout : Int32? = 60 * 5
     )
       # Register event handlers
       @ws.on_message do |message|
-        @logger.debug { "Session TEXT (#{message})" }
+        Log.debug { "Session TEXT (#{message})" }
         on_message(message)
       end
 
       @ws.on_ping do
-        @logger.debug { "Session PING" }
+        Log.debug { "Session PING" }
         @ws.pong
       end
 
@@ -89,10 +89,12 @@ module PlaceOS
 
     # Websocket API
     ##############################################################################
+    private abstract struct Base
+      include JSON::Serializable
+    end
 
     # A websocket API request
-    struct Request
-      include JSON::Serializable
+    struct Request < Base
       include JSON::Serializable::Strict
 
       # Commands available over websocket API
@@ -141,8 +143,7 @@ module PlaceOS
     alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
 
     # Websocket API Response
-    struct Response
-      include JSON::Serializable
+    struct Response < Base
       property id : Int64
       property type : Type
 
@@ -158,7 +159,7 @@ module PlaceOS
       property module_id : String?
 
       @[JSON::Field(converter: SeverityConverter)]
-      property level : Logger::Severity?
+      property level : ::Log::Severity?
 
       alias Metadata = NamedTuple(
         sys: String,
@@ -202,15 +203,15 @@ module PlaceOS
       name : String,
       args : Array(JSON::Any)
     )
-      @logger.tag_debug(
-        message: "Session (exec)",
+      Log.debug { {
+        message:       "Session (exec)",
         ws_request_id: request_id,
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        name: name,
-        args: args
-      )
+        sys_id:        sys_id,
+        module_name:   module_name,
+        index:         index,
+        name:          name,
+        args:          args.to_json,
+      } }
 
       driver = Driver::Proxy::RemoteDriver.new(
         sys_id: sys_id,
@@ -234,14 +235,14 @@ module PlaceOS
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
-      @logger.tag_error(
-        message: "failed to execute request",
-        sys_id: sys_id,
+      Log.error(exception: e) { {
+        message:     "failed to execute request",
+        sys_id:      sys_id,
         module_name: module_name,
-        index: index,
-        name: name,
-        error: e.message
-      )
+        index:       index,
+        name:        name,
+        error:       e.message,
+      } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to execute request"))
     end
 
@@ -254,21 +255,21 @@ module PlaceOS
       index : Int32,
       name : String
     )
-      @logger.tag_debug(
-        message: "Session (bind)",
+      Log.debug { {
+        message:       "Session (bind)",
         ws_request_id: request_id,
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        name: name,
-      )
+        sys_id:        sys_id,
+        module_name:   module_name,
+        index:         index,
+        name:          name,
+      } }
       begin
         # Check if module previously bound
         unless has_binding?(sys_id, module_name, index, name)
           return unless create_binding(request_id, sys_id, module_name, index, name)
         end
       rescue
-        @logger.tag_debug("websocket binding could not find system", sys_id: sys_id, module_name: module_name, index: index, name: name)
+        Log.debug { {message: "websocket binding could not find system", sys_id: sys_id, module_name: module_name, index: index, name: name} }
         respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}"))
         return
       end
@@ -290,15 +291,15 @@ module PlaceOS
       )
       respond(response)
     rescue e
-      @logger.tag_error(
-        message: "failed to bind",
+      Log.error { {
+        message:       "failed to bind",
         ws_request_id: request_id,
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        name: name,
-        error: e.message
-      )
+        sys_id:        sys_id,
+        module_name:   module_name,
+        index:         index,
+        name:          name,
+        error:         e.message,
+      } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to bind"))
     end
 
@@ -311,14 +312,14 @@ module PlaceOS
       index : Int32,
       name : String
     )
-      @logger.tag_debug(
-        message: "Session (unbind)",
+      Log.debug { {
+        message:       "Session (unbind)",
         ws_request_id: request_id,
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        name: name,
-      )
+        sys_id:        sys_id,
+        module_name:   module_name,
+        index:         index,
+        name:          name,
+      } }
 
       subscription = delete_binding(sys_id, module_name, index, name)
       @@subscriptions.unsubscribe(subscription) if subscription
@@ -327,15 +328,15 @@ module PlaceOS
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
-      @logger.tag_error(
-        message: "failed to unbind",
+      Log.error(exception: e) { {
+        message:       "failed to unbind",
         ws_request_id: request_id,
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        name: name,
-        error: e.message
-      )
+        sys_id:        sys_id,
+        module_name:   module_name,
+        index:         index,
+        name:          name,
+        error:         e.message,
+      } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to unbind"))
     end
 
@@ -363,7 +364,7 @@ module PlaceOS
 
         ws = driver.debug
         ws.on_message do |message|
-          level, message = Tuple(Logger::Severity, String).from_json(message)
+          level, message = Tuple(::Log::Severity, String).from_json(message)
 
           respond(
             Response.new(
@@ -387,15 +388,14 @@ module PlaceOS
 
       respond(Response.new(id: request_id, type: Response::Type::Success))
     rescue e
-      @logger.tag_error(
-        message: "failed to attach debugger",
+      Log.error(exception: e) { {
+        message:       "failed to attach debugger",
         ws_request_id: request_id,
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        name: name,
-        error: e.message
-      )
+        sys_id:        sys_id,
+        module_name:   module_name,
+        index:         index,
+        name:          name,
+      } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to attach debugger"))
     end
 
@@ -413,15 +413,14 @@ module PlaceOS
       socket.try(&.close)
       respond(Response.new(id: request_id, type: Response::Type::Success))
     rescue e
-      @logger.tag_error(
-        message: "failed to detach debugger",
+      Log.error(exception: e) { {
+        message:       "failed to detach debugger",
         ws_request_id: request_id,
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        name: name,
-        error: e.message
-      )
+        sys_id:        sys_id,
+        module_name:   module_name,
+        index:         index,
+        name:          name,
+      } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to detach debugger"))
     end
 
@@ -473,7 +472,7 @@ module PlaceOS
       key = Session.binding_key(sys_id, module_name, index, name)
 
       if module_name.starts_with?("_") && !@user.is_support?
-        @logger.tag_warn("websocket binding attempted to access priviled module", sys_id: sys_id, module_name: module_name, index: index, name: name)
+        Log.warn { {message: "websocket binding attempted to access priviled module", sys_id: sys_id, module_name: module_name, index: index, name: name} }
         respond error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
         return false
       end
@@ -482,7 +481,7 @@ module PlaceOS
         # Ensure the trigger exists
         trig = Model::TriggerInstance.find(name)
         unless trig && trig.control_system_id == sys_id
-          @logger.tag_warn("websocket binding attempted to access unknown trigger", sys_id: sys_id, trig_id: name)
+          Log.warn { {message: "websocket binding attempted to access unknown trigger", sys_id: sys_id, trig_id: name} }
           respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger #{name} in system #{sys_id}")
           return false
         end
@@ -562,7 +561,7 @@ module PlaceOS
       request = parse_request(data)
       __send__(request) if request
     rescue e
-      @logger.tag_error("websocket request failed", data: data, error: e.inspect_with_backtrace)
+      Log.error(exception: e) { {message: "websocket request failed", data: data} }
       response = error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
       respond(response)
     end
@@ -609,7 +608,7 @@ module PlaceOS
     def parse_request(data) : Request?
       Request.from_json(data)
     rescue e
-      @logger.tag_warn("failed to parse", data: data, error: e.message)
+      Log.warn { {message: "failed to parse", data: data} }
       error_response(JSON.parse(data)["id"]?.try &.as_i64, ErrorCode::BadRequest, "bad request: #{e.message}")
       return
     end
@@ -669,7 +668,7 @@ module PlaceOS
         args = request.args.as(Array(JSON::Any))
         exec(**arguments.merge({args: args}))
       else
-        @logger.tag_error("unrecognised websocket command", cmd: request.command)
+        Log.error { {message: "unrecognised websocket command", cmd: request.command.to_s} }
       end
     end
   end

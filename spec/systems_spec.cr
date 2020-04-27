@@ -99,7 +99,7 @@ module PlaceOS::Api
           result.status_code.should eq 200
           documents = Array(Hash(String, JSON::Any)).from_json(result.body)
           documents.size.should eq 2
-          documents.map { |d| d["id"].as_s }.sort.should eq [zone0.id, zone1.id]
+          documents.map { |d| d["id"].as_s }.sort.should eq [zone0.id, zone1.id].compact.sort
         end
       end
 
