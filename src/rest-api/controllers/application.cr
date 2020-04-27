@@ -48,13 +48,24 @@ module PlaceOS::Api
 
     # Set user_id from parsed JWT
     def set_user_id
-      logger.user_id = user_token.id
+      Log.context.set(user_id: user_token.id)
     end
+
+    @request_id : String? = nil
 
     # This makes it simple to match client requests with server side logs.
     # When building microservices, this ID should be propagated to upstream services.
     def set_request_id
-      response.headers["X-Request-ID"] = logger.request_id = UUID.random.to_s
+      @request_id = request_id = request.headers["X-Request-ID"]? || UUID.random.to_s
+      Log.context.set(
+        client_ip: client_ip,
+        request_id: request_id
+      )
+      response.headers["X-Request-ID"] = request_id
+    end
+
+    def request_id : String
+      @request_id ||= UUID.random.to_s
     end
 
     # Callback to enforce JSON request body
@@ -69,7 +80,7 @@ module PlaceOS::Api
 
     # 400 if unable to parse some JSON passed by a client
     rescue_from JSON::MappingError do |error|
-      logger.debug { error.inspect_with_backtrace }
+      Log.debug(exception: error) { "missing/extraneous properties in client JSON" }
 
       if PROD
         respond_with(:bad_request) do
@@ -88,7 +99,7 @@ module PlaceOS::Api
     end
 
     rescue_from JSON::ParseException do |error|
-      logger.debug { error.inspect_with_backtrace }
+      Log.debug(exception: error) { "failed to parse client JSON" }
 
       if PROD
         respond_with(:bad_request) do
@@ -108,26 +119,26 @@ module PlaceOS::Api
 
     # 401 if no bearer token
     rescue_from Error::Unauthorized do |error|
-      logger.debug { error.message }
+      Log.debug { error.message }
       head :unauthorized
     end
 
     # 403 if user role invalid for a route
     rescue_from Error::Forbidden do |error|
-      logger.debug { error.inspect_with_backtrace }
+      Log.debug { error.message }
       head :forbidden
     end
 
     # 404 if resource not present
     rescue_from RethinkORM::Error::DocumentNotFound do |error|
-      logger.debug { error.message }
+      Log.debug { error.message }
       head :not_found
     end
 
     # 422 if resource fails validation before mutation
     rescue_from Error::InvalidParams do |error|
       model_errors = error.params.errors.map(&.to_s)
-      logger.tag_debug(model_errors: model_errors, error: error.inspect_with_backtrace)
+      Log.debug(exception: error) { {message: "invalid params", model_errors: model_errors} }
       render status: :unprocessable_entity, json: model_errors
     end
   end

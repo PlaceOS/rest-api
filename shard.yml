@@ -1,11 +1,11 @@
 name: rest-api
-version: 1.6.0
+version: 1.7.0
 
 dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 2.3
+    version: ~> 3.0
 
   # Data validation library
   active-model:
@@ -85,4 +85,4 @@ development_dependencies:
 
 targets:
   rest-api:
-    main: src/rest-api.cr
+    main: src/app.cr

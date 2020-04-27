@@ -39,7 +39,7 @@ module PlaceOS::Api
     post "/reindex", :reindex do
       response = HTTP::Client.post(
         "http://rubber-soul:3000/api/rubber-soul/v1/reindex?backfill=#{params["backfill"]? == "true"}",
-        headers: HTTP::Headers{"X-Request-ID" => logger.request_id || UUID.random.to_s},
+        headers: HTTP::Headers{"X-Request-ID" => request_id},
       )
       head response.status_code
     end
@@ -47,7 +47,7 @@ module PlaceOS::Api
     post "/backfill", :backfill do
       response = HTTP::Client.post(
         "http://rubber-soul:3000/api/rubber-soul/v1/backfill",
-        headers: HTTP::Headers{"X-Request-ID" => logger.request_id || UUID.random.to_s},
+        headers: HTTP::Headers{"X-Request-ID" => request_id},
       )
       head response.status_code
     end
