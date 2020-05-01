@@ -1,5 +1,5 @@
 name: rest-api
-version: 1.7.0
+version: 1.7.1
 
 dependencies:
   # Server framework
@@ -73,7 +73,7 @@ dependencies:
 development_dependencies:
   # Linter
   ameba:
-    github: veelenga/ameba
+    github: crystal-ameba/ameba
 
   # Mock data generation
   faker:
