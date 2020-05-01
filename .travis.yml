@@ -27,7 +27,7 @@ before_script:
 
 script:
   # Specs
-  - crystal spec
+  - crystal spec -v --error-trace
   # Linter
   - bin/ameba
   # Formatter
