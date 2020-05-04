@@ -61,7 +61,7 @@ module PlaceOS::Api
 
     def self.pull_repository(repository : Model::Repository)
       # Set the repository commit hash to head
-      repository.update_fields(commit_hash: "head")
+      repository.update_fields(commit_hash: "HEAD")
 
       # Initiate changefeed on the document's commit_hash
       changefeed = Model::Repository.changes(repository.id.as(String))
@@ -73,7 +73,7 @@ module PlaceOS::Api
         spawn do
           update_event = changefeed.find do |event|
             repo = event[:value]
-            repo.destroyed? || repo.commit_hash != "head"
+            repo.destroyed? || repo.commit_hash != "HEAD"
           end
           channel.send(update_event.try &.[:value])
         end

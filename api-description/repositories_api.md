@@ -17,7 +17,7 @@ https://github.com/placeos/models/blob/master/src/models/repository.cr#L18-L25
   "folder_name": "string", (required)
   "description": "string",
   "uri": "string", (required)
-  "commit_hash": "string", (always send `"head"` don't give user the option to input)
+  "commit_hash": "string", (always send `"HEAD"` don't give user the option to input)
   "type": 0 or 1
 }
 ```
