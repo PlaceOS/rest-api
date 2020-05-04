@@ -269,9 +269,11 @@ module PlaceOS::Api
 
     post(":id/load", :load) do
       module_id = current_module.id.as(String)
-      core_client = Api::Systems.core_for(module_id, request_id)
+      load = Api::Systems.core_for(module_id, request_id) do |core_client|
+        core_client.load(module_id)
+      end
 
-      render json: core_client.load(module_id)
+      render json: load
     end
 
     # Helpers
@@ -296,9 +298,9 @@ module PlaceOS::Api
 
       folder_name = repository.folder_name.as(String)
 
-      # TODO: Grab the request id from the Log context
-      core_client = Api::Systems.core_for(mod.id.as(String), request_id)
-      core_client.driver_compiled?(file_name: file_name, repository: folder_name, commit: commit, tag: tag)
+      Api::Systems.core_for(mod.id.as(String), request_id) do |core_client|
+        core_client.driver_compiled?(file_name: file_name, repository: folder_name, commit: commit, tag: tag)
+      end
     end
 
     def module_state(mod : Model::Module, key : String? = nil)

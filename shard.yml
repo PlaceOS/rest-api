@@ -1,5 +1,5 @@
 name: rest-api
-version: 1.7.1
+version: 1.7.2
 
 dependencies:
   # Server framework
@@ -25,6 +25,10 @@ dependencies:
   driver:
     github: placeos/driver
     version: ~> 1.2
+
+  # For frontends client
+  frontends:
+    github: placeos/frontend-loader
 
   # Database view
   models:
