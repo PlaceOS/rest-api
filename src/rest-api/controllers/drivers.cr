@@ -92,9 +92,11 @@ module PlaceOS::Api
         head :internal_server_error
       end
 
-      core_client = Api::Systems.core_for(file_name, request_id)
+      compiled = Api::Systems.core_for(file_name, request_id) do |core_client|
+        core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
+      end
 
-      if core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
+      if compiled
         Log.info { "Driver<#{driver.id}> is compiled" }
         head :ok
       else

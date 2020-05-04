@@ -98,8 +98,11 @@ module PlaceOS::Api
       # Request to core:
       # "/api/core/v1/drivers/?repository=#{repository}"
       # Returns: `["path/to/file.cr"]`
-      core_client = Api::Systems.core_for(repository, request_id)
-      render json: core_client.drivers(repository)
+      drivers = Api::Systems.core_for(repository, request_id) do |core_client|
+        core_client.drivers(repository)
+      end
+
+      render json: drivers
     end
 
     get "/:id/commits", :commits do
@@ -110,8 +113,11 @@ module PlaceOS::Api
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/?repository=#{repository}&count=#{number_of_commits}"
       # Returns: `[{commit:, date:, author:, subject:}]`
-      core_client = Api::Systems.core_for(repository, request_id)
-      render json: core_client.driver(file_name, repository, number_of_commits)
+      driver = Api::Systems.core_for(repository, request_id) do |core_client|
+        core_client.driver(file_name, repository, number_of_commits)
+      end
+
+      render json: driver
     end
 
     get "/:id/details", :details do
@@ -122,11 +128,13 @@ module PlaceOS::Api
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
       # Returns: https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
-      core_client = Api::Systems.core_for(driver, request_id)
+      details = Api::Systems.core_for(driver, request_id) do |core_client|
+        core_client.driver_details(driver, commit, repository)
+      end
 
       # The raw JSON string is returned
       response.headers["Content-Type"] = "application/json"
-      render text: core_client.driver_details(driver, commit, repository)
+      render text: details
     end
 
     #  Helpers
