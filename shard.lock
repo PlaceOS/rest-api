@@ -38,7 +38,7 @@ shards:
 
   core:
     github: placeos/core
-    version: 1.2.3
+    version: 1.2.4
 
   cron_parser:
     github: kostya/cron_parser
@@ -71,6 +71,10 @@ shards:
   faker:
     github: askn/faker
     version: 0.4.0
+
+  frontends:
+    github: placeos/frontend-loader
+    version: 0.3.0
 
   future:
     github: crystal-community/future.cr
