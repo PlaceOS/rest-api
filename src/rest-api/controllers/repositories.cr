@@ -1,3 +1,5 @@
+require "frontends/client"
+
 require "./application"
 
 module PlaceOS::Api
@@ -92,8 +94,15 @@ module PlaceOS::Api
       {found_repo.destroyed?, found_repo.commit_hash} if found_repo
     end
 
+    # Determine loaded interfaces and their current commit
+    #
+    # Returns a hash of folder_name to commit
+    get "/interfaces", :loaded_interfaces do
+      render json: PlaceOS::Frontends::Client.client(&.loaded)
+    end
+
     get "/:id/drivers", :drivers do
-      repository = current_repo.folder_name.not_nil!
+      repository = current_repo.folder_name.as(String)
 
       # Request to core:
       # "/api/core/v1/drivers/?repository=#{repository}"
@@ -106,18 +115,33 @@ module PlaceOS::Api
     end
 
     get "/:id/commits", :commits do
-      number_of_commits = (params["count"]? || "50").to_i
-      repository = current_repo.folder_name.not_nil!
-      file_name = params["driver"]
+      number_of_commits = params["count"]?.try &.to_i
+      file_name = params["driver"]?
 
-      # Request to core:
-      # "/api/core/v1/drivers/#{file_name}/?repository=#{repository}&count=#{number_of_commits}"
-      # Returns: `[{commit:, date:, author:, subject:}]`
-      driver = Api::Systems.core_for(repository, request_id) do |core_client|
-        core_client.driver(file_name, repository, number_of_commits)
+      commits = Api::Repositories.commits(
+        repository: current_repo,
+        request_id: request_id,
+        number_of_commits: number_of_commits,
+        file_name: file_name,
+      )
+
+      render json: commits
+    end
+
+    def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
+      number_of_commits = 50 if number_of_commits.nil?
+      repository_directory = repository.folder_name.as(String)
+      if repository.repo_type == Model::Repository::Type::Driver
+        # Dial the core responsible for the driver
+        Api::Systems.core_for(repository_directory, request_id) do |core_client|
+          core_client.driver(file_name || ".", repository_directory, number_of_commits)
+        end
+      else
+        # Dial the frontends service
+        Frontends::Client.client(request_id: request_id) do |frontends_client|
+          frontends_client.commits(repository_directory, number_of_commits)
+        end
       end
-
-      render json: driver
     end
 
     get "/:id/details", :details do
