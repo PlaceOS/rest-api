@@ -5,8 +5,8 @@ services:
   - redis-server
 
 before_install:
-  # Add elasticsearch 7.2.x
-  - docker run --net="host" -p "9300:9300" -p "9200:9200" -e discovery.type=single-node -d blacktop/elasticsearch:7.2
+  # Add elasticsearch 7.6.x
+  - docker run --net="host" -p "9300:9300" -p "9200:9200" -e discovery.type=single-node -d blacktop/elasticsearch:7.6
   # Add rethinkdb 2.3.6
   - docker run --net="host" -p "29015:29015" -p "28015:28015" -d rethinkdb:2.4
   # Add latest rubber-soul (mirrors RethinkDB tables to elasticsearch indices)

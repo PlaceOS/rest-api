@@ -18,7 +18,7 @@ shards:
 
   bindata:
     github: spider-gazelle/bindata
-    version: 1.4.0
+    version: 1.5.0
 
   bisect:
     github: spider-gazelle/bisect
@@ -114,7 +114,7 @@ shards:
 
   neuroplastic:
     github: spider-gazelle/neuroplastic
-    version: 1.4.0
+    version: 1.4.1
 
   openssl_ext:
     github: stakach/openssl_ext
