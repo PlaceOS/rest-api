@@ -18,7 +18,7 @@ shards:
 
   bindata:
     github: spider-gazelle/bindata
-    version: 1.5.0
+    version: 1.5.1
 
   bisect:
     github: spider-gazelle/bisect
@@ -30,7 +30,7 @@ shards:
 
   compiler:
     github: placeos/compiler
-    commit: d5c29f8bf5ebbec36ef70293301ce51cfd15c537
+    version: 1.2.1
 
   connect-proxy:
     github: spider-gazelle/connect-proxy
@@ -38,7 +38,7 @@ shards:
 
   core:
     github: placeos/core
-    version: 1.2.4
+    version: 1.2.5
 
   cron_parser:
     github: kostya/cron_parser
@@ -58,7 +58,7 @@ shards:
 
   driver:
     github: placeos/driver
-    version: 1.2.0
+    version: 2.0.4
 
   etcd:
     github: place-labs/crystal-etcd
@@ -74,7 +74,7 @@ shards:
 
   frontends:
     github: placeos/frontend-loader
-    version: 0.3.0
+    version: 0.4.0
 
   future:
     github: crystal-community/future.cr

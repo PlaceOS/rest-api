@@ -1,5 +1,5 @@
 name: rest-api
-version: 1.8.1
+version: 1.8.2
 
 dependencies:
   # Server framework
@@ -24,7 +24,7 @@ dependencies:
   # For driver state helpers
   driver:
     github: placeos/driver
-    version: ~> 1.2
+    version: ~> 2.0
 
   # For frontends client
   frontends:
