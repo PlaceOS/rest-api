@@ -38,7 +38,7 @@ shards:
 
   core:
     github: placeos/core
-    version: 1.2.5
+    version: 1.2.6
 
   cron_parser:
     github: kostya/cron_parser
@@ -74,7 +74,7 @@ shards:
 
   frontends:
     github: placeos/frontend-loader
-    version: 0.4.0
+    version: 0.4.2
 
   future:
     github: crystal-community/future.cr
@@ -106,7 +106,7 @@ shards:
 
   models:
     github: placeos/models
-    version: 1.0.4
+    version: 1.0.7
 
   murmur3:
     github: aca-labs/murmur3
@@ -154,7 +154,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: 2.8.0
+    version: 2.8.2
 
   rwlock:
     github: spider-gazelle/readers-writer
