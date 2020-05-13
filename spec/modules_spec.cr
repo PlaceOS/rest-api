@@ -1,5 +1,12 @@
 require "./helper"
 
+class PlaceOS::Api::Modules
+  # Mock a stateful request to Core made by Api::Modules
+  def self.driver_compiled?(mod, request_id)
+    true
+  end
+end
+
 module PlaceOS::Api
   describe Modules do
     # ameba:disable Lint/UselessAssign
@@ -65,15 +72,21 @@ module PlaceOS::Api
           sys.modules = [mod.id.as(String)]
           sys.save!
 
-          params = HTTP::Params.encode({"control_system_id" => sys.id.as(String)})
-          path = "#{base}?#{params}"
+          response_io = IO::Memory.new
 
-          found = until_expected("GET", path, authorization_header) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            got_one = response.headers["X-Total-Count"] == "1"
-            right_one = results.first? == mod.id
-            got_one && right_one
-          end
+          ctx = context("GET", base)
+          ctx.route_params = {"control_system_id" => sys.id.as(String)}
+          ctx.response.output = response_io
+
+          controller = Api::Modules.new(ctx, :index)
+
+          # Call the index method of the controller
+          controller.index
+
+          results = Array(Hash(String, JSON::Any)).from_json(ctx.response.output.to_s).map(&.["id"].as_s)
+          got_one = ctx.response.headers["X-Total-Count"] == "1"
+          right_one = results.first? == mod.id
+          found = got_one && right_one
 
           found.should be_true
         end
