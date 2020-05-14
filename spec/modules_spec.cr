@@ -1,9 +1,11 @@
 require "./helper"
 
-class PlaceOS::Api::Modules
-  # Mock a stateful request to Core made by Api::Modules
-  def self.driver_compiled?(mod, request_id)
-    true
+module PlaceOS
+  class Api::Modules
+    # Mock a stateful request to Core made by Api::Modules
+    def self.driver_compiled?(mod : Model::Module, request_id : String)
+      true
+    end
   end
 end
 
