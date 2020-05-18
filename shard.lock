@@ -138,7 +138,7 @@ shards:
 
   protobuf:
     github: jeromegn/protobuf.cr
-    version: 2.2.0
+    version: 2.2.1
 
   redis:
     github: stefanwille/crystal-redis

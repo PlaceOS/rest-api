@@ -94,6 +94,8 @@ module PlaceOS::Api
         token unless token.empty?
       elsif (token = params["bearer_token"]?)
         token.strip
+      elsif (token = cookies["bearer_token"]?.try(&.value))
+        token.strip
       end
     end
   end
