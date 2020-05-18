@@ -106,7 +106,7 @@ shards:
 
   models:
     github: placeos/models
-    version: 1.0.9
+    version: 1.0.10
 
   murmur3:
     github: aca-labs/murmur3
@@ -154,7 +154,7 @@ shards:
 
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: 2.8.2
+    version: 2.9.0
 
   rwlock:
     github: spider-gazelle/readers-writer
