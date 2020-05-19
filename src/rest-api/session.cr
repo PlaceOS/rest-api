@@ -216,7 +216,8 @@ module PlaceOS
       driver = Driver::Proxy::RemoteDriver.new(
         sys_id: sys_id,
         module_name: module_name,
-        index: index
+        index: index,
+        discovery: Systems.core_discovery
       )
 
       response = driver.exec(@security_level, name, args, request_id: @request_id)
@@ -360,6 +361,7 @@ module PlaceOS
           module_id: module_name,
           sys_id: sys_id,
           module_name: module_name,
+          discovery: Systems.core_discovery
         )
 
         ws = driver.debug
