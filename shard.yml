@@ -1,5 +1,9 @@
-name: rest-api
-version: 1.8.4
+name: placeos-rest-api
+version: 1.9.0
+
+targets:
+  rest-api:
+    main: src/app.cr
 
 dependencies:
   # Server framework
@@ -16,24 +20,10 @@ dependencies:
     github: Nephos/CrystalEmail
     version: ~> 0.2
 
-  # For core client
-  core:
-    github: placeos/core
-    version: ~> 1.0
-
   # For driver state helpers
   driver:
     github: placeos/driver
     version: ~> 2.0
-
-  # For frontends client
-  frontends:
-    github: placeos/frontend-loader
-
-  # Database view
-  models:
-    github: placeos/models
-    version: ~> 1.0
 
   # Service discovery
   hound-dog:
@@ -54,10 +44,25 @@ dependencies:
     github: spider-gazelle/pinger
     version: ~> 1.0
 
+  # For core client
+  placeos-core:
+    github: placeos/core
+    version: ~> 2.0
+
+  # For frontends client
+  placeos-frontends:
+    github: placeos/frontend-loader
+
+  # Database view
+  placeos-models:
+    github: placeos/models
+    version: ~> 2.0
+
   # A familiar abstraction over native Fibers
   promise:
     github: spider-gazelle/promise
 
+  # RethinkDB client
   rethinkdb:
     github: place-labs/crystal-rethinkdb
 
@@ -86,7 +91,3 @@ development_dependencies:
   # Retry
   simple_retry:
     github: spider-gazelle/simple_retry
-
-targets:
-  rest-api:
-    main: src/app.cr

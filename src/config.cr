@@ -6,7 +6,7 @@ class PlaceOS::Driver; end
 # Application dependencies
 require "action-controller"
 # Application code
-require "./rest-api"
+require "./placeos-rest-api"
 # Server required after application controllers
 require "action-controller/server"
 

@@ -1,5 +1,5 @@
 require "action-controller"
-require "models"
+require "placeos-models"
 require "uuid"
 
 require "../constants"

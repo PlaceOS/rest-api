@@ -1,4 +1,4 @@
-require "frontends/client"
+require "placeos-frontends/client"
 
 require "./application"
 
