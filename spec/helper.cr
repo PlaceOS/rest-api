@@ -16,7 +16,7 @@ require "../lib/action-controller/spec/curl_context"
 require "../src/config"
 
 # Generators for Engine models
-require "models/spec/generator"
+require "placeos-models/spec/generator"
 
 # Configure DB
 db_name = "place_#{ENV["SG_ENV"]? || "development"}"

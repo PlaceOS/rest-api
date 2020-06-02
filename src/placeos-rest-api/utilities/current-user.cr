@@ -1,8 +1,8 @@
 require "uri"
 
-require "models/authority"
-require "models/user"
-require "models/user_jwt"
+require "placeos-models/authority"
+require "placeos-models/user"
+require "placeos-models/user_jwt"
 
 module PlaceOS::Api
   # Helper to grab user and authority from a request
