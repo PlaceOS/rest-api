@@ -114,7 +114,7 @@ shards:
 
   placeos-core:
     github: placeos/core
-    version: 2.0.0
+    version: 2.2.0
 
   placeos-frontends:
     github: placeos/frontend-loader
@@ -122,7 +122,7 @@ shards:
 
   placeos-models:
     github: placeos/models
-    version: 2.0.0
+    version: 2.0.2
 
   pool:
     github: ysbaddaden/pool
@@ -166,7 +166,7 @@ shards:
 
   ssh2:
     github: spider-gazelle/ssh2.cr
-    version: 1.3.1
+    version: 1.3.2
 
   tasker:
     github: spider-gazelle/tasker
