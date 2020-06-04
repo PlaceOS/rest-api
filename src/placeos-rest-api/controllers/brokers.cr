@@ -48,8 +48,10 @@ module PlaceOS::Api
     end
 
     def find_broker
+      id = params["id"]
+      Log.context.set(broker_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @broker = Model::Broker.find!(params["id"], runopts: {"read_mode" => "majority"})
+      @broker = Model::Broker.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

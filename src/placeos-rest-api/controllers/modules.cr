@@ -313,8 +313,10 @@ module PlaceOS::Api
     end
 
     def find_module
+      id = params["id"]
+      Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @module = Model::Module.find!(params["id"], runopts: {"read_mode" => "majority"})
+      @module = Model::Module.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

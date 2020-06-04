@@ -135,8 +135,10 @@ module PlaceOS::Api
     end
 
     def find_driver
+      id = params["id"]
+      Log.context.set(driver_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @driver = Model::Driver.find!(params["id"], runopts: {"read_mode" => "majority"})
+      @driver = Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end
