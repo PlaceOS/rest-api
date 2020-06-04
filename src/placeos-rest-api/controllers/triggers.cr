@@ -50,8 +50,10 @@ module PlaceOS::Api
     end
 
     def find_trigger
+      id = params["id"]
+      Log.context.set(trigger_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @trig = Model::Trigger.find!(params["id"], runopts: {"read_mode" => "majority"})
+      @trig = Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

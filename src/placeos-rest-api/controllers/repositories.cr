@@ -169,8 +169,10 @@ module PlaceOS::Api
     end
 
     def find_repo
+      id = params["id"]
+      Log.context.set(repository_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @repo = Model::Repository.find!(params["id"], runopts: {"read_mode" => "majority"})
+      @repo = Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

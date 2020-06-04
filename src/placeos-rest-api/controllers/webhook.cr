@@ -146,8 +146,11 @@ module PlaceOS::Api
     def find_hook
       args = WebhookParams.new(params).validate!
 
+      sys_trig_id = args.id.as(String)
+      Log.context.set(trigger_instance_id: sys_trig_id)
+
       # Find will raise a 404 (not found) if there is an error
-      trigger_instance = Model::TriggerInstance.find!(args.id.as(String))
+      trigger_instance = Model::TriggerInstance.find!(sys_trig_id)
       trigger = trigger_instance.trigger
 
       # Determine the validity of loaded TriggerInstance
@@ -156,6 +159,8 @@ module PlaceOS::Api
              trigger
         head :not_found
       end
+
+      Log.context.set(trigger_id: trigger.id)
 
       @trigger_instance = trigger_instance
       @trigger = trigger

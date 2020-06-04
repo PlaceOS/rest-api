@@ -64,7 +64,6 @@ module PlaceOS::Api
     # TODO: replace manual id with interpolated value from `id_param`
     put "/:id", :update_alt { update }
 
-    #
     # Destroy user, revoke authentication.
     def destroy
       @user.try &.destroy

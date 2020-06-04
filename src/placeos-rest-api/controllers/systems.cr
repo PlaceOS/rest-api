@@ -411,8 +411,10 @@ module PlaceOS::Api
     end
 
     def find_system
+      id = params["sys_id"]
+      Log.context.set(control_system_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @control_system = Model::ControlSystem.find!(params["sys_id"], runopts: {"read_mode" => "majority"})
+      @control_system = Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end
