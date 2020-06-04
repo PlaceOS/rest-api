@@ -92,8 +92,13 @@ module PlaceOS::Api
         head :internal_server_error
       end
 
-      compiled = Api::Systems.core_for(file_name, request_id) do |core_client|
-        core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
+      compiled = begin
+        Api::Systems.core_for(file_name, request_id) do |core_client|
+          core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
+        end
+      rescue e
+        Log.error(exception: e) { "failed to request compilation status from core" }
+        false
       end
 
       if compiled
@@ -118,9 +123,15 @@ module PlaceOS::Api
       nodes = Api::Systems.core_discovery.node_hash
       result = Promise.all(nodes.map { |name, uri|
         Promise.defer {
-          Core::Client.client(uri, request_id) { |client|
-            {name, client.driver_compiled?(file_name, commit, repository_folder, tag)}
-          }
+          status = begin
+            Core::Client.client(uri, request_id) { |client|
+              client.driver_compiled?(file_name, commit, repository_folder, tag)
+            }
+          rescue e
+            Log.error(exception: e) { "failed to request compilation status from core" }
+            false
+          end
+          {name, status}
         }
       }).get
 

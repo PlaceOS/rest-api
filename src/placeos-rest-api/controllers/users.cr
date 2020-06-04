@@ -71,7 +71,10 @@ module PlaceOS::Api
     end
 
     protected def find_user
-      user || (@user = Model::User.find!(params["id"], runopts: {"read_mode" => "majority"}))
+      id = params["id"]
+      Log.context.set(user_id: id)
+
+      user || (@user = Model::User.find!(id, runopts: {"read_mode" => "majority"}))
     end
 
     protected def check_authorization
