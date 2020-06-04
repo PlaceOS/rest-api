@@ -298,8 +298,13 @@ module PlaceOS::Api
 
       folder_name = repository.folder_name.as(String)
 
-      Api::Systems.core_for(mod.id.as(String), request_id) do |core_client|
-        core_client.driver_compiled?(file_name: file_name, repository: folder_name, commit: commit, tag: tag)
+      begin
+        Api::Systems.core_for(mod.id.as(String), request_id) do |core_client|
+          core_client.driver_compiled?(file_name: file_name, repository: folder_name, commit: commit, tag: tag)
+        end
+      rescue e
+        Log.error(exception: e) { "failed to request driver status from core" }
+        false
       end
     end
 
