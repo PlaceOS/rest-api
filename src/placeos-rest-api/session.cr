@@ -1,10 +1,9 @@
 # FIXME: Hack to allow resolution of PlaceOS::Driver class/module
 class PlaceOS::Driver; end
 
-require "log"
 require "driver/proxy/remote_driver"
 require "hound-dog"
-require "redis"
+require "log"
 require "tasker"
 
 require "./error"

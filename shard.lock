@@ -90,7 +90,7 @@ shards:
 
   jwt:
     github: crystal-community/jwt
-    version: 1.4.0
+    version: 1.4.1
 
   log_helper:
     github: spider-gazelle/log_helper
@@ -166,7 +166,7 @@ shards:
 
   ssh2:
     github: spider-gazelle/ssh2.cr
-    version: 1.3.2
+    version: 1.3.3
 
   tasker:
     github: spider-gazelle/tasker
