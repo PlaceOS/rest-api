@@ -17,7 +17,7 @@ module PlaceOS::Api
 
     id_param :sys_id
 
-    before_action :check_admin, except: [:index, :show, :control, :execute,
+    before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
                                          :types, :functions, :state, :state_lookup]
 
     before_action :check_support, only: [:state, :state_lookup, :functions]
@@ -91,6 +91,13 @@ module PlaceOS::Api
 
       query.sort(NAME_SORT_ASC)
       render json: paginate_results(elastic, query)
+    end
+
+    # Finds all the systems with the specified email address
+    get "/with_email/:email", :find_by_email do
+      systems = Model::ControlSystem.get_all([params["email"]], index: :email).to_a
+      response.headers["X-Total-Count"] = systems.size.to_s
+      render json: systems
     end
 
     # Renders a control system
