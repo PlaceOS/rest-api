@@ -21,7 +21,14 @@ module PlaceOS::Api
     end
 
     def show
-      render json: current_trigger
+      trigger = current_trigger
+      if params["instances"]? == "true"
+        render json: with_fields(trigger, {
+          :trigger_instances => trigger.trigger_instances.to_a,
+        })
+      else
+        render json: trigger
+      end
     end
 
     def update
@@ -40,6 +47,16 @@ module PlaceOS::Api
     def destroy
       current_trigger.destroy # expires the cache in after callback
       head :ok
+    end
+
+    # Get instances associated with
+    get "/:id/instances", :instances do
+      instances = current_trigger.trigger_instances.to_a
+      total_items = instances.size
+      response.headers["X-Total-Count"] = total_items.to_s
+      response.headers["Content-Range"] = "trigger-instance 0-#{total_items}/#{total_items}"
+
+      render json: instances
     end
 
     # Helpers
