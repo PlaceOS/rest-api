@@ -1,5 +1,5 @@
 require "pinger"
-require "driver/storage"
+require "placeos-driver/storage"
 
 require "./application"
 require "./settings"

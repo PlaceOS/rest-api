@@ -7,6 +7,7 @@ require "http"
 require "random"
 require "rethinkdb-orm"
 require "simple_retry"
+require "promise"
 require "spec"
 
 # Helper methods for testing controllers (curl, with_server, context)
@@ -29,16 +30,22 @@ Spec.before_suite { clear_tables }
 Spec.after_suite { clear_tables }
 
 def clear_tables
-  parallel(
-    PlaceOS::Model::ControlSystem.clear,
-    PlaceOS::Model::Driver.clear,
-    PlaceOS::Model::Module.clear,
-    PlaceOS::Model::Repository.clear,
-    PlaceOS::Model::Settings.clear,
-    PlaceOS::Model::Trigger.clear,
-    PlaceOS::Model::TriggerInstance.clear,
-    PlaceOS::Model::Zone.clear,
-  )
+  {% begin %}
+    Promise.all(
+      {% for t in {
+                    PlaceOS::Model::ControlSystem,
+                    PlaceOS::Model::Driver,
+                    PlaceOS::Model::Module,
+                    PlaceOS::Model::Repository,
+                    PlaceOS::Model::Settings,
+                    PlaceOS::Model::Trigger,
+                    PlaceOS::Model::TriggerInstance,
+                    PlaceOS::Model::Zone,
+                  } %}
+        Promise.defer { {{t.id}}.clear },
+      {% end %}
+    )
+  {% end %}
 end
 
 # Yield an authenticated user, and a header with Authorization bearer set

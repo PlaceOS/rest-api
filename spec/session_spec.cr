@@ -1,6 +1,6 @@
 require "./helper"
 
-require "driver/storage"
+require "placeos-driver/storage"
 
 module PlaceOS::Api
   authenticated_user, authorization_header = authentication
