@@ -43,7 +43,7 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        it "queries module" do
+        it "queries by parent driver" do
           name = UUID.random.to_s
 
           driver = Model::Generator.driver
@@ -162,132 +162,132 @@ module PlaceOS::Api
           found.should be_true
         end
       end
+    end
 
-      describe "/:id/settings" do
-        it "collates Module settings" do
-          driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
-          driver_settings_string = %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)
-          Model::Generator.settings(driver: driver, settings_string: driver_settings_string).save!
+    describe "/:id/settings" do
+      it "collates Module settings" do
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        driver_settings_string = %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)
+        Model::Generator.settings(driver: driver, settings_string: driver_settings_string).save!
 
-          control_system = Model::Generator.control_system.save!
-          control_system_settings_string = %(frangos: 1)
-          Model::Generator.settings(control_system: control_system, settings_string: control_system_settings_string).save!
+        control_system = Model::Generator.control_system.save!
+        control_system_settings_string = %(frangos: 1)
+        Model::Generator.settings(control_system: control_system, settings_string: control_system_settings_string).save!
 
-          zone = Model::Generator.zone.save!
-          zone_settings_string = %(screen: 1)
-          Model::Generator.settings(zone: zone, settings_string: zone_settings_string).save!
+        zone = Model::Generator.zone.save!
+        zone_settings_string = %(screen: 1)
+        Model::Generator.settings(zone: zone, settings_string: zone_settings_string).save!
 
-          control_system.zones = [zone.id.as(String)]
-          control_system.update!
+        control_system.zones = [zone.id.as(String)]
+        control_system.update!
 
-          mod = Model::Generator.module(driver: driver, control_system: control_system).save!
-          module_settings_string = %(value: 2\n)
-          Model::Generator.settings(mod: mod, settings_string: module_settings_string).save!
+        mod = Model::Generator.module(driver: driver, control_system: control_system).save!
+        module_settings_string = %(value: 2\n)
+        Model::Generator.settings(mod: mod, settings_string: module_settings_string).save!
 
-          expected_settings_ids = [
-            mod.master_settings,
-            control_system.master_settings,
-            zone.master_settings,
-            driver.master_settings,
-          ].flat_map(&.compact_map(&.id)).reverse!
+        expected_settings_ids = [
+          mod.master_settings,
+          control_system.master_settings,
+          zone.master_settings,
+          driver.master_settings,
+        ].flat_map(&.compact_map(&.id)).reverse!
 
-          path = "#{base}#{mod.id}/settings"
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
+        path = "#{base}#{mod.id}/settings"
+        result = curl(
+          method: "GET",
+          path: path,
+          headers: authorization_header,
+        )
 
-          result.success?.should be_true
+        result.success?.should be_true
 
-          settings = Array(Hash(String, JSON::Any)).from_json(result.body)
-          settings_hierarchy_ids = settings.map { |s| s["id"].to_s }
+        settings = Array(Hash(String, JSON::Any)).from_json(result.body)
+        settings_hierarchy_ids = settings.map { |s| s["id"].to_s }
 
-          settings_hierarchy_ids.should eq expected_settings_ids
-          {mod, control_system, zone, driver}.each &.destroy
-        end
-
-        it "returns an empty array for a logic module without associated settings" do
-          driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
-
-          control_system = Model::Generator.control_system.save!
-
-          zone = Model::Generator.zone.save!
-
-          control_system.zones = [zone.id.as(String)]
-          control_system.update!
-
-          mod = Model::Generator.module(driver: driver, control_system: control_system).save!
-          path = "#{base}#{mod.id}/settings"
-
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
-
-          unless result.success?
-            puts "\ncode: #{result.status_code} body: #{result.body}"
-          end
-
-          result.success?.should be_true
-          Array(JSON::Any).from_json(result.body).should be_empty
-        end
-
-        it "returns an empty array for a module without associated settings" do
-          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
-          mod = Model::Generator.module(driver: driver).save!
-          path = "#{base}#{mod.id}/settings"
-
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
-
-          unless result.success?
-            puts "\ncode: #{result.status_code} body: #{result.body}"
-          end
-
-          result.success?.should be_true
-          Array(JSON::Any).from_json(result.body).should be_empty
-        end
+        settings_hierarchy_ids.should eq expected_settings_ids
+        {mod, control_system, zone, driver}.each &.destroy
       end
 
-      describe "ping" do
-        it "fails for logic module" do
-          driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
-          mod = Model::Generator.module(driver: driver).save!
-          path = "#{base}#{mod.id}/ping"
-          result = curl(
-            method: "POST",
-            path: path,
-            headers: authorization_header,
-          )
+      it "returns an empty array for a logic module without associated settings" do
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
 
-          result.success?.should be_false
-          result.status_code.should eq 406
+        control_system = Model::Generator.control_system.save!
+
+        zone = Model::Generator.zone.save!
+
+        control_system.zones = [zone.id.as(String)]
+        control_system.update!
+
+        mod = Model::Generator.module(driver: driver, control_system: control_system).save!
+        path = "#{base}#{mod.id}/settings"
+
+        result = curl(
+          method: "GET",
+          path: path,
+          headers: authorization_header,
+        )
+
+        unless result.success?
+          puts "\ncode: #{result.status_code} body: #{result.body}"
         end
 
-        it "pings a module" do
-          driver = Model::Generator.driver(role: Model::Driver::Role::Device)
-          driver.default_port = 8080
-          driver.save!
-          mod = Model::Generator.module(driver: driver)
-          mod.ip = "127.0.0.1"
-          mod.save!
+        result.success?.should be_true
+        Array(JSON::Any).from_json(result.body).should be_empty
+      end
 
-          path = "#{base}#{mod.id}/ping"
-          result = curl(
-            method: "POST",
-            path: path,
-            headers: authorization_header,
-          )
+      it "returns an empty array for a module without associated settings" do
+        driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+        mod = Model::Generator.module(driver: driver).save!
+        path = "#{base}#{mod.id}/settings"
 
-          body = JSON.parse(result.body)
-          result.success?.should be_true
-          body["pingable"].should be_true
+        result = curl(
+          method: "GET",
+          path: path,
+          headers: authorization_header,
+        )
+
+        unless result.success?
+          puts "\ncode: #{result.status_code} body: #{result.body}"
         end
+
+        result.success?.should be_true
+        Array(JSON::Any).from_json(result.body).should be_empty
+      end
+    end
+
+    describe "ping" do
+      it "fails for logic module" do
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
+        mod = Model::Generator.module(driver: driver).save!
+        path = "#{base}#{mod.id}/ping"
+        result = curl(
+          method: "POST",
+          path: path,
+          headers: authorization_header,
+        )
+
+        result.success?.should be_false
+        result.status_code.should eq 406
+      end
+
+      it "pings a module" do
+        driver = Model::Generator.driver(role: Model::Driver::Role::Device)
+        driver.default_port = 8080
+        driver.save!
+        mod = Model::Generator.module(driver: driver)
+        mod.ip = "127.0.0.1"
+        mod.save!
+
+        path = "#{base}#{mod.id}/ping"
+        result = curl(
+          method: "POST",
+          path: path,
+          headers: authorization_header,
+        )
+
+        body = JSON.parse(result.body)
+        result.success?.should be_true
+        body["pingable"].should be_true
       end
     end
   end
