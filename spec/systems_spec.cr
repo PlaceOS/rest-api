@@ -309,7 +309,7 @@ module PlaceOS::Api
 
           cs = Model::Generator.control_system.save!
           mods = expected.flat_map do |name, count|
-            count.times.to_a.map do
+            Array(Model::Module).new(size: count) do
               mod = Model::Generator.module
               mod.custom_name = name
               mod.save!
