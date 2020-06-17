@@ -78,6 +78,14 @@ module PlaceOS::Api
       Missing
     end
 
+    # Return triggers attached to current zone
+    #
+    get "/:id/triggers", :trigger_instances do
+      triggers = current_zone.trigger_data
+      set_collection_headers(triggers.size, Model::Trigger.table_name)
+      render json: triggers
+    end
+
     # Execute a method on a module across all systems in a Zone
     post("/:id/exec/:module_slug/:method") do
       zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]

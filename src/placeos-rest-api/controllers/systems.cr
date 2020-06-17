@@ -97,8 +97,7 @@ module PlaceOS::Api
     get "/with_emails", :find_by_email do
       emails = params["in"].split(',').map(&.strip).reject(&.empty?).uniq
       systems = Model::ControlSystem.get_all(emails, index: :email).to_a
-      response.headers["X-Total-Count"] = systems.size.to_s
-
+      set_collection_headers(systems.size, Model::ControlSystem.table_name)
       render json: systems
     end
 
@@ -170,9 +169,8 @@ module PlaceOS::Api
                     Model::Zone.get_all(zones).to_a
                   end
 
-      response_size = documents.size
-      response.headers["X-Total-Count"] = response_size.to_s
-      response.headers["Content-Range"] = "#{Model::Zone.table_name} 0-#{response_size}/#{response_size}"
+      set_collection_headers(documents.size, Model::Zone.table_name)
+
       render json: documents
     end
 

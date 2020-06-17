@@ -54,7 +54,8 @@ module PlaceOS::Api
           })
         end.to_a
 
-        response.headers["X-Total-Count"] = results.size.to_s
+        set_collection_headers(results.size, Model::Module.table_name)
+
         render json: results
       else # we use Elasticsearch
         elastic = Model::Module.elastic

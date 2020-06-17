@@ -35,6 +35,11 @@ module PlaceOS::Api
       data[:results]
     end
 
+    def set_collection_headers(size : Int32, content_type : String)
+      response.headers["X-Total-Count"] = size.to_s
+      response.headers["Content-Range"] = "#{content_type} 0-#{size - 1}/#{size}"
+    end
+
     # Callbacks
     ###########################################################################
 
