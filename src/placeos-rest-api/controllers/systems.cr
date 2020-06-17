@@ -37,11 +37,12 @@ module PlaceOS::Api
 
     # Strong params for index method
     class IndexParams < Params
-      attribute zone_id : String
-      attribute module_id : String
-      attribute features : String
-      attribute capacity : Int32
       attribute bookable : Bool
+      attribute capacity : Int32
+      attribute email : String
+      attribute features : String
+      attribute module_id : String
+      attribute zone_id : String
     end
 
     # Query ControlSystem resources
@@ -66,7 +67,7 @@ module PlaceOS::Api
 
       # Filter by features
       if features = args.features
-        features = features.split(',')
+        features = features.split(',').uniq.reject! &.empty?
         query.must({
           "features" => features,
         })
@@ -82,10 +83,17 @@ module PlaceOS::Api
       end
 
       # filter by bookable
-      bookable = args.bookable
-      if !bookable.nil?
+      unless (bookable = args.bookable).nil?
         query.must({
           "bookable" => [bookable],
+        })
+      end
+
+      # filter by emails
+      if email = args.email
+        emails = email.split(',').uniq.reject! &.empty?
+        query.should({
+          "email" => emails,
         })
       end
 
