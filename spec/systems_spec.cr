@@ -45,6 +45,34 @@ module PlaceOS::Api
           found.should be_true
         end
 
+        it "filters systems by email" do
+          Model::ControlSystem.clear
+          num_systems = 5
+
+          systems = Array.new(size: num_systems) do
+            Model::Generator.control_system
+          end
+
+          # Add the zone to a subset of systems
+          expected_systems = systems.shuffle[0..2]
+          systems.each &.save!
+
+          expected_emails = expected_systems.compact_map(&.email)
+          expected_ids = expected_systems.compact_map(&.id)
+
+          total_ids = expected_ids.size
+
+          params = HTTP::Params.encode({"email" => expected_emails.join(',')})
+          path = "#{base}?#{params}"
+
+          found = until_expected("GET", path, authorization_header) do |response|
+            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+            (returned_ids | expected_ids).size == total_ids
+          end
+
+          found.should be_true
+        end
+
         it "filters systems by modules" do
           Model::ControlSystem.clear
           num_systems = 5
