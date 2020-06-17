@@ -16,7 +16,7 @@ module PlaceOS::Api
       describe "/:id/instances" do
         it "lists instances for a Trigger" do
           trigger = Model::Generator.trigger.save!
-          instances = 3.times.to_a.map { Model::Generator.trigger_instance(trigger).save! }
+          instances = Array(Model::TriggerInstance).new(size: 3) { Model::Generator.trigger_instance(trigger).save! }
 
           response = curl(
             method: "GET",
