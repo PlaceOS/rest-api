@@ -52,9 +52,8 @@ module PlaceOS::Api
     # Get instances associated with
     get "/:id/instances", :instances do
       instances = current_trigger.trigger_instances.to_a
-      total_items = instances.size
-      response.headers["X-Total-Count"] = total_items.to_s
-      response.headers["Content-Range"] = "trigger-instance 0-#{total_items}/#{total_items}"
+
+      set_collection_headers(instances.size, Model::TriggerInstance.table_name)
 
       render json: instances
     end

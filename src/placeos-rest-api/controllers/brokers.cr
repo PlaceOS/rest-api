@@ -14,9 +14,9 @@ module PlaceOS::Api
 
     def index
       brokers = Model::Broker.all.to_a
-      total_items = brokers.size
-      response.headers["X-Total-Count"] = total_items.to_s
-      response.headers["Content-Range"] = "broker 0-#{total_items}/#{total_items}"
+
+      set_collection_headers(brokers.size, Model::Broker.table_name)
+
       render json: brokers
     end
 
