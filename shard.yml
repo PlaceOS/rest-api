@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.12.0
+version: 1.13.0
 
 targets:
   rest-api:
