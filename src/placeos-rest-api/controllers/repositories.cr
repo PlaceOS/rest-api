@@ -65,11 +65,10 @@ module PlaceOS::Api
 
       # Initiate changefeed on the document's commit_hash
       changefeed = Model::Repository.changes(repository.id.as(String))
+      channel = Channel(Model::Repository?).new(1)
 
       # Wait until the commit hash is not head with a timeout of 20 seconds
       found_repo = begin
-        channel = Channel(Model::Repository?).new(1)
-
         spawn do
           update_event = changefeed.find do |event|
             repo = event[:value]
@@ -79,7 +78,7 @@ module PlaceOS::Api
         end
 
         select
-        when received = channel.receive
+        when received = channel.receive?
           received
         when timeout(20.seconds)
           raise "timeout waiting for repository update"
@@ -89,6 +88,7 @@ module PlaceOS::Api
       ensure
         # Terminate the changefeed
         changefeed.stop
+        channel.close
       end
 
       {found_repo.destroyed?, found_repo.commit_hash} if found_repo

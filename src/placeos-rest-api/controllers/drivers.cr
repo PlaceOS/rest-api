@@ -73,9 +73,53 @@ module PlaceOS::Api
       if commit.starts_with?("RECOMPILE")
         head :already_reported
       else
-        driver.commit = "RECOMPILE-#{commit}"
-        save_and_respond driver
+        if (recompiled = Drivers.recompile(driver))
+          if recompiled.destroyed?
+            head :not_found
+          else
+            render json: recompiled
+          end
+        else
+          head :request_timeout
+        end
       end
+    end
+
+    def self.recompile(driver : Model::Driver)
+      # Set the repository commit hash to head
+      driver.update_fields(commit: "RECOMPILE-#{driver.commit.as(String)}")
+
+      # Initiate changefeed on the document's commit
+      changefeed = Model::Driver.changes(driver.id.as(String))
+      channel = Channel(Model::Driver?).new(1)
+
+      # Wait until the commit hash is not head with a timeout of 20 seconds
+      found_driver = begin
+        spawn do
+          update_event = changefeed.find do |event|
+            driver_update = event[:value]
+            driver_update.destroyed? || !driver_update.commit.as(String).starts_with? "RECOMPILE"
+          end
+          channel.send(update_event.try &.[:value])
+        end
+
+        select
+        when received = channel.receive
+          received
+        when timeout(20.seconds)
+          raise "timeout waiting for recompile"
+        end
+
+        received
+      rescue
+        nil
+      ensure
+        channel.close
+        # Terminate the changefeed
+        changefeed.stop
+      end
+
+      found_driver
     end
 
     # Check if the core responsible for the driver has finished compilation
