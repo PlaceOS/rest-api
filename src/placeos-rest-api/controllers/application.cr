@@ -8,6 +8,8 @@ require "../utilities/*"
 
 module PlaceOS::Api
   private abstract class Application < ActionController::Base
+    Log = ::PlaceOS::Api::Log.for("controller")
+
     # Helpers for controller responses
     include Utils::Responders
 
