@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.13.0
+version: 1.13.1
 
 targets:
   rest-api:
@@ -69,6 +69,11 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
+
+  # Client for RubberSoul RethinkDB Elasticsearch indexer
+  rubber-soul:
+    github: placeos/rubber-soul
+    version: ~> 1.10
 
   # Scheduling
   tasker:

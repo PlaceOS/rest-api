@@ -1,5 +1,7 @@
 require "./application"
 
+require "rubber-soul/client"
+
 module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
@@ -37,19 +39,13 @@ module PlaceOS::Api
     end
 
     post "/reindex", :reindex do
-      response = HTTP::Client.post(
-        "http://rubber-soul:3000/api/rubber-soul/v1/reindex?backfill=#{params["backfill"]? == "true"}",
-        headers: HTTP::Headers{"X-Request-ID" => request_id},
-      )
-      head response.status_code
+      RubberSoul::Client.client &.reindex(backfill: params["backfill"]? == "true")
+      head :ok
     end
 
     post "/backfill", :backfill do
-      response = HTTP::Client.post(
-        "http://rubber-soul:3000/api/rubber-soul/v1/backfill",
-        headers: HTTP::Headers{"X-Request-ID" => request_id},
-      )
-      head response.status_code
+      RubberSoul::Client.client &.backfill
+      head :ok
     end
   end
 end
