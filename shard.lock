@@ -126,11 +126,11 @@ shards:
 
   placeos-frontends:
     git: https://github.com/placeos/frontend-loader.git
-    version: 0.7.0
+    version: 0.7.1
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 2.1.0
+    version: 2.1.1
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
