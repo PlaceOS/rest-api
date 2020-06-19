@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 3.1.5
+    version: 3.1.6
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -53,7 +53,7 @@ shards:
     version: 0.1.4
 
   etcd:
-    git: https://github.com/place-labs/crystal-etcd.git
+    git: https://github.com/aca-labs/crystal-etcd.git
     version: 1.0.1
 
   exec_from:
@@ -118,11 +118,11 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 2.3.0
+    version: 2.3.1
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 3.3.2
+    version: 3.3.3
 
   placeos-frontends:
     git: https://github.com/placeos/frontend-loader.git
@@ -130,7 +130,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 2.0.3
+    version: 2.1.0
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -142,7 +142,7 @@ shards:
 
   promise:
     git: https://github.com/spider-gazelle/promise.git
-    version: 2.1.0
+    version: 2.2.0
 
   protobuf:
     git: https://github.com/jeromegn/protobuf.cr.git
@@ -168,6 +168,10 @@ shards:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
     version: 2.9.1
 
+  rubber-soul:
+    git: https://github.com/placeos/rubber-soul.git
+    version: 1.10.0
+
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
     version: 1.0.5
@@ -189,7 +193,7 @@ shards:
     version: 1.1.0
 
   ulid:
-    git: https://github.com/place-labs/ulid.git
+    git: https://github.com/aca-labs/ulid.git
     version: 0.1.2
 
   yaml_mapping:
