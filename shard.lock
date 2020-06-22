@@ -14,11 +14,11 @@ shards:
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
-    version: 0.12.1
+    version: 0.13.0
 
   bindata:
     git: https://github.com/spider-gazelle/bindata.git
-    version: 1.5.4
+    version: 1.5.5
 
   bisect:
     git: https://github.com/spider-gazelle/bisect.git
@@ -102,11 +102,11 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.4.2
+    version: 1.5.0
 
   openssl_ext:
     git: https://github.com/stakach/openssl_ext.git
-    version: 1.2.1
+    version: 1.2.2
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -114,7 +114,7 @@ shards:
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
-    version: 2.0.2
+    version: 2.0.3
 
   placeos-core:
     git: https://github.com/placeos/core.git
@@ -170,7 +170,7 @@ shards:
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.10.0
+    version: 1.10.2
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
@@ -182,7 +182,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.4.0
+    version: 1.4.1
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
