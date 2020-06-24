@@ -102,7 +102,7 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.5.0
+    version: 1.6.0
 
   openssl_ext:
     git: https://github.com/stakach/openssl_ext.git
@@ -118,15 +118,15 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 2.3.1
+    version: 2.3.3
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 3.3.3
+    version: 3.4.0
 
   placeos-frontends:
     git: https://github.com/placeos/frontend-loader.git
-    version: 0.7.1
+    version: 0.7.2
 
   placeos-models:
     git: https://github.com/placeos/models.git
@@ -170,7 +170,7 @@ shards:
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.10.2
+    version: 1.11.0
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
@@ -182,7 +182,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.4.1
+    version: 1.4.2
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
