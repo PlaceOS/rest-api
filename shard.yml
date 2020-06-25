@@ -80,6 +80,9 @@ dependencies:
     github: spider-gazelle/tasker
     version: ~> 1.2
 
+  secrets-env:
+    github: place-labs/secrets-env
+
 development_dependencies:
   # Linter
   ameba:

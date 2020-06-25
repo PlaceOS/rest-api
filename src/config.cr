@@ -12,21 +12,20 @@ require "action-controller/server"
 
 # Configure Service discovery
 HoundDog.configure do |settings|
-  settings.etcd_host = ENV["ETCD_HOST"]? || "localhost"
-  settings.etcd_port = (ENV["ETCD_PORT"]? || 2379).to_i
+  settings.etcd_host = PlaceOS::Api::ETCD_HOST
+  settings.etcd_port = PlaceOS::Api::ETCD_PORT
 end
 
-PROD = ENV["SG_ENV"]? == "production"
 filters = ["bearer_token", "secret", "password"]
 
 # Add handlers that should run before your application
 ActionController::Server.before(
-  ActionController::ErrorHandler.new(PROD, ["X-Request-ID"]),
-  ActionController::LogHandler.new(PROD ? filters : nil)
+  ActionController::ErrorHandler.new(PlaceOS::Api.production?, ["X-Request-ID"]),
+  ActionController::LogHandler.new(filters)
 )
 
 # Logging configuration
-log_level = PROD ? Log::Severity::Info : Log::Severity::Debug
+log_level = PlaceOS::Api.production? ? Log::Severity::Info : Log::Severity::Debug
 ::Log.setup "*", log_level, PlaceOS::Api::LOG_BACKEND
 ::Log.builder.bind "action-controller.*", log_level, PlaceOS::Api::LOG_BACKEND
 ::Log.builder.bind "rest-api.*", log_level, PlaceOS::Api::LOG_BACKEND
