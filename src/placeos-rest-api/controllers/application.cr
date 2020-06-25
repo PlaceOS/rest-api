@@ -2,7 +2,6 @@ require "action-controller"
 require "placeos-models"
 require "uuid"
 
-require "../constants"
 require "../error"
 require "../utilities/*"
 
