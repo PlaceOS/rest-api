@@ -42,6 +42,7 @@ module PlaceOS::Api
       attribute email : String
       attribute features : String
       attribute module_id : String
+      attribute trigger_id : String
       attribute zone_id : String
     end
 
@@ -51,17 +52,25 @@ module PlaceOS::Api
       query = Model::ControlSystem.elastic.query(params)
       args = IndexParams.new(params)
 
-      # Filter systems via zone_id
+      # Filter systems by zone_id
       if zone_id = args.zone_id
         query.must({
           "zones" => [zone_id],
         })
       end
 
-      # Filter via module_id
+      # Filter by module_id
       if module_id = args.module_id
         query.must({
           "modules" => [module_id],
+        })
+      end
+
+      # Filter by trigger_id
+      if trigger_id = args.trigger_id
+        query.has_child(Model::Trigger)
+        query.must({
+          "id" => [trigger_id],
         })
       end
 

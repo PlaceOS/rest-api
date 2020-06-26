@@ -114,7 +114,7 @@ shards:
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
-    version: 2.0.3
+    version: 2.0.4
 
   placeos-core:
     git: https://github.com/placeos/core.git
@@ -122,7 +122,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 3.4.0
+    version: 3.4.1
 
   placeos-frontends:
     git: https://github.com/placeos/frontend-loader.git
@@ -130,7 +130,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 2.1.1
+    version: 2.1.2
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -161,20 +161,28 @@ shards:
     version: 0.3.1
 
   rethinkdb:
-    git: https://github.com/place-labs/crystal-rethinkdb.git
-    version: 1.0.0
+    git: https://github.com/kingsleyh/crystal-rethinkdb.git
+    version: 0.2.0
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
-    version: 2.9.1
+    version: 2.9.2
+
+  retriable:
+    git: https://github.com/sija/retriable.cr.git
+    version: 0.2.2
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.11.0
+    version: 1.11.1
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
     version: 1.0.5
+
+  secrets-env:
+    git: https://github.com/place-labs/secrets-env.git
+    version: 1.0.0
 
   simple_retry:
     git: https://github.com/spider-gazelle/simple_retry.git

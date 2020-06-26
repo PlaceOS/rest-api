@@ -64,7 +64,7 @@ dependencies:
 
   # RethinkDB client
   rethinkdb:
-    github: place-labs/crystal-rethinkdb
+    github: kingsleyh/crystal-rethinkdb
 
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
