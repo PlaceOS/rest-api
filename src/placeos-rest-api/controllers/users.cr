@@ -49,14 +49,19 @@ module PlaceOS::Api
 
     def create
       user = Model::User.from_json(request.body.as(IO))
-      user.authority = current_authority.as(Model::Authority)
+      # allow sys-admins to create users on other domains
+      user.authority ||= current_authority.as(Model::Authority)
 
       save_and_respond user
     end
 
     def update
       user = @user.as(Model::User)
+
+      # Ensure authority doesn't change
+      authority_id = user.authority_id
       user.assign_attributes_from_json(request.body.as(IO))
+      user.authority_id = authority_id
 
       save_and_respond user
     end
