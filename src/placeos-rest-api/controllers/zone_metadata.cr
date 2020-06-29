@@ -21,7 +21,7 @@ module PlaceOS::Api
       zone_id: String?)
 
     get "/metadata", :get_metadata do
-      results = build_metadata(current_zone.metadata, params["name"]?)
+      results = ZoneMetadata.build_metadata(current_zone, params["name"]?)
       render json: results
     end
 
@@ -29,15 +29,14 @@ module PlaceOS::Api
       filter = params["name"]?
 
       children = current_zone.children.to_a
-      children.unshift(current_zone)
+      parent_id = current_zone.id
+      children.reject! { |z| z.id == parent_id }
 
-      results = [] of NamedTuple(zone: Model::Zone, metadata: Hash(String, Metadata))
-
-      children.each do |zone|
-        results.push({
+      results = children.map do |zone|
+        {
           zone:     zone,
-          metadata: build_metadata(zone.metadata, filter),
-        })
+          metadata: ZoneMetadata.build_metadata(zone, filter),
+        }
       end
 
       render json: results
@@ -99,17 +98,18 @@ module PlaceOS::Api
       @zone = Model::Zone.find!(id)
     end
 
-    def build_metadata(metadata, filter : String?)
-      metadata = current_zone.metadata.where(name: filter) if filter
+    def self.build_metadata(zone : Model::Zone, name : String?)
+      metadata = name && !name.empty? ? zone.metadata.where(name: name) : zone.metadata.all
 
       metadata.each_with_object({} of String => Metadata) do |data, results|
-        next if (name = data.name).nil?
-        results[name] = {
-          name:        data.name,
-          description: data.description,
-          details:     data.details,
-          zone_id:     data.zone_id,
-        }
+        unless (data_name = data.name).nil?
+          results[data_name] = {
+            name:        data.name,
+            description: data.description,
+            details:     data.details,
+            zone_id:     data.zone_id,
+          }
+        end
       end
     end
   end
