@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.13.4
+version: 1.13.5
 
 targets:
   rest-api:
@@ -64,7 +64,7 @@ dependencies:
 
   # RethinkDB client
   rethinkdb:
-    github: place-labs/crystal-rethinkdb
+    github: kingsleyh/crystal-rethinkdb
 
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
