@@ -50,16 +50,22 @@ end
 
 # Yield an authenticated user, and a header with Authorization bearer set
 def authentication
-  authenticated_user = PlaceOS::Model::Generator.user.not_nil!
-  authenticated_user.sys_admin = true
-  authenticated_user.support = true
-  authenticated_user.email = authenticated_user.email.as(String) + Random.rand(9999).to_s
-  begin
-    authenticated_user.save!
-  rescue e : RethinkORM::Error::DocumentInvalid
-    pp! e.inspect_errors
-    raise e
-  end
+  test_user_email = "test-suit-rest-api@place.tech"
+  existing = PlaceOS::Model::User.get_all([test_user_email], index: :email).first?
+
+  authenticated_user = if existing
+                         existing
+                       else
+                         user = PlaceOS::Model::Generator.user.not_nil!
+                         user.sys_admin = true
+                         user.support = true
+                         begin
+                           user.save!
+                         rescue e : RethinkORM::Error::DocumentInvalid
+                           pp! e.inspect_errors
+                           raise e
+                         end
+                       end
 
   authorization_header = {
     "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user).encode}",
