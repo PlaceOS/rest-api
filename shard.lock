@@ -6,7 +6,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 3.1.6
+    version: 3.2.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -130,7 +130,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 2.1.2
+    version: 2.1.4
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -166,7 +166,7 @@ shards:
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
-    version: 2.10.0
+    version: 2.10.1
 
   retriable:
     git: https://github.com/sija/retriable.cr.git
