@@ -11,11 +11,14 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :ensure_json, only: [:create, :update, :update_alt]
+    before_action :find_system, only: [:show, :update, :update_alt, :destroy]
     before_action :find_sys_trig, only: [:show, :update, :update_alt, :destroy]
 
     getter sys_trig : Model::TriggerInstance?
+    getter control_system : Model::ControlSystem?
 
     class IndexParams < Params
+      attribute complete : Bool = true
       attribute important : Bool = false
       attribute triggered : Bool = false
       attribute trigger_id : String
@@ -29,7 +32,7 @@ module PlaceOS::Api
       control_system_id = params["sys_id"]
 
       # Filter by system ID
-      query.filter({"control_system_id" => [control_system_id]})
+      query.must({"control_system_id" => [control_system_id]})
 
       # Filter by trigger ID
       if (trigger_id = args.trigger_id)
@@ -58,16 +61,15 @@ module PlaceOS::Api
       # Include parent documents in the search
       query.has_parent(parent: Model::Trigger, parent_index: Model::Trigger.table_name)
 
-      results = paginate_results(elastic, query)
-      render json: render_system_triggers(results, args.trigger_id)
+      trigger_instances = paginate_results(elastic, query).map { |t| render_system_trigger(t, complete: args.complete.as(Bool)) }
+
+      render json: trigger_instances
     end
 
     def show
-      if is_support? && !is_admin?
-        render json: restrict_attributes(current_sys_trig, except: ["webhook_secret"])
-      else
-        render json: current_sys_trig
-      end
+      # Default to render extra association fields
+      complete = params.has_key?("complete") ? params["complete"] == "true" : true
+      render json: render_system_trigger(current_sys_trig, complete: complete)
     end
 
     class UpdateParams < Params
@@ -89,7 +91,13 @@ module PlaceOS::Api
     put "/:trig_id", :update_alt { update }
 
     def create
-      save_and_respond Model::TriggerInstance.from_json(request.body.as(IO))
+      model = Model::TriggerInstance.from_json(request.body.as(IO))
+
+      if model.control_system_id != current_system.id
+        render status: :unprocessable_entity, text: "control_system_id mismatch"
+      else
+        save_and_respond model
+      end
     end
 
     def destroy
@@ -100,37 +108,38 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    # Render a collection of TriggerInstances
-    # - excludes :webhook_secret if authorized user has a support role
-    # - includes :name, :id of parent ControlSystem if passed trigger id
-    protected def render_system_triggers(system_triggers, trigger_id = nil)
-      if trigger_id
-        # Include ControlSystem
-        system_triggers.map do |r|
-          cs = r.control_system
-
-          # Support users cannot access webhook links
-          except = is_support? && !is_admin? ? ["webhook_secret"] : nil
-          restrict_attributes(r,
-            fields: {
-              :control_system => {
-                name: cs.try &.name,
-                id:   cs.try &.id,
-              },
-            },
-            except: except,
-          )
-        end
-      elsif is_support? && !is_admin?
-        # Support users cannot access webhook links
-        system_triggers.map { |r| restrict_attributes(r, except: ["webhook_secret"]) }
-      else
-        system_triggers
-      end
+    # Render a TriggerInstance
+    # - excludes `webhook_secret` if authorized user has a support role (or lower)
+    # - includes `name`, `id` of parent ControlSystem, and `name` of if `complete = true`
+    def render_system_trigger(trigger_instance : Model::TriggerInstance, complete : Bool = false)
+      cs = trigger_instance.control_system
+      # Support users (and below) cannot access webhook links
+      except = is_admin? ? nil : ["webhook_secret"]
+      restrict_attributes(trigger_instance,
+        fields: {
+          :name           => trigger_instance.trigger.try &.name,
+          :control_system => {
+            name: cs.try &.name,
+            id:   cs.try &.id,
+          },
+        },
+        except: except,
+      )
     end
 
     def current_sys_trig : Model::TriggerInstance
       sys_trig || find_sys_trig
+    end
+
+    def current_system : Model::ControlSystem
+      control_system || find_system
+    end
+
+    def find_system
+      id = params["sys_id"]
+      Log.context.set(control_system_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      @control_system = Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
     end
 
     def find_sys_trig
