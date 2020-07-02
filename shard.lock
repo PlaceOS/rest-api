@@ -118,7 +118,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 2.3.3
+    version: 2.4.0
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
@@ -126,11 +126,11 @@ shards:
 
   placeos-frontends:
     git: https://github.com/placeos/frontend-loader.git
-    version: 0.7.3
+    version: 0.8.0
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 2.1.4
+    version: 3.0.4
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -174,7 +174,7 @@ shards:
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.11.1
+    version: 1.12.0
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
