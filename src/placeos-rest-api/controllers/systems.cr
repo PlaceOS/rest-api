@@ -68,9 +68,9 @@ module PlaceOS::Api
 
       # Filter by trigger_id
       if trigger_id = args.trigger_id
-        query.has_child(Model::Trigger)
+        query.has_child(Model::TriggerInstance)
         query.must({
-          "id" => [trigger_id],
+          "trigger_id" => [trigger_id],
         })
       end
 

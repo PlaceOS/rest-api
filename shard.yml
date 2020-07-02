@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.14.0
+version: 1.15.0
 
 targets:
   rest-api:
@@ -19,11 +19,6 @@ dependencies:
   CrystalEmail:
     github: Nephos/CrystalEmail
     version: ~> 0.2
-
-  # For driver state helpers
-  placeos-driver:
-    github: placeos/driver
-    version: ~> 3.0
 
   # Service discovery
   hound-dog:
@@ -47,16 +42,22 @@ dependencies:
   # For core client
   placeos-core:
     github: placeos/core
-    version: ~> 2.3
+    version: ~> 2.4
+
+  # For driver state helpers
+  placeos-driver:
+    github: placeos/driver
+    version: ~> 3.0
 
   # For frontends client
   placeos-frontends:
     github: placeos/frontend-loader
+    version: ~> 0.8
 
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 2.0
+    version: ~> 3.0
 
   # A familiar abstraction over native Fibers
   promise:
@@ -65,10 +66,12 @@ dependencies:
   # RethinkDB client
   rethinkdb:
     github: kingsleyh/crystal-rethinkdb
+    version: ~> 0.2
 
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
+    version: ~> 2.10
 
   # Client for RubberSoul RethinkDB Elasticsearch indexer
   rubber-soul:
@@ -80,8 +83,10 @@ dependencies:
     github: spider-gazelle/tasker
     version: ~> 1.2
 
+  # Secrets parsing
   secrets-env:
     github: place-labs/secrets-env
+    version: ~> 1
 
 development_dependencies:
   # Linter
