@@ -57,7 +57,7 @@ module PlaceOS::Api
         meta = Model::Metadata.new(
           name: metadata.name,
           details: metadata.details,
-          parent_id: metadata.parent_id,
+          parent_id: parent_id,
           description: metadata.description
         )
       end
