@@ -122,7 +122,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 3.4.1
+    version: 3.4.4
 
   placeos-frontends:
     git: https://github.com/placeos/frontend-loader.git
@@ -207,4 +207,3 @@ shards:
   yaml_mapping:
     git: https://github.com/crystal-lang/yaml_mapping.cr.git
     version: 0.1.0
-

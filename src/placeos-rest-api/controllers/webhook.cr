@@ -5,6 +5,7 @@ module PlaceOS::Api
     base "/api/engine/v2/webhook/"
 
     skip_action :authorize!, except: [:show]
+    skip_action :set_user_id, except: [:show]
     before_action :find_hook
 
     @trigger_instance : Model::TriggerInstance?
@@ -40,73 +41,37 @@ module PlaceOS::Api
             exec_params.index.as(Int32)
           )
 
-          args = [] of JSON::Any
-          can_be_called = true
           body_data = request.body.try(&.gets_to_end) || ""
+          header_data = request.headers.try(&.to_h) || Hash(String, Array(String)).new
 
-          method_signature = driver.metadata.try &.functions[exec_params.method]?
+          args = {method_type, header_data, body_data}
 
-          # Check if the function accepts arguments / can be called with
-          if method_signature
-            expects_arguments = method_signature.size > 0
+          exec_response = driver.exec(
+            security: RemoteDriver::Clearance::Support,
+            function: exec_params.method.as(String),
+            args: args,
+            request_id: request_id
+          )
 
-            # ensure any remaining remaining arguments are optional
-            method_signature.each_with_index do |(_argument, type_details), index|
-              case index
-              when 0
-                if type_details[0].as_s.starts_with?("String")
-                  args << JSON::Any.new(method_type)
-                else
-                  can_be_called = false unless type_details.size > 1
-                  expects_arguments = false
-                end
-              when 1
-                if expects_arguments && type_details[0].as_s.starts_with?("String")
-                  args << JSON::Any.new(body_data)
-                else
-                  can_be_called = false unless type_details.size > 1
-                end
+          # We expect that the method being called is aware of its role as a trigger
+          if !exec_response.empty?
+            begin
+              response_code, response_headers, response_body = Tuple(Int32, Hash(String, String)?, String?).from_json(exec_response)
+
+              if response_headers
+                # Forward response headers from the remote driver
+                response_headers.each { |key, value| @context.response.headers[key] = value }
+              end
+
+              # These calls to render will return
+              if response_body && !response_body.empty?
+                render response_code, text: response_body
               else
-                # break as if index > 1 has defaults then they all have defaults
-                can_be_called = false unless type_details.size > 1
-                break
+                head response_code
               end
+            rescue
+              Log.info { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
             end
-          end
-
-          if can_be_called
-            exec_response = driver.exec(
-              security: RemoteDriver::Clearance::User,
-              function: exec_params.method.as(String),
-              args: args,
-              named_args: nil,
-              request_id: request_id
-            )
-
-            # We expect that the method being called is aware of its role as a trigger
-            if !exec_response.empty?
-              begin
-                response_code, response_headers, response_body = Tuple(Int32, Hash(String, String)?, String?).from_json(exec_response)
-
-                if response_headers
-                  # Forward response headers from the remote driver
-                  response_headers.each { |key, value| @context.response.headers[key] = value }
-                end
-
-                # These calls to render will return
-                if response_body && !response_body.empty?
-                  render response_code, text: response_body
-                else
-                  head response_code
-                end
-              rescue
-                Log.info { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
-              end
-            end
-          else
-            Log.warn { "invalid function signature for trigger #{trigger_instance.id} - #{exec_params.friendly}" }
-            head :partial_content if trigger_response.success?
-            head :not_found
           end
         else
           Log.warn { "attempt to execute function on trigger #{trigger_instance.id} - #{exec_params.friendly}" }
