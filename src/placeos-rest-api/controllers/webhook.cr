@@ -22,7 +22,7 @@ module PlaceOS::Api
       trigger = current_trigger
 
       # Notify the trigger service
-      trigger_uri = URI.new(scheme: "http", host: "triggers", port: 3000)
+      trigger_uri = TRIGGERS_URI.dup
       trigger_uri.path = "/api/triggers/v2/webhook?id=#{trigger_instance.id}&secret=#{trigger_instance.webhook_secret}"
       trigger_response = HTTP::Client.post(
         trigger_uri,
@@ -100,11 +100,13 @@ module PlaceOS::Api
                   head response_code
                 end
               rescue
-                Log.warn { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
+                Log.info { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
               end
             end
           else
             Log.warn { "invalid function signature for trigger #{trigger_instance.id} - #{exec_params.friendly}" }
+            head :partial_content if trigger_response.success?
+            head :not_found
           end
         else
           Log.warn { "attempt to execute function on trigger #{trigger_instance.id} - #{exec_params.friendly}" }

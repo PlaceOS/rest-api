@@ -20,6 +20,9 @@ module PlaceOS::Api
   ETCD_HOST = ENV["ETCD_HOST"]? || "localhost"
   ETCD_PORT = (ENV["ETCD_PORT"]? || "2379").to_i
 
+  # server defaults in `./app.cr`
+  TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"] || "http://triggers:3000")
+
   PROD = ENV["SG_ENV"]? == "production"
 
   def self.production?
