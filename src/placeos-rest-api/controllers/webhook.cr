@@ -46,15 +46,16 @@ module PlaceOS::Api
 
           args = {method_type, header_data, body_data}
 
-          exec_response = driver.exec(
+          exec_response = String.from_json(driver.exec(
             security: RemoteDriver::Clearance::Support,
             function: exec_params.method.as(String),
             args: args,
             request_id: request_id
-          )
+          ))
 
           # We expect that the method being called is aware of its role as a trigger
           if !exec_response.empty?
+            Log.debug { "webhook exec response: #{exec_response}" }
             begin
               response_code, response_headers, response_body = Tuple(Int32, Hash(String, String)?, String?).from_json(exec_response)
 
@@ -69,8 +70,8 @@ module PlaceOS::Api
               else
                 head response_code
               end
-            rescue
-              Log.info { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
+            rescue error
+              Log.info(exception: error) { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
             end
           end
         else
