@@ -4,6 +4,7 @@ module PlaceOS::Api
   class Webhook < Application
     base "/api/engine/v2/webhook/"
 
+    skip_action :authorize!, except: [:show]
     before_action :find_hook
 
     @trigger_instance : Model::TriggerInstance?
@@ -21,7 +22,7 @@ module PlaceOS::Api
       trigger = current_trigger
 
       # Notify the trigger service
-      trigger_uri = URI.new(host: "triggers", port: 8080)
+      trigger_uri = URI.new(scheme: "http", host: "triggers", port: 8080)
       trigger_uri.path = "/api/triggers/v2/webhook?id=#{trigger_instance.id}&secret=#{trigger_instance.webhook_secret}"
       trigger_response = HTTP::Client.post(
         trigger_uri,
