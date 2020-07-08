@@ -221,13 +221,16 @@ module PlaceOS::Api
         module_name: module_name,
         discovery: Systems.core_discovery,
       )
-      response = remote_driver.exec(
+
+      result = remote_driver.exec(
         security: driver_clearance(user_token),
         function: method,
         args: args,
         request_id: request_id,
       )
-      render json: response
+
+      response.content_type = "application/json"
+      render text: result
     rescue e : Driver::Proxy::RemoteDriver::Error
       handle_execute_error(e)
     rescue e
