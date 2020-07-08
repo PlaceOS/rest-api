@@ -26,7 +26,7 @@ shards:
 
   clustering:
     git: https://github.com/place-labs/clustering.git
-    version: 2.0.0
+    version: 2.0.1
 
   connect-proxy:
     git: https://github.com/spider-gazelle/connect-proxy.git
@@ -174,7 +174,7 @@ shards:
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.12.0
+    version: 1.12.1
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
