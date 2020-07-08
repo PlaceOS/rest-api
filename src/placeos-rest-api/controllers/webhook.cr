@@ -46,12 +46,12 @@ module PlaceOS::Api
 
           args = {method_type, header_data, body_data}
 
-          exec_response = String.from_json(driver.exec(
+          exec_response = driver.exec(
             security: RemoteDriver::Clearance::Support,
             function: exec_params.method.as(String),
             args: args,
             request_id: request_id
-          ))
+          )
 
           # We expect that the method being called is aware of its role as a trigger
           if !exec_response.empty?
