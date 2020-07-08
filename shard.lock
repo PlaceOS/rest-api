@@ -114,11 +114,11 @@ shards:
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
-    version: 2.0.4
+    version: 3.0.1
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 2.4.0
+    version: 2.5.0
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
@@ -126,11 +126,11 @@ shards:
 
   placeos-frontends:
     git: https://github.com/placeos/frontend-loader.git
-    version: 0.8.0
+    version: 0.9.0
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 3.0.5
+    version: 3.1.1
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -207,3 +207,4 @@ shards:
   yaml_mapping:
     git: https://github.com/crystal-lang/yaml_mapping.cr.git
     version: 0.1.0
+
