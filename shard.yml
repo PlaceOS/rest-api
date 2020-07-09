@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.15.1
+version: 1.16.0
 
 targets:
   rest-api:
@@ -52,7 +52,7 @@ dependencies:
   # For frontends client
   placeos-frontends:
     github: placeos/frontend-loader
-    version: ~> 0.8
+    version: ~> 0.10
 
   # Database view
   placeos-models:
