@@ -60,38 +60,44 @@ module PlaceOS::Api
     end
 
     def self.pull_repository(repository : Model::Repository)
-      # Set the repository commit hash to head
-      repository.update_fields(commit_hash: "HEAD")
+      if repository.repo_type == Model::Repository::Type::Driver
+        # Set the repository commit hash to head
+        repository.update_fields(commit_hash: "HEAD")
 
-      # Initiate changefeed on the document's commit_hash
-      changefeed = Model::Repository.changes(repository.id.as(String))
-      channel = Channel(Model::Repository?).new(1)
+        # Initiate changefeed on the document's commit_hash
+        changefeed = Model::Repository.changes(repository.id.as(String))
+        channel = Channel(Model::Repository?).new(1)
 
-      # Wait until the commit hash is not head with a timeout of 20 seconds
-      found_repo = begin
-        spawn do
-          update_event = changefeed.find do |event|
-            repo = event[:value]
-            repo.destroyed? || repo.commit_hash != "HEAD"
+        # Wait until the commit hash is not head with a timeout of 20 seconds
+        found_repo = begin
+          spawn do
+            update_event = changefeed.find do |event|
+              repo = event[:value]
+              repo.destroyed? || repo.commit_hash != "HEAD"
+            end
+            channel.send(update_event.try &.[:value])
           end
-          channel.send(update_event.try &.[:value])
+
+          select
+          when received = channel.receive?
+            received
+          when timeout(20.seconds)
+            raise "timeout waiting for repository update"
+          end
+        rescue
+          nil
+        ensure
+          # Terminate the changefeed
+          changefeed.stop
+          channel.close
         end
 
-        select
-        when received = channel.receive?
-          received
-        when timeout(20.seconds)
-          raise "timeout waiting for repository update"
-        end
-      rescue
-        nil
-      ensure
-        # Terminate the changefeed
-        changefeed.stop
-        channel.close
+        {found_repo.destroyed?, found_repo.commit_hash} if found_repo
+      else
+        # Asynchronously pull Interface repositories
+        repository.pull!
+        {false, "HEAD"}
       end
-
-      {found_repo.destroyed?, found_repo.commit_hash} if found_repo
     end
 
     # Determine loaded interfaces and their current commit
