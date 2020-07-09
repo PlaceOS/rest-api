@@ -9,7 +9,7 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_repo, only: [:show, :update, :update_alt, :destroy, :drivers, :commits, :details]
+    before_action :find_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
 
     @repo : Model::Repository?
 
@@ -159,6 +159,27 @@ module PlaceOS::Api
       # The raw JSON string is returned
       response.headers["Content-Type"] = "application/json"
       render text: details
+    end
+
+    get "/:id/branches", :branches do
+      unless current_repo.repo_type == Model::Repository::Type::Interface
+        render :bad_request, text: "branching is only supported for interface repositories"
+      end
+
+      branches = Api::Repositories.branches(
+        repository: current_repo,
+        request_id: request_id,
+      )
+
+      render json: branches
+    end
+
+    def self.branches(repository : Model::Repository, request_id : String)
+      repository_directory = repository.folder_name.as(String)
+      # Dial the frontends service
+      Frontends::Client.client(request_id: request_id) do |frontends_client|
+        frontends_client.branches(repository_directory)
+      end
     end
 
     #  Helpers
