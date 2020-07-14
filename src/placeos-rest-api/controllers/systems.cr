@@ -225,10 +225,9 @@ module PlaceOS::Api
       modules = control_system.modules
       control_system_id = control_system.id.as(String)
 
-      module_removed = !modules.try(&.includes?(module_id)) || Model::ControlSystem.remove_module(control_system_id, module_id)
-
-      unless module_removed
-        render text: "Failed to remove ControlSystem Module", status: :internal_server_error
+      if modules.try(&.includes?(module_id))
+        control_system.remove_module(module_id)
+        control_system.save!
       end
 
       # Return the latest version of the control system
