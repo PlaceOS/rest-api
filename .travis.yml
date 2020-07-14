@@ -28,6 +28,7 @@ before_script:
 script:
   # Specs
   - crystal spec -v --error-trace
+  - crystal spec -v -Dpreview_mt --error-trace
   # Linter
   - bin/ameba
   # Formatter
