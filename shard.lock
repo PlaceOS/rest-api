@@ -46,7 +46,7 @@ shards:
 
   debug:
     git: https://github.com/Sija/debug.cr.git
-    version: 1.1.0
+    version: 2.0.0
 
   etcd:
     git: https://github.com/aca-labs/crystal-etcd.git
@@ -110,7 +110,7 @@ shards:
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
-    version: 1.0.1
+    version: 1.1.0
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -162,7 +162,7 @@ shards:
 
   rethinkdb:
     git: https://github.com/kingsleyh/crystal-rethinkdb.git
-    version: 0.2.0
+    version: 0.2.1
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
@@ -174,7 +174,7 @@ shards:
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.12.1
+    version: 1.12.2
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
