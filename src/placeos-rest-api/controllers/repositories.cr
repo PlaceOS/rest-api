@@ -28,8 +28,11 @@ module PlaceOS::Api
       repo = current_repo
       repo.assign_attributes_from_json(request.body.as(IO))
 
-      # Must destroy and re-add to change uri
-      render :unprocessable_entity, text: "Error: uri must not change" if repo.uri_changed?
+      # Must destroy and re-add to change driver repository URIs
+      if repo.uri_changed? && repo.repo_type != Model::Repository::Type::Interface
+        render :unprocessable_entity, text: "Error: uri must not change"
+      end
+
       save_and_respond repo
     end
 

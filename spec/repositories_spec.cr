@@ -37,19 +37,36 @@ module PlaceOS::Api
           updated.name.should_not eq original_name
         end
 
-        it "does not update repositories with modified URIs" do
-          repository = Model::Generator.repository.save!
+        describe "mutating URIs" do
+          it "does not update Driver repositories with modified URIs" do
+            repository = Model::Generator.repository(type: Model::Repository::Type::Driver).save!
 
-          id = repository.id.as(String)
-          path = base + id
-          result = curl(
-            method: "PATCH",
-            path: path,
-            body: {uri: "https://changed:8080"}.to_json,
-            headers: authorization_header.merge({"Content-Type" => "application/json"}),
-          )
+            id = repository.id.as(String)
+            path = base + id
+            result = curl(
+              method: "PATCH",
+              path: path,
+              body: {uri: "https://changed:8080"}.to_json,
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
+            )
 
-          result.status_code.should eq 422
+            result.status_code.should eq 422
+          end
+
+          it "does update Interface repositories with modified URIs" do
+            repository = Model::Generator.repository(type: Model::Repository::Type::Interface).save!
+
+            id = repository.id.as(String)
+            path = base + id
+            result = curl(
+              method: "PATCH",
+              path: path,
+              body: {uri: "https://changed:8080"}.to_json,
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
+            )
+
+            result.status_code.should eq 200
+          end
         end
       end
     end
