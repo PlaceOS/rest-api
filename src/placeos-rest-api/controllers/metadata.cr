@@ -23,12 +23,22 @@ module PlaceOS::Api
 
     # Fetch metadata for Zone children
     #
-    # Filter for a specific metadata by name via `name` param
+    # Filter for a specific metadata by name via `name` param.
+    # Includes the parent metadata by default via `include_parent` param.
     get "/:id/children", :children_metadata do
+      parent_id = params["id"]
       name = params["name"]?
-      parent_id = current_zone.id
 
-      results = current_zone.children.all.reject { |z| z.id == parent_id }.map do |zone|
+      include_parent = if (_include = params["include_parent"]?)
+                         _include == "true"
+                       else
+                         true
+                       end
+
+      children = current_zone.children.all
+      filtered = include_parent ? children : children.reject { |z| z.id == parent_id }
+
+      results = filtered.map do |zone|
         {
           zone:     zone,
           metadata: Model::Metadata.build_metadata(zone, name),
