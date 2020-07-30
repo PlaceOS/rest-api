@@ -58,7 +58,7 @@ module PlaceOS::Api
         client_id = sso_strat.client_id.not_nil!
         client_secret = sso_strat.client_secret.not_nil!
         token_uri = URI.parse(sso_strat.token_url.not_nil!)
-        token_host = token_uri.host
+        token_host = token_uri.host.not_nil!
         token_path = token_uri.full_path
 
         oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
@@ -66,7 +66,7 @@ module PlaceOS::Api
 
         user.access_token = token.access_token
         user.refresh_token = token.refresh_token if token.refresh_token
-        user.expires_at = Time.utc.to_unix + token.expires_in
+        user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
         user.save!
       rescue error
         Log.warn(exception: error) { "failed refresh access token" }
