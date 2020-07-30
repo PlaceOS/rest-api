@@ -50,7 +50,7 @@ module PlaceOS::Api
       head :not_found unless user.refresh_token
 
       begin
-        internals = current_authority.not_nil!.internals
+        internals = current_authority.not_nil!.internals.not_nil!
         sso_strat_id = internals["oauth-strategy"].as_s # (i.e. oauth_strat-FNsaSj6bp-M)
         render(:not_found, text: "no oauth configuration specified in authority") unless sso_strat_id.presence
 
