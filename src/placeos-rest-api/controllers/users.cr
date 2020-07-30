@@ -35,15 +35,15 @@ module PlaceOS::Api
           expires_at = Time.unix(user.expires_at.not_nil!)
           if expires_at > 5.minutes.from_now
             render json: {
-              token: access_token,
-              expires: expires_at.to_unix
+              token:   access_token,
+              expires: expires_at.to_unix,
             }
           end
 
           # Allow for clock drift
           expired = expires_at <= 15.seconds.ago
         else
-          render json: { token: access_token }
+          render json: {token: access_token}
         end
       end
 
@@ -72,8 +72,8 @@ module PlaceOS::Api
         Log.warn(exception: error) { "failed refresh access token" }
         if !expired
           render json: {
-            token: user.access_token,
-            expires: user.expires_at
+            token:   user.access_token,
+            expires: user.expires_at,
           }
         else
           raise error
