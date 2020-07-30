@@ -25,6 +25,62 @@ module PlaceOS::Api
       end
     end
 
+    # Obtain a token to the current users SSO resource
+    post("/resource_token", :resource_token) do
+      user = current_user
+      expired = true
+
+      if access_token = user.access_token.presence
+        if user.expires
+          expires_at = Time.unix(user.expires_at.not_nil!)
+          if expires_at > 5.minutes.from_now
+            render json: {
+              token:   access_token,
+              expires: expires_at.to_unix,
+            }
+          end
+
+          # Allow for clock drift
+          expired = expires_at <= 15.seconds.ago
+        else
+          render json: {token: access_token}
+        end
+      end
+
+      head :not_found unless user.refresh_token.presence
+
+      begin
+        internals = current_authority.not_nil!.internals.not_nil!
+        sso_strat_id = internals["oauth-strategy"].as_s # (i.e. oauth_strat-FNsaSj6bp-M)
+        render(:not_found, text: "no oauth configuration specified in authority") unless sso_strat_id.presence
+
+        sso_strat = ::PlaceOS::Model::OAuthAuthentication.find!(sso_strat_id.not_nil!)
+        client_id = sso_strat.client_id.not_nil!
+        client_secret = sso_strat.client_secret.not_nil!
+        token_uri = URI.parse(sso_strat.token_url.not_nil!)
+        token_host = token_uri.host.not_nil!
+        token_path = token_uri.full_path
+
+        oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
+        token = oauth2_client.get_access_token_using_refresh_token(user.refresh_token.not_nil!)
+
+        user.access_token = token.access_token
+        user.refresh_token = token.refresh_token if token.refresh_token
+        user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
+        user.save!
+      rescue error
+        Log.warn(exception: error) { "failed refresh access token" }
+        if !expired
+          render json: {
+            token:   user.access_token,
+            expires: user.expires_at,
+          }
+        else
+          raise error
+        end
+      end
+    end
+
     def index
       elastic = Model::User.elastic
       query = elastic.query(params)
