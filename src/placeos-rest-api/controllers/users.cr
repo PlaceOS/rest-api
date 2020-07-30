@@ -47,7 +47,7 @@ module PlaceOS::Api
         end
       end
 
-      head :not_found unless user.refresh_token
+      head :not_found unless user.refresh_token.presence
 
       begin
         internals = current_authority.not_nil!.internals.not_nil!
