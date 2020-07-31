@@ -4,6 +4,9 @@ WORKDIR /app
 # Set the commit through a build arg
 ARG PLACE_COMMIT="DEV"
 
+# Add trusted CAs for communicating with external services
+RUN apk update && apk add --no-cache ca-certificates tzdata && update-ca-certificates
+
 # Install shards for caching
 COPY shard.yml shard.yml
 COPY shard.lock shard.lock
@@ -56,6 +59,13 @@ COPY --from=0 /bin/ping6 /ping6
 
 # These are required for communicating with external services
 COPY --from=0 /etc/hosts /etc/hosts
+
+# These provide certificate chain validation where communicating with external services over TLS
+COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+# This is required for Timezone support
+COPY --from=0 /usr/share/zoneinfo/ /usr/share/zoneinfo/
 
 # Copy the user information over
 COPY --from=0 /etc/passwd /etc/passwd
