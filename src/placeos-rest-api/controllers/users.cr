@@ -68,6 +68,11 @@ module PlaceOS::Api
         user.refresh_token = token.refresh_token if token.refresh_token
         user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
         user.save!
+
+        render json: {
+          token:   user.access_token,
+          expires: user.expires_at,
+        }
       rescue error
         Log.warn(exception: error) { "failed refresh access token" }
         if !expired
