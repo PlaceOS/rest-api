@@ -62,7 +62,7 @@ module PlaceOS::Api
         token_path = token_uri.full_path
 
         oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
-        token = oauth2_client.get_access_token_using_refresh_token(user.refresh_token.not_nil!)
+        token = oauth2_client.get_access_token_using_refresh_token(user.refresh_token.not_nil!, sso_strat.scope)
 
         user.access_token = token.access_token
         user.refresh_token = token.refresh_token if token.refresh_token
