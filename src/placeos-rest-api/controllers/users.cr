@@ -119,10 +119,10 @@ module PlaceOS::Api
     class AdminAttributes
       include JSON::Serializable
 
-      login_name : String?
-      staff_id : String?
-      card_number : String?
-      groups : Array(String)?
+      property login_name : String?
+      property staff_id : String?
+      property card_number : String?
+      property groups : Array(String)?
     end
 
     def update
@@ -134,10 +134,10 @@ module PlaceOS::Api
       # TODO:: probably should be using scopes for this
       if is_admin?
         attrs = AdminAttributes.from_json(body)
-        user.login_name = login_name if login_name = attrs.login_name
-        user.staff_id = staff_id if staff_id = attrs.staff_id
-        user.card_number = card_number if card_number = attrs.card_number
-        user.groups = groups if groups = attrs.groups
+        user.login_name = attrs.login_name if attrs.login_name
+        user.staff_id = attrs.staff_id if attrs.staff_id
+        user.card_number = attrs.card_number if attrs.card_number
+        user.groups = attrs.groups if attrs.groups
       end
 
       # Ensure authority doesn't change
