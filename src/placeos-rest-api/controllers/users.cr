@@ -116,13 +116,13 @@ module PlaceOS::Api
       save_and_respond user
     end
 
-    class AdminAttributes
+    struct AdminAttributes
       include JSON::Serializable
 
-      property login_name : String?
-      property staff_id : String?
-      property card_number : String?
-      property groups : Array(String)?
+      getter login_name : String?
+      getter staff_id : String?
+      getter card_number : String?
+      getter groups : Array(String)?
     end
 
     def update
