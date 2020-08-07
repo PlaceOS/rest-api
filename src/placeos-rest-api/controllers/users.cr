@@ -116,12 +116,33 @@ module PlaceOS::Api
       save_and_respond user
     end
 
+    class AdminAttributes
+      include JSON::Serializable
+
+      login_name : String?
+      staff_id : String?
+      card_number : String?
+      groups : Array(String)?
+    end
+
     def update
       user = @user.as(Model::User)
+      body = request.body.as(IO).gets_to_end
+
+      # Allow additional attributes to be applied by admins
+      # (the users themselves should not have access to these)
+      # TODO:: probably should be using scopes for this
+      if is_admin?
+        attrs = AdminAttributes.from_json(body)
+        user.login_name = login_name if login_name = attrs.login_name
+        user.staff_id = staff_id if staff_id = attrs.staff_id
+        user.card_number = card_number if card_number = attrs.card_number
+        user.groups = groups if groups = attrs.groups
+      end
 
       # Ensure authority doesn't change
       authority_id = user.authority_id
-      user.assign_attributes_from_json(request.body.as(IO))
+      user.assign_attributes_from_json(body)
       user.authority_id = authority_id
 
       save_and_respond user
