@@ -90,6 +90,7 @@ module PlaceOS::Api
     post("/:id/exec/:module_slug/:method") do
       zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
       args = Array(JSON::Any).from_json(request.body.as(IO))
+
       module_name, index = ::PlaceOS::Driver::Proxy::RemoteDriver.get_parts(module_slug)
 
       results = Promise.map(current_zone.systems) do |system|
@@ -103,13 +104,13 @@ module PlaceOS::Api
         output = remote_driver.exec(
           security: driver_clearance(user_token),
           function: method.as(String),
-          args: args.as(Array(JSON::Any)),
+          args: args,
           request_id: request_id,
         )
 
         Log.debug { {message: "module exec success", system_id: system_id, module_name: module_name, index: index, method: method, output: output} }
 
-        {system_id.as(String), ExecStatus::Success}
+        {system_id, ExecStatus::Success}
       rescue e : Driver::Proxy::RemoteDriver::Error
         handle_execute_error(e, respond: false)
         if e.error_code == Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound

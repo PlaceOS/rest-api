@@ -23,7 +23,7 @@ module PlaceOS::Api
 
         it "update" do
           mod = Model::Generator.module.save!
-          connected = mod.connected.not_nil!
+          connected = mod.connected
           mod.connected = !connected
 
           id = mod.id.as(String)

@@ -37,8 +37,8 @@ module PlaceOS::Api
         if trigger_instance.exec_enabled
           driver = RemoteDriver.new(
             trigger_instance.control_system_id.as(String),
-            exec_params.mod.as(String),
-            exec_params.index.as(Int32)
+            exec_params.mod,
+            exec_params.index
           )
 
           body_data = request.body.try(&.gets_to_end) || ""
@@ -48,7 +48,7 @@ module PlaceOS::Api
 
           exec_response = driver.exec(
             security: RemoteDriver::Clearance::Support,
-            function: exec_params.method.as(String),
+            function: exec_params.method,
             args: args,
             request_id: request_id
           )
@@ -105,7 +105,7 @@ module PlaceOS::Api
       attribute method : String
 
       def friendly
-        "#{@mod}_#{@index.as(Int32)}.#{method}"
+        "#{mod}_#{index}.#{method}"
       end
 
       validates :mod, presence: true

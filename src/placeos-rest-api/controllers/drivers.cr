@@ -69,8 +69,7 @@ module PlaceOS::Api
 
     post("/:id/recompile", :recompile) do
       driver = current_driver
-      commit = driver.commit.not_nil!
-      if commit.starts_with?("RECOMPILE")
+      if driver.commit.starts_with?("RECOMPILE")
         head :already_reported
       else
         if (recompiled = Drivers.recompile(driver))
@@ -87,7 +86,7 @@ module PlaceOS::Api
 
     def self.recompile(driver : Model::Driver)
       # Set the repository commit hash to head
-      driver.update_fields(commit: "RECOMPILE-#{driver.commit.as(String)}")
+      driver.update_fields(commit: "RECOMPILE-#{driver.commit}")
 
       # Initiate changefeed on the document's commit
       changefeed = Model::Driver.changes(driver.id.as(String))
@@ -98,7 +97,7 @@ module PlaceOS::Api
         spawn do
           update_event = changefeed.find do |event|
             driver_update = event[:value]
-            driver_update.destroyed? || !driver_update.commit.as(String).starts_with? "RECOMPILE"
+            driver_update.destroyed? || !driver_update.commit.starts_with? "RECOMPILE"
           end
           channel.send(update_event.try &.[:value])
         end
@@ -126,8 +125,8 @@ module PlaceOS::Api
     #
     get("/:id/compiled", :compiled) do
       driver = current_driver
-      file_name = URI.encode(driver.file_name.as(String))
-      commit = driver.commit.as(String)
+      file_name = URI.encode(driver.file_name)
+      commit = driver.commit
       tag = driver.id.as(String)
       repository = driver.repository
 
@@ -138,7 +137,7 @@ module PlaceOS::Api
 
       compiled = begin
         Api::Systems.core_for(file_name, request_id) do |core_client|
-          core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name.as(String), commit: commit, tag: tag)
+          core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name, commit: commit, tag: tag)
         end
       rescue e
         Log.error(exception: e) { "failed to request compilation status from core" }
@@ -159,17 +158,15 @@ module PlaceOS::Api
       driver : Model::Driver,
       request_id : String? = "migrate to Log"
     )
-      file_name = driver.file_name.as(String)
-      commit = driver.commit.as(String)
-      repository_folder = driver.repository.as(Model::Repository).folder_name.as(String)
       tag = driver.id.as(String)
+      repository_folder = driver.repository!.folder_name
 
       nodes = Api::Systems.core_discovery.node_hash
       result = Promise.all(nodes.map { |name, uri|
         Promise.defer {
           status = begin
             Core::Client.client(uri, request_id) { |client|
-              client.driver_compiled?(file_name, commit, repository_folder, tag)
+              client.driver_compiled?(driver.file_name, driver.commit, repository_folder, tag)
             }
           rescue e
             Log.error(exception: e) { "failed to request compilation status from core" }

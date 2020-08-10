@@ -21,8 +21,8 @@ module PlaceOS::Api
       attribute complete : Bool = true
       attribute important : Bool = false
       attribute triggered : Bool = false
-      attribute trigger_id : String
-      attribute as_of : Int32 # Unix epoch
+      attribute trigger_id : String?
+      attribute as_of : Int32? # Unix epoch
     end
 
     def index
@@ -73,18 +73,18 @@ module PlaceOS::Api
     end
 
     class UpdateParams < Params
-      attribute enabled : Bool
-      attribute important : Bool
-      attribute exec_enabled : Bool
+      attribute enabled : Bool?
+      attribute important : Bool?
+      attribute exec_enabled : Bool?
     end
 
     def update
       args = UpdateParams.from_json(request.body.as(IO))
 
       sys_trig = current_sys_trig
-      sys_trig.enabled = args.enabled unless args.enabled.nil?
-      sys_trig.important = args.important unless args.important.nil?
-      sys_trig.exec_enabled = args.exec_enabled unless args.exec_enabled.nil?
+      sys_trig.enabled = args.enabled.as(Bool) unless args.enabled.nil?
+      sys_trig.important = args.important.as(Bool) unless args.important.nil?
+      sys_trig.exec_enabled = args.exec_enabled.as(Bool) unless args.exec_enabled.nil?
 
       save_and_respond(sys_trig)
     end

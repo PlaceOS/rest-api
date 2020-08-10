@@ -28,7 +28,7 @@ module PlaceOS::Api
               ws.send Session::Request.new(
                 id: rand(10).to_i64,
                 sys_id: control_system.id.as(String),
-                module_name: mod.custom_name.as(String),
+                module_name: mod.resolved_name,
                 name: status_name,
                 command: Session::Request::Command::Bind,
               ).to_json
@@ -54,9 +54,8 @@ module PlaceOS::Api
             # Check all responses correct metadata
             updates.all? { |v| v.meta == expected_meta }.should be_true
             # Check all messages received
-            updates.size.should eq 3
-            # Check for status variable updates
-            updates[1..2].map(&.value.not_nil!.to_i).should eq [1, 2]
+            updates.size.should eq 3 # Check for status variable updates
+            updates[1..2].compact_map(&.value.try &.to_i).should eq [1, 2]
           end
         end
 
@@ -69,7 +68,7 @@ module PlaceOS::Api
             request = {
               id:          id,
               sys_id:      control_system.id.as(String),
-              module_name: mod.custom_name.as(String),
+              module_name: mod.resolved_name,
               name:        status_name,
               command:     Session::Request::Command::Bind,
             }

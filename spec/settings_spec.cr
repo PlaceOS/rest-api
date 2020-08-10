@@ -28,7 +28,7 @@ module PlaceOS::Api
 
           returned_settings = Array(JSON::Any).from_json(result.body).map { |m|
             Model::Settings.from_trusted_json(m.to_json)
-          }.sort_by!(&.encryption_level.not_nil!)
+          }.sort_by!(&.encryption_level)
 
           returned_clear, returned_admin, returned_never_displayed = returned_settings
 
@@ -84,7 +84,7 @@ module PlaceOS::Api
         test_crd(klass: Model::Settings, controller_klass: Settings)
         it "update" do
           settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
-          original_settings = settings.settings_string.as(String)
+          original_settings = settings.settings_string
           settings.settings_string = %(hello: "world"\n)
 
           id = settings.id.as(String)

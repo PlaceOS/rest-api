@@ -151,10 +151,9 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          cs = Model::ControlSystem.find(cs.id.as(String))
+          cs = Model::ControlSystem.find!(cs.id.as(String))
 
-          cs.should_not be_nil
-          cs.not_nil!.modules.not_nil!.should_not contain mod_id
+          cs.modules.should_not contain mod_id
 
           Model::Module.find(mod_id).should be_nil
           {mod, cs}.each &.try &.destroy
@@ -173,8 +172,8 @@ module PlaceOS::Api
           cs1.update_fields(modules: [mod_id])
           cs2.update_fields(modules: [mod_id])
 
-          cs1.modules.not_nil!.should contain mod_id
-          cs2.modules.not_nil!.should contain mod_id
+          cs1.modules.should contain mod_id
+          cs2.modules.should contain mod_id
 
           path = base + "#{cs1.id}/module/#{mod_id}"
 
@@ -189,8 +188,8 @@ module PlaceOS::Api
           cs1 = Model::ControlSystem.find!(cs1.id.as(String))
           cs2 = Model::ControlSystem.find!(cs2.id.as(String))
 
-          cs1.modules.not_nil!.should_not contain mod_id
-          cs2.modules.not_nil!.should contain mod_id
+          cs1.modules.should_not contain mod_id
+          cs2.modules.should contain mod_id
 
           Model::Module.find(mod_id).should_not be_nil
 
@@ -214,7 +213,7 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
           cs = Model::ControlSystem.from_trusted_json(result.body)
-          cs.modules.not_nil!.should contain mod_id
+          cs.modules.should contain mod_id
           {cs, mod}.each &.destroy
         end
 

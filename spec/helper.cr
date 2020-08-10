@@ -56,7 +56,7 @@ def authentication
   authenticated_user = if existing
                          existing
                        else
-                         user = PlaceOS::Model::Generator.user.not_nil!
+                         user = PlaceOS::Model::Generator.user
                          user.sys_admin = true
                          user.support = true
                          begin
@@ -169,7 +169,7 @@ macro test_crd(klass, controller_klass)
     result.status_code.should eq 201
     body = result.body.as(String)
 
-    response_model = {{ klass.id }}.from_trusted_json(result.body).not_nil!
+    response_model = {{ klass.id }}.from_trusted_json(result.body)
     response_model.destroy
   end
 
@@ -184,7 +184,7 @@ macro test_crd(klass, controller_klass)
     )
 
     result.status_code.should eq 200
-    response_model = {{ klass.id }}.from_trusted_json(result.body).not_nil!
+    response_model = {{ klass.id }}.from_trusted_json(result.body)
     response_model.id.should eq id
 
     model.destroy
