@@ -19,12 +19,12 @@ module PlaceOS::Api
     @module : Model::Module?
 
     private class IndexParams < Params
-      attribute as_of : Int32
-      attribute control_system_id : String
-      attribute connected : Bool
-      attribute driver_id : String
+      attribute as_of : Int32?
+      attribute control_system_id : String?
+      attribute connected : Bool?
+      attribute driver_id : String?
       attribute no_logic : Bool = false
-      attribute running : Bool
+      attribute running : Bool?
     end
 
     DRIVER_ATTRIBUTES = %w(name description)
@@ -211,7 +211,7 @@ module PlaceOS::Api
     post(":id/exec/:method", :execute) do
       id, method = params["id"], params["method"]
       mod = current_module
-      module_name = mod.name.as(String)
+      module_name = mod.name
       sys_id = mod.control_system_id.as(String)
       args = Array(JSON::Any).from_json(request.body.as(IO))
 
@@ -290,21 +290,21 @@ module PlaceOS::Api
         return false
       end
 
-      file_name = URI.encode(driver.file_name.as(String))
-      commit = driver.commit.as(String)
-      tag = driver.id.as(String)
-      repository = driver.repository
-
-      unless repository
+      if (repository = driver.repository).nil?
         Log.error { "failed to load Driver<#{driver.id}>'s Repository<#{driver.repository_id}>" }
         return false
       end
 
-      folder_name = repository.folder_name.as(String)
+      tag = driver.id.as(String)
 
       begin
         Api::Systems.core_for(mod.id.as(String), request_id) do |core_client|
-          core_client.driver_compiled?(file_name: file_name, repository: folder_name, commit: commit, tag: tag)
+          core_client.driver_compiled?(
+            file_name: URI.encode(driver.file_name),
+            repository: repository.folder_name,
+            commit: driver.commit,
+            tag: tag,
+          )
         end
       rescue e
         Log.error(exception: e) { "failed to request driver status from core" }

@@ -16,7 +16,7 @@ module PlaceOS::Api
     include Utils::CurrentUser
 
     # Default sort for elasticsearch
-    NAME_SORT_ASC = {"name" => {order: :asc}}
+    NAME_SORT_ASC = {"name.keyword" => {order: :asc}}
 
     def paginate_results(elastic, query, route = base_route)
       data = elastic.search(query)

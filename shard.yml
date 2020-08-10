@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.16.5
+version: 1.17.0
 
 targets:
   rest-api:
@@ -32,7 +32,6 @@ dependencies:
   # Elasticsearch extension for RethinkORM
   neuroplastic:
     github: spider-gazelle/neuroplastic
-    version: 1.6.0
 
   # Performs ping requests
   pinger:
@@ -51,13 +50,13 @@ dependencies:
 
   # For frontends client
   placeos-frontends:
-    github: placeos/frontend-loader
-    version: ~> 0.10
+    github: placeos/frontends
+    version: ~> 0.10, ">= 0.10.3"
 
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 3.0
+    version: ">= 4.0"
 
   # A familiar abstraction over native Fibers
   promise:
@@ -71,7 +70,6 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: ~> 2.10
 
   # Client for RubberSoul RethinkDB Elasticsearch indexer
   rubber-soul:
@@ -81,7 +79,7 @@ dependencies:
   # Scheduling
   tasker:
     github: spider-gazelle/tasker
-    version: ~> 1.2
+    version: ~> 2
 
   # Secrets parsing
   secrets-env:

@@ -111,7 +111,7 @@ module PlaceOS::Api
     end
 
     get "/:id/drivers", :drivers do
-      repository = current_repo.folder_name.as(String)
+      repository = current_repo.folder_name
 
       # Request to core:
       # "/api/core/v1/drivers/?repository=#{repository}"
@@ -139,22 +139,20 @@ module PlaceOS::Api
 
     def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
       number_of_commits = 50 if number_of_commits.nil?
-      repository_directory = repository.folder_name.as(String)
       if repository.repo_type == Model::Repository::Type::Driver
         # Dial the core responsible for the driver
-        Api::Systems.core_for(repository_directory, request_id) do |core_client|
-          core_client.driver(file_name || ".", repository_directory, number_of_commits)
+        Api::Systems.core_for(repository.folder_name, request_id) do |core_client|
+          core_client.driver(file_name || ".", repository.folder_name, number_of_commits)
         end
       else
         # Dial the frontends service
         Frontends::Client.client(request_id: request_id) do |frontends_client|
-          frontends_client.commits(repository_directory, number_of_commits)
+          frontends_client.commits(repository.folder_name, number_of_commits)
         end
       end
     end
 
     get "/:id/details", :details do
-      repository = current_repo.folder_name.not_nil!
       driver = params["driver"]
       commit = params["commit"]
 
@@ -162,7 +160,7 @@ module PlaceOS::Api
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
       # Returns: https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
       details = Api::Systems.core_for(driver, request_id) do |core_client|
-        core_client.driver_details(driver, commit, repository)
+        core_client.driver_details(driver, commit, current_repo.folder_name)
       end
 
       # The raw JSON string is returned
@@ -184,10 +182,9 @@ module PlaceOS::Api
     end
 
     def self.branches(repository : Model::Repository, request_id : String)
-      repository_directory = repository.folder_name.as(String)
       # Dial the frontends service
       Frontends::Client.client(request_id: request_id) do |frontends_client|
-        frontends_client.branches(repository_directory)
+        frontends_client.branches(repository.folder_name)
       end
     end
 

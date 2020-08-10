@@ -37,13 +37,13 @@ module PlaceOS::Api
 
     # Strong params for index method
     class IndexParams < Params
-      attribute bookable : Bool
-      attribute capacity : Int32
-      attribute email : String
-      attribute features : String
-      attribute module_id : String
-      attribute trigger_id : String
-      attribute zone_id : String
+      attribute bookable : Bool?
+      attribute capacity : Int32?
+      attribute email : String?
+      attribute features : String?
+      attribute module_id : String?
+      attribute trigger_id : String?
+      attribute zone_id : String?
     end
 
     # Query ControlSystem resources
@@ -138,7 +138,7 @@ module PlaceOS::Api
     def update
       version = begin
         args = UpdateParams.new(params).validate!
-        args.version.not_nil!
+        args.version
       rescue
         message = "missing system version parameter"
         respond_with(:precondition_failed) do
@@ -302,7 +302,7 @@ module PlaceOS::Api
     get("/:sys_id/types", :types) do
       modules = Model::Module.in_control_system(current_system.id.as(String))
       types = modules.each_with_object(Hash(String, Int32).new(0)) do |mod, count|
-        count[mod.resolved_name.as(String)] += 1
+        count[mod.resolved_name] += 1
       end
 
       render json: types

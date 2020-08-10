@@ -20,7 +20,7 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          response_model = Model::User.from_trusted_json(result.body).not_nil!
+          response_model = Model::User.from_trusted_json(result.body)
           response_model.id.should eq id
 
           model.destroy
@@ -36,7 +36,7 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          response_user = Model::User.from_trusted_json(result.body).not_nil!
+          response_user = Model::User.from_trusted_json(result.body)
           response_user.id.should eq authenticated_user.id
         end
       end

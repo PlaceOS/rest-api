@@ -76,7 +76,7 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          response_model = Model::TriggerInstance.from_trusted_json(result.body).not_nil!
+          response_model = Model::TriggerInstance.from_trusted_json(result.body)
           response_model.id.should eq id
 
           sys.destroy

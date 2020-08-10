@@ -137,7 +137,7 @@ module PlaceOS::Api
         user.login_name = attrs.login_name if attrs.login_name
         user.staff_id = attrs.staff_id if attrs.staff_id
         user.card_number = attrs.card_number if attrs.card_number
-        user.groups = attrs.groups if attrs.groups
+        user.groups = attrs.groups.as(Array(String)) if attrs.groups
       end
 
       # Ensure authority doesn't change
