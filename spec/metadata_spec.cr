@@ -65,6 +65,76 @@ module PlaceOS::Api
         end
       end
 
+      describe "/metadata" do
+        it "creates metadata" do
+          parent = Model::Generator.zone.save!
+          meta = Model::Metadata::Interface.new(
+            name: "test",
+            description: "",
+            details: JSON.parse(%({"hello":"world","bye":"friends"})),
+            parent_id: nil,
+          )
+
+          parent_id = parent.id.as(String)
+          path = "#{base}/#{parent_id}"
+
+          result = curl(
+            method: "PUT",
+            path: path,
+            body: meta.to_json,
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+
+          new_metadata = Model::Metadata.from_json(result.body)
+          found = Model::Metadata.for(parent.id.as(String), meta.name).first
+          found.name.should eq new_metadata.name
+        end
+
+        it "updates metadata" do
+          parent = Model::Generator.zone.save!
+          meta = Model::Metadata::Interface.new(
+            name: "test",
+            description: "",
+            details: JSON.parse(%({"hello":"world","bye":"friends"})),
+            parent_id: nil,
+          )
+
+          parent_id = parent.id.as(String)
+          path = "#{base}/#{parent_id}"
+
+          result = curl(
+            method: "PUT",
+            path: path,
+            body: meta.to_json,
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+
+          new_metadata = Model::Metadata::Interface.from_json(result.body)
+          found = Model::Metadata.for(parent_id, meta.name).first
+          found.name.should eq new_metadata.name
+
+          updated_meta = Model::Metadata::Interface.new(
+            name: "test",
+            description: "",
+            details: JSON.parse(%({"hello":"world"})),
+            parent_id: nil,
+          )
+
+          result = curl(
+            method: "PUT",
+            path: path,
+            body: updated_meta.to_json,
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+
+          update_response_meta = Model::Metadata::Interface.from_json(result.body)
+          update_response_meta.details.as_h["bye"]?.should be_nil
+
+          found = Model::Metadata.for(parent_id, meta.name).first
+          found.details.as_h["bye"]?.should be_nil
+        end
+      end
+
       describe "/metadata/:id" do
         it "shows control_system metadata" do
           control_system = Model::Generator.control_system.save!
