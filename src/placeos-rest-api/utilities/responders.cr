@@ -4,11 +4,17 @@ module PlaceOS::Api
   module Utils::Responders
     # Shortcut to save a record and render a response
     def save_and_respond(resource)
+      result, status = save_and_status(resource)
+      render json: result, status: status
+    end
+
+    # Shortcut to save a record and give the correct
+    def save_and_status(resource)
       creation = resource.new_record?
       if resource.save
-        render json: resource, status: creation ? HTTP::Status::CREATED : HTTP::Status::OK
+        {resource, creation ? HTTP::Status::CREATED : HTTP::Status::OK }
       else
-        render json: resource.errors.map(&.to_s), status: :unprocessable_entity
+        {resource.errors.map(&.to_s), HTTP::Status::UNPROCESSABLE_ENTITY}
       end
     end
 

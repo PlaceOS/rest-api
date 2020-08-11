@@ -26,7 +26,11 @@ RethinkORM.configure do |settings|
   settings.db = db_name
 end
 
-Spec.before_suite { clear_tables }
+Spec.before_suite do
+  Log.builder.bind("*", backend: PlaceOS::Api::LOG_BACKEND, level: Log::Severity::Debug)
+  clear_tables
+end
+
 Spec.after_suite { clear_tables }
 
 def clear_tables

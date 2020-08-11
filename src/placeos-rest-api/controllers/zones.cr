@@ -91,13 +91,13 @@ module PlaceOS::Api
       zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
       args = Array(JSON::Any).from_json(request.body.as(IO))
 
-      module_name, index = ::PlaceOS::Driver::Proxy::RemoteDriver.get_parts(module_slug)
+      module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
 
       results = Promise.map(current_zone.systems) do |system|
         system_id = system.id.as(String)
         remote_driver = Driver::Proxy::RemoteDriver.new(
           sys_id: system_id,
-          module_name: module_name.as(String),
+          module_name: module_name.as(String), # NOTE: These should not require casting, `get_parts` is a total function
           index: index.as(Int32)
         )
 
