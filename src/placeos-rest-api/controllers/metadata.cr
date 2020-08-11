@@ -72,7 +72,13 @@ module PlaceOS::Api
         )
       end
 
-      save_and_respond meta
+      response, status = save_and_status(meta)
+
+      if status.ok? && response.is_a?(Model::Metadata)
+        render json: Model::Metadata.interface(response), status: status
+      else
+        render json: response, status: status
+      end
     end
 
     put "/:id", :update_alt { update }
