@@ -33,7 +33,7 @@ module PlaceOS::Api
       if access_token = user.access_token.presence
         if user.expires
           expires_at = Time.unix(user.expires_at.not_nil!)
-          if expires_at > 5.minutes.from_now
+          if 5.minutes.from_now < expires_at
             render json: {
               token:   access_token,
               expires: expires_at.to_unix,
@@ -41,7 +41,7 @@ module PlaceOS::Api
           end
 
           # Allow for clock drift
-          expired = expires_at <= 15.seconds.ago
+          expired = 15.seconds.from_now > expires_at
         else
           render json: {token: access_token}
         end
