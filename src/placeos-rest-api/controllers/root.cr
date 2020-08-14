@@ -12,10 +12,6 @@ module PlaceOS::Api
       head :ok
     end
 
-    get "/healthz", :healthz do
-      head :ok
-    end
-
     get "/version", :version do
       render json: {
         app:        APP_NAME,

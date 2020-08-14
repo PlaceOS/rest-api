@@ -50,7 +50,7 @@ module PlaceOS::Api
     before_action :authorize!, except: [:root]
 
     # Simplifies determining user's requests in server-side logs
-    before_action :set_user_id
+    before_action :set_user_id, except: [:root]
 
     # Set user_id from parsed JWT
     def set_user_id
