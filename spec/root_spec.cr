@@ -7,9 +7,6 @@ module PlaceOS::Api
       base = Api::Root::NAMESPACE[0]
 
       it "responds to health checks" do
-        result = curl("GET", File.join(base, "healthz"), headers: authorization_header)
-        result.status_code.should eq 200
-
         result = curl("GET", base, headers: authorization_header)
         result.status_code.should eq 200
       end

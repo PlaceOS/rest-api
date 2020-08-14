@@ -126,7 +126,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 3.5.4
+    version: 3.5.5
 
   placeos-frontends:
     git: https://github.com/placeos/frontends.git
@@ -182,7 +182,7 @@ shards:
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.14.1
+    version: 1.14.2
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
