@@ -57,7 +57,7 @@ OptionParser.parse(ARGV.dup) do |parser|
 end
 
 # Load the routes
-puts "Launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION}"
+puts "Launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME})"
 
 # Requiring config here ensures that the option parser runs before
 # we attempt to connect to redis etc.
