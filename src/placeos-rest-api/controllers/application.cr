@@ -57,21 +57,20 @@ module PlaceOS::Api
       Log.context.set(user_id: user_token.id)
     end
 
-    @request_id : String? = nil
+    getter request_id : String { UUID.random.to_s }
 
     # This makes it simple to match client requests with server side logs.
     # When building microservices, this ID should be propagated to upstream services.
     def set_request_id
-      @request_id = request_id = request.headers["X-Request-ID"]? || UUID.random.to_s
+      if request.headers.has_key?("X-Request-ID") && @request_id.nil?
+        @request_id = request.headers["X-Request-ID"]
+      end
+
       Log.context.set(
         client_ip: client_ip,
         request_id: request_id
       )
       response.headers["X-Request-ID"] = request_id
-    end
-
-    def request_id : String
-      @request_id ||= UUID.random.to_s
     end
 
     # Callback to enforce JSON request body

@@ -49,7 +49,7 @@ shards:
     version: 2.0.0
 
   etcd:
-    git: https://github.com/place-labs/crystal-etcd.git
+    git: https://github.com/aca-labs/crystal-etcd.git
     version: 1.0.1
 
   exec_from:
@@ -126,11 +126,11 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 3.5.5
+    version: 3.5.6
 
   placeos-frontends:
     git: https://github.com/placeos/frontends.git
-    version: 0.10.3
+    version: 0.10.4
 
   placeos-models:
     git: https://github.com/placeos/models.git
@@ -138,7 +138,7 @@ shards:
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
-    version: 1.0.2
+    version: 1.0.5
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -174,7 +174,7 @@ shards:
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
-    version: 3.0.0
+    version: 3.0.2
 
   retriable:
     git: https://github.com/sija/retriable.cr.git
@@ -209,7 +209,7 @@ shards:
     version: 1.1.0
 
   ulid:
-    git: https://github.com/place-labs/ulid.git
+    git: https://github.com/aca-labs/ulid.git
     version: 0.1.2
 
   yaml_mapping:

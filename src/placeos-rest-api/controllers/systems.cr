@@ -424,10 +424,7 @@ module PlaceOS::Api
       end
     end
 
-    # Lazy initializer for session_manager
-    def self.session_manager
-      (@@session_manager ||= Session::Manager.new(@@core_discovery)).as(Session::Manager)
-    end
+    class_getter session_manager : Session::Manager { Session::Manager.new(core_discovery) }
 
     def current_system : Model::ControlSystem
       control_system || find_system

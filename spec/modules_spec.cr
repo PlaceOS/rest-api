@@ -28,6 +28,7 @@ module PlaceOS::Api
 
           id = mod.id.as(String)
           path = base + id
+
           result = curl(
             method: "PATCH",
             path: path,
