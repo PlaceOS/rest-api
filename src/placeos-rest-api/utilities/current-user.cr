@@ -29,6 +29,11 @@ module PlaceOS::Api
         raise Error::Unauthorized.new "bearer malformed"
       end
 
+      unless user_token.scope.includes?("public")
+        Log.warn { {message: "unknown scope #{user_token.scope}", action: "authorize!", host: request.host, sub: user_token.sub} }
+        raise Error::Unauthorized.new "public scope required for access"
+      end
+
       unless (authority = current_authority)
         Log.warn { {message: "authority not found", action: "authorize!", host: request.host} }
         raise Error::Unauthorized.new "authority not found"
