@@ -118,15 +118,26 @@ module PlaceOS::Api
       render json: systems
     end
 
+    # Allow guest access to system details of a single room
+    skip_action :check_oauth_scope, only: :show
+
     # Renders a control system
     def show
+      control_system = current_system
+
+      # Guest JWTs include the control system id that they have access to
+      if user_token.scope.includes?("guest")
+        head :forbidden unless user_token.user.roles.includes?(control_system.id)
+        render json: control_system
+      end
+
       if params["complete"]?
-        render json: with_fields(current_system, {
-          :module_data => current_system.module_data,
-          :zone_data   => current_system.zone_data,
+        render json: with_fields(control_system, {
+          :module_data => control_system.module_data,
+          :zone_data   => control_system.zone_data,
         })
       else
-        render json: current_system
+        render json: control_system
       end
     end
 
