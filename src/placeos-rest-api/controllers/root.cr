@@ -7,6 +7,7 @@ module PlaceOS::Api
     base "/api/engine/v2/"
 
     before_action :check_admin, except: [:root, :healthz, :version, :signal]
+    skip_action :check_oauth_scope, only: :signal
 
     get "/", :root do
       head :ok
@@ -24,6 +25,11 @@ module PlaceOS::Api
     # Can be used in a similar manner to a webhook for drivers
     post "/signal", :signal do
       channel = params["channel"]
+
+      if user_token.scope.includes?("guest")
+        head :forbidden unless channel.includes?("/guest/")
+      end
+
       payload = if body = request.body
                   body.gets_to_end
                 else

@@ -29,11 +29,6 @@ module PlaceOS::Api
         raise Error::Unauthorized.new "bearer malformed"
       end
 
-      unless user_token.scope.includes?("public")
-        Log.warn { {message: "unknown scope #{user_token.scope}", action: "authorize!", host: request.host, sub: user_token.sub} }
-        raise Error::Unauthorized.new "public scope required for access"
-      end
-
       unless (authority = current_authority)
         Log.warn { {message: "authority not found", action: "authorize!", host: request.host} }
         raise Error::Unauthorized.new "authority not found"
@@ -50,6 +45,14 @@ module PlaceOS::Api
       # ensure that the user token is nil if this function ever errors.
       @user_token = nil
       raise e
+    end
+
+    def check_oauth_scope
+      utoken = user_token
+      unless utoken.scope.includes?("public")
+        Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.host, sub: utoken.sub} }
+        raise Error::Unauthorized.new "public scope required for access"
+      end
     end
 
     # Obtains user referenced by user_token id

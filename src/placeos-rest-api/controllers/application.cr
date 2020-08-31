@@ -49,6 +49,9 @@ module PlaceOS::Api
     # All routes are authenticated, except root
     before_action :authorize!, except: [:root]
 
+    # Check request scope
+    before_action :check_oauth_scope, except: [:root]
+
     # Simplifies determining user's requests in server-side logs
     before_action :set_user_id, except: [:root]
 
