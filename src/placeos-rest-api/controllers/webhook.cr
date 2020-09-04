@@ -6,6 +6,7 @@ module PlaceOS::Api
 
     skip_action :authorize!, except: [:show]
     skip_action :set_user_id, except: [:show]
+    skip_action :check_oauth_scope, except: [:show]
     before_action :find_hook
 
     @trigger_instance : Model::TriggerInstance?
