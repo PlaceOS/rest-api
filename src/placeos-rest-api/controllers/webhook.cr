@@ -44,6 +44,7 @@ module PlaceOS::Api
 
           body_data = request.body.try(&.gets_to_end) || ""
           header_data = request.headers.try(&.to_h) || Hash(String, Array(String)).new
+          header_data["pos-query-params"] = [params.to_s]
 
           args = {method_type, header_data, body_data}
 
