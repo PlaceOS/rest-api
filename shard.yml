@@ -31,7 +31,8 @@ dependencies:
 
   # Elasticsearch extension for RethinkORM
   neuroplastic:
-    github: spider-gazelle/neuroplastic
+    github: place-labs/neuroplastic
+    version: ~> 1.7
 
   # Performs ping requests
   pinger:

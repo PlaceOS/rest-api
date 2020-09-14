@@ -6,3 +6,4 @@
 bin
 docs
 lib
+Dockerfile.test
