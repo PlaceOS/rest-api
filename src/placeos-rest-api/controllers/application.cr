@@ -27,12 +27,14 @@ module PlaceOS::Api
       response.headers["X-Total-Count"] = total_items.to_s
       # response.headers["Accept-Ranges"] = item_type
       response.headers["Content-Range"] = "#{item_type} #{range_start}-#{range_end}/#{total_items}"
+
       if range_end < total_items
         params["offset"] = (range_end + 1).to_s
         params["limit"] = query.limit.to_s
         query_params = params.map { |key, value| "#{key}=#{value}" }.join("&")
         response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
       end
+
       data[:results]
     end
 
