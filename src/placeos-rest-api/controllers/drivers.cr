@@ -28,6 +28,7 @@ module PlaceOS::Api
         })
       end
 
+      query.search_field "name"
       query.sort(NAME_SORT_ASC)
       render json: paginate_results(elastic, query)
     end
