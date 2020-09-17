@@ -71,7 +71,7 @@ module PlaceOS::Api
                  raise "unexpected error code #{error.error_code}"
                end
 
-      render(status: status, text: message) if respond
+      render(status: status, text: "#{message}: #{error.message}\n#{error.system_id}->#{error.module_name}_#{error.index}\n#{error.remote_backtrace}") if respond
     end
   end
 end
