@@ -68,10 +68,19 @@ module PlaceOS::Api
                  Log.info { error.message }
                  HTTP::Status::UNAUTHORIZED
                else
-                 raise "unexpected error code #{error.error_code}"
+                 message = "unexpected error code #{message}"
+                 Log.error { message }
+                 HTTP::Status::INTERNAL_SERVER_ERROR
                end
 
-      render(status: status, text: "#{message}: #{error.message}\n#{error.system_id}->#{error.module_name}_#{error.index}\n#{error.remote_backtrace}") if respond
+      render(status: status, json: {
+        error: message,
+        sys_id: error.system_id,
+        module_name: error.module_name,
+        index: error.index,
+        message: error.message,
+        backtrace: error.remote_backtrace,
+      }) if respond
     end
   end
 end
