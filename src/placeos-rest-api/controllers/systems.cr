@@ -27,6 +27,9 @@ module PlaceOS::Api
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
 
+    # Allow guest access to system details of a single room
+    skip_action :check_oauth_scope, only: [:show, :sys_zones]
+
     getter control_system : Model::ControlSystem?
 
     # Websocket API session manager
@@ -119,9 +122,6 @@ module PlaceOS::Api
       render json: systems
     end
 
-    # Allow guest access to system details of a single room
-    skip_action :check_oauth_scope, only: :show
-
     # Renders a control system
     def show
       control_system = current_system
@@ -188,7 +188,12 @@ module PlaceOS::Api
 
     # Return all zones for this system
     #
-    get "/:sys_id/zones" do
+    get "/:sys_id/zones", :sys_zones do
+      # Guest JWTs include the control system id that they have access to
+      if user_token.scope.includes?("guest")
+        head :forbidden unless user_token.user.roles.includes?(params["sys_id"])
+      end
+
       zones = current_system.zones || [] of String
 
       # Save the DB hit if there are no zones on the system
