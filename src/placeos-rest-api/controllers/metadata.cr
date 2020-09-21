@@ -10,7 +10,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:update, :update_alt, :destroy]
     before_action :find_zone, only: [:children]
 
-    # Allow guest access to system details of a single room
+    # Allow unscoped read access to metadata
     skip_action :check_oauth_scope, only: [:show, :children_metadata]
 
     getter zone : Model::Zone?
