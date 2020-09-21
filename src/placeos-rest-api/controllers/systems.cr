@@ -27,7 +27,7 @@ module PlaceOS::Api
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
 
-    # Allow guest access to system details of a single room
+    # Allow unscoped access to details of a single `ControlSystem`
     skip_action :check_oauth_scope, only: [:show, :sys_zones]
 
     getter control_system : Model::ControlSystem?
