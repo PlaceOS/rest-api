@@ -19,15 +19,15 @@ module PlaceOS::Api
     #
     # Filter for a specific metadata by name via `name` param
     def show
-      zone_id = params["id"]
+      parent_id = params["id"]
       name = params["name"]?
 
       # Guest JWTs include the control system id that they have access to
       if user_token.scope.includes?("guest")
-        head :forbidden unless name && guest_zones.includes?(zone_id)
+        head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
-      render json: Model::Metadata.build_metadata(zone_id, name)
+      render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
     # Fetch metadata for Zone children
@@ -40,7 +40,7 @@ module PlaceOS::Api
 
       # Guest JWTs include the control system id that they have access to
       if user_token.scope.includes?("guest")
-        head :forbidden unless name && guest_zones.includes?(parent_id)
+        head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
       include_parent = if (_include = params["include_parent"]?)
@@ -121,9 +121,9 @@ module PlaceOS::Api
       @zone = Model::Zone.find!(id)
     end
 
-    def guest_zones
+    def guest_ids
       sys_id = user_token.user.roles.last
-      Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"}).zones
+      Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"}).zones + [sys_id]
     end
   end
 end
