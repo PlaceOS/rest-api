@@ -10,6 +10,9 @@ module PlaceOS::Api
     before_action :check_support, only: [:update, :update_alt, :destroy]
     before_action :find_zone, only: [:children]
 
+    # Allow unscoped read access to metadata
+    skip_action :check_oauth_scope, only: [:show, :children_metadata]
+
     getter zone : Model::Zone?
 
     # Fetch metadata for a model
@@ -18,6 +21,12 @@ module PlaceOS::Api
     def show
       parent_id = params["id"]
       name = params["name"]?
+
+      # Guest JWTs include the control system id that they have access to
+      if user_token.scope.includes?("guest")
+        head :forbidden unless name && guest_ids.includes?(parent_id)
+      end
+
       render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
@@ -28,6 +37,11 @@ module PlaceOS::Api
     get "/:id/children", :children_metadata do
       parent_id = params["id"]
       name = params["name"]?
+
+      # Guest JWTs include the control system id that they have access to
+      if user_token.scope.includes?("guest")
+        head :forbidden unless name && guest_ids.includes?(parent_id)
+      end
 
       include_parent = if (_include = params["include_parent"]?)
                          _include == "true"
@@ -105,6 +119,11 @@ module PlaceOS::Api
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
       @zone = Model::Zone.find!(id)
+    end
+    # Fetch zones for system the current user has a role for
+    def guest_ids
+      sys_id = user_token.user.roles.last
+      Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"}).zones + [sys_id]
     end
   end
 end

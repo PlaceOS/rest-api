@@ -74,12 +74,12 @@ module PlaceOS::Api
                end
 
       render(status: status, json: {
-        error: message,
-        sys_id: error.system_id,
+        error:       message,
+        sys_id:      error.system_id,
         module_name: error.module_name,
-        index: error.index,
-        message: error.message,
-        backtrace: error.remote_backtrace,
+        index:       error.index,
+        message:     error.message,
+        backtrace:   error.remote_backtrace,
       }) if respond
     end
   end
