@@ -120,7 +120,7 @@ module PlaceOS::Api
       # Find will raise a 404 (not found) if there is an error
       @zone = Model::Zone.find!(id)
     end
-
+    # Fetch zones for system the current user has a role for
     def guest_ids
       sys_id = user_token.user.roles.last
       Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"}).zones + [sys_id]
