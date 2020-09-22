@@ -39,7 +39,7 @@ module PlaceOS::Api
         query.filter({"trigger_id" => [trigger_id]})
       end
 
-      # That occured before a particular time
+      # That occurred before a particular time
       if (as_of = args.as_of)
         query.range({
           "updated_at" => {

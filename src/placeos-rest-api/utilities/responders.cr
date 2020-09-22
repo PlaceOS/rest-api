@@ -8,7 +8,7 @@ module PlaceOS::Api
       render json: result, status: status
     end
 
-    # Shortcut to save a record and give the correct
+    # Shortcut to save a record and give the correct status
     def save_and_status(resource)
       creation = resource.new_record?
       if resource.save
