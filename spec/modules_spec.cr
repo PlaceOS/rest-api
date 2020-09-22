@@ -21,8 +21,32 @@ module PlaceOS::Api
       describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Module, controller_klass: Modules)
 
+        it "update preserves logic module connection status" do
+          driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+          mod = Model::Generator.module(driver: driver).save!
+
+          mod.connected = false
+
+          id = mod.id.as(String)
+          path = base + id
+
+          result = curl(
+            method: "PATCH",
+            path: path,
+            body: mod.to_json,
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+
+          result.status_code.should eq 200
+          updated = Model::Module.from_trusted_json(result.body)
+          updated.id.should eq mod.id
+          updated.connected.should be_true
+        end
+
         it "update" do
-          mod = Model::Generator.module.save!
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+          mod = Model::Generator.module(driver: driver).save!
+
           connected = mod.connected
           mod.connected = !connected
 
