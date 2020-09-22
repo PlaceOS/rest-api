@@ -55,22 +55,18 @@ module PlaceOS::Api
       )
 
       status = case error.error_code
-               when DriverError::ModuleNotFound, DriverError::SystemNotFound
+               in DriverError::ModuleNotFound, DriverError::SystemNotFound
                  Log.info { error.message }
                  HTTP::Status::NOT_FOUND
-               when DriverError::ParseError, DriverError::BadRequest, DriverError::UnknownCommand
+               in DriverError::ParseError, DriverError::BadRequest, DriverError::UnknownCommand
                  Log.error { error.message }
                  HTTP::Status::BAD_REQUEST
-               when DriverError::RequestFailed, DriverError::UnexpectedFailure
+               in DriverError::RequestFailed, DriverError::UnexpectedFailure
                  Log.info { error.message }
                  HTTP::Status::INTERNAL_SERVER_ERROR
-               when DriverError::AccessDenied
+               in DriverError::AccessDenied
                  Log.info { error.message }
                  HTTP::Status::UNAUTHORIZED
-               else
-                 message = "unexpected error code #{message}"
-                 Log.error { message }
-                 HTTP::Status::INTERNAL_SERVER_ERROR
                end
 
       render(status: status, json: {
