@@ -16,7 +16,7 @@ module PlaceOS::Api
 
           params = HTTP::Params.encode({
             "role" => Model::Driver::Role::Service.to_i.to_s,
-            "q"    => service.id.as(String),
+            "q"    => service.name,
           })
 
           path = "#{base}?#{params}"
