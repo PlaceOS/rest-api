@@ -12,7 +12,7 @@ module PlaceOS::Api
     # Helpers for controller responses
     include Utils::Responders
 
-    # Helpers for determing picking off user from JWT, authorization
+    # Helpers for determining picking off user from JWT, authorization
     include Utils::CurrentUser
 
     # Default sort for elasticsearch

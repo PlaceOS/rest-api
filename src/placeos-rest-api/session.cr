@@ -473,7 +473,7 @@ module PlaceOS
       key = Session.binding_key(sys_id, module_name, index, name)
 
       if module_name.starts_with?("_") && !@user.is_support?
-        Log.warn { {message: "websocket binding attempted to access priviled module", sys_id: sys_id, module_name: module_name, index: index, name: name} }
+        Log.warn { {message: "websocket binding attempted to access privileged module", sys_id: sys_id, module_name: module_name, index: index, name: name} }
         respond error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
         return false
       end
