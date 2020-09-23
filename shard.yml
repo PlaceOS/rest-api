@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.17.7
+version: 1.17.8
 
 targets:
   rest-api:
@@ -9,11 +9,12 @@ dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 3.0
+    version: ~> 3
 
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
+    version: ~> 2
 
   # Email validations
   CrystalEmail:
@@ -28,6 +29,7 @@ dependencies:
   # JSON Web Token support
   jwt:
     github: crystal-community/jwt
+    version: ~> 1
 
   # Elasticsearch extension for RethinkORM
   neuroplastic:
@@ -37,7 +39,7 @@ dependencies:
   # Performs ping requests
   pinger:
     github: spider-gazelle/pinger
-    version: ~> 1.0
+    version: ~> 1
 
   # For core client
   placeos-core:
@@ -62,6 +64,7 @@ dependencies:
   # A familiar abstraction over native Fibers
   promise:
     github: spider-gazelle/promise
+    version: ~> 2.2
 
   # RethinkDB client
   rethinkdb:
@@ -71,11 +74,12 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
+    version: ~> 3
 
   # Client for RubberSoul RethinkDB Elasticsearch indexer
   rubber-soul:
     github: placeos/rubber-soul
-    version: ~> 1.10
+    version: ~> 1.14
 
   # Scheduling
   tasker:

@@ -158,7 +158,7 @@ module PlaceOS::Api
     def self.compilation_status(
       driver : Model::Driver,
       request_id : String? = "migrate to Log"
-    )
+    ) : Hash(String, Bool)
       tag = driver.id.as(String)
       repository_folder = driver.repository!.folder_name
 
@@ -177,7 +177,7 @@ module PlaceOS::Api
         }
       }).get
 
-      Hash(String, Bool).from_key_values(result)
+      result.to_h
     end
 
     #  Helpers
@@ -188,14 +188,6 @@ module PlaceOS::Api
       Log.context.set(driver_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
-    end
-  end
-end
-
-class Hash(K, V)
-  def self.from_key_values(kvs : Enumerable(Tuple(K, V)))
-    kvs.each_with_object({} of K => V) do |(k, v), hash|
-      hash[k] = v
     end
   end
 end

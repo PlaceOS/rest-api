@@ -18,7 +18,7 @@ shards:
 
   bindata:
     git: https://github.com/spider-gazelle/bindata.git
-    version: 1.6.0
+    version: 1.7.0
 
   bisect:
     git: https://github.com/spider-gazelle/bisect.git
@@ -177,7 +177,7 @@ shards:
     version: 3.0.2
 
   retriable:
-    git: https://github.com/sija/retriable.cr.git
+    git: https://github.com/Sija/retriable.cr.git
     version: 0.2.2
 
   rubber-soul:
