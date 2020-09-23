@@ -8,9 +8,9 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :ensure_json, only: [:create, :update, :update_alt]
-    before_action :find_trigger, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_trigger, only: [:show, :update, :update_alt, :destroy]
 
-    getter trig : Model::Trigger?
+    getter current_trigger : Model::Trigger { find_trigger }
 
     def index
       elastic = Model::Trigger.elastic
@@ -61,15 +61,11 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    def current_trigger
-      trig || find_trigger
-    end
-
-    def find_trigger
+    protected def find_trigger
       id = params["id"]
       Log.context.set(trigger_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @trig = Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

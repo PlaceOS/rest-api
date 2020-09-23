@@ -7,9 +7,9 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_app, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_app, only: [:show, :update, :update_alt, :destroy]
 
-    @app : Model::DoorkeeperApplication?
+    getter current_app : Model::DoorkeeperApplication { find_app }
 
     def index
       elastic = Model::DoorkeeperApplication.elastic
@@ -51,15 +51,11 @@ module PlaceOS::Api
     #  Helpers
     ###########################################################################
 
-    def current_app : Model::DoorkeeperApplication
-      @app || find_app
-    end
-
-    def find_app
+    protected def find_app
       id = params["id"]
       Log.context.set(application_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @app = Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
+      Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

@@ -9,9 +9,9 @@ module PlaceOS::Api
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, except: [:index]
-    before_action :find_zone, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_zone, only: [:show, :update, :update_alt, :destroy]
 
-    getter zone : Model::Zone?
+    getter current_zone : Model::Zone { find_zone }
 
     def index
       elastic = Model::Zone.elastic
@@ -147,15 +147,11 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    def current_zone : Model::Zone
-      zone || find_zone
-    end
-
-    def find_zone
+    protected def find_zone
       id = params["id"]
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @zone = Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

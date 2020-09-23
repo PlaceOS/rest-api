@@ -22,18 +22,18 @@ module PlaceOS::Api
 
     before_action :check_support, only: [:state, :state_lookup, :functions]
 
-    before_action :find_system, only: [:show, :update, :destroy, :remove,
-                                       :start, :stop, :execute, :types, :functions]
+    before_action :current_control_system, only: [:show, :update, :destroy, :remove,
+                                                  :start, :stop, :execute, :types, :functions]
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
 
     # Allow unscoped access to details of a single `ControlSystem`
     skip_action :check_oauth_scope, only: [:show, :sys_zones]
 
-    getter control_system : Model::ControlSystem?
+    getter current_control_system : Model::ControlSystem { find_system }
 
     # Websocket API session manager
-    @@session_manager : Session::Manager? = nil
+    class_getter session_manager : Session::Manager { Session::Manager.new(core_discovery) }
 
     # Core service discovery
     class_getter core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
@@ -124,7 +124,7 @@ module PlaceOS::Api
 
     # Renders a control system
     def show
-      control_system = current_system
+      control_system = current_control_system
 
       # Guest JWTs include the control system id that they have access to
       if user_token.scope.includes?("guest")
@@ -159,7 +159,7 @@ module PlaceOS::Api
         end
       end
 
-      control_system = current_system
+      control_system = current_control_system
       if version != control_system.version
         message = "attempting to edit an old version"
         respond_with(:conflict) do
@@ -182,7 +182,7 @@ module PlaceOS::Api
     end
 
     def destroy
-      current_system.destroy
+      current_control_system.destroy
       head :ok
     end
 
@@ -194,7 +194,7 @@ module PlaceOS::Api
         head :forbidden unless user_token.user.roles.includes?(params["sys_id"])
       end
 
-      zones = current_system.zones || [] of String
+      zones = current_control_system.zones || [] of String
 
       # Save the DB hit if there are no zones on the system
       documents = if zones.empty?
@@ -211,13 +211,13 @@ module PlaceOS::Api
     # Receive the collated settings for a system
     #
     get("/:sys_id/settings", :settings) do
-      render json: Api::Settings.collated_settings(current_user, current_system)
+      render json: Api::Settings.collated_settings(current_user, current_control_system)
     end
 
     # Adds the module from the system if it doesn't already exist
     #
     put("/:sys_id/module/:module_id", :add_module) do
-      control_system = current_system
+      control_system = current_control_system
       module_id = params["module_id"]
       modules = control_system.modules
       control_system_id = control_system.id.as(String)
@@ -237,7 +237,7 @@ module PlaceOS::Api
     # Removes the module from the system and deletes it if not used elsewhere
     #
     delete("/:sys_id/module/:module_id", :remove_module) do
-      control_system = current_system
+      control_system = current_control_system
       module_id = params["module_id"]
       modules = control_system.modules
       control_system_id = control_system.id.as(String)
@@ -257,7 +257,7 @@ module PlaceOS::Api
     # Start modules
     #
     post("/:sys_id/start", :start) do
-      Systems.module_running_state(running: true, control_system: current_system)
+      Systems.module_running_state(running: true, control_system: current_control_system)
 
       head :ok
     end
@@ -265,7 +265,7 @@ module PlaceOS::Api
     # Stop modules
     #
     post("/:sys_id/stop", :stop) do
-      Systems.module_running_state(running: false, control_system: current_system)
+      Systems.module_running_state(running: false, control_system: current_control_system)
 
       head :ok
     end
@@ -317,7 +317,7 @@ module PlaceOS::Api
     # Look-up a module types in a system, returning a count of each type
     #
     get("/:sys_id/types", :types) do
-      modules = Model::Module.in_control_system(current_system.id.as(String))
+      modules = Model::Module.in_control_system(current_control_system.id.as(String))
       types = modules.each_with_object(Hash(String, Int32).new(0)) do |mod, count|
         count[mod.resolved_name] += 1
       end
@@ -441,17 +441,11 @@ module PlaceOS::Api
       end
     end
 
-    class_getter session_manager : Session::Manager { Session::Manager.new(core_discovery) }
-
-    def current_system : Model::ControlSystem
-      control_system || find_system
-    end
-
-    def find_system
+    protected def find_system
       id = params["sys_id"]
       Log.context.set(control_system_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @control_system = Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
+      Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

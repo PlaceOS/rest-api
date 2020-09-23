@@ -7,9 +7,9 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_settings, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_settings, only: [:show, :update, :update_alt, :destroy]
 
-    getter settings : Model::Settings?
+    getter current_settings : Model::Settings { find_settings }
 
     def index
       if params.has_key? "parent_id"
@@ -112,15 +112,11 @@ module PlaceOS::Api
       collated
     end
 
-    def current_settings : Model::Settings
-      settings || find_settings
-    end
-
-    def find_settings
+    protected def find_settings
       id = params["id"]
       Log.context.set(settings_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @settings = Model::Settings.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Settings.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

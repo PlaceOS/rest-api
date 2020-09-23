@@ -14,9 +14,9 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :state, :show, :ping]
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
-    before_action :find_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
+    before_action :current_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
 
-    @module : Model::Module?
+    getter current_module : Model::Module { find_module }
 
     private class IndexParams < Params
       attribute as_of : Int32?
@@ -317,15 +317,14 @@ module PlaceOS::Api
       key ? storage[key] : storage.to_h
     end
 
-    def current_module : Model::Module
-      @module || find_module
-    end
+    # Helpers
+    ###############################################################################################
 
-    def find_module
+    protected def find_module
       id = params["id"]
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @module = Model::Module.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Module.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end
