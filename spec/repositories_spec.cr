@@ -19,7 +19,7 @@ module PlaceOS::Api
         it "update" do
           repository = Model::Generator.repository.save!
           original_name = repository.name
-          repository.name = Faker::Hacker.noun
+          repository.name = UUID.random.to_s
 
           id = repository.id.as(String)
           path = base + id

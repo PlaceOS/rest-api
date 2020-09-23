@@ -404,7 +404,7 @@ module PlaceOS::Api
             cs.persisted?.should be_true
 
             original_name = cs.name
-            cs.name = Faker::Hacker.noun
+            cs.name = UUID.random.to_s
 
             id = cs.id.as(String)
 

@@ -37,7 +37,8 @@ module PlaceOS::Api
         it "update" do
           trigger = Model::Generator.trigger.save!
           original_name = trigger.name
-          trigger.name = Faker::Hacker.noun
+
+          trigger.name = UUID.random.to_s
 
           id = trigger.id.as(String)
           path = base + id

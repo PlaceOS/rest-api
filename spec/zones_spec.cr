@@ -18,7 +18,7 @@ module PlaceOS::Api
         it "update" do
           zone = Model::Generator.zone.save!
           original_name = zone.name
-          zone.name = Faker::Hacker.noun*2
+          zone.name = UUID.random.to_s
 
           id = zone.id.as(String)
           path = base + id

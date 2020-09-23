@@ -13,6 +13,11 @@ require "spec"
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
 
+Spec.before_suite do
+  Log.builder.bind("*", backend: PlaceOS::Api::LOG_BACKEND, level: Log::Severity::Debug)
+  clear_tables
+end
+
 # Application config
 require "../src/config"
 
@@ -24,11 +29,6 @@ db_name = "place_#{ENV["SG_ENV"]? || "development"}"
 
 RethinkORM.configure do |settings|
   settings.db = db_name
-end
-
-Spec.before_suite do
-  Log.builder.bind("*", backend: PlaceOS::Api::LOG_BACKEND, level: Log::Severity::Debug)
-  clear_tables
 end
 
 Spec.after_suite { clear_tables }

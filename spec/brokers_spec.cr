@@ -18,7 +18,7 @@ module PlaceOS::Api
         it "update" do
           broker = Model::Generator.broker.save!
           original_name = broker.name
-          broker.name = Faker::Hacker.noun
+          broker.name = UUID.random.to_s
 
           id = broker.id.as(String)
           path = base + id
