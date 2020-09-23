@@ -11,7 +11,7 @@ module PlaceOS::Api
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
         it "filters queries by driver role" do
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
-          service.name = Faker::Hacker.noun + rand((1..10000)).to_s
+          service.name = UUID.random.to_s
           service.save!
 
           params = HTTP::Params.encode({
@@ -40,14 +40,14 @@ module PlaceOS::Api
           it "if role is preserved" do
             driver = Model::Generator.driver.save!
             original_name = driver.name
-            driver.name = Faker::Hacker.noun
+            driver.name = UUID.random.to_s
 
             id = driver.id.as(String)
             path = base + id
             result = curl(
               method: "PATCH",
               path: path,
-              body: driver.to_json,
+              body: driver.changed_attributes.to_json,
               headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )
             result.success?.should be_true
@@ -65,7 +65,7 @@ module PlaceOS::Api
             result = curl(
               method: "PATCH",
               path: path,
-              body: driver.to_json,
+              body: driver.changed_attributes.to_json,
               headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )
 
