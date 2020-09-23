@@ -65,14 +65,14 @@ module PlaceOS::Api
           query.filter({"driver_id" => [driver_id]})
         end
 
-        if (connected = args.connected)
+        unless (connected = args.connected).nil?
           query.filter({
             "ignore_connected" => [false],
             "connected"        => [connected],
           })
         end
 
-        if (running = args.running)
+        unless (running = args.running).nil?
           query.should({"running" => [running]})
         end
 
