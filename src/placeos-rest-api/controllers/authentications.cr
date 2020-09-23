@@ -9,9 +9,9 @@ module PlaceOS::Api
       before_action :check_admin, except: [:index, :show]
       before_action :check_support, only: [:index, :show]
 
-      before_action :find_auth, only: [:show, :update, :update_alt, :destroy]
+      before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
 
-      @auth : Model::{{auth_type.id}}Authentication?
+      getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
 
       def index
         elastic = Model::{{auth_type.id}}Authentication.elastic
@@ -52,15 +52,11 @@ module PlaceOS::Api
       #  Helpers
       ###########################################################################
 
-      def current_auth : Model::{{auth_type.id}}Authentication
-        @auth || find_auth
-      end
-
-      def find_auth
+      protected def find_auth
         id = params["id"]
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
-        @auth = Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
+        Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
       end
     end
   {% end %}

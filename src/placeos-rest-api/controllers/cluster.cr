@@ -66,6 +66,7 @@ module PlaceOS::Api
     end
 
     alias LoadedDrivers = Hash(String, Array(String))
+
     alias DriverStatus = NamedTuple(
       running: Bool,
       module_instances: Int32,

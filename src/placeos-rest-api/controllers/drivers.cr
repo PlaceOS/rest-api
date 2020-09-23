@@ -7,9 +7,9 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_driver, only: [:show, :update, :update_alt, :destroy, :recompile]
+    before_action :current_driver, only: [:show, :update, :update_alt, :destroy, :recompile]
 
-    @driver : Model::Driver?
+    getter current_driver : Model::Driver { find_driver }
 
     def index
       # Pick off role from HTTP params, render error if present and invalid
@@ -183,21 +183,17 @@ module PlaceOS::Api
     #  Helpers
     ###########################################################################
 
-    def current_driver : Model::Driver
-      @driver || find_driver
-    end
-
-    def find_driver
+    protected def find_driver
       id = params["id"]
       Log.context.set(driver_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @driver = Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end
 
 class Hash(K, V)
-  def self.from_key_values(kvs : Array(Tuple(K, V)))
+  def self.from_key_values(kvs : Enumerable(Tuple(K, V)))
     kvs.each_with_object({} of K => V) do |(k, v), hash|
       hash[k] = v
     end

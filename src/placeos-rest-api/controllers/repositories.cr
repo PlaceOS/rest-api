@@ -9,9 +9,9 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
+    before_action :current_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
 
-    @repo : Model::Repository?
+    getter current_repo : Model::Repository { find_repo }
 
     def index
       elastic = Model::Repository.elastic
@@ -191,15 +191,11 @@ module PlaceOS::Api
     #  Helpers
     ###########################################################################
 
-    def current_repo : Model::Repository
-      @repo || find_repo
-    end
-
-    def find_repo
+    protected def find_repo
       id = params["id"]
       Log.context.set(repository_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @repo = Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

@@ -8,13 +8,14 @@ module PlaceOS::Api
 
     base "/api/engine/v2/users/"
 
-    before_action :find_user, only: [:destroy, :update, :show]
+    before_action :user, only: [:destroy, :update, :show]
+
     before_action :check_admin, only: [:index, :destroy, :create]
     before_action :check_authorization, only: [:update, :update_alt]
 
     before_action :ensure_json, only: [:update, :update_alt]
 
-    getter user : Model::User?
+    getter user : Model::User { find_user }
 
     # Render the current user
     get("/current", :current) do
@@ -27,12 +28,11 @@ module PlaceOS::Api
 
     # Obtain a token to the current users SSO resource
     post("/resource_token", :resource_token) do
-      user = current_user
       expired = true
 
-      if access_token = user.access_token.presence
-        if user.expires
-          expires_at = Time.unix(user.expires_at.not_nil!)
+      if access_token = current_user.access_token.presence
+        if current_user.expires
+          expires_at = Time.unix(current_user.expires_at.not_nil!)
           if 5.minutes.from_now < expires_at
             render json: {
               token:   access_token,
@@ -47,7 +47,7 @@ module PlaceOS::Api
         end
       end
 
-      head :not_found unless user.refresh_token.presence
+      head :not_found unless current_user.refresh_token.presence
 
       begin
         internals = current_authority.not_nil!.internals.not_nil!
@@ -62,23 +62,23 @@ module PlaceOS::Api
         token_path = token_uri.full_path
 
         oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
-        token = oauth2_client.get_access_token_using_refresh_token(user.refresh_token.not_nil!, sso_strat.scope)
+        token = oauth2_client.get_access_token_using_refresh_token(current_user.refresh_token.not_nil!, sso_strat.scope)
 
-        user.access_token = token.access_token
-        user.refresh_token = token.refresh_token if token.refresh_token
-        user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
-        user.save!
+        current_user.access_token = token.access_token
+        current_user.refresh_token = token.refresh_token if token.refresh_token
+        current_user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
+        current_user.save!
 
         render json: {
-          token:   user.access_token,
-          expires: user.expires_at,
+          token:   current_user.access_token,
+          expires: current_user.expires_at,
         }
       rescue error
         Log.warn(exception: error) { "failed refresh access token" }
         if !expired
           render json: {
-            token:   user.access_token,
-            expires: user.expires_at,
+            token:   current_user.access_token,
+            expires: current_user.expires_at,
           }
         else
           raise error
@@ -101,19 +101,16 @@ module PlaceOS::Api
 
     def show
       # We only want to provide limited "public" information
-      if is_admin?
-        render json: @user.try &.as_admin_json
-      else
-        render json: @user.try &.as_public_json
-      end
+      serialised = is_admin? ? user.as_admin_json : user.as_public_json
+      render json: serialised
     end
 
     def create
-      user = Model::User.from_json(request.body.as(IO))
+      new_user = Model::User.from_json(request.body.as(IO))
       # allow sys-admins to create users on other domains
-      user.authority ||= current_authority.as(Model::Authority)
+      new_user.authority ||= current_authority.as(Model::Authority)
 
-      save_and_respond user
+      save_and_respond new_user
     end
 
     struct AdminAttributes
@@ -126,7 +123,6 @@ module PlaceOS::Api
     end
 
     def update
-      user = @user.as(Model::User)
       body = request.body.as(IO).gets_to_end
 
       # Allow additional attributes to be applied by admins
@@ -153,7 +149,7 @@ module PlaceOS::Api
 
     # Destroy user, revoke authentication.
     def destroy
-      @user.try &.destroy
+      user.destroy
       head :ok
     end
 
@@ -161,12 +157,12 @@ module PlaceOS::Api
       id = params["id"]
       Log.context.set(user_id: id)
 
-      user || (@user = Model::User.find!(id, runopts: {"read_mode" => "majority"}))
+      Model::User.find!(id, runopts: {"read_mode" => "majority"})
     end
 
     protected def check_authorization
       # Does the current user have permission to perform the current action
-      head :forbidden unless (find_user.try &.id) == current_user.id || is_admin?
+      head :forbidden unless user.id == current_user.id || is_admin?
     end
   end
 end

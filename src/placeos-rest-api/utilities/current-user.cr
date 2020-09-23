@@ -56,16 +56,10 @@ module PlaceOS::Api
     end
 
     # Obtains user referenced by user_token id
-    def current_user : Model::User
-      return @current_user.as(Model::User) unless @current_user.nil?
-      @current_user = Model::User.find!(user_token.id)
-    end
+    getter current_user : Model::User { Model::User.find!(user_token.id) }
 
     # Obtains the authority for the request's host
-    def current_authority : Model::Authority?
-      return @current_authority.as(Model::Authority) unless @current_authority.nil?
-      @current_authority = Model::Authority.find_by_domain(request.host.as(String))
-    end
+    getter current_authority : Model::Authority? { Model::Authority.find_by_domain(request.host.as(String)) }
 
     # Getter for user_token
     def user_token : Model::UserJWT

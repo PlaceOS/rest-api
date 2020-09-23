@@ -8,9 +8,9 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_broker, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_broker, only: [:show, :update, :update_alt, :destroy]
 
-    @broker : Model::Broker?
+    getter current_broker : Model::Broker { find_broker }
 
     def index
       brokers = Model::Broker.all.to_a
@@ -43,15 +43,11 @@ module PlaceOS::Api
     # Helpers
     ############################################################################
 
-    def current_broker : Model::Broker
-      @broker || find_broker
-    end
-
-    def find_broker
+    protected def find_broker
       id = params["id"]
       Log.context.set(broker_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @broker = Model::Broker.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Broker.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

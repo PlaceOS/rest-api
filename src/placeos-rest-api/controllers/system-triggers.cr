@@ -11,11 +11,11 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :ensure_json, only: [:create, :update, :update_alt]
-    before_action :find_system, only: [:show, :update, :update_alt, :destroy]
-    before_action :find_sys_trig, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_system, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_sys_trig, only: [:show, :update, :update_alt, :destroy]
 
-    getter sys_trig : Model::TriggerInstance?
-    getter control_system : Model::ControlSystem?
+    getter current_sys_trig : Model::TriggerInstance { find_sys_trig }
+    getter current_system : Model::ControlSystem { find_system }
 
     class IndexParams < Params
       attribute complete : Bool = true
@@ -129,26 +129,18 @@ module PlaceOS::Api
       )
     end
 
-    def current_sys_trig : Model::TriggerInstance
-      sys_trig || find_sys_trig
-    end
-
-    def current_system : Model::ControlSystem
-      control_system || find_system
-    end
-
-    def find_system
+    protected def find_system
       id = params["sys_id"]
       Log.context.set(control_system_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @control_system = Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
+      Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    def find_sys_trig
+    protected def find_sys_trig
       id = params["trig_id"]
       Log.context.set(trigger_instance_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @sys_trig = Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
+      Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

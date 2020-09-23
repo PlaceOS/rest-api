@@ -7,9 +7,9 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :find_domain, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_domain, only: [:show, :update, :update_alt, :destroy]
 
-    @domain : Model::Authority?
+    getter current_domain : Model::Authority { find_domain }
 
     def index
       elastic = Model::Authority.elastic
@@ -43,15 +43,11 @@ module PlaceOS::Api
     #  Helpers
     ###########################################################################
 
-    def current_domain : Model::Authority
-      @domain || find_domain
-    end
-
-    def find_domain
+    protected def find_domain
       id = params["id"]
       Log.context.set(authority_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @domain = Model::Authority.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Authority.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

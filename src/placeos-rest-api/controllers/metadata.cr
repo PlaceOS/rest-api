@@ -8,12 +8,13 @@ module PlaceOS::Api
     base "/api/engine/v2/metadata"
 
     before_action :check_support, only: [:update, :update_alt, :destroy]
-    before_action :find_zone, only: [:children]
+
+    before_action :current_zone, only: [:children]
 
     # Allow unscoped read access to metadata
     skip_action :check_oauth_scope, only: [:show, :children_metadata]
 
-    getter zone : Model::Zone?
+    getter current_zone : Model::Zone { find_zone }
 
     # Fetch metadata for a model
     #
@@ -110,15 +111,11 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    def current_zone : Model::Zone
-      zone || find_zone
-    end
-
     def find_zone
       id = params["id"]
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @zone = Model::Zone.find!(id)
+      Model::Zone.find!(id)
     end
 
     # Fetch zones for system the current user has a role for
