@@ -146,6 +146,7 @@ module PlaceOS::Api
 
         it "connected query" do
           mod = Model::Generator.module
+          mod.ignore_connected = false
           mod.connected = true
           mod.save!
           mod.persisted?.should be_true
