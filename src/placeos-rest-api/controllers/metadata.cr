@@ -7,7 +7,7 @@ module PlaceOS::Api
     # NOTE:: this API shares the base zones route
     base "/api/engine/v2/metadata"
 
-    before_action :check_support, only: [:update, :update_alt, :destroy]
+    before_action :check_modify_permissions, only: [:update, :update_alt, :destroy]
 
     before_action :current_zone, only: [:children]
 
@@ -122,6 +122,11 @@ module PlaceOS::Api
     def guest_ids
       sys_id = user_token.user.roles.last
       Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"}).zones + [sys_id]
+    end
+
+    # Does the user making the request have permissions to modify the data
+    def check_modify_permissions
+      raise Error::Forbidden.new unless is_support? || params["id"] == user_token.id
     end
   end
 end

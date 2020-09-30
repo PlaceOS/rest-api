@@ -74,7 +74,7 @@ shards:
 
   hound-dog:
     git: https://github.com/place-labs/hound-dog.git
-    version: 2.5.2
+    version: 2.5.3
 
   http-params-serializable:
     git: https://github.com/vladfaust/http-params-serializable.git
