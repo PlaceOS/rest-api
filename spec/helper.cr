@@ -8,7 +8,6 @@ require "random"
 require "rethinkdb-orm"
 require "simple_retry"
 require "promise"
-require "spec"
 
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
@@ -23,6 +22,8 @@ require "../src/config"
 
 # Generators for Engine models
 require "placeos-models/spec/generator"
+
+require "spec"
 
 # Configure DB
 db_name = "place_#{ENV["SG_ENV"]? || "development"}"
