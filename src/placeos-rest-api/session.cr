@@ -661,15 +661,13 @@ module PlaceOS
         name:        request.name,
       }
       case request.command
-      when Request::Command::Bind   then bind(**arguments)
-      when Request::Command::Unbind then unbind(**arguments)
-      when Request::Command::Debug  then debug(**arguments)
-      when Request::Command::Ignore then ignore(**arguments)
-      when Request::Command::Exec
+      in .bind?   then bind(**arguments)
+      in .unbind? then unbind(**arguments)
+      in .debug?  then debug(**arguments)
+      in .ignore? then ignore(**arguments)
+      in .exec?
         args = request.args.as(Array(JSON::Any))
         exec(**arguments.merge({args: args}))
-      else
-        Log.error { {message: "unrecognised websocket command", cmd: request.command.to_s} }
       end
     end
   end
