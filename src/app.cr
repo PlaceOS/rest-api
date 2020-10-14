@@ -24,6 +24,11 @@ OptionParser.parse(ARGV.dup) do |parser|
     exit 0
   end
 
+  parser.on("-e", "--env", "List the application environment") do
+    ENV.accessed.sort.each &->puts(String)
+    exit 0
+  end
+
   parser.on("-v", "--version", "Display the application version") do
     puts "#{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION}"
     exit 0
