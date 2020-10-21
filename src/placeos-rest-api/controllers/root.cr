@@ -22,9 +22,14 @@ module PlaceOS::Api
       }
     end
 
+    class SignalParams < Params
+      attribute channel : String, presence: true
+    end
+
     # Can be used in a similar manner to a webhook for drivers
     post "/signal", :signal do
-      channel = params["channel"]
+      args = SignalParams.new(params).validate!
+      channel = args.channel
 
       if user_token.scope.includes?("guest")
         head :forbidden unless channel.includes?("/guest/")
