@@ -9,6 +9,7 @@
 - `crystal spec` to run tests
 
 **Dependencies**
+
 - Elasticsearch `~> v7.2`
 - RethinkDB `~> v2.3.6`
 - Etcd `~> v3.3.13`
@@ -16,10 +17,12 @@
 
 ### With Docker
 
-- `$ ./test`
+- `$ ./test` (tear down the docker-compose environment)
+- `$ ./test --watch` (only run tests on change)
 - `$ docker-compose down` when you are done with development work for the day
 
 **Dependencies**
+
 - [docker](https://www.docker.com/)
 - [docker-compose](https://github.com/docker/compose)
 - [git](https://git-scm.com/)
@@ -32,9 +35,9 @@
 
 Once compiled you are left with a binary `./rest-api`
 
-* for help `./rest-api --help`
-* viewing routes `./rest-api --routes`
-* run on a different port or host `./rest-api -b 0.0.0.0 -p 80`
+- for help `./rest-api --help`
+- viewing routes `./rest-api --routes`
+- run on a different port or host `./rest-api -b 0.0.0.0 -p 80`
 
 ## Inspecting minimal images
 
