@@ -54,7 +54,7 @@ def clear_tables
 end
 
 # Yield an authenticated user, and a header with Authorization bearer set
-def authentication
+def authentication(scope = ["public"] of String)
   test_user_email = "test-suit-rest-api@place.tech"
   existing = PlaceOS::Model::User.get_all([test_user_email], index: :email).first?
 
@@ -73,7 +73,7 @@ def authentication
                        end
 
   authorization_header = {
-    "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user).encode}",
+    "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
   }
   {authenticated_user, authorization_header}
 end
