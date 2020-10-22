@@ -268,8 +268,8 @@ module PlaceOS
         unless has_binding?(sys_id, module_name, index, name)
           return unless create_binding(request_id, sys_id, module_name, index, name)
         end
-      rescue
-        Log.debug { {message: "websocket binding could not find system", sys_id: sys_id, module_name: module_name, index: index, name: name} }
+      rescue error
+        Log.warn(exception: error) { {message: "websocket binding could not find system", sys_id: sys_id, module_name: module_name, index: index, name: name} }
         respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}"))
         return
       end
@@ -291,7 +291,7 @@ module PlaceOS
       )
       respond(response)
     rescue e
-      Log.error { {
+      Log.error(exception: e) { {
         message:       "failed to bind",
         ws_request_id: request_id,
         sys_id:        sys_id,
