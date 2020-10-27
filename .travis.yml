@@ -3,3 +3,4 @@ services:
 
 install:
   - ./test
+  - ./test --multithreaded
