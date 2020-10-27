@@ -7,7 +7,7 @@ networks:
     ipam:
       driver: default
       config:
-      - subnet: 172.31.231.0/24
+        - subnet: 172.31.231.0/24
 
 # YAML Anchors
 
@@ -84,25 +84,25 @@ services:
       placeos:
         ipv4_address: 172.31.231.14
 
-  rubber-soul: # RethinkDB to Elasticsearch Service
-    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-latest}
-    restart: always
-    container_name: rubber-soul
-    hostname: rubber-soul
-    ports:
-      - 127.0.0.1:8084:3000
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.8
-    depends_on:
-      - elastic
-      - rethink
-    environment:
-      # Service Hosts
-      << : *rethinkdb-client-env
-      << : *elastic-client-env
-      # Environment
-      << : *deployment-env
+  # rubber-soul: # RethinkDB to Elasticsearch Service
+  #   image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-latest}
+  #   restart: always
+  #   container_name: rubber-soul
+  #   hostname: rubber-soul
+  #   ports:
+  #     - 127.0.0.1:8084:3000
+  #   networks:
+  #     placeos:
+  #       ipv4_address: 172.31.231.8
+  #   depends_on:
+  #     - elastic
+  #     - rethink
+  #   environment:
+  #     # Service Hosts
+  #     << : *rethinkdb-client-env
+  #     << : *elastic-client-env
+  #     # Environment
+  #     << : *deployment-env
 
   api: # Rest API
     build:
@@ -121,12 +121,12 @@ services:
       - etcd
       - redis
       - rethink
-      - rubber-soul
+      # - rubber-soul
     environment:
       # Environment
-      << : *deployment-env
+      <<: *deployment-env
       # Service Hosts
-      << : *elastic-client-env
-      << : *etcd-client-env
-      << : *redis-client-env
-      << : *rethinkdb-client-env
+      <<: *elastic-client-env
+      <<: *etcd-client-env
+      <<: *redis-client-env
+      <<: *rethinkdb-client-env
