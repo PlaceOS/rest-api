@@ -32,6 +32,9 @@ x-rethinkdb-client-env: &rethinkdb-client-env
   RETHINKDB_PORT: ${RETHINKDB_PORT:-28015}
   RETHINKDB_DB: ${RETHINKDB_DB:-place_development}
 
+x-rubber-soul-client-env: &rubber-soul-client-env
+  RUBBER_SOUL_URI: ${RUBBER_SOUL_URI:-http://rubber-soul:3000}
+
 services:
   elastic:
     image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.6}
@@ -84,25 +87,25 @@ services:
       placeos:
         ipv4_address: 172.31.231.14
 
-  # rubber-soul: # RethinkDB to Elasticsearch Service
-  #   image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-latest}
-  #   restart: always
-  #   container_name: rubber-soul
-  #   hostname: rubber-soul
-  #   ports:
-  #     - 127.0.0.1:8084:3000
-  #   networks:
-  #     placeos:
-  #       ipv4_address: 172.31.231.8
-  #   depends_on:
-  #     - elastic
-  #     - rethink
-  #   environment:
-  #     # Service Hosts
-  #     << : *rethinkdb-client-env
-  #     << : *elastic-client-env
-  #     # Environment
-  #     << : *deployment-env
+  rubber-soul: # RethinkDB to Elasticsearch Service
+    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-latest}
+    restart: always
+    container_name: rubber-soul
+    hostname: rubber-soul
+    ports:
+      - 127.0.0.1:8084:3000
+    networks:
+      placeos:
+        ipv4_address: 172.31.231.5
+    depends_on:
+      - elastic
+      - rethink
+    environment:
+      # Service Hosts
+      <<: *rethinkdb-client-env
+      <<: *elastic-client-env
+      # Environment
+      <<: *deployment-env
 
   api: # Rest API
     build:
@@ -112,7 +115,7 @@ services:
     container_name: api
     hostname: api
     ports:
-      - 127.0.0.1:8082:3000
+      - 127.0.0.1:8082:4000
     networks:
       placeos:
         ipv4_address: 172.31.231.2
@@ -121,7 +124,7 @@ services:
       - etcd
       - redis
       - rethink
-      # - rubber-soul
+      - rubber-soul
     environment:
       # Environment
       <<: *deployment-env
