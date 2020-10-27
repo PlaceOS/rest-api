@@ -40,11 +40,6 @@ services:
     image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.6}
     restart: always
     container_name: elastic
-    hostname: elastic
-    expose:
-      - 9200
-    ports:
-      - 127.0.0.1:8090:9200
     networks:
       placeos:
         ipv4_address: 172.31.231.10
@@ -56,9 +51,6 @@ services:
     restart: always
     container_name: etcd
     hostname: etcd
-    ports:
-      - 127.0.0.1:8091:2379
-      - 127.0.0.1:8092:2380
     networks:
       placeos:
         ipv4_address: 172.31.231.11
@@ -70,8 +62,6 @@ services:
     restart: always
     container_name: redis
     hostname: redis
-    ports:
-      - 127.0.0.1:7379:6379
     networks:
       placeos:
         ipv4_address: 172.31.231.13
@@ -81,8 +71,6 @@ services:
     restart: always
     container_name: rethink
     hostname: rethink
-    ports:
-      - 127.0.0.1:8093:8080
     networks:
       placeos:
         ipv4_address: 172.31.231.14
@@ -92,8 +80,6 @@ services:
     restart: always
     container_name: rubber-soul
     hostname: rubber-soul
-    ports:
-      - 127.0.0.1:8084:3000
     networks:
       placeos:
         ipv4_address: 172.31.231.5
@@ -111,11 +97,11 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.test
-    restart: always
     container_name: api
     hostname: api
-    ports:
-      - 127.0.0.1:8082:4000
+    volumes:
+      - ./spec:/app/spec
+      - ./src:/app/src
     networks:
       placeos:
         ipv4_address: 172.31.231.2

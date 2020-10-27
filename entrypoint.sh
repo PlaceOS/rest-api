@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-set -eu
+set -e
 
 echo '### `crystal tool format --check`'
 crystal tool format --check
