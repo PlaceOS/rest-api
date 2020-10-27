@@ -12,16 +12,10 @@ RUN apk add --no-cache bash
 
 COPY shard.yml /app
 COPY shard.lock /app
-RUN shards install
-
-COPY shard.yml /app
-COPY shard.lock /app
 
 RUN shards install
 
 COPY entrypoint.sh /app/entrypoint.sh
-
-RUN mkdir -p /app/bin/drivers
 
 # These provide certificate chain validation where communicating with external services over TLS
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
