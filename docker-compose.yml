@@ -36,6 +36,33 @@ x-rubber-soul-client-env: &rubber-soul-client-env
   RUBBER_SOUL_URI: ${RUBBER_SOUL_URI:-http://rubber-soul:3000}
 
 services:
+  api: # Rest API
+    build:
+      context: ./
+      dockerfile: Dockerfile.test
+    container_name: api
+    hostname: api
+    volumes:
+      - ./spec:/app/spec
+      - ./src:/app/src
+    networks:
+      placeos:
+        ipv4_address: 172.31.231.2
+    depends_on:
+      - elastic
+      - etcd
+      - redis
+      - rethink
+      - rubber-soul
+    environment:
+      # Environment
+      <<: *deployment-env
+      # Service Hosts
+      <<: *elastic-client-env
+      <<: *etcd-client-env
+      <<: *redis-client-env
+      <<: *rethinkdb-client-env
+
   elastic:
     image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.6}
     restart: always
@@ -92,30 +119,3 @@ services:
       <<: *elastic-client-env
       # Environment
       <<: *deployment-env
-
-  api: # Rest API
-    build:
-      context: ./
-      dockerfile: Dockerfile.test
-    container_name: api
-    hostname: api
-    volumes:
-      - ./spec:/app/spec
-      - ./src:/app/src
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.2
-    depends_on:
-      - elastic
-      - etcd
-      - redis
-      - rethink
-      - rubber-soul
-    environment:
-      # Environment
-      <<: *deployment-env
-      # Service Hosts
-      <<: *elastic-client-env
-      <<: *etcd-client-env
-      <<: *redis-client-env
-      <<: *rethinkdb-client-env
