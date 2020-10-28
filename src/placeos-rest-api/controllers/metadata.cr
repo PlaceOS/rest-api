@@ -63,6 +63,7 @@ module PlaceOS::Api
       render json: results.to_a
     end
 
+    # ameba:disable Metrics/CyclomaticComplexity
     def update
       parent_id = params["id"]
       metadata = Model::Metadata::Interface.from_json(request.body.as(IO))
@@ -74,10 +75,7 @@ module PlaceOS::Api
 
       if meta
         # Check if the current user has access
-        if is_support? || parent_id == user_token.id || (meta.editors & Set.new(user_token.user.roles)).size > 0
-        else
-          raise Error::Forbidden.new
-        end
+        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id || (meta.editors & Set.new(user_token.user.roles)).size > 0
 
         # only support+ users can edit the editors list
         editors = metadata.editors
