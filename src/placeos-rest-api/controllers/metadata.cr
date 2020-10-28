@@ -7,9 +7,9 @@ module PlaceOS::Api
     # NOTE:: this API shares the base zones route
     base "/api/engine/v2/metadata"
 
-    before_action :check_modify_permissions, only: [:update, :update_alt, :destroy]
+    before_action :check_delete_permissions, only: :destroy
 
-    before_action :current_zone, only: [:children]
+    before_action :current_zone, only: :children
 
     # Allow unscoped read access to metadata
     skip_action :check_oauth_scope, only: [:show, :children_metadata]
@@ -73,17 +73,31 @@ module PlaceOS::Api
       meta = Model::Metadata.for(parent_id, metadata.name).first?
 
       if meta
+        # Check if the current user has access
+        if is_support? || parent_id == user_token.id || (meta.editors & Set.new(user_token.user.roles)).size > 0
+        else
+          raise Error::Forbidden.new
+        end
+
+        # only support+ users can edit the editors list
+        editors = metadata.editors
+        meta.editors = editors if editors && is_support?
+
         # Update existing Metadata
         meta.description = metadata.description
         meta.details = metadata.details
       else
+        # When creating a new metadata, must be at least a support user
+        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
+
         # TODO: Check that the parent exists
         # Create new Metadata
         meta = Model::Metadata.new(
           name: metadata.name,
           details: metadata.details,
           parent_id: parent_id,
-          description: metadata.description
+          description: metadata.description,
+          editors: metadata.editors || Set(String).new,
         )
       end
 
@@ -125,7 +139,7 @@ module PlaceOS::Api
     end
 
     # Does the user making the request have permissions to modify the data
-    def check_modify_permissions
+    def check_delete_permissions
       raise Error::Forbidden.new unless is_support? || params["id"] == user_token.id
     end
   end

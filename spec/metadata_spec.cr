@@ -73,6 +73,7 @@ module PlaceOS::Api
             description: "",
             details: JSON.parse(%({"hello":"world","bye":"friends"})),
             parent_id: nil,
+            editors: Set(String).new,
           )
 
           parent_id = parent.id.as(String)
@@ -97,6 +98,7 @@ module PlaceOS::Api
             description: "",
             details: JSON.parse(%({"hello":"world","bye":"friends"})),
             parent_id: nil,
+            editors: Set(String).new,
           )
 
           parent_id = parent.id.as(String)
@@ -118,6 +120,7 @@ module PlaceOS::Api
             description: "",
             details: JSON.parse(%({"hello":"world"})),
             parent_id: nil,
+            editors: Set(String).new,
           )
 
           result = curl(
