@@ -171,12 +171,12 @@ module PlaceOS::Api
 
     # Receive the collated settings for a module
     #
-    get(":id/settings", :settings) do
+    get("/:id/settings", :settings) do
       render json: Api::Settings.collated_settings(current_user, current_module)
     end
 
     # Starts a module
-    post(":id/start", :start) do
+    post("/:id/start", :start) do
       mod = current_module
       head :ok if mod.running == true
 
@@ -192,7 +192,7 @@ module PlaceOS::Api
     end
 
     # Stops a module
-    post(":id/stop", :stop) do
+    post("/:id/stop", :stop) do
       mod = current_module
       head :ok unless mod.running
 
@@ -208,7 +208,7 @@ module PlaceOS::Api
     end
 
     # Executes a command on a module
-    post(":id/exec/:method", :execute) do
+    post("/:id/exec/:method", :execute) do
       id, method = params["id"], params["method"]
       mod = current_module
       module_name = mod.name
@@ -245,16 +245,16 @@ module PlaceOS::Api
     end
 
     # Dumps the complete status state of the module
-    get(":id/state", :state) do
+    get("/:id/state", :state) do
       render json: module_state(current_module)
     end
 
     # Returns the value of the requested status variable
-    get(":id/state/:key", :state_lookup) do
+    get("/:id/state/:key", :state_lookup) do
       render json: module_state(current_module, params["key"])
     end
 
-    post(":id/ping", :ping) do
+    post("/:id/ping", :ping) do
       mod = current_module
       if mod.role == Model::Driver::Role::Logic
         Log.debug { {controller: "Modules", action: "ping", module_id: mod.id, role: mod.role.to_s} }
@@ -271,7 +271,7 @@ module PlaceOS::Api
       end
     end
 
-    post(":id/load", :load) do
+    post("/:id/load", :load) do
       module_id = current_module.id.as(String)
       load = Api::Systems.core_for(module_id, request_id) do |core_client|
         core_client.load(module_id)
