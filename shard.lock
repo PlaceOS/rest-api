@@ -50,7 +50,7 @@ shards:
 
   etcd:
     git: https://github.com/aca-labs/crystal-etcd.git
-    version: 1.0.2
+    version: 1.0.3
 
   exec_from:
     git: https://github.com/place-labs/exec_from.git
@@ -58,7 +58,7 @@ shards:
 
   faker:
     git: https://github.com/askn/faker.git
-    version: 0.4.0
+    version: 0.4.1
 
   future:
     git: https://github.com/crystal-community/future.cr.git
@@ -154,7 +154,7 @@ shards:
 
   protobuf:
     git: https://github.com/jeromegn/protobuf.cr.git
-    version: 2.2.1
+    version: 2.2.2
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
