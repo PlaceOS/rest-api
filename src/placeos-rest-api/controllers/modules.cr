@@ -313,7 +313,7 @@ module PlaceOS::Api
     end
 
     def module_state(mod : Model::Module, key : String? = nil)
-      storage = Driver::Storage.new(mod.id.as(String))
+      storage = Driver::RedisStorage.new(mod.id.as(String))
       key ? storage[key] : storage.to_h
     end
 

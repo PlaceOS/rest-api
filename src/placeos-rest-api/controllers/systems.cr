@@ -395,7 +395,7 @@ module PlaceOS::Api
 
       if module_id
         # Grab drive(r state proxy
-        storage = PlaceOS::Driver::Storage.new(module_id)
+        storage = PlaceOS::Driver::RedisStorage.new(module_id)
         # Perform lookup, otherwise dump state
         key ? storage[key] : storage.to_h
       end

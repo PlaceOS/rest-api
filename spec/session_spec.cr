@@ -23,7 +23,7 @@ module PlaceOS::Api
             status_name = "nugget"
             results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
               # Create a storage proxy
-              driver_proxy = PlaceOS::Driver::Storage.new mod.id.as(String)
+              driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
 
               ws.send Session::Request.new(
                 id: rand(10).to_i64,
@@ -145,7 +145,7 @@ def test_websocket_api(base, authorization_header)
   }
 
   # Set metadata in redis to allow binding to module
-  sys_lookup = PlaceOS::Driver::Storage.new(control_system.id.as(String), "system")
+  sys_lookup = PlaceOS::Driver::RedisStorage.new(control_system.id.as(String), "system")
   lookup_key = "#{mod.custom_name}/1"
   sys_lookup[lookup_key] = mod.id.as(String)
 

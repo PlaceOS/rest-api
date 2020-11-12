@@ -41,7 +41,7 @@ module PlaceOS::Api
                   ""
                 end
 
-      ::PlaceOS::Driver::Storage.with_redis &.publish("placeos/#{channel}", payload)
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{channel}", payload)
       head :ok
     end
 
