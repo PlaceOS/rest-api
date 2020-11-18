@@ -1,14 +1,5 @@
 version: "3.7"
 
-networks:
-  placeos:
-    name: placeos
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.31.231.0/24
-
 # YAML Anchors
 
 x-deployment-env: &deployment-env
@@ -40,14 +31,10 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.test
-    container_name: api
     hostname: api
     volumes:
       - ./spec:/app/spec
       - ./src:/app/src
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.2
     depends_on:
       - elastic
       - etcd
@@ -66,50 +53,30 @@ services:
   elastic:
     image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.6}
     restart: always
-    container_name: elastic
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.10
     environment:
       discovery.type: single-node
 
   etcd:
     image: bitnami/etcd:${ETCD_VERSION:-3.3.13}
     restart: always
-    container_name: etcd
     hostname: etcd
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.11
     environment:
       ALLOW_NONE_AUTHENTICATION: "yes"
 
   redis:
     image: eqalpha/keydb
     restart: always
-    container_name: redis
     hostname: redis
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.13
 
   rethink:
     image: rethinkdb:${RETHINKDB_VERSION:-2.4}
     restart: always
-    container_name: rethink
     hostname: rethink
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.14
 
   rubber-soul: # RethinkDB to Elasticsearch Service
     image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-latest}
     restart: always
-    container_name: rubber-soul
     hostname: rubber-soul
-    networks:
-      placeos:
-        ipv4_address: 172.31.231.5
     depends_on:
       - elastic
       - rethink
