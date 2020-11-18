@@ -1,6 +1,39 @@
 require "./helper"
 
 module PlaceOS::Api
+  def self.spec_add_module(system, mod, headers)
+    mod_id = mod.id.as(String)
+    path = Systems::NAMESPACE.first + "#{system.id}/module/#{mod_id}"
+
+    result = curl(
+      method: "PUT",
+      path: path,
+      headers: headers,
+    )
+
+    result.status_code.should eq 200
+    system = Model::ControlSystem.from_trusted_json(result.body)
+    system.modules.should contain mod_id
+    system
+  end
+
+  def self.spec_delete_module(system, mod, headers)
+    mod_id = mod.id.as(String)
+
+    path = Systems::NAMESPACE.first + "#{system.id}/module/#{mod_id}"
+
+    result = curl(
+      method: "DELETE",
+      path: path,
+      headers: headers,
+    )
+
+    result.status_code.should eq 200
+    system = Model::ControlSystem.from_trusted_json(result.body)
+    system.modules.should_not contain mod_id
+    system
+  end
+
   describe Systems do
     # ameba:disable Lint/UselessAssign
     authenticated_user, authorization_header = authentication
@@ -139,21 +172,13 @@ module PlaceOS::Api
           mod.persisted?.should be_true
 
           mod_id = mod.id.as(String)
-          cs.update_fields(modules: [mod_id])
+          cs_id = cs.id.as(String)
 
-          path = base + "#{cs.id}/module/#{mod_id}"
+          Model::ControlSystem.add_module(cs_id, mod_id)
 
-          result = curl(
-            method: "DELETE",
-            path: path,
-            headers: authorization_header,
-          )
+          mod_id = mod.id.as(String)
 
-          result.status_code.should eq 200
-
-          cs = Model::ControlSystem.find!(cs.id.as(String))
-
-          cs.modules.should_not contain mod_id
+          spec_delete_module(cs, mod, authorization_header)
 
           Model::Module.find(mod_id).should be_nil
           {mod, cs}.each &.try &.destroy
@@ -175,20 +200,9 @@ module PlaceOS::Api
           cs1.modules.should contain mod_id
           cs2.modules.should contain mod_id
 
-          path = base + "#{cs1.id}/module/#{mod_id}"
+          cs1 = spec_delete_module(cs1, mod, authorization_header)
 
-          result = curl(
-            method: "DELETE",
-            path: path,
-            headers: authorization_header,
-          )
-
-          result.status_code.should eq 200
-
-          cs1 = Model::ControlSystem.find!(cs1.id.as(String))
           cs2 = Model::ControlSystem.find!(cs2.id.as(String))
-
-          cs1.modules.should_not contain mod_id
           cs2.modules.should contain mod_id
 
           Model::Module.find(mod_id).should_not be_nil
@@ -202,18 +216,7 @@ module PlaceOS::Api
           cs.persisted?.should be_true
           mod.persisted?.should be_true
 
-          mod_id = mod.id.as(String)
-          path = base + "#{cs.id}/module/#{mod_id}"
-
-          result = curl(
-            method: "PUT",
-            path: path,
-            headers: authorization_header,
-          )
-
-          result.status_code.should eq 200
-          cs = Model::ControlSystem.from_trusted_json(result.body)
-          cs.modules.should contain mod_id
+          spec_add_module(cs, mod, authorization_header)
           {cs, mod}.each &.destroy
         end
 
@@ -231,6 +234,25 @@ module PlaceOS::Api
 
           result.status_code.should eq 404
           cs.destroy
+        end
+
+        it "adds module after removal from system" do
+          cs1 = Model::Generator.control_system.save!
+          cs2 = Model::Generator.control_system.save!
+
+          mod = Model::Generator.module.save!
+
+          cs1.persisted?.should be_true
+          cs2.persisted?.should be_true
+          mod.persisted?.should be_true
+
+          cs1 = spec_add_module(cs1, mod, authorization_header)
+
+          spec_add_module(cs2, mod, authorization_header)
+
+          cs1 = spec_delete_module(cs1, mod, authorization_header)
+
+          spec_add_module(cs1, mod, authorization_header)
         end
       end
 
