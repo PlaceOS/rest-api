@@ -7,13 +7,18 @@ require "../utilities/*"
 
 module PlaceOS::Api
   private abstract class Application < ActionController::Base
-    Log = ::PlaceOS::Api::Log.for("controller")
+    macro inherited
+      Log = ::PlaceOS::Api::Log.for("controller").for({{ @type.stringify.split("::").last.underscore }})
+    end
 
     # Helpers for controller responses
     include Utils::Responders
 
     # Helpers for determining picking off user from JWT, authorization
     include Utils::CurrentUser
+
+    # Core service discovery
+    class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
 
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name.keyword" => {order: :asc}}

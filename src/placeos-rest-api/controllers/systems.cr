@@ -35,9 +35,6 @@ module PlaceOS::Api
     # Websocket API session manager
     class_getter session_manager : Session::Manager { Session::Manager.new(core_discovery) }
 
-    # Core service discovery
-    class_getter core_discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
-
     # Strong params for index method
     class IndexParams < Params
       attribute bookable : Bool?
@@ -418,7 +415,7 @@ module PlaceOS::Api
 
     # Use consistent hashing to determine the location of the module
     def self.locate_module(module_id : String) : URI
-      node = @@core_discovery.find?(module_id)
+      node = core_discovery.find?(module_id)
       raise "no core instances registered!" unless node
       node[:uri]
     end
