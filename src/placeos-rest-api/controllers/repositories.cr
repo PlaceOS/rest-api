@@ -124,7 +124,7 @@ module PlaceOS::Api
     end
 
     get "/:id/commits", :commits do
-      number_of_commits = params["count"]?.try &.to_i
+      number_of_commits = params["limit"]?.try &.to_i
       file_name = params["driver"]?
 
       commits = Api::Repositories.commits(
