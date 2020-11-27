@@ -8,8 +8,6 @@ module PlaceOS::Api
   class Edge < Application
     base "/api/engine/v2/edge/"
 
-    class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
-
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
 
     # Handles the websocket proxy between Edge and Core
