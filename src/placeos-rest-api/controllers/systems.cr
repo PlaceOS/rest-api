@@ -293,7 +293,7 @@ module PlaceOS::Api
         sys_id: sys_id,
         module_name: module_name,
         index: index,
-        discovery: Systems.core_discovery
+        discovery: self.class.core_discovery
       )
 
       ret_val = remote_driver.exec(

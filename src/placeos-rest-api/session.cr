@@ -216,7 +216,7 @@ module PlaceOS
         sys_id: sys_id,
         module_name: module_name,
         index: index,
-        discovery: Systems.core_discovery
+        discovery: @discovery
       )
 
       response = driver.exec(@security_level, name, args, request_id: @request_id)
@@ -360,7 +360,7 @@ module PlaceOS
           module_id: module_name,
           sys_id: sys_id,
           module_name: module_name,
-          discovery: Systems.core_discovery
+          discovery: @discovery
         )
 
         ws = driver.debug

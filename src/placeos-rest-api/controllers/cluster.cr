@@ -7,7 +7,7 @@ module PlaceOS::Api
     before_action :check_admin
 
     def index
-      details = Api::Systems.core_discovery.node_hash
+      details = self.class.core_discovery.node_hash
 
       if params["include_status"]?
         # Returns Array(NodeStatus)
@@ -82,7 +82,7 @@ module PlaceOS::Api
 
     def show
       core_id = params["id"]
-      uri = Api::Systems.core_discovery.node_hash[core_id]
+      uri = self.class.core_discovery.node_hash[core_id]
       Core::Client.client(uri, request_id) do |client|
         drivers = client.loaded
 
@@ -117,7 +117,7 @@ module PlaceOS::Api
       core_id = params["id"]
       driver = params["driver"]
 
-      uri = Api::Systems.core_discovery.node_hash[core_id]
+      uri = self.class.core_discovery.node_hash[core_id]
       if Core::Client.client(uri, request_id) { |client| client.terminate(driver) }
         head :ok
       else

@@ -162,7 +162,7 @@ module PlaceOS::Api
       tag = driver.id.as(String)
       repository_folder = driver.repository!.folder_name
 
-      nodes = Api::Systems.core_discovery.node_hash
+      nodes = core_discovery.node_hash
       result = Promise.all(nodes.map { |name, uri|
         Promise.defer {
           status = begin
