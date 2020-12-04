@@ -6,10 +6,75 @@ require "./application"
 require "./systems"
 
 module PlaceOS::Api
-  class Edge < Application
-    base "/api/engine/v2/edge/"
+  class Edges < Application
+    base "/api/engine/v2/edges/"
+
+    before_action :check_admin, except: [:index, :show, :edge]
+    before_action :check_support, only: [:index, :show]
+
+    before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt]
+
+    getter current_edge : Model::Edge { find_edge }
 
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
+
+    # Validate the present of the id and check the secret before routing to core
+    ws("/", :edge) do |socket|
+      token = params["token"]?
+      render status: :unprocessable_entity, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
+
+      edge_id = Model::Edge.validate_token(token)
+      head status: :unauthorized if edge_id.nil?
+
+      Edge.connection_manager.add_edge(edge_id, socket)
+    end
+
+    get("/:id/token", :token) do
+      head :unauthorized unless is_admin?
+      render json: {token: current_edge.token(current_user)}
+    end
+
+    def index
+      elastic = Model::Edge.elastic
+      query = elastic.query(params)
+      query.sort(NAME_SORT_ASC)
+      render json: paginate_results(elastic, query)
+    end
+
+    def show
+      render json: current_edge
+    end
+
+    def update
+      edge = current_edge
+      edge.assign_attributes_from_json(request.body.as(IO))
+      save_and_respond edge
+    end
+
+    # TODO: replace manual id with interpolated value from `id_param`
+    put "/:id", :update_alt { update }
+
+    def create
+      save_and_respond(Model::Edge.from_json(request.body.as(IO)))
+    end
+
+    def destroy
+      current_edge.destroy
+      head :ok
+    end
+
+    # Helpers
+    ###########################################################################
+
+    protected def find_edge
+      id = params["id"]
+      Log.context.set(edge_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    # Edge Connection Management
+    ###########################################################################
 
     # Handles the websocket proxy between Edge and Core
     #
@@ -128,42 +193,6 @@ module PlaceOS::Api
           end.get
         end
       end
-    end
-
-    # Check the validity of the token.
-    # Returns the `edge_id` of the node if the token is valid.
-    def self.validate_token(token : String) : String?
-      parts = token.split('_')
-      unless parts.size == 2
-        Log.info { {message: "deformed token", token: token} }
-        return
-      end
-
-      edge_id, secret = parts
-
-      edge = Model::Edge.find(edge_id)
-      if edge.nil?
-        Log.info { {message: "edge not found", edge_id: edge_id} }
-        return
-      end
-
-      if edge.check_secret?(secret)
-        edge_id
-      else
-        Log.info { {message: "edge secret is invalid", edge_id: edge_id} }
-        nil
-      end
-    end
-
-    # Validate the present of the id and check the secret before routing to core
-    ws("/", :edge) do |socket|
-      token = params["token"]?
-      render status: :unprocessable_entity, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
-
-      edge_id = Edge.validate_token(token)
-      head status: :unauthorized if edge_id.nil?
-
-      Edge.connection_manager.add_edge(edge_id, socket)
     end
   end
 end
