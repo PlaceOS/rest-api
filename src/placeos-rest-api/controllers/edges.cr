@@ -14,17 +14,23 @@ module PlaceOS::Api
 
     before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt]
 
+    skip_action :authorize!, only: [:edge]
+    skip_action :set_user_id, only: [:edge]
+    skip_action :check_oauth_scope, only: [:edge]
+
     getter current_edge : Model::Edge { find_edge }
 
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
 
     # Validate the present of the id and check the secret before routing to core
-    ws("/", :edge) do |socket|
+    ws("/control", :edge) do |socket|
       token = params["token"]?
       render status: :unprocessable_entity, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
 
       edge_id = Model::Edge.validate_token(token)
       head status: :unauthorized if edge_id.nil?
+
+      Log.info { { edge_id: edge_id, message: "new edge connection" } }
 
       Edge.connection_manager.add_edge(edge_id, socket)
     end
@@ -167,6 +173,8 @@ module PlaceOS::Api
           core_sockets[edge_id] = core_socket
           core_socket
         end
+
+        Log.debug { { edge_id: edge_id, message: "successfully added edge to core connection"  }}
 
         spawn { socket.run }
         socket
