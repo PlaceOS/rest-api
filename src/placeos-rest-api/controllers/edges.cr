@@ -25,14 +25,15 @@ module PlaceOS::Api
     # Validate the present of the id and check the secret before routing to core
     ws("/control", :edge) do |socket|
       token = params["token"]?
+
       render status: :unprocessable_entity, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
 
       edge_id = Model::Edge.validate_token(token)
       head status: :unauthorized if edge_id.nil?
 
-      Log.info { { edge_id: edge_id, message: "new edge connection" } }
+      Log.info { {edge_id: edge_id, message: "new edge connection"} }
 
-      Edge.connection_manager.add_edge(edge_id, socket)
+      Edges.connection_manager.add_edge(edge_id, socket)
     end
 
     get("/:id/token", :token) do
@@ -92,7 +93,7 @@ module PlaceOS::Api
       private getter edge_sockets = {} of String => HTTP::WebSocket
       private getter core_sockets = {} of String => HTTP::WebSocket
 
-      private getter edge_lock = Mutex.new
+      private getter edge_lock = Mutex.new(protection: :reentrant)
 
       getter core_discovery : Api::Discovery::Core
 
@@ -101,11 +102,16 @@ module PlaceOS::Api
       end
 
       def add_edge(edge_id : String, socket : HTTP::WebSocket)
+        Log.debug { {edge_id: edge_id, message: "adding edge socket"} }
         edge_lock.synchronize do
           edge_sockets[edge_id] = socket
-          socket.on_close { remove(edge_id) }
           add_core(edge_id, current_node: core_discovery.find(edge_id))
         end
+        socket.on_close { remove(edge_id) }
+      rescue e
+        Log.error(exception: e) { {edge_id: edge_id, message: "while adding edge socket"} }
+        remove(edge_id)
+        socket.close
       end
 
       def remove(edge_id : String)
@@ -132,11 +138,19 @@ module PlaceOS::Api
         reconnect : Bool = false
       )
         node = rendezvous[edge_id]?.try &->HoundDog::Discovery.from_hash_value(String)
-        return if node.nil? || (!reconnect && current_node && node && node[:name] == current_node[:name])
 
-        uri = node[:uri].dup
+        raise "no core found" if node.nil?
+
+        # No need to change connection
+        if !reconnect && core_sockets.has_key?(edge_id) && current_node && node[:name] == current_node[:name]
+          return
+        end
+
+        Log.debug { {edge_id: edge_id, message: "adding core socket"} }
+
+        uri = node[:uri]
         uri.query = "edge_id=#{edge_id}"
-        uri.path = "/api/v1/edge"
+        uri.path = "/api/core/v1/edge/control"
 
         socket = edge_lock.synchronize do
           edge_socket = edge_sockets[edge_id]
@@ -174,9 +188,15 @@ module PlaceOS::Api
           core_socket
         end
 
-        Log.debug { { edge_id: edge_id, message: "successfully added edge to core connection"  }}
+        Log.debug { {edge_id: edge_id, message: "successfully added edge to core connection"} }
 
-        spawn { socket.run }
+        spawn {
+          begin
+            socket.run
+          rescue e
+            Log.error(exception: e) { "core websocket failure" }
+          end
+        }
         socket
       end
 
