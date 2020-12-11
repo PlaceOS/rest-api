@@ -29,7 +29,7 @@ module PlaceOS::Api
       repo.assign_attributes_from_json(request.body.as(IO))
 
       # Must destroy and re-add to change driver repository URIs
-      if repo.uri_changed? && repo.repo_type != Model::Repository::Type::Interface
+      if repo.uri_changed? && repo.repo_type.driver?
         render :unprocessable_entity, text: "Error: uri must not change"
       end
 
@@ -63,7 +63,7 @@ module PlaceOS::Api
     end
 
     def self.pull_repository(repository : Model::Repository)
-      if repository.repo_type == Model::Repository::Type::Driver
+      if repository.repo_type.driver?
         # Set the repository commit hash to head
         repository.update_fields(commit_hash: "HEAD")
 
