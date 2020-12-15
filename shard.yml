@@ -44,7 +44,7 @@ dependencies:
   # For core client
   placeos-core:
     github: placeos/core
-    version: ~> 2.4
+    branch: feat/edge
 
   # For driver state helpers
   placeos-driver:
