@@ -1,6 +1,8 @@
 require "promise"
 require "./application"
 
+require "placeos-core/client"
+
 module PlaceOS::Api
   class Cluster < Application
     base "/api/engine/v2/cluster/"
@@ -9,107 +11,142 @@ module PlaceOS::Api
     def index
       details = self.class.core_discovery.node_hash
 
-      if params["include_status"]?
-        # Returns Array(NodeStatus)
-        render json: Promise.all(details.map { |name, uri|
-          Promise.defer { Cluster.node_status(name, uri, request_id) }
-        }).get
-      end
+      if params.["include_status"]?
+        promises = details.map do |name, uri|
+          Promise.defer do
+            begin
+              {
+                name,
+                {
+                  status: Cluster.node_status(name, uri, request_id),
+                  uri:    uri,
+                },
+              }
+            rescue
+              nil
+            end
+          end
+        end
 
-      # returns {"id" => "host"}
-      render json: details
+        # {
+        #   <id>: {
+        #     "load": <load>,
+        #     "status": <status>,
+        #     "uri": <uri>,
+        #     "id": <id>
+        #   }
+        # }
+        render json: Promise.all(promises).get.compact.to_h
+      else
+        # { <id>: { "uri": <uri>, "id": <id> } }
+        details = details.map { |id, uri| ({id, {id: id, uri: uri}}) }.to_h
+        render json: details
+      end
     end
 
     alias NodeStatus = NamedTuple(
       id: String,
-      hostname: String,
-      cpu_count: Int32,
-      core_cpu: Float64,
-      total_cpu: Float64,
-      memory_total: Int64,
-      memory_usage: Int64,
-      core_memory: Int64,
-      compiled_drivers: Array(String),
-      available_repositories: Array(String),
-      running_drivers: Int32,
-      module_instances: Int32,
-      unavailable_repositories: Array(NodeError),
-      unavailable_drivers: Array(NodeError),
+      uri: URI,
+      # Get the cluster load
+      load: PlaceOS::Core::Client::Load,
+      # Get the cluster details (number of drivers running, errors etc)
+      status: PlaceOS::Core::Client::CoreStatus,
     )
-
-    alias NodeError = NamedTuple(name: String, reason: String)
 
     def self.node_status(name : String, uri : URI, request_id : String) : NodeStatus
       Core::Client.client(uri, request_id) do |client|
-        # Get the cluster details (number of drivers running, errors etc)
-        core_status = client.core_status
-        # Get the cluster load
-        core_load = client.core_load
-
         {
-          id:                       name,
-          hostname:                 core_load.hostname.to_s,
-          cpu_count:                core_load.cpu_count,
-          core_cpu:                 core_load.core_cpu,
-          total_cpu:                core_load.total_cpu,
-          memory_total:             core_load.memory_total,
-          memory_usage:             core_load.memory_usage,
-          core_memory:              core_load.core_memory,
-          compiled_drivers:         core_status.compiled_drivers,
-          available_repositories:   core_status.available_repositories,
-          running_drivers:          core_status.running_drivers,
-          module_instances:         core_status.module_instances,
-          unavailable_repositories: core_status.unavailable_repositories,
-          unavailable_drivers:      core_status.unavailable_drivers,
+          id:  name,
+          uri: uri,
+          # Get the cluster load
+          load: client.core_load,
+          # Get the cluster details (number of drivers running, errors etc)
+          status: client.core_status,
         }
       end
     end
 
-    alias LoadedDrivers = Hash(String, Array(String))
-
-    alias DriverStatus = NamedTuple(
-      running: Bool,
-      module_instances: Int32,
-      last_exit_code: Int32,
-      launch_count: Int32,
-      launch_time: Int64,
-
-      # These will not be available if running == false
-      percentage_cpu: Float64?,
-      memory_total: Int64?,
-      memory_usage: Int64?,
-    )
+    # Collect unique driver keys managed by a node
+    #
+    def self.collect_keys(loaded : PlaceOS::Core::Client::Loaded)
+      # Retain only the driver key
+      loaded.edge
+        .values.flat_map(&.keys)
+        .concat(loaded.local.keys)
+        .map { |k| k.split('/').last }
+        .to_set
+    end
 
     def show
+      include_status = !!params["include_status"]?
       core_id = params["id"]
       uri = self.class.core_discovery.node_hash[core_id]
       Core::Client.client(uri, request_id) do |client|
-        drivers = client.loaded
+        loaded = client.loaded
 
-        if params["include_status"]?
-          render json: Promise.all(drivers.map { |driver, modules|
-            Promise.defer { Cluster.driver_status(driver, modules, client) }
-          }).get
+        # Collect unique driver keys managed by node
+        driver_keys = Cluster.collect_keys(loaded)
+
+        if include_status
+          promises = driver_keys.map do |key|
+            Promise.defer do
+              begin
+                {key, Cluster.driver_status(key, loaded, client.driver_status(key))}
+              rescue
+                nil
+              end
+            end
+          end
+
+          # {
+          #   <driver_key>: {
+          #     "local": { "modules": [<module_id>], "status": <driver_status> }
+          #     "edge": {
+          #       <edge_id>: { "modules": [<module_id>], "status": <driver_status> }
+          #     }
+          #   }
+          # }
+          render json: Promise.all(promises).get.compact.to_h
         else
-          # returns: {"/app/bin/drivers/drivers_name_fe33588": ["mod-ETbLjPMTRfb"]}
-          render json: drivers
+          # {
+          #   <driver_key>: {
+          #     "local": { "modules": [<module_id>] }
+          #     "edge": {
+          #       <edge_id>: { "modules": [<module_id>] }
+          #     }
+          #   }
+          # }
+          render json: driver_keys.map { |key| {key, Cluster.driver_status(key, loaded)} }.to_h
         end
       end
     end
 
-    def self.driver_status(driver_path, modules, client : Core::Client)
-      driver_status = client.driver_status(driver_path)
+    alias Driver = NamedTuple(modules: Array(String), status: PlaceOS::Core::Client::DriverStatus::Metadata?)
+    alias DriverStatus = NamedTuple(local: Driver, edge: Hash(String, Driver))
+
+    def self.driver_status(
+      key : String,
+      loaded : PlaceOS::Core::Client::Loaded,
+      status : PlaceOS::Core::Client::DriverStatus? = nil
+    ) : DriverStatus
+      edge_modules = loaded.edge
+      local_modules = loaded.local
+
+      edges = edge_modules.map do |edge_id, processes|
+        {
+          edge_id, {
+            modules: processes[key],
+            status:  status.try(&.edge[edge_id]?),
+          }.as(Driver),
+        }
+      end.to_h
+
       {
-        running:          driver_status.running,
-        module_instances: driver_status.module_instances,
-        last_exit_code:   driver_status.last_exit_code,
-        launch_count:     driver_status.launch_count,
-        launch_time:      driver_status.launch_time,
-        percentage_cpu:   driver_status.percentage_cpu,
-        memory_total:     driver_status.memory_total,
-        memory_usage:     driver_status.memory_usage,
-        driver:           driver_path,
-        modules:          modules,
+        local: {
+          modules: local_modules[key],
+          status:  status.try(&.local),
+        }.as(Driver),
+        edge: edges,
       }
     end
 
