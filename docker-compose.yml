@@ -74,7 +74,7 @@ services:
     hostname: rethink
 
   rubber-soul: # RethinkDB to Elasticsearch Service
-    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-latest}
+    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-edge}
     restart: always
     hostname: rubber-soul
     depends_on:
