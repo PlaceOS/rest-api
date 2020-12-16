@@ -176,11 +176,18 @@ module PlaceOS::Api
           end
 
           # Link core to edge
-          core_socket.on_message { |message| edge_socket.send(message) }
+          core_socket.on_message { |message|
+            Log.debug { {message: "from core", packet: message} }
+            edge_socket.send(message)
+          }
           core_socket.on_binary { |bytes| edge_socket.stream &.write(bytes) }
 
           # Link edge to core
-          edge_socket.on_message { |message| core_socket.send(message) }
+          edge_socket.on_message { |message|
+            Log.debug { {message: "from edge", packet: message} }
+            core_socket.send(message)
+          }
+
           edge_socket.on_binary { |bytes| core_socket.stream &.write(bytes) }
 
           core_sockets[edge_id]?.try(&.close) rescue nil

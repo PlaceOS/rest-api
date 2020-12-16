@@ -8,50 +8,41 @@ module PlaceOS::Api
     base "/api/engine/v2/cluster/"
     before_action :check_admin
 
+    alias NodeStatus = NamedTuple(
+      id: String,
+      uri: URI,
+      # Get the cluster load
+      load: PlaceOS::Core::Client::Load?,
+      # Get the cluster details (number of drivers running, errors etc)
+      status: PlaceOS::Core::Client::CoreStatus?,
+    )
+
     def index
       details = self.class.core_discovery.node_hash
 
       if params.["include_status"]?
         promises = details.map do |name, uri|
           Promise.defer do
-            begin
-              {
-                name,
-                {
-                  status: Cluster.node_status(name, uri, request_id),
-                  uri:    uri,
-                },
-              }
-            rescue
-              nil
-            end
+            Cluster.node_status(name, uri, request_id) rescue nil
           end
         end
 
-        # {
-        #   <id>: {
+        # [
+        #   {
         #     "load": <load>,
         #     "status": <status>,
         #     "uri": <uri>,
         #     "id": <id>
-        #   }
-        # }
-        render json: Promise.all(promises).get.compact.to_h
+        #   },
+        #   ...
+        # ]
+        render json: Promise.all(promises).get.compact
       else
-        # { <id>: { "uri": <uri>, "id": <id> } }
-        details = details.map { |id, uri| ({id, {id: id, uri: uri}}) }.to_h
+        # [ { "uri": <uri>, "id": <id> }, ... ]
+        details = details.map { |id, uri| {id: id, uri: uri} }
         render json: details
       end
     end
-
-    alias NodeStatus = NamedTuple(
-      id: String,
-      uri: URI,
-      # Get the cluster load
-      load: PlaceOS::Core::Client::Load,
-      # Get the cluster details (number of drivers running, errors etc)
-      status: PlaceOS::Core::Client::CoreStatus,
-    )
 
     def self.node_status(name : String, uri : URI, request_id : String) : NodeStatus
       Core::Client.client(uri, request_id) do |client|
@@ -90,39 +81,37 @@ module PlaceOS::Api
         if include_status
           promises = driver_keys.map do |key|
             Promise.defer do
-              begin
-                {key, Cluster.driver_status(key, loaded, client.driver_status(key))}
-              rescue
-                nil
-              end
+              Cluster.driver_status(key, loaded, client.driver_status(key)) rescue nil
             end
           end
 
-          # {
-          #   <driver_key>: {
+          # [
+          #   {
+          #     "driver": "<driver_key>",
           #     "local": { "modules": [<module_id>], "status": <driver_status> }
           #     "edge": {
           #       <edge_id>: { "modules": [<module_id>], "status": <driver_status> }
           #     }
           #   }
-          # }
-          render json: Promise.all(promises).get.compact.to_h
+          # ]
+          render json: Promise.all(promises).get.compact
         else
-          # {
-          #   <driver_key>: {
+          # [
+          #   {
+          #     "driver": "<driver_key>",
           #     "local": { "modules": [<module_id>] }
           #     "edge": {
           #       <edge_id>: { "modules": [<module_id>] }
           #     }
           #   }
-          # }
-          render json: driver_keys.map { |key| {key, Cluster.driver_status(key, loaded)} }.to_h
+          # ]
+          render json: driver_keys.map { |key| Cluster.driver_status(key, loaded) }
         end
       end
     end
 
     alias Driver = NamedTuple(modules: Array(String), status: PlaceOS::Core::Client::DriverStatus::Metadata?)
-    alias DriverStatus = NamedTuple(local: Driver, edge: Hash(String, Driver))
+    alias DriverStatus = NamedTuple(driver: String, local: Driver, edge: Hash(String, Driver))
 
     def self.driver_status(
       key : String,
@@ -142,7 +131,8 @@ module PlaceOS::Api
       end.to_h
 
       {
-        local: {
+        driver: key,
+        local:  {
           modules: local_modules[key],
           status:  status.try(&.local),
         }.as(Driver),
