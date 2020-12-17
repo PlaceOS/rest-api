@@ -12,7 +12,7 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show, :edge]
     before_action :check_support, only: [:index, :show]
 
-    before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt]
+    before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt, :token]
 
     skip_action :authorize!, only: [:edge]
     skip_action :set_user_id, only: [:edge]
@@ -107,6 +107,14 @@ module PlaceOS::Api
           edge_sockets[edge_id] = socket
           add_core(edge_id, current_node: core_discovery.find(edge_id))
         end
+
+        spawn(same_thread: true) do
+          loop do
+            socket.ping rescue break
+            sleep 30
+          end
+        end
+
         socket.on_close { remove(edge_id) }
       rescue e
         Log.error(exception: e) { {edge_id: edge_id, message: "while adding edge socket"} }
@@ -197,13 +205,15 @@ module PlaceOS::Api
 
         Log.debug { {edge_id: edge_id, message: "successfully added edge to core connection"} }
 
-        spawn {
+        spawn(same_thread: true) do
           begin
             socket.run
           rescue e
             Log.error(exception: e) { "core websocket failure" }
           end
-        }
+        end
+
+        Fiber.yield
         socket
       end
 

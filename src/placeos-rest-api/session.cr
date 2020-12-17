@@ -383,7 +383,7 @@ module PlaceOS
             ))
         end
 
-        spawn ws.run
+        spawn(same_thread: true) { ws.run }
         debug_sessions[{sys_id, module_name, index}] = ws
       end
 
