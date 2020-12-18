@@ -82,12 +82,11 @@ module PlaceOS::Api
     def update
       args = UpdateParams.from_json(self.body)
 
-      sys_trig = current_sys_trig
-      sys_trig.enabled = args.enabled.as(Bool) unless args.enabled.nil?
-      sys_trig.important = args.important.as(Bool) unless args.important.nil?
-      sys_trig.exec_enabled = args.exec_enabled.as(Bool) unless args.exec_enabled.nil?
+      current_sys_trig.enabled = args.enabled.as(Bool) unless args.enabled.nil?
+      current_sys_trig.important = args.important.as(Bool) unless args.important.nil?
+      current_sys_trig.exec_enabled = args.exec_enabled.as(Bool) unless args.exec_enabled.nil?
 
-      save_and_respond(sys_trig)
+      save_and_respond(current_sys_trig)
     end
 
     # TODO: replace manual id with interpolated value from `id_param`

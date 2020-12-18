@@ -36,12 +36,9 @@ module PlaceOS::Api
       # if a system id is present we query the database directly
       if (sys_id = args.control_system_id)
         cs = Model::ControlSystem.find!(sys_id)
-        modules = cs.modules || [] of String
-
         # Include subset of association data with results
-        results = Model::Module.find_all(modules).compact_map do |mod|
-          driver = mod.driver
-          next unless driver
+        results = Model::Module.find_all(cs.modules).compact_map do |mod|
+          next if (driver = mod.driver).nil?
 
           # Most human readable module data is contained in driver
           driver_field = restrict_attributes(
@@ -132,28 +129,26 @@ module PlaceOS::Api
 
     def show
       complete = params["complete"]? == "true"
-      mod = current_module
 
-      response = !complete ? mod : with_fields(mod, {
-        :driver => restrict_attributes(mod.driver, only: DRIVER_ATTRIBUTES),
+      response = !complete ? current_module : with_fields(current_module, {
+        :driver => restrict_attributes(current_module.driver, only: DRIVER_ATTRIBUTES),
       })
 
       render json: response
     end
 
     def update
-      mod = current_module
-      mod.assign_attributes_from_json(self.body)
+      current_module.assign_attributes_from_json(self.body)
 
-      if mod.save
-        driver = mod.driver
-        serialised = !driver ? mod : with_fields(mod, {
+      if current_module.save
+        driver = current_module.driver
+        serialised = !driver ? current_module : with_fields(current_module, {
           :driver => restrict_attributes(driver, only: DRIVER_ATTRIBUTES),
         })
 
         render json: serialised
       else
-        render status: :unprocessable_entity, json: mod.errors.map(&.to_s)
+        render status: :unprocessable_entity, json: current_module.errors.map(&.to_s)
       end
     end
 
@@ -177,14 +172,13 @@ module PlaceOS::Api
 
     # Starts a module
     post("/:id/start", :start) do
-      mod = current_module
-      head :ok if mod.running == true
+      head :ok if current_module.running == true
 
-      mod.update_fields(running: true)
+      current_module.update_fields(running: true)
 
       # Changes cleared on a successful update
-      if mod.running_changed?
-        Log.error { {controller: "Modules", action: "start", module_id: mod.id, event: "failed"} }
+      if current_module.running_changed?
+        Log.error { {controller: "Modules", action: "start", module_id: current_module.id, event: "failed"} }
         head :internal_server_error
       else
         head :ok
@@ -193,14 +187,13 @@ module PlaceOS::Api
 
     # Stops a module
     post("/:id/stop", :stop) do
-      mod = current_module
-      head :ok unless mod.running
+      head :ok unless current_module.running
 
-      mod.update_fields(running: false)
+      current_module.update_fields(running: false)
 
       # Changes cleared on a successful update
-      if mod.running_changed?
-        Log.error { {controller: "Modules", action: "stop", module_id: mod.id, event: "failed"} }
+      if current_module.running_changed?
+        Log.error { {controller: "Modules", action: "stop", module_id: current_module.id, event: "failed"} }
         head :internal_server_error
       else
         head :ok
@@ -210,15 +203,13 @@ module PlaceOS::Api
     # Executes a command on a module
     post("/:id/exec/:method", :execute) do
       id, method = params["id"], params["method"]
-      mod = current_module
-      module_name = mod.name
-      sys_id = mod.control_system_id || ""
+      sys_id = current_module.control_system_id || ""
       args = Array(JSON::Any).from_json(self.body)
 
       remote_driver = Driver::Proxy::RemoteDriver.new(
         module_id: id,
         sys_id: sys_id,
-        module_name: module_name,
+        module_name: current_module.name,
         discovery: self.class.core_discovery,
       )
 
@@ -238,7 +229,7 @@ module PlaceOS::Api
         message:     "core execute request failed",
         sys_id:      sys_id,
         module_id:   id,
-        module_name: module_name,
+        module_name: current_module.name,
         method:      method,
       } }
       render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
@@ -255,12 +246,11 @@ module PlaceOS::Api
     end
 
     post("/:id/ping", :ping) do
-      mod = current_module
-      if mod.role == Model::Driver::Role::Logic
-        Log.debug { {controller: "Modules", action: "ping", module_id: mod.id, role: mod.role.to_s} }
+      if current_module.role == Model::Driver::Role::Logic
+        Log.debug { {controller: "Modules", action: "ping", module_id: current_module.id, role: current_module.role.to_s} }
         head :not_acceptable
       else
-        pinger = Pinger.new(mod.hostname.as(String), count: 3)
+        pinger = Pinger.new(current_module.hostname.as(String), count: 3)
         pinger.ping
         render json: {
           host:      pinger.ip.to_s,
@@ -272,7 +262,7 @@ module PlaceOS::Api
     end
 
     post("/:id/load", :load) do
-      module_id = current_module.id.as(String)
+      module_id = params["id"]
       load = Api::Systems.core_for(module_id, request_id) do |core_client|
         core_client.load(module_id)
       end
