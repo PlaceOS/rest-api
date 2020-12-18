@@ -8,22 +8,13 @@ module PlaceOS::Api
     base "/api/engine/v2/cluster/"
     before_action :check_admin
 
-    alias NodeStatus = NamedTuple(
-      id: String,
-      uri: URI,
-      # Get the cluster load
-      load: PlaceOS::Core::Client::Load?,
-      # Get the cluster details (number of drivers running, errors etc)
-      status: PlaceOS::Core::Client::CoreStatus?,
-    )
-
     def index
       details = self.class.core_discovery.node_hash
 
       if params.["include_status"]?
-        promises = details.map do |name, uri|
+        promises = details.map do |core_id, uri|
           Promise.defer do
-            Cluster.node_status(name, uri, request_id) rescue nil
+            Cluster.node_status(core_id, uri, request_id)
           end
         end
 
@@ -44,17 +35,29 @@ module PlaceOS::Api
       end
     end
 
-    def self.node_status(name : String, uri : URI, request_id : String) : NodeStatus
+    alias NodeStatus = NamedTuple(
+      core_id: String,
+      uri: URI,
+      # Get the cluster load
+      load: PlaceOS::Core::Client::Load?,
+      # Get the cluster details (number of drivers running, errors etc)
+      status: PlaceOS::Core::Client::CoreStatus?,
+    )
+
+    def self.node_status(core_id : String, uri : URI, request_id : String) : NodeStatus?
       Core::Client.client(uri, request_id) do |client|
         {
-          id:  name,
-          uri: uri,
+          core_id: core_id,
+          uri:     uri,
           # Get the cluster load
           load: client.core_load,
           # Get the cluster details (number of drivers running, errors etc)
           status: client.core_status,
         }
       end
+    rescue e
+      Log.warn(exception: e) { {message: "failed to request core status", uri: uri.to_s, core_id: core_id} }
+      nil
     end
 
     # Collect unique driver keys managed by a node
@@ -81,7 +84,18 @@ module PlaceOS::Api
         if include_status
           promises = driver_keys.map do |key|
             Promise.defer do
-              Cluster.driver_status(key, loaded, client.driver_status(key)) rescue nil
+              driver_status = begin
+                client.driver_status(key)
+              rescue e
+                Log.warn(exception: e) { {
+                  message: "failed to request driver status",
+                  uri:     uri.to_s,
+                  core_id: core_id,
+                } }
+                nil
+              end
+
+              Cluster.driver_status(key, loaded, driver_status) unless driver_status.nil?
             end
           end
 
