@@ -60,14 +60,13 @@ module PlaceOS::Api
       nil
     end
 
-    # Collect unique driver keys managed by a node
+    # Collect unique driver keys managed by a core node
     #
     def self.collect_keys(loaded : PlaceOS::Core::Client::Loaded)
-      # Retain only the driver key
       loaded.edge
-        .values.flat_map(&.keys)
-        .concat(loaded.local.keys)
-        .map { |k| k.split('/').last }
+        .flat_map(&.last.keys)        # Extract driver keys from each edge bound to the core
+        .concat(loaded.local.keys)    # Extract driver keys from the core
+        .map!(&.rpartition('/').last) # Strip any path prefix, retaining only the driver key
         .to_set
     end
 
