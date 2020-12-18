@@ -88,10 +88,12 @@ module PlaceOS::Api
       render json: triggers
     end
 
-    record ZoneExecResponse,
+    record(
+      ZoneExecResponse,
       success : Array(String) = [] of String,
       failure : Array(String) = [] of String,
-      module_missing : Array(String) = [] of String { include JSON::Serializable }
+      module_missing : Array(String) = [] of String
+    ) { include JSON::Serializable }
 
     # Execute a method on a module across all systems in a Zone
     post "/:id/exec/:module_slug/:method", :zone_execute do
