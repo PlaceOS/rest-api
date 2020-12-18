@@ -26,7 +26,7 @@ module PlaceOS::Api
     ws("/control", :edge) do |socket|
       token = params["token"]?
 
-      render status: :unprocessable_entity, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
+      render status: :bad_request, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
 
       edge_id = Model::Edge.validate_token(token)
       head status: :unauthorized if edge_id.nil?
@@ -37,7 +37,7 @@ module PlaceOS::Api
     end
 
     get("/:id/token", :token) do
-      head :unauthorized unless is_admin?
+      head :forbidden unless is_admin?
       render json: {token: current_edge.token(current_user)}
     end
 
