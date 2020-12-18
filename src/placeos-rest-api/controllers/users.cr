@@ -51,19 +51,19 @@ module PlaceOS::Api
       head :not_found unless current_user.refresh_token.presence
 
       begin
-        internals = current_authority.not_nil!.internals.not_nil!
+        internals = current_authority.not_nil!.internals
         sso_strat_id = internals["oauth-strategy"].as_s # (i.e. oauth_strat-FNsaSj6bp-M)
         render(:not_found, text: "no oauth configuration specified in authority") unless sso_strat_id.presence
 
-        sso_strat = ::PlaceOS::Model::OAuthAuthentication.find!(sso_strat_id.not_nil!)
-        client_id = sso_strat.client_id.not_nil!
-        client_secret = sso_strat.client_secret.not_nil!
-        token_uri = URI.parse(sso_strat.token_url.not_nil!)
+        sso_strat = ::PlaceOS::Model::OAuthAuthentication.find!(sso_strat_id)
+        client_id = sso_strat.client_id
+        client_secret = sso_strat.client_secret
+        token_uri = URI.parse(sso_strat.token_url)
         token_host = token_uri.host.not_nil!
         token_path = token_uri.full_path
 
         oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
-        token = oauth2_client.get_access_token_using_refresh_token(current_user.refresh_token.not_nil!, sso_strat.scope)
+        token = oauth2_client.get_access_token_using_refresh_token(current_user.refresh_token, sso_strat.scope)
 
         current_user.access_token = token.access_token
         current_user.refresh_token = token.refresh_token if token.refresh_token

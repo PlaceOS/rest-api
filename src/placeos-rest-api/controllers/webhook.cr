@@ -20,12 +20,10 @@ module PlaceOS::Api
 
     # Triggers the webhook
     def notify(method_type : String) # ameba:disable Metrics/CyclomaticComplexity
-      trigger_instance = current_trigger_instance
-      trigger = current_trigger
-
       # Notify the trigger service
+      # TODO: Triggers service should expose a versioned client
       trigger_uri = TRIGGERS_URI.dup
-      trigger_uri.path = "/api/triggers/v2/webhook?id=#{trigger_instance.id}&secret=#{trigger_instance.webhook_secret}"
+      trigger_uri.path = "/api/triggers/v2/webhook?id=#{current_trigger_instance.id}&secret=#{current_trigger_instance.webhook_secret}"
       trigger_response = HTTP::Client.post(
         trigger_uri,
         headers: HTTP::Headers{"X-Request-ID" => request_id}
@@ -35,9 +33,9 @@ module PlaceOS::Api
       if params["exec"]? == "true"
         exec_params = ExecParams.new(params).validate!
 
-        if trigger_instance.exec_enabled
+        if current_trigger_instance.exec_enabled
           driver = RemoteDriver.new(
-            trigger_instance.control_system_id.as(String),
+            current_trigger_instance.control_system_id.as(String),
             exec_params.mod,
             exec_params.index
           )
@@ -73,11 +71,11 @@ module PlaceOS::Api
                 head response_code
               end
             rescue error
-              Log.info(exception: error) { "trigger function response not valid #{trigger_instance.control_system_id} - #{exec_params.friendly}" }
+              Log.info(exception: error) { "trigger function response not valid #{current_trigger_instance.control_system_id} - #{exec_params.friendly}" }
             end
           end
         else
-          Log.warn { "attempt to execute function on trigger #{trigger_instance.id} - #{exec_params.friendly}" }
+          Log.warn { "attempt to execute function on trigger #{current_trigger_instance.id} - #{exec_params.friendly}" }
         end
       end
 
@@ -116,12 +114,10 @@ module PlaceOS::Api
 
     def find_hook
       args = WebhookParams.new(params).validate!
-
-      sys_trig_id = args.id.as(String)
-      Log.context.set(trigger_instance_id: sys_trig_id)
+      Log.context.set(trigger_instance_id: args.id)
 
       # Find will raise a 404 (not found) if there is an error
-      trigger_instance = Model::TriggerInstance.find!(sys_trig_id)
+      trigger_instance = Model::TriggerInstance.find!(args.id)
       trigger = trigger_instance.trigger
 
       # Determine the validity of loaded TriggerInstance

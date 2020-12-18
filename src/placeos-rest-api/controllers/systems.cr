@@ -122,22 +122,17 @@ module PlaceOS::Api
 
     # Renders a control system
     def show
-      control_system = current_control_system
-
       # Guest JWTs include the control system id that they have access to
       if user_token.scope.includes?("guest")
-        head :forbidden unless user_token.user.roles.includes?(control_system.id)
-        render json: control_system
+        head :forbidden unless user_token.user.roles.includes?(current_control_system.id)
+        render json: current_control_system
       end
 
-      if params["complete"]?
-        render json: with_fields(control_system, {
-          :module_data => control_system.module_data,
-          :zone_data   => control_system.zone_data,
-        })
-      else
-        render json: control_system
-      end
+      complete = params["complete"]? == "true"
+      render json: !complete ? current_control_system : with_fields(current_control_system, {
+        :module_data => current_control_system.module_data,
+        :zone_data   => current_control_system.zone_data,
+      })
     end
 
     class UpdateParams < Params
@@ -157,8 +152,7 @@ module PlaceOS::Api
         end
       end
 
-      control_system = current_control_system
-      if version != control_system.version
+      if version != current_control_system.version
         message = "attempting to edit an old version"
         respond_with(:conflict) do
           text message
@@ -166,10 +160,10 @@ module PlaceOS::Api
         end
       end
 
-      control_system.assign_attributes_from_json(self.body)
-      control_system.version = version + 1
+      current_control_system.assign_attributes_from_json(self.body)
+      current_control_system.version = version + 1
 
-      save_and_respond(control_system)
+      save_and_respond(current_control_system)
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
@@ -192,13 +186,11 @@ module PlaceOS::Api
         head :forbidden unless user_token.user.roles.includes?(params["sys_id"])
       end
 
-      zones = current_control_system.zones || [] of String
-
       # Save the DB hit if there are no zones on the system
-      documents = if zones.empty?
+      documents = if current_control_system.zones.empty?
                     [] of Model::Zone
                   else
-                    Model::Zone.get_all(zones).to_a
+                    Model::Zone.get_all(current_control_system.zones).to_a
                   end
 
       set_collection_headers(documents.size, Model::Zone.table_name)
@@ -215,14 +207,12 @@ module PlaceOS::Api
     # Adds the module from the system if it doesn't already exist
     #
     put("/:sys_id/module/:module_id", :add_module) do
-      control_system = current_control_system
+      control_system_id = params["sys_id"]
       module_id = params["module_id"]
-      modules = control_system.modules
-      control_system_id = control_system.id.as(String)
 
       head :not_found unless Model::Module.exists?(module_id)
 
-      module_present = modules.try(&.includes?(module_id)) || Model::ControlSystem.add_module(control_system_id, module_id)
+      module_present = current_control_system.modules.includes?(module_id) || Model::ControlSystem.add_module(control_system_id, module_id)
 
       unless module_present
         render text: "Failed to add ControlSystem Module", status: :internal_server_error
@@ -235,18 +225,14 @@ module PlaceOS::Api
     # Removes the module from the system and deletes it if not used elsewhere
     #
     delete("/:sys_id/module/:module_id", :remove_module) do
-      control_system = current_control_system
       module_id = params["module_id"]
-      modules = control_system.modules
-      control_system_id = control_system.id.as(String)
 
-      if modules.try(&.includes?(module_id))
-        control_system.remove_module(module_id)
-        control_system.save!
+      if current_control_system.modules.includes?(module_id)
+        current_control_system.remove_module(module_id)
+        current_control_system.save!
       end
 
-      # Return the latest version of the control system
-      render json: Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
+      render json: current_control_system
     end
 
     # Module Functions
@@ -271,10 +257,9 @@ module PlaceOS::Api
     # Toggle the running state of ControlSystem's Module
     #
     protected def self.module_running_state(control_system : Model::ControlSystem, running : Bool)
-      modules = control_system.modules || [] of String
       Model::Module.table_query do |q|
         q
-          .get_all(modules)
+          .get_all(control_system.modules)
           .filter({ignore_startstop: false})
           .update({running: running})
       end

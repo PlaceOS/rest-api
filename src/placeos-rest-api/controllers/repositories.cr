@@ -111,13 +111,13 @@ module PlaceOS::Api
     end
 
     get "/:id/drivers", :drivers do
-      repository = current_repo.folder_name
+      repository_folder = current_repo.folder_name
 
       # Request to core:
       # "/api/core/v1/drivers/?repository=#{repository}"
       # Returns: `["path/to/file.cr"]`
-      drivers = Api::Systems.core_for(repository, request_id) do |core_client|
-        core_client.drivers(repository)
+      drivers = Api::Systems.core_for(repository_folder, request_id) do |core_client|
+        core_client.drivers(repository_folder)
       end
 
       render json: drivers

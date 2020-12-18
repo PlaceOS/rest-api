@@ -22,20 +22,15 @@ module PlaceOS::Api
     end
 
     def show
-      trigger = current_trigger
-      if params["instances"]? == "true"
-        render json: with_fields(trigger, {
-          :trigger_instances => trigger.trigger_instances.to_a,
-        })
-      else
-        render json: trigger
-      end
+      include_instances = params["instances"]? == "true"
+      render json: !include_instances ? current_trigger : with_fields(current_trigger, {
+        :trigger_instances => current_trigger.trigger_instances.to_a,
+      })
     end
 
     def update
-      trig = current_trigger
-      trig.assign_attributes_from_json(self.body)
-      save_and_respond(trig)
+      current_trigger.assign_attributes_from_json(self.body)
+      save_and_respond(current_trigger)
     end
 
     # TODO: replace manual id with interpolated value from `id_param`

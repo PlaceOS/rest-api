@@ -24,9 +24,8 @@ module PlaceOS::Api
     end
 
     def update
-      domain = current_domain
-      domain.assign_attributes_from_json(self.body)
-      save_and_respond domain
+      current_domain.assign_attributes_from_json(self.body)
+      save_and_respond current_domain
     end
 
     # TODO: replace manual id with interpolated value from `id_param`

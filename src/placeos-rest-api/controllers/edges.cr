@@ -54,9 +54,8 @@ module PlaceOS::Api
     end
 
     def update
-      edge = current_edge
-      edge.assign_attributes_from_json(self.body)
-      save_and_respond edge
+      current_edge.assign_attributes_from_json(self.body)
+      save_and_respond current_edge
     end
 
     # TODO: replace manual id with interpolated value from `id_param`

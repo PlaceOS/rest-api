@@ -35,26 +35,22 @@ module PlaceOS::Api
     end
 
     def show
-      driver = current_driver
       include_compilation_status = !params.has_key?("compilation_status") || params["compilation_status"] != "false"
 
-      if include_compilation_status
-        render json: with_fields(driver, {
-          :compilation_status => Api::Drivers.compilation_status(driver, request_id),
-        })
-      else
-        render json: driver
-      end
+      result = !include_compilation_status ? current_driver : with_fields(current_driver, {
+        :compilation_status => Api::Drivers.compilation_status(current_driver, request_id),
+      })
+
+      render json: result
     end
 
     def update
-      driver = current_driver
-      driver.assign_attributes_from_json(self.body)
+      current_driver.assign_attributes_from_json(self.body)
 
       # Must destroy and re-add to change driver type
-      render :unprocessable_entity, text: "Error: role must not change" if driver.role_changed?
+      render :unprocessable_entity, text: "Error: role must not change" if current_driver.role_changed?
 
-      save_and_respond driver
+      save_and_respond current_driver
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
@@ -70,11 +66,10 @@ module PlaceOS::Api
     end
 
     post("/:id/recompile", :recompile) do
-      driver = current_driver
-      if driver.commit.starts_with?("RECOMPILE")
+      if current_driver.commit.starts_with?("RECOMPILE")
         head :already_reported
       else
-        if (recompiled = Drivers.recompile(driver))
+        if (recompiled = Drivers.recompile(current_driver))
           if recompiled.destroyed?
             head :not_found
           else
@@ -126,33 +121,26 @@ module PlaceOS::Api
     # Check if the core responsible for the driver has finished compilation
     #
     get("/:id/compiled", :compiled) do
-      driver = current_driver
-      file_name = URI.encode(driver.file_name)
-      commit = driver.commit
-      tag = driver.id.as(String)
-      repository = driver.repository
+      tag = params["id"]
+      file_name = URI.encode(current_driver.file_name)
+      repository = current_driver.repository
 
       unless repository
-        Log.error { "failed to load Driver<#{driver.id}>'s Repository<#{driver.repository_id}>" }
+        Log.error { {repository_id: current_driver.repository_id, message: "failed to load driver's repository"} }
         head :internal_server_error
       end
 
       compiled = begin
         Api::Systems.core_for(file_name, request_id) do |core_client|
-          core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name, commit: commit, tag: tag)
+          core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name, commit: current_driver.commit, tag: tag)
         end
       rescue e
         Log.error(exception: e) { "failed to request compilation status from core" }
         false
       end
 
-      if compiled
-        Log.info { "Driver<#{driver.id}> is compiled" }
-        head :ok
-      else
-        Log.warn { "Driver<#{driver.id}> not compiled" }
-        head :not_found
-      end
+      Log.info { "#{compiled ? "" : "not"} compiled" }
+      head (compiled ? :ok : :not_found)
     end
 
     # Returns the compilation status of a driver across the cluster
