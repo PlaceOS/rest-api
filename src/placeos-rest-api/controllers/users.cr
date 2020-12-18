@@ -14,6 +14,7 @@ module PlaceOS::Api
     before_action :check_authorization, only: [:update, :update_alt]
 
     before_action :ensure_json, only: [:update, :update_alt]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter user : Model::User { find_user }
 
@@ -106,7 +107,7 @@ module PlaceOS::Api
     end
 
     def create
-      new_user = Model::User.from_json(request.body.as(IO))
+      new_user = Model::User.from_json(body)
       # allow sys-admins to create users on other domains
       new_user.authority ||= current_authority.as(Model::Authority)
 
@@ -123,13 +124,11 @@ module PlaceOS::Api
     end
 
     def update
-      body = request.body.as(IO).gets_to_end
-
       # Allow additional attributes to be applied by admins
       # (the users themselves should not have access to these)
-      # TODO:: probably should be using scopes for this
+      # TODO:: Use scopes.
       if is_admin?
-        attrs = AdminAttributes.from_json(body)
+        attrs = AdminAttributes.from_json(self.body)
         user.login_name = attrs.login_name if attrs.login_name
         user.staff_id = attrs.staff_id if attrs.staff_id
         user.card_number = attrs.card_number if attrs.card_number
@@ -138,7 +137,7 @@ module PlaceOS::Api
 
       # Ensure authority doesn't change
       authority_id = user.authority_id
-      user.assign_attributes_from_json(body)
+      user.assign_attributes_from_json(self.body)
       user.authority_id = authority_id
 
       save_and_respond user

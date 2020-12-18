@@ -8,6 +8,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :current_settings, only: [:show, :update, :update_alt, :destroy]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_settings : Model::Settings { find_settings }
 
@@ -34,13 +35,12 @@ module PlaceOS::Api
     end
 
     def update
-      settings = current_settings
-      settings.assign_attributes_from_json(request.body.as(IO))
+      current_settings.assign_attributes_from_json(self.body)
 
-      if settings.save
-        render json: settings.decrypt_for!(current_user)
+      if current_settings.save
+        render json: current_settings.decrypt_for!(current_user)
       else
-        render json: settings.errors.map(&.to_s), status: :unprocessable_entity
+        render json: current_settings.errors.map(&.to_s), status: :unprocessable_entity
       end
     end
 
@@ -48,7 +48,7 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      new_settings = Model::Settings.from_json(request.body.as(IO))
+      new_settings = Model::Settings.from_json(self.body)
       if new_settings.save
         render json: new_settings.decrypt_for!(current_user), status: :created
       else

@@ -26,6 +26,7 @@ module PlaceOS::Api
                                                   :start, :stop, :execute, :types, :functions]
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
+    before_action :body, only: [:create, :execute, :update, :update_alt]
 
     # Allow unscoped access to details of a single `ControlSystem`
     skip_action :check_oauth_scope, only: [:show, :sys_zones]
@@ -165,7 +166,7 @@ module PlaceOS::Api
         end
       end
 
-      control_system.assign_attributes_from_json(request.body.as(IO))
+      control_system.assign_attributes_from_json(self.body)
       control_system.version = version + 1
 
       save_and_respond(control_system)
@@ -175,7 +176,7 @@ module PlaceOS::Api
     put "/:sys_id", :update_alt { update }
 
     def create
-      save_and_respond Model::ControlSystem.from_json(request.body.as(IO))
+      save_and_respond Model::ControlSystem.from_json(self.body)
     end
 
     def destroy
@@ -287,7 +288,7 @@ module PlaceOS::Api
     post("/:sys_id/:module_slug/:method", :execute) do
       sys_id, module_slug, method = params["sys_id"], params["module_slug"], params["method"]
       module_name, index = RemoteDriver.get_parts(module_slug)
-      args = Array(JSON::Any).from_json(request.body.as(IO))
+      args = Array(JSON::Any).from_json(self.body)
 
       remote_driver = RemoteDriver.new(
         sys_id: sys_id,

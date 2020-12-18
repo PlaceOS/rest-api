@@ -13,6 +13,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt, :token]
+    before_action :body, only: [:create, :update, :update_alt]
 
     skip_action :authorize!, only: [:edge]
     skip_action :set_user_id, only: [:edge]
@@ -54,7 +55,7 @@ module PlaceOS::Api
 
     def update
       edge = current_edge
-      edge.assign_attributes_from_json(request.body.as(IO))
+      edge.assign_attributes_from_json(self.body)
       save_and_respond edge
     end
 
@@ -62,7 +63,7 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::Edge.from_json(request.body.as(IO)))
+      save_and_respond(Model::Edge.from_json(self.body))
     end
 
     def destroy

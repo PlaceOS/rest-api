@@ -9,6 +9,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :current_broker, only: [:show, :update, :update_alt, :destroy]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_broker : Model::Broker { find_broker }
 
@@ -25,14 +26,14 @@ module PlaceOS::Api
     end
 
     def update
-      save_and_respond current_broker.assign_attributes_from_json(request.body.as(IO))
+      save_and_respond current_broker.assign_attributes_from_json(self.body)
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::Broker.from_json(request.body.as(IO)))
+      save_and_respond(Model::Broker.from_json(self.body))
     end
 
     def destroy

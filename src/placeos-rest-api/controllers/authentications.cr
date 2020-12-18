@@ -10,6 +10,7 @@ module PlaceOS::Api
       before_action :check_support, only: [:index, :show]
 
       before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
+      before_action :body, only: [:create, :update, :update_alt]
 
       getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
 
@@ -32,16 +33,15 @@ module PlaceOS::Api
       end
 
       def update
-        auth = current_auth
-        auth.assign_attributes_from_json(request.body.as(IO))
-        save_and_respond auth
+        current_auth.assign_attributes_from_json(self.body)
+        save_and_respond current_auth
       end
 
       # TODO: replace manual id with interpolated value from `id_param`
       put "/:id", :update_alt { update }
 
       def create
-        save_and_respond(Model::{{auth_type.id}}Authentication.from_json(request.body.as(IO)))
+        save_and_respond(Model::{{auth_type.id}}Authentication.from_json(self.body))
       end
 
       def destroy

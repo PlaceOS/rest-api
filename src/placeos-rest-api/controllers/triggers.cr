@@ -7,8 +7,9 @@ module PlaceOS::Api
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
 
-    before_action :ensure_json, only: [:create, :update, :update_alt]
     before_action :current_trigger, only: [:show, :update, :update_alt, :destroy]
+    before_action :ensure_json, only: [:create, :update, :update_alt]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_trigger : Model::Trigger { find_trigger }
 
@@ -33,7 +34,7 @@ module PlaceOS::Api
 
     def update
       trig = current_trigger
-      trig.assign_attributes_from_json(request.body.as(IO))
+      trig.assign_attributes_from_json(self.body)
       save_and_respond(trig)
     end
 
@@ -41,7 +42,7 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond Model::Trigger.from_json(request.body.as(IO))
+      save_and_respond Model::Trigger.from_json(self.body)
     end
 
     def destroy

@@ -10,6 +10,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :current_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_repo : Model::Repository { find_repo }
 
@@ -25,22 +26,21 @@ module PlaceOS::Api
     end
 
     def update
-      repo = current_repo
-      repo.assign_attributes_from_json(request.body.as(IO))
+      current_repo.assign_attributes_from_json(self.body)
 
       # Must destroy and re-add to change driver repository URIs
-      if repo.uri_changed? && repo.repo_type.driver?
-        render :unprocessable_entity, text: "Error: uri must not change"
+      if current_repo.uri_changed? && current_repo.repo_type.driver?
+        render :unprocessable_entity, json: {error: "uri must not change"}, text: "uri must not change"
       end
 
-      save_and_respond repo
+      save_and_respond current_repo
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::Repository.from_json(request.body.as(IO)))
+      save_and_respond(Model::Repository.from_json(self.body))
     end
 
     def destroy

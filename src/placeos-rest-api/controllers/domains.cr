@@ -8,6 +8,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :current_domain, only: [:show, :update, :update_alt, :destroy]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_domain : Model::Authority { find_domain }
 
@@ -24,7 +25,7 @@ module PlaceOS::Api
 
     def update
       domain = current_domain
-      domain.assign_attributes_from_json(request.body.as(IO))
+      domain.assign_attributes_from_json(self.body)
       save_and_respond domain
     end
 
@@ -32,7 +33,7 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::Authority.from_json(request.body.as(IO)))
+      save_and_respond(Model::Authority.from_json(self.body))
     end
 
     def destroy
