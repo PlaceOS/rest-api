@@ -13,6 +13,7 @@ module PlaceOS::Api
     before_action :ensure_json, only: [:create, :update, :update_alt]
     before_action :current_system, only: [:show, :update, :update_alt, :destroy]
     before_action :current_sys_trig, only: [:show, :update, :update_alt, :destroy]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_sys_trig : Model::TriggerInstance { find_sys_trig }
     getter current_system : Model::ControlSystem { find_system }
@@ -68,7 +69,7 @@ module PlaceOS::Api
 
     def show
       # Default to render extra association fields
-      complete = params.has_key?("complete") ? params["complete"] == "true" : true
+      complete = params.has_key?("complete") ? params["complete"]? == "true" : true
       render json: render_system_trigger(current_sys_trig, complete: complete)
     end
 
@@ -79,7 +80,7 @@ module PlaceOS::Api
     end
 
     def update
-      args = UpdateParams.from_json(request.body.as(IO))
+      args = UpdateParams.from_json(self.body)
 
       sys_trig = current_sys_trig
       sys_trig.enabled = args.enabled.as(Bool) unless args.enabled.nil?
@@ -93,10 +94,10 @@ module PlaceOS::Api
     put "/:trig_id", :update_alt { update }
 
     def create
-      model = Model::TriggerInstance.from_json(request.body.as(IO))
+      model = Model::TriggerInstance.from_json(self.body)
 
       if model.control_system_id != current_system.id
-        render status: :unprocessable_entity, text: "control_system_id mismatch"
+        render status: :unprocessable_entity, json: {error: "control_system_id mismatch"}, text: "control_system_id mismatch"
       else
         save_and_respond model
       end

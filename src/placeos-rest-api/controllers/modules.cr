@@ -15,6 +15,7 @@ module PlaceOS::Api
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
     before_action :current_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
+    before_action :body, only: [:create, :execute, :update, :update_alt]
 
     getter current_module : Model::Module { find_module }
 
@@ -142,7 +143,7 @@ module PlaceOS::Api
 
     def update
       mod = current_module
-      mod.assign_attributes_from_json(request.body.as(IO))
+      mod.assign_attributes_from_json(self.body)
 
       if mod.save
         driver = mod.driver
@@ -160,8 +161,7 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      body = request.body.as(IO)
-      save_and_respond(Model::Module.from_json(body))
+      save_and_respond(Model::Module.from_json(self.body))
     end
 
     def destroy
@@ -212,8 +212,8 @@ module PlaceOS::Api
       id, method = params["id"], params["method"]
       mod = current_module
       module_name = mod.name
-      sys_id = mod.control_system_id.as(String)
-      args = Array(JSON::Any).from_json(request.body.as(IO))
+      sys_id = mod.control_system_id || ""
+      args = Array(JSON::Any).from_json(self.body)
 
       remote_driver = Driver::Proxy::RemoteDriver.new(
         module_id: id,

@@ -67,6 +67,12 @@ module PlaceOS::Api
       Log.context.set(user_id: user_token.id)
     end
 
+    getter body : IO do
+      request_body = request.body
+      raise Error::NoBody.new if request_body.nil?
+      request_body
+    end
+
     getter request_id : String { UUID.random.to_s }
 
     # This makes it simple to match client requests with server side logs.
@@ -88,10 +94,18 @@ module PlaceOS::Api
       unless request.headers["Content-Type"]?.try(&.starts_with?("application/json"))
         render status: :not_acceptable, text: "Accepts: application/json"
       end
+      # Ensure presence of request body
+      body
     end
 
     # Error Handlers
     ###########################################################################
+
+    # 400 if request is missing a body
+    rescue_from Error::NoBody do |_error|
+      Log.debug { "missing request body" }
+      head :bad_request
+    end
 
     # 400 if unable to parse some JSON passed by a client
     rescue_from JSON::MappingError do |error|

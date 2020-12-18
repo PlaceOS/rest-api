@@ -8,6 +8,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :current_app, only: [:show, :update, :update_alt, :destroy]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_app : Model::DoorkeeperApplication { find_app }
 
@@ -31,16 +32,15 @@ module PlaceOS::Api
     end
 
     def update
-      app = current_app
-      app.assign_attributes_from_json(request.body.as(IO))
-      save_and_respond app
+      current_app.assign_attributes_from_json(self.body)
+      save_and_respond current_app
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::DoorkeeperApplication.from_json(request.body.as(IO)))
+      save_and_respond(Model::DoorkeeperApplication.from_json(self.body))
     end
 
     def destroy

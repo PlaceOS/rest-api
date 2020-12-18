@@ -11,6 +11,8 @@ module PlaceOS::Api
 
     before_action :current_zone, only: :children
 
+    before_action :body, only: [:update, :update_alt]
+
     # Allow unscoped read access to metadata
     skip_action :check_oauth_scope, only: [:show, :children_metadata]
 
@@ -66,7 +68,7 @@ module PlaceOS::Api
     # ameba:disable Metrics/CyclomaticComplexity
     def update
       parent_id = params["id"]
-      metadata = Model::Metadata::Interface.from_json(request.body.as(IO))
+      metadata = Model::Metadata::Interface.from_json(self.body)
 
       # We need a name to lookup the metadata
       head :bad_request if metadata.name.empty?

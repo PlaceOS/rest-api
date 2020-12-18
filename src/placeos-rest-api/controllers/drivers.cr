@@ -8,6 +8,7 @@ module PlaceOS::Api
     before_action :check_support, only: [:index, :show]
 
     before_action :current_driver, only: [:show, :update, :update_alt, :destroy, :recompile]
+    before_action :body, only: [:create, :update, :update_alt]
 
     getter current_driver : Model::Driver { find_driver }
 
@@ -48,7 +49,7 @@ module PlaceOS::Api
 
     def update
       driver = current_driver
-      driver.assign_attributes_from_json(request.body.as(IO))
+      driver.assign_attributes_from_json(self.body)
 
       # Must destroy and re-add to change driver type
       render :unprocessable_entity, text: "Error: role must not change" if driver.role_changed?
@@ -60,7 +61,7 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::Driver.from_json(request.body.as(IO)))
+      save_and_respond(Model::Driver.from_json(self.body))
     end
 
     def destroy

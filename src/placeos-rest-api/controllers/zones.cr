@@ -11,6 +11,8 @@ module PlaceOS::Api
     before_action :check_support, except: [:index]
     before_action :current_zone, only: [:show, :update, :update_alt, :destroy]
 
+    before_action :body, only: [:create, :update, :update_alt, :zone_execute]
+
     getter current_zone : Model::Zone { find_zone }
 
     def index
@@ -56,7 +58,7 @@ module PlaceOS::Api
     end
 
     def update
-      current_zone.assign_attributes_from_json(request.body.as(IO))
+      current_zone.assign_attributes_from_json(self.body)
       save_and_respond current_zone
     end
 
@@ -64,7 +66,7 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond Model::Zone.from_json(request.body.as(IO))
+      save_and_respond Model::Zone.from_json(self.body)
     end
 
     def destroy
@@ -86,50 +88,52 @@ module PlaceOS::Api
       render json: triggers
     end
 
-    # Execute a method on a module across all systems in a Zone
-    post("/:id/exec/:module_slug/:method") do
-      zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
-      args = Array(JSON::Any).from_json(request.body.as(IO))
+    record ZoneExecResponse,
+      success : Array(String) = [] of String,
+      failure : Array(String) = [] of String,
+      module_missing : Array(String) = [] of String { include JSON::Serializable }
 
-      module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
+    # Execute a method on a module across all systems in a Zone
+    post "/:id/exec/:module_slug/:method", :zone_execute do
+      zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
+      args = Array(JSON::Any).from_json(self.body)
+
+      # Crystal BUG: total function, it should destructure with correct types
+      module_parts = Driver::Proxy::RemoteDriver.get_parts(module_slug)
+      module_name, index = module_parts
 
       results = Promise.map(current_zone.systems) do |system|
         system_id = system.id.as(String)
-        remote_driver = Driver::Proxy::RemoteDriver.new(
-          sys_id: system_id,
-          module_name: module_name.as(String), # NOTE: These should not require casting, `get_parts` is a total function
-          index: index.as(Int32)
-        )
+        begin
+          remote_driver = Driver::Proxy::RemoteDriver.new(
+            sys_id: system_id,
+            module_name: module_name.as(String),
+            index: index.as(Int32)
+          )
 
-        output = remote_driver.exec(
-          security: driver_clearance(user_token),
-          function: method.as(String),
-          args: args,
-          request_id: request_id,
-        )
+          output = remote_driver.exec(
+            security: driver_clearance(user_token),
+            function: method.as(String), # BUG: This should not require casting
+            args: args,
+            request_id: request_id,
+          )
 
-        Log.debug { {message: "module exec success", system_id: system_id, module_name: module_name, index: index, method: method, output: output} }
+          Log.debug { {message: "module exec success", system_id: system_id, module_name: module_name, index: index, method: method, output: output} }
 
-        {system_id, ExecStatus::Success}
-      rescue e : Driver::Proxy::RemoteDriver::Error
-        handle_execute_error(e, respond: false)
-        if e.error_code == Driver::Proxy::RemoteDriver::ErrorCode::ModuleNotFound
-          {system_id.as(String), ExecStatus::Missing}
-        else
-          {system_id.as(String), ExecStatus::Failure}
+          {system_id, ExecStatus::Success}
+        rescue e : Driver::Proxy::RemoteDriver::Error
+          handle_execute_error(e, respond: false)
+          status = e.error_code.module_not_found? ? ExecStatus::Missing : ExecStatus::Failure
+          {system_id, status}
         end
-      end.get.not_nil!.to_a.compact # TODO implement Promise.compact_map
+      end.get.not_nil!.to_a.compact
 
-      response_object = results.each_with_object({
-        success:        [] of String,
-        failure:        [] of String,
-        module_missing: [] of String,
-      }) do |(id, status), obj|
+      response_object = results.each_with_object(ZoneExecResponse.new) do |(id, status), obj|
         case status
-        when ExecStatus::Success then obj[:success]
-        when ExecStatus::Failure then obj[:failure]
-        when ExecStatus::Missing then obj[:module_missing]
-        end.as(Array(String)) << id
+        in ExecStatus::Success then obj.success
+        in ExecStatus::Failure then obj.failure
+        in ExecStatus::Missing then obj.module_missing
+        end << id
       end
 
       render json: response_object
