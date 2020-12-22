@@ -4,9 +4,7 @@ module PlaceOS::Api
   class OAuthApplications < Application
     base "/api/engine/v2/oauth_apps/"
 
-    before_action :check_admin, except: [:index, :show]
-    before_action :check_support, only: [:index, :show]
-
+    before_action :check_admin
     before_action :current_app, only: [:show, :update, :update_alt, :destroy]
 
     getter current_app : Model::DoorkeeperApplication { find_app }
