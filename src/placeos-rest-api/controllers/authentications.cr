@@ -6,9 +6,7 @@ module PlaceOS::Api
     class {{auth_type.id}}Authentications < Application
       base "/api/engine/v2/{{auth_type.downcase.id}}_auths/"
 
-      before_action :check_admin, except: [:index, :show]
-      before_action :check_support, only: [:index, :show]
-
+      before_action :check_admin
       before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
       before_action :body, only: [:create, :update, :update_alt]
 
