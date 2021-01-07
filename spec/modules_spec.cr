@@ -168,8 +168,7 @@ module PlaceOS::Api
 
         it "no logic query" do
           driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
-          mod = Model::Generator.module
-          mod.driver = driver
+          mod = Model::Generator.module(driver: driver)
           mod.role = Model::Driver::Role::Service
           mod.save!
 
