@@ -1,4 +1,5 @@
 require "./helper"
+require "timecop"
 
 module PlaceOS::Api
   describe SystemTriggers do
@@ -19,10 +20,10 @@ module PlaceOS::Api
 
           inst1 = Model::Generator.trigger_instance
           inst1.control_system = sys
-          inst1.save!
+          Timecop.freeze(2.days.ago) do
+            inst1.save!
+          end
           inst1.persisted?.should be_true
-
-          sleep 1
 
           inst2 = Model::Generator.trigger_instance
           inst2.control_system = sys

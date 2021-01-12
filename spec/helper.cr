@@ -88,7 +88,7 @@ def test_404(base, model_name, headers)
   end
 end
 
-def until_expected(method, path, headers, &block : HTTP::Client::Response -> Bool)
+def until_expected(method, path, headers, timeout : Time::Span = 3.seconds, &block : HTTP::Client::Response -> Bool)
   channel = Channel(Bool).new
   spawn do
     before = Time.utc
@@ -115,7 +115,7 @@ def until_expected(method, path, headers, &block : HTTP::Client::Response -> Boo
   end
 
   spawn do
-    sleep 3
+    sleep timeout
     channel.close
   rescue
   end
