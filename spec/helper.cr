@@ -141,6 +141,8 @@ macro test_base_index(klass, controller_klass)
       raise e
     end
 
+    refresh_elastic({{klass}}.table_name)
+
     doc.persisted?.should be_true
     params = HTTP::Params.encode({"q" => name})
     path = "#{{{controller_klass}}::NAMESPACE[0].rstrip('/')}?#{params}"
@@ -155,6 +157,12 @@ macro test_base_index(klass, controller_klass)
 
     found.should be_true
   end
+end
+
+def refresh_elastic(index : String? = nil)
+  path = "/_refresh"
+  path = "/#{index}" + path unless index.nil?
+  Neuroplastic::Client.new.perform_request("POST", path)
 end
 
 macro test_crd(klass, controller_klass)

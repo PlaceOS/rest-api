@@ -76,14 +76,14 @@ module PlaceOS::Api
           driver.save!
 
           # Module name is dependent on the driver's name
-          doc = Model::Generator.module(driver: driver)
-          doc.save!
-
+          doc = Model::Generator.module(driver: driver).save!
           doc.persisted?.should be_true
+
+          refresh_elastic(Model::Module.table_name)
+
           params = HTTP::Params.encode({"q" => name})
           path = "#{base.rstrip('/')}?#{params}"
           header = authorization_header
-
           found = until_expected("GET", path, header) do |response|
             Array(Hash(String, JSON::Any)).from_json(response.body).any? do |result|
               result["id"].as_s == doc.id

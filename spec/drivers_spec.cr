@@ -19,6 +19,7 @@ module PlaceOS::Api
             "q"    => service.name,
           })
 
+          refresh_elastic(Model::Driver.table_name)
           path = "#{base}?#{params}"
           found = until_expected("GET", path, authorization_header) do |response|
             results = Array(Hash(String, JSON::Any)).from_json(response.body)

@@ -18,6 +18,8 @@ module PlaceOS::Api
             Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys),
           ]
           clear, admin, never_displayed = settings.map(&.save!)
+          refresh_elastic(Model::Settings.table_name)
+
           result = curl(
             method: "GET",
             path: File.join(base, "?parent_id=#{sys.id}"),
