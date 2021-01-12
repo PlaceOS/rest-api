@@ -1,4 +1,5 @@
 require "./helper"
+require "timecop"
 
 module PlaceOS
   class Api::Modules
@@ -121,10 +122,10 @@ module PlaceOS::Api
         it "as_of query" do
           mod1 = Model::Generator.module
           mod1.connected = true
-          mod1.save!
+          Timecop.freeze(2.days.ago) do
+            mod1.save!
+          end
           mod1.persisted?.should be_true
-
-          sleep 2
 
           mod2 = Model::Generator.module
           mod2.connected = true

@@ -103,3 +103,7 @@ development_dependencies:
   # Retry
   simple_retry:
     github: spider-gazelle/simple_retry
+
+  # Time mocking
+  timecop:
+    github: crystal-community/timecop.cr
