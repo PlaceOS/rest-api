@@ -70,6 +70,7 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"zone_id" => zone_id})
           path = "#{base}?#{params}"
 
+          refresh_elastic(Model::ControlSystem.table_name)
           found = until_expected("GET", path, authorization_header) do |response|
             returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             (returned_ids | expected_ids).size == total_ids
@@ -94,11 +95,11 @@ module PlaceOS::Api
           expected_ids = expected_systems.compact_map(&.id)
 
           total_ids = expected_ids.size
-
           params = HTTP::Params.encode({"email" => expected_emails.join(',')})
           path = "#{base}?#{params}"
 
           found = until_expected("GET", path, authorization_header) do |response|
+            refresh_elastic(Model::ControlSystem.table_name)
             returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             (returned_ids | expected_ids).size == total_ids
           end
@@ -131,6 +132,7 @@ module PlaceOS::Api
           path = "#{base}?#{params}"
 
           found = until_expected("GET", path, authorization_header) do |response|
+            refresh_elastic(Model::ControlSystem.table_name)
             returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             (returned_ids | expected_ids).size == total_ids
           end

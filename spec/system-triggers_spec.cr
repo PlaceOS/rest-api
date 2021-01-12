@@ -29,9 +29,10 @@ module PlaceOS::Api
           inst2.save!
           inst2.persisted?.should be_true
 
+          refresh_elastic(Model::TriggerInstance.table_name)
+
           params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
           path = "#{path}?#{params}"
-
           correct_response = until_expected("GET", path, authorization_header) do |response|
             results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             contains_correct = results.any?(inst1.id)
