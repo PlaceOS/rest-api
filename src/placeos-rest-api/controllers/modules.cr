@@ -2,6 +2,7 @@ require "pinger"
 require "placeos-driver/storage"
 
 require "./application"
+require "./drivers"
 require "./settings"
 
 module PlaceOS::Api
@@ -274,8 +275,7 @@ module PlaceOS::Api
     ############################################################################
 
     def self.driver_compiled?(mod : Model::Module, request_id : String)
-      driver = mod.driver
-      unless driver
+      if (driver = mod.driver).nil?
         Log.error { "failed to load Module<#{mod.id}>'s Driver<#{mod.driver_id}>" }
         return false
       end
@@ -285,21 +285,7 @@ module PlaceOS::Api
         return false
       end
 
-      tag = driver.id.as(String)
-
-      begin
-        Api::Systems.core_for(mod.id.as(String), request_id) do |core_client|
-          core_client.driver_compiled?(
-            file_name: URI.encode(driver.file_name),
-            repository: repository.folder_name,
-            commit: driver.commit,
-            tag: tag,
-          )
-        end
-      rescue e
-        Log.error(exception: e) { "failed to request driver status from core" }
-        false
-      end
+      Api::Drivers.driver_compiled?(driver, repository, request_id, mod.id.as(String))
     end
 
     def module_state(mod : Model::Module, key : String? = nil)
