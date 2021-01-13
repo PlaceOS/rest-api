@@ -121,26 +121,29 @@ module PlaceOS::Api
     # Check if the core responsible for the driver has finished compilation
     #
     get("/:id/compiled", :compiled) do
-      tag = params["id"]
-      file_name = URI.encode(current_driver.file_name)
-      repository = current_driver.repository
-
-      unless repository
+      if (repository = current_driver.repository).nil?
         Log.error { {repository_id: current_driver.repository_id, message: "failed to load driver's repository"} }
         head :internal_server_error
       end
 
-      compiled = begin
-        Api::Systems.core_for(file_name, request_id) do |core_client|
-          core_client.driver_compiled?(file_name: file_name, repository: repository.folder_name, commit: current_driver.commit, tag: tag)
-        end
-      rescue e
-        Log.error(exception: e) { "failed to request compilation status from core" }
-        false
-      end
+      compiled = self.class.driver_compiled?(current_driver, repository, request_id)
 
-      Log.info { "#{compiled ? "" : "not"} compiled" }
-      head (compiled ? :ok : :not_found)
+      Log.info { "#{compiled ? "" : "not "}compiled" }
+      head compiled ? HTTP::Status::OK : HTTP::Status::NOT_FOUND
+    end
+
+    def self.driver_compiled?(driver : Model::Driver, repository : Model::Repository, request_id : String, key : String? = nil) : Bool
+      Api::Systems.core_for(key.presence || driver.file_name, request_id) do |core_client|
+        core_client.driver_compiled?(
+          file_name: URI.encode(driver.file_name),
+          repository: repository.folder_name,
+          commit: driver.commit,
+          tag: driver.id.as(String),
+        )
+      end
+    rescue e
+      Log.error(exception: e) { "failed to request driver compilation status from core" }
+      false
     end
 
     # Returns the compilation status of a driver across the cluster
