@@ -9,7 +9,7 @@ dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 3
+    version: 3.5.0
 
   # Data validation library
   active-model:
@@ -44,7 +44,6 @@ dependencies:
   # For core client
   placeos-core:
     github: placeos/core
-    branch: feat/edge
 
   # For driver state helpers
   placeos-driver:
