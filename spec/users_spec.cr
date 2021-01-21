@@ -25,6 +25,34 @@ module PlaceOS::Api
 
           model.destroy
         end
+
+        describe "update" do
+          it "updates groups" do
+            initial_groups = ["public"]
+
+            model = Model::Generator.user
+            model.groups = initial_groups
+            model.save!
+            model.persisted?.should be_true
+
+            updated_groups = ["admin", "public", "calendar"]
+
+            id = model.id.as(String)
+            result = curl(
+              method: "PATCH",
+              path: base + id,
+              body: {groups: updated_groups}.to_json,
+              headers: authorization_header.merge({"Content-Type" => "application/json"})
+            )
+
+            result.status_code.should eq 200
+            response_model = Model::User.from_trusted_json(result.body)
+            response_model.id.should eq id
+            response_model.groups.should eq updated_groups
+
+            model.destroy
+          end
+        end
       end
 
       describe "/current" do

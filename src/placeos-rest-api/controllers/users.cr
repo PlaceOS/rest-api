@@ -118,8 +118,11 @@ module PlaceOS::Api
       # Allow additional attributes to be applied by admins
       # (the users themselves should not have access to these)
       # TODO:: Use scopes.
-      user.assign_admin_attributes_from_json(self.body) if is_admin?
-      user.assign_attributes_from_json(self.body)
+      body = self.body.gets_to_end
+      if is_admin?
+        user.assign_admin_attributes_from_json(body)
+      end
+      user.assign_attributes_from_json(body)
 
       save_and_respond user
     end
