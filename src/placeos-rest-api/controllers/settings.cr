@@ -37,11 +37,7 @@ module PlaceOS::Api
     def update
       current_settings.assign_attributes_from_json(self.body)
 
-      if current_settings.save
-        render json: current_settings.decrypt_for!(current_user)
-      else
-        render json: current_settings.errors.map(&.to_s), status: :unprocessable_entity
-      end
+      save_and_respond(current_settings, &.decrypt_for!(current_user))
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
@@ -49,11 +45,7 @@ module PlaceOS::Api
 
     def create
       new_settings = Model::Settings.from_json(self.body)
-      if new_settings.save
-        render json: new_settings.decrypt_for!(current_user), status: :created
-      else
-        render json: new_settings.errors.map(&.to_s), status: :unprocessable_entity
-      end
+      save_and_respond(new_settings, &.decrypt_for!(current_user))
     end
 
     def destroy
