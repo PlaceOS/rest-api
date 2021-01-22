@@ -150,7 +150,7 @@ module PlaceOS::Api
       emails_param = params["emails"]?.presence
       if emails_param.nil?
         error = "missing `emails` param"
-        render status: :unprocessable_entity, json: {error: error}, text: error
+        render status: :bad_request, json: {error: error}, text: error
       end
 
       emails = emails_param.split(',')
