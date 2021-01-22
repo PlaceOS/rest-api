@@ -1,4 +1,5 @@
 require "oauth2"
+require "CrystalEmail"
 
 require "./application"
 
@@ -87,6 +88,9 @@ module PlaceOS::Api
       end
     end
 
+    # CRUD
+    ###############################################################################################
+
     def index
       elastic = Model::User.elastic
       query = elastic.query(params)
@@ -135,6 +139,38 @@ module PlaceOS::Api
       user.destroy
       head :ok
     end
+
+    ###############################################################################################
+
+    # # Params
+    # - `emails`: comma-seperated list of emails *required*
+    # # Returns
+    # - `[{id: "<user-id>", groups: ["<group>"]}]`
+    get("/groups") do
+      emails_param = params["emails"]?.presence
+      if emails_param.nil?
+        error = "missing `emails` param"
+        render status: :unprocessable_entity, json: {error: error}, text: error
+      end
+
+      emails = emails_param.split(',')
+      errors = self.class.validate_emails(emails)
+
+      unless errors.empty?
+        render status: :unprocessable_entity, json: {error: errors}, text: errors.join(',')
+      end
+
+      render json: Model::User.find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails).to_a
+    end
+
+    def self.validate_emails(emails) : Array(String)
+      emails.each_with_object([] of String) do |email, errors|
+        errors << "#{email} is an invalid email" unless email.is_email?
+      end
+    end
+
+    # Helpers
+    ###############################################################################################
 
     protected def find_user
       id = params["id"]
