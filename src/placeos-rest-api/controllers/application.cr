@@ -164,11 +164,11 @@ module PlaceOS::Api
       head :not_found
     end
 
-    # 422 if resource fails validation before mutation
+    # 400 if params fails validation before mutation
     rescue_from Error::InvalidParams do |error|
       model_errors = error.params.errors.map(&.to_s)
       Log.debug(exception: error) { {message: "invalid params", model_errors: model_errors} }
-      render status: :unprocessable_entity, json: model_errors
+      render status: :bad_request, json: model_errors
     end
   end
 end
