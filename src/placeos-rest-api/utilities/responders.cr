@@ -1,11 +1,24 @@
 require "http"
+require "placeos-models"
 
 module PlaceOS::Api
   module Utils::Responders
     # Shortcut to save a record and render a response
+    #
+    # Accepts an optional block to process the entity before response.
     def save_and_respond(resource)
       result, status = save_and_status(resource)
+
+      if status.ok? && result.is_a?(PlaceOS::Model::ModelBase)
+        result = yield result
+      end
+
       render json: result, status: status
+    end
+
+    # :ditto:
+    def save_and_respond(resource)
+      save_and_respond(resource) { resource }
     end
 
     # Shortcut to save a record and give the correct status

@@ -141,15 +141,11 @@ module PlaceOS::Api
     def update
       current_module.assign_attributes_from_json(self.body)
 
-      if current_module.save
-        driver = current_module.driver
-        serialised = !driver ? current_module : with_fields(current_module, {
+      save_and_respond(current_module) do |mod|
+        driver = mod.driver
+        !driver ? mod : with_fields(mod, {
           :driver => restrict_attributes(driver, only: DRIVER_ATTRIBUTES),
         })
-
-        render json: serialised
-      else
-        render status: :unprocessable_entity, json: current_module.errors.map(&.to_s)
       end
     end
 
