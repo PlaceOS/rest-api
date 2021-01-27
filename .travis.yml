@@ -1,9 +1,0 @@
-language: minimal
-
-services:
-  - docker
-
-install:
-  - ./test
-  # Don't give red for failing MT build
-  - ./test --multithreaded || echo "multithreaded suite failed"

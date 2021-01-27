@@ -1,6 +1,6 @@
 # PlaceOS REST API
 
-[![Build Status](https://travis-ci.com/placeos/rest-api.svg?branch=master)](https://travis-ci.com/placeos/rest-api)
+![CI](https://github.com/PlaceOS/rest-api/workflows/CI/badge.svg)
 
 ## Testing
 
