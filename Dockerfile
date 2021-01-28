@@ -1,4 +1,4 @@
-FROM crystallang/crystal:0.35.1-alpine
+FROM crystallang/crystal:0.36.0-alpine
 WORKDIR /app
 
 # Set the commit through a build arg
@@ -9,6 +9,7 @@ RUN apk update && apk add --no-cache ca-certificates tzdata && update-ca-certifi
 
 # Install shards for caching
 COPY shard.yml shard.yml
+COPY shard.override.yml shard.override.yml
 COPY shard.lock shard.lock
 
 RUN shards install --production
