@@ -1,5 +1,6 @@
 name: placeos-rest-api
-version: 1.19.0
+version: 1.20.0
+crystal: ~> 0.35
 
 targets:
   rest-api:
