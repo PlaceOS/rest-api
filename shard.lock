@@ -7,7 +7,7 @@ shards:
 
   action-controller: # Overridden
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 3.5.0
+    version: 3.5.1
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -51,7 +51,7 @@ shards:
 
   etcd:
     git: https://github.com/place-labs/crystal-etcd.git
-    version: 1.0.3
+    version: 1.0.4
 
   exec_from:
     git: https://github.com/place-labs/exec_from.git
@@ -91,7 +91,7 @@ shards:
 
   jwt:
     git: https://github.com/crystal-community/jwt.git
-    version: 1.4.2
+    version: 1.5.0
 
   log_helper:
     git: https://github.com/spider-gazelle/log_helper.git
@@ -110,8 +110,8 @@ shards:
     version: 1.7.1
 
   openssl_ext:
-    git: https://github.com/stakach/openssl_ext.git
-    version: 1.2.2
+    git: https://github.com/spider-gazelle/openssl_ext.git
+    version: 2.0.0
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
