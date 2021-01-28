@@ -31,7 +31,7 @@ shards:
 
   connect-proxy:
     git: https://github.com/spider-gazelle/connect-proxy.git
-    version: 1.0.0
+    version: 1.0.1
 
   crc16:
     git: https://github.com/maiha/crc16.cr.git
@@ -135,7 +135,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 4.10.0
+    version: 4.10.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -191,7 +191,7 @@ shards:
 
   secrets-env:
     git: https://github.com/place-labs/secrets-env.git
-    version: 1.1.0
+    version: 1.2.0
 
   simple_retry:
     git: https://github.com/spider-gazelle/simple_retry.git

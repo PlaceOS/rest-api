@@ -12,6 +12,12 @@ log_level = PlaceOS::Api.production? ? Log::Severity::Info : Log::Severity::Debu
 ::Log.builder.bind "action-controller.*", log_level, PlaceOS::Api::LOG_BACKEND
 ::Log.builder.bind "rest-api.*", log_level, PlaceOS::Api::LOG_BACKEND
 
+# Extra verbose coordination logging
+if ENV["PLACE_VERBOSE_CLUSTERING"]?.presence
+  ::Log.builder.bind "hound_dog.*", Log::Severity::Debug, PlaceOS::Api::LOG_BACKEND
+  ::Log.builder.bind "clustering.*", Log::Severity::Debug, PlaceOS::Api::LOG_BACKEND
+end
+
 # Application code
 require "./placeos-rest-api"
 
