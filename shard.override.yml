@@ -1,0 +1,8 @@
+dependencies:
+  action-controller:
+    github: spider-gazelle/action-controller
+    version: 3.5.0
+  neuroplastic:
+    github: place-labs/neuroplastic
+  retriable:
+    github: Sija/retriable.cr

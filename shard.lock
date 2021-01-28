@@ -1,20 +1,21 @@
+# NOTICE: This lockfile contains some overrides from shard.override.yml
 version: 2.0
 shards:
   CrystalEmail:
     git: https://github.com/Nephos/CrystalEmail.git
     version: 0.2.4
 
-  action-controller:
+  action-controller: # Overridden
     git: https://github.com/spider-gazelle/action-controller.git
     version: 3.5.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
-    version: 2.0.2
+    version: 2.0.3
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
-    version: 0.13.3
+    version: 0.13.4
 
   bindata:
     git: https://github.com/spider-gazelle/bindata.git
@@ -25,7 +26,7 @@ shards:
     version: 1.2.0
 
   clustering:
-    git: https://github.com/aca-labs/clustering.git
+    git: https://github.com/place-labs/clustering.git
     version: 2.0.2
 
   connect-proxy:
@@ -77,8 +78,8 @@ shards:
     version: 2.6.0
 
   http-params-serializable:
-    git: https://github.com/vladfaust/http-params-serializable.git
-    version: 0.4.0
+    git: https://github.com/caspiano/http-params-serializable.git
+    version: 0.4.1+git.commit.1610a206f676269c1b862281cda3ed82548ced34
 
   ipaddress:
     git: https://github.com/Sija/ipaddress.cr.git
@@ -104,7 +105,7 @@ shards:
     git: https://github.com/aca-labs/murmur3.git
     version: 0.1.1+git.commit.7cbe25c0ca8d052c9d98c377c824dcb0e038c790
 
-  neuroplastic:
+  neuroplastic: # Overridden
     git: https://github.com/place-labs/neuroplastic.git
     version: 1.7.1
 
@@ -176,7 +177,7 @@ shards:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
     version: 3.2.0
 
-  retriable:
+  retriable: # Overridden
     git: https://github.com/Sija/retriable.cr.git
     version: 0.2.2
 
