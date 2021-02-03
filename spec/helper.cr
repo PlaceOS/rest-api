@@ -64,12 +64,7 @@ def authentication(scope = ["public"] of String)
                          user = PlaceOS::Model::Generator.user
                          user.sys_admin = true
                          user.support = true
-                         begin
-                           user.save!
-                         rescue e : RethinkORM::Error::DocumentInvalid
-                           pp! e.inspect_errors
-                           raise e
-                         end
+                         user.save!
                        end
 
   authorization_header = {
@@ -132,14 +127,9 @@ macro test_base_index(klass, controller_klass)
 
   it "queries #{ {{ klass_name }} }", tags: "search" do
     name = UUID.random.to_s
-    begin
-      doc = PlaceOS::Model::Generator.{{ klass_name.id }}
-      doc.name = name
-      doc.save!
-    rescue e : RethinkORM::Error::DocumentInvalid
-      pp! e.inspect_errors
-      raise e
-    end
+    doc = PlaceOS::Model::Generator.{{ klass_name.id }}
+    doc.name = name
+    doc.save!
 
     refresh_elastic({{klass}}.table_name)
 
