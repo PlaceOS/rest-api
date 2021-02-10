@@ -63,43 +63,46 @@ module PlaceOS::Api
     end
 
     def self.pull_repository(repository : Model::Repository)
-      if repository.repo_type.driver?
-        # Set the repository commit hash to head
-        repository.update_fields(commit_hash: "HEAD")
+      # Keep the repository at `HEAD` if it was previously held at `HEAD`
+      reset_to_head = repository.repo_type.interface? && repository.commit_hash == "HEAD"
 
-        # Initiate changefeed on the document's commit_hash
-        changefeed = Model::Repository.changes(repository.id.as(String))
-        channel = Channel(Model::Repository?).new(1)
+      # Do not pull if the repository is already pulled
+      repository.pull! unless repository.should_pull?
 
-        # Wait until the commit hash is not head with a timeout of 20 seconds
-        found_repo = begin
-          spawn do
-            update_event = changefeed.find do |event|
-              repo = event[:value]
-              repo.destroyed? || repo.commit_hash != "HEAD"
-            end
-            channel.send(update_event.try &.[:value])
+      # Initiate changefeed on the document's commit_hash
+      changefeed = Model::Repository.changes(repository.id.as(String))
+      channel = Channel(Model::Repository?).new(1)
+
+      # Wait until the commit hash is not head with a timeout of 20 seconds
+      found_repo = begin
+        spawn do
+          update_event = changefeed.find do |event|
+            repo = event[:value]
+            repo.destroyed? || !repo.should_pull?
           end
-
-          select
-          when received = channel.receive?
-            received
-          when timeout(20.seconds)
-            raise "timeout waiting for repository update"
-          end
-        rescue
-          nil
-        ensure
-          # Terminate the changefeed
-          changefeed.stop
-          channel.close
+          channel.send(update_event.try &.[:value])
         end
 
-        {found_repo.destroyed?, found_repo.commit_hash} if found_repo
-      else
-        # Asynchronously pull Interface repositories
-        repository.pull!
-        {false, "HEAD"}
+        select
+        when received = channel.receive?
+          received
+        when timeout(20.seconds)
+          Log.info { "timeout" }
+          raise "timeout for repository update"
+        end
+      rescue
+        nil
+      ensure
+        # Terminate the changefeed
+        changefeed.stop
+        channel.close
+      end
+
+      unless found_repo.nil?
+        new_commit = found_repo.commit_hash
+        Log.info { found_repo.destroyed? ? "repository delete during pull" : "repository pulled to #{new_commit}" }
+        found_repo.update_fields(commit_hash: "HEAD") if reset_to_head
+        {found_repo.destroyed?, new_commit}
       end
     end
 
