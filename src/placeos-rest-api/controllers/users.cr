@@ -173,10 +173,17 @@ module PlaceOS::Api
     ###############################################################################################
 
     protected def find_user
-      id = params["id"]
-      Log.context.set(user_id: id)
+      lookup = params["id"]
+      user = if lookup.is_email?
+               found = Model::User.find_by_emails(authority_id: current_user.authority_id.as(String), emails: [lookup]).first?
+               raise RethinkORM::Error::DocumentNotFound.new if found.nil?
+               found
+             else
+               Model::User.find!(lookup, runopts: {"read_mode" => "majority"})
+             end
 
-      Model::User.find!(id, runopts: {"read_mode" => "majority"})
+      Log.context.set(user_id: user.id)
+      user
     end
 
     protected def check_authorization

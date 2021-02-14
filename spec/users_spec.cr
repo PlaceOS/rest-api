@@ -26,6 +26,24 @@ module PlaceOS::Api
           model.destroy
         end
 
+        it "show via email" do
+          model = Model::Generator.user.save!
+          model.persisted?.should be_true
+          id = model.id.as(String)
+          result = curl(
+            method: "GET",
+            path: base + model.email,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          response_model = Model::User.from_trusted_json(result.body)
+          response_model.id.should eq id
+          response_model.email.should eq model.email
+
+          model.destroy
+        end
+
         describe "update" do
           it "updates groups" do
             initial_groups = ["public"]
