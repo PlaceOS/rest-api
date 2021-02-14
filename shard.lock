@@ -131,7 +131,7 @@ shards:
 
   placeos-frontends:
     git: https://github.com/placeos/frontends.git
-    version: 0.10.8
+    version: 0.10.9
 
   placeos-models:
     git: https://github.com/placeos/models.git
