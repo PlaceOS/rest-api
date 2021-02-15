@@ -39,7 +39,7 @@ module PlaceOS::Api
           result.status_code.should eq 200
           response_model = Model::User.from_trusted_json(result.body)
           response_model.id.should eq id
-          response_model.email.should eq email
+          response_model.email.should eq model.email
 
           model.destroy
         end
