@@ -30,7 +30,6 @@ module PlaceOS::Api
           model = Model::Generator.user.save!
           model.persisted?.should be_true
           id = model.id.as(String)
-          email = model.email.as(String)
           result = curl(
             method: "GET",
             path: base + email,
