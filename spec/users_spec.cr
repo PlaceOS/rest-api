@@ -32,7 +32,7 @@ module PlaceOS::Api
           id = model.id.as(String)
           result = curl(
             method: "GET",
-            path: base + email,
+            path: base + model.email,
             headers: authorization_header,
           )
 
