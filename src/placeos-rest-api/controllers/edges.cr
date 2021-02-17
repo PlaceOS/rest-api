@@ -29,7 +29,7 @@ module PlaceOS::Api
 
       render status: :bad_request, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
 
-      edge_id = Model::Edge.validate_token(token)
+      edge_id = Model::Edge.validate_token?(token)
       head status: :unauthorized if edge_id.nil?
 
       Log.info { {edge_id: edge_id, message: "new edge connection"} }

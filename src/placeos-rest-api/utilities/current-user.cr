@@ -30,7 +30,7 @@ module PlaceOS::Api
       end
 
       unless (authority = current_authority)
-        Log.warn { {message: "authority not found", action: "authorize!", host: request.host} }
+        Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
         raise Error::Unauthorized.new "authority not found"
       end
 
@@ -50,7 +50,7 @@ module PlaceOS::Api
     def check_oauth_scope
       utoken = user_token
       unless utoken.scope.includes?("public")
-        Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.host, sub: utoken.sub} }
+        Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.hostname, sub: utoken.sub} }
         raise Error::Unauthorized.new "public scope required for access"
       end
     end
@@ -59,7 +59,7 @@ module PlaceOS::Api
     getter current_user : Model::User { Model::User.find!(user_token.id) }
 
     # Obtains the authority for the request's host
-    getter current_authority : Model::Authority? { Model::Authority.find_by_domain(request.host.as(String)) }
+    getter current_authority : Model::Authority? { Model::Authority.find_by_domain(request.hostname.as(String)) }
 
     # Getter for user_token
     def user_token : Model::UserJWT

@@ -8,14 +8,15 @@ require "action-controller"
 
 # Logging configuration
 log_level = PlaceOS::Api.production? ? Log::Severity::Info : Log::Severity::Debug
-::Log.setup "*", log_level, PlaceOS::Api::LOG_BACKEND
-::Log.builder.bind "action-controller.*", log_level, PlaceOS::Api::LOG_BACKEND
-::Log.builder.bind "rest-api.*", log_level, PlaceOS::Api::LOG_BACKEND
+log_backend = PlaceOS::Api.log_backend
+::Log.setup "*", :warn, log_backend
+::Log.builder.bind "action-controller.*", log_level, log_backend
+::Log.builder.bind "rest-api.*", log_level, log_backend
 
 # Extra verbose coordination logging
 if ENV["PLACE_VERBOSE_CLUSTERING"]?.presence
-  ::Log.builder.bind "hound_dog.*", Log::Severity::Debug, PlaceOS::Api::LOG_BACKEND
-  ::Log.builder.bind "clustering.*", Log::Severity::Debug, PlaceOS::Api::LOG_BACKEND
+  ::Log.builder.bind "hound_dog.*", Log::Severity::Debug, PlaceOS::Api::LOG_STDOUT
+  ::Log.builder.bind "clustering.*", Log::Severity::Debug, PlaceOS::Api::LOG_STDOUT
 end
 
 # Application code
