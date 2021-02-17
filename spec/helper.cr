@@ -13,7 +13,7 @@ require "promise"
 require "../lib/action-controller/spec/curl_context"
 
 Spec.before_suite do
-  Log.builder.bind("*", backend: PlaceOS::Api::LOG_BACKEND, level: Log::Severity::Debug)
+  Log.builder.bind("*", backend: PlaceOS::Api::LOG_STDOUT, level: Log::Severity::Debug)
   clear_tables
 end
 
