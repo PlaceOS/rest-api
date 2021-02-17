@@ -36,5 +36,5 @@ filters = ["bearer_token", "secret", "password"]
 # Add handlers that should run before your application
 ActionController::Server.before(
   ActionController::ErrorHandler.new(PlaceOS::Api.production?, ["X-Request-ID"]),
-  ActionController::LogHandler.new(filters)
+  ActionController::LogHandler.new(filters, ms: true)
 )
