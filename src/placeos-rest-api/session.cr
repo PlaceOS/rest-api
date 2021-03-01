@@ -577,7 +577,7 @@ module PlaceOS
       @bindings.clear
 
       # Ignore (stop debugging) all modules
-      debug_sessions.each_value { |socket| socket.close }
+      debug_sessions.each_value &.close
       debug_sessions.clear
     end
 

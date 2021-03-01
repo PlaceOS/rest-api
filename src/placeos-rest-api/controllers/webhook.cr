@@ -83,7 +83,7 @@ module PlaceOS::Api
       head :not_found
     end
 
-    {% for http_method in ActionController::Router::HTTP_METHODS.reject { |verb| verb == "head" } %}
+    {% for http_method in ActionController::Router::HTTP_METHODS.reject &.==("head") %}
       {{http_method.id}} "/:id/notify" do
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }

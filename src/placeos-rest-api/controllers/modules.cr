@@ -260,11 +260,7 @@ module PlaceOS::Api
 
     post("/:id/load", :load) do
       module_id = params["id"]
-      load = Api::Systems.core_for(module_id, request_id) do |core_client|
-        core_client.load(module_id)
-      end
-
-      render json: load
+      render json: Api::Systems.core_for(module_id, request_id, &.load(module_id))
     end
 
     # Helpers

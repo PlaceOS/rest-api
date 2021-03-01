@@ -53,7 +53,7 @@ module PlaceOS::Api
                        end
 
       children = current_zone.children.all
-      filtered = include_parent ? children : children.reject { |z| z.id == parent_id }
+      filtered = include_parent ? children : children.reject &.id.==(parent_id)
 
       results = filtered.map do |zone|
         {
