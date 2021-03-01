@@ -114,7 +114,7 @@ module PlaceOS::Api
 
     # Finds all the systems with the specified email address
     get "/with_emails", :find_by_email do
-      emails = params["in"].split(',').map(&.strip).reject(&.empty?).uniq
+      emails = params["in"].split(',').map(&.strip).reject(&.empty?).uniq!
       systems = Model::ControlSystem.get_all(emails, index: :email).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
       render json: systems

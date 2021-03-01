@@ -29,7 +29,7 @@ module PlaceOS::Api
 
       if params.has_key? "tags"
         # list of unique tags
-        tags = params["tags"].gsub(/[^0-9a-z ]/i, "").split(',').reject(&.empty?).uniq
+        tags = params["tags"].gsub(/[^0-9a-z ]/i, "").split(',').reject(&.empty?).uniq!
 
         head :bad_request if tags.empty?
 

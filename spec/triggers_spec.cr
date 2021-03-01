@@ -28,7 +28,7 @@ module PlaceOS::Api
           result = Array(JSON::Any).from_json(response.body).map { |d| Model::TriggerInstance.from_trusted_json(d.to_json) }
 
           result.all? { |i| i.trigger_id == trigger.id }.should be_true
-          instances.compact_map(&.id).sort.should eq result.compact_map(&.id).sort
+          instances.compact_map(&.id).sort!.should eq result.compact_map(&.id).sort!
         end
       end
 

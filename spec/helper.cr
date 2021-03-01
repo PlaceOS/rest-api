@@ -28,9 +28,7 @@ require "spec"
 # Configure DB
 db_name = "place_#{ENV["SG_ENV"]? || "development"}"
 
-RethinkORM.configure do |settings|
-  settings.db = db_name
-end
+RethinkORM.configure &.db=(db_name)
 
 Spec.after_suite { clear_tables }
 

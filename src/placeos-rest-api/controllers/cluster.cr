@@ -158,7 +158,7 @@ module PlaceOS::Api
       driver = params["driver"]
 
       uri = self.class.core_discovery.node_hash[core_id]
-      if Core::Client.client(uri, request_id) { |client| client.terminate(driver) }
+      if Core::Client.client(uri, request_id, &.terminate(driver))
         head :ok
       else
         head :not_found

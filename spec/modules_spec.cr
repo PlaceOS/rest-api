@@ -228,7 +228,7 @@ module PlaceOS::Api
         result.success?.should be_true
 
         settings = Array(Hash(String, JSON::Any)).from_json(result.body)
-        settings_hierarchy_ids = settings.map { |s| s["id"].to_s }
+        settings_hierarchy_ids = settings.map &.["id"].to_s
 
         settings_hierarchy_ids.should eq expected_settings_ids
         {mod, control_system, zone, driver}.each &.destroy

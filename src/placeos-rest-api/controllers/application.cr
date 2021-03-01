@@ -36,7 +36,7 @@ module PlaceOS::Api
       if range_end < total_items
         params["offset"] = (range_end + 1).to_s
         params["limit"] = query.limit.to_s
-        query_params = params.map { |key, value| "#{key}=#{value}" }.join("&")
+        query_params = params.join('&') { |key, value| "#{key}=#{value}" }
         response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
       end
 
