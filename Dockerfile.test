@@ -12,6 +12,7 @@ RUN update-ca-certificates
 
 RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing watchexec
 
+COPY .ameba.yml /app
 COPY shard.yml /app
 COPY shard.override.yml /app
 COPY shard.lock /app
