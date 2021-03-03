@@ -137,7 +137,7 @@ module PlaceOS::Api
       edges = edge_modules.map do |edge_id, processes|
         {
           edge_id, {
-            modules: processes[key],
+            modules: processes[key]? || [] of String,
             status:  status.try(&.edge[edge_id]?),
           }.as(Driver),
         }
@@ -146,7 +146,7 @@ module PlaceOS::Api
       {
         driver: key,
         local:  {
-          modules: local_modules[key],
+          modules: local_modules[key]? || [] of String,
           status:  status.try(&.local),
         }.as(Driver),
         edge: edges,
