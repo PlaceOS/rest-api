@@ -1,5 +1,6 @@
 # PlaceOS REST API
 
+[![Build Dev Image](https://github.com/PlaceOS/rest-api/actions/workflows/build-dev-image.yml/badge.svg)](https://github.com/PlaceOS/rest-api/actions/workflows/build-dev-image.yml)
 ![CI](https://github.com/PlaceOS/rest-api/workflows/CI/badge.svg)
 
 ## Testing
@@ -11,8 +12,8 @@
 **Dependencies**
 
 - Elasticsearch `~> v7.2`
-- RethinkDB `~> v2.3.6`
-- Etcd `~> v3.3.13`
+- RethinkDB `~> v2.4`
+- Etcd `~> v3.3`
 - Redis `~> v5`
 
 ### With Docker
