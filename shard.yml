@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.20.0
+version: 1.21.0
 crystal: ~> 0.35
 
 targets:
