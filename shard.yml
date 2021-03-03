@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.21.0
+version: 1.22.0
 crystal: ~> 0.35
 
 targets:
@@ -21,6 +21,11 @@ dependencies:
   CrystalEmail:
     github: Nephos/CrystalEmail
     version: ~> 0.2
+
+  # Pin on the etcd lib
+  etcd:
+    github: place-labs/crystal-etcd
+    version: ~> 1.0.0
 
   # Service discovery
   hound-dog:
