@@ -36,7 +36,7 @@ module PlaceOS::Api
     end
 
     alias NodeStatus = NamedTuple(
-      core_id: String,
+      id: String,
       uri: URI,
       # Get the cluster load
       load: PlaceOS::Core::Client::Load?,
@@ -47,8 +47,8 @@ module PlaceOS::Api
     def self.node_status(core_id : String, uri : URI, request_id : String) : NodeStatus?
       Core::Client.client(uri, request_id) do |client|
         {
-          core_id: core_id,
-          uri:     uri,
+          id:  core_id,
+          uri: uri,
           # Get the cluster load
           load: client.core_load,
           # Get the cluster details (number of drivers running, errors etc)
