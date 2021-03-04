@@ -8,10 +8,15 @@ module PlaceOS::Api
     base "/api/engine/v2/cluster/"
     before_action :check_admin
 
+    class ClusterParams < Params
+      attribute include_status : Bool = false
+    end
+
     def index
       details = self.class.core_discovery.node_hash
+      arguments = ClusterParams.new(params)
 
-      if params.["include_status"]?
+      if arguments.include_status
         promises = details.map do |core_id, uri|
           Promise.defer do
             Cluster.node_status(core_id, uri, request_id)
@@ -71,25 +76,34 @@ module PlaceOS::Api
     end
 
     def show
-      include_status = !!params["include_status"]?
       core_id = params["id"]
-      uri = self.class.core_discovery.node_hash[core_id]
+      args = ClusterParams.new(params)
+      uri = self.class.core_discovery.node_hash[core_id]?
+
+      Log.context.set({core_id: core_id, uri: uri.try &.to_s, include_status: args.include_status})
+
+      if uri.nil?
+        Log.debug { "core not registered" }
+        head :not_found
+      end
+
       Core::Client.client(uri, request_id) do |client|
         loaded = client.loaded
 
         # Collect unique driver keys managed by node
         driver_keys = Cluster.collect_keys(loaded)
 
-        if include_status
+        Log.debug { {loaded: loaded.to_json} }
+
+        if args.include_status
           promises = driver_keys.map do |key|
             Promise.defer do
               driver_status = begin
                 client.driver_status(key)
               rescue e
                 Log.warn(exception: e) { {
-                  message: "failed to request driver status",
-                  uri:     uri.to_s,
-                  core_id: core_id,
+                  message:    "failed to request driver status",
+                  driver_key: key,
                 } }
                 nil
               end
