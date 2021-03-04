@@ -4,16 +4,17 @@ module PlaceOS; end
 class PlaceOS::Driver; end
 
 require "http"
+require "placeos-log-backend"
+require "promise"
 require "random"
 require "rethinkdb-orm"
 require "simple_retry"
-require "promise"
 
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
 
 Spec.before_suite do
-  Log.builder.bind("*", backend: PlaceOS::Api::LOG_STDOUT, level: Log::Severity::Debug)
+  Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: Log::Severity::Debug)
   clear_tables
 end
 

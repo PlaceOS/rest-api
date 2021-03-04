@@ -8,7 +8,7 @@ require "../utilities/*"
 module PlaceOS::Api
   private abstract class Application < ActionController::Base
     macro inherited
-      Log = ::PlaceOS::Api::Log.for("controller").for({{ @type.stringify.split("::").last.underscore }})
+      Log = ::PlaceOS::Api::Log.for(self)
     end
 
     # Helpers for controller responses
