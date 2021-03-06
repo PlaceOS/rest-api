@@ -3,6 +3,20 @@ WORKDIR /app
 
 # Set the commit through a build arg
 ARG PLACE_COMMIT="DEV"
+# Create a non-privileged user, defaults are appuser:10001
+ARG IMAGE_UID="10001"
+ENV UID=$IMAGE_UID
+ENV USER=appuser
+
+# See https://stackoverflow.com/a/55757473/12429735RUN
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    "${USER}"
 
 # Add trusted CAs for communicating with external services
 RUN apk update && apk add --no-cache ca-certificates tzdata && update-ca-certificates
@@ -32,31 +46,14 @@ RUN ldd /bin/ping | tr -s '[:blank:]' '\n' | grep '^/' | \
 RUN ldd /bin/ping6 | tr -s '[:blank:]' '\n' | grep '^/' | \
     xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
 
-# Create a non-privileged user, defaults are appuser:10001
-ARG IMAGE_UID="10001"
-ENV UID=$IMAGE_UID
-ENV USER=appuser
-
-# See https://stackoverflow.com/a/55757473/12429735RUN
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    "${USER}"
-
 # Build a minimal docker image
 FROM scratch
 WORKDIR /
 ENV PATH=$PATH:/
-COPY --from=0 /app/deps /
-COPY --from=0 /app/rest-api /rest-api
 
-# this is required to ping things
-COPY --from=0 /bin/ping /ping
-COPY --from=0 /bin/ping6 /ping6
+# Copy the user information over
+COPY --from=0 /etc/passwd /etc/passwd
+COPY --from=0 /etc/group /etc/group
 
 # These are required for communicating with external services
 COPY --from=0 /etc/hosts /etc/hosts
@@ -68,9 +65,12 @@ ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 # This is required for Timezone support
 COPY --from=0 /usr/share/zoneinfo/ /usr/share/zoneinfo/
 
-# Copy the user information over
-COPY --from=0 /etc/passwd /etc/passwd
-COPY --from=0 /etc/group /etc/group
+# this is required to ping things
+COPY --from=0 /bin/ping /ping
+COPY --from=0 /bin/ping6 /ping6
+
+COPY --from=0 /app/deps /
+COPY --from=0 /app/rest-api /rest-api
 
 # Use an unprivileged user.
 USER appuser:appuser
