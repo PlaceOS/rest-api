@@ -22,11 +22,6 @@ dependencies:
     github: Nephos/CrystalEmail
     version: ~> 0.2
 
-  # Pin on the etcd lib
-  etcd:
-    github: place-labs/crystal-etcd
-    version: ~> 1.0.0
-
   # Service discovery
   hound-dog:
     github: place-labs/hound-dog
