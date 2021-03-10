@@ -3,6 +3,13 @@ require "placeos-models"
 
 module PlaceOS::Api
   module Utils::Responders
+    # Renders API error messages in a consistent format
+    #
+    def render_error(status : HTTP::Status, message : String?, **additional)
+      message = "API error" if message.nil?
+      render status: status, json: additional.merge({message: message})
+    end
+
     # Shortcut to save a record and render a response
     #
     # Accepts an optional block to process the entity before response.

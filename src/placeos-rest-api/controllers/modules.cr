@@ -229,7 +229,12 @@ module PlaceOS::Api
         module_name: current_module.name,
         method:      method,
       } }
-      render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
+
+      if Api.production?
+        render_error(HTTP::Status::INTERNAL_SERVER_ERROR, e.message)
+      else
+        render_error(HTTP::Status::INTERNAL_SERVER_ERROR, e.message, backtrace: e.backtrace?)
+      end
     end
 
     # Dumps the complete status state of the module

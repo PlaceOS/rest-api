@@ -16,7 +16,7 @@ module PlaceOS::Api
       # Pick off role from HTTP params, render error if present and invalid
       role = params["role"]?.try &.to_i?.try do |r|
         parsed = Model::Driver::Role.from_value?(r)
-        render status: :unprocessable_entity, text: "Invalid Role" unless parsed
+        return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Invalid `role`") if parsed.nil?
         parsed
       end
 
@@ -48,7 +48,7 @@ module PlaceOS::Api
       current_driver.assign_attributes_from_json(self.body)
 
       # Must destroy and re-add to change driver type
-      render :unprocessable_entity, text: "Error: role must not change" if current_driver.role_changed?
+      return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Driver role must not change") if current_driver.role_changed?
 
       save_and_respond current_driver
     end

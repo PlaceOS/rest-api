@@ -27,9 +27,10 @@ module PlaceOS::Api
     ws("/control", :edge) do |socket|
       token = params["token"]?
 
-      render status: :bad_request, json: {error: "missing 'token' param"} if token.nil? || token.presence.nil?
+      return render_error(HTTP::Status::BAD_REQUEST, "Missing 'token' param") if token.nil? || token.presence.nil?
 
       edge_id = Model::Edge.validate_token?(token)
+
       head status: :unauthorized if edge_id.nil?
 
       Log.info { {edge_id: edge_id, message: "new edge connection"} }
