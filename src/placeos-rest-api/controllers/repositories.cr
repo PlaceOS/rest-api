@@ -30,7 +30,7 @@ module PlaceOS::Api
 
       # Must destroy and re-add to change driver repository URIs
       if current_repo.uri_changed? && current_repo.repo_type.driver?
-        render :unprocessable_entity, json: {error: "uri must not change"}, text: "uri must not change"
+        return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "`uri` of Driver repositories cannot change")
       end
 
       save_and_respond current_repo
@@ -58,7 +58,7 @@ module PlaceOS::Api
           render json: {commit_hash: commit_hash}
         end
       else
-        head :request_timeout
+        return render_error(HTTP::Status::REQUEST_TIMEOUT, "Pull timed out")
       end
     end
 

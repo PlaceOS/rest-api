@@ -96,7 +96,7 @@ module PlaceOS::Api
       model = Model::TriggerInstance.from_json(self.body)
 
       if model.control_system_id != current_system.id
-        render status: :unprocessable_entity, json: {error: "control_system_id mismatch"}, text: "control_system_id mismatch"
+        render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "control_system_id mismatch")
       else
         save_and_respond model
       end

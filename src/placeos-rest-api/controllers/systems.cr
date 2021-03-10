@@ -141,23 +141,16 @@ module PlaceOS::Api
 
     # Updates a control system
     def update
-      version = begin
-        args = UpdateParams.new(params).validate!
-        args.version
-      rescue
-        message = "missing system version parameter"
-        respond_with(:precondition_failed) do
-          text message
-          json({error: message})
-        end
+      args = UpdateParams.new(params)
+
+      unless args.valid?
+        return render_error(HTTP::Status::PRECONDITION_FAILED, "Missing System version parameter")
       end
 
+      version = args.version
+
       if version != current_control_system.version
-        message = "attempting to edit an old version"
-        respond_with(:conflict) do
-          text message
-          json({error: message})
-        end
+        return render_error(HTTP::Status::CONFLICT, "Attempting to edit an old System version")
       end
 
       current_control_system.assign_attributes_from_json(self.body)

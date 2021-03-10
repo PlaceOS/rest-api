@@ -92,9 +92,9 @@ module PlaceOS::Api
     # Callback to enforce JSON request body
     protected def ensure_json
       unless request.headers["Content-Type"]?.try(&.starts_with?("application/json"))
-        render status: :not_acceptable, text: "Accepts: application/json"
+        return render_error(HTTP::Status::NOT_ACCEPTABLE, "Accepts: application/json")
       end
-      # Ensure presence of request body
+
       body
     end
 
@@ -103,46 +103,31 @@ module PlaceOS::Api
 
     # 400 if request is missing a body
     rescue_from Error::NoBody do |_error|
-      Log.debug { "missing request body" }
-      head :bad_request
+      message = "missing request body"
+      Log.debug { message }
+      return render_error(HTTP::Status::BAD_REQUEST, message)
     end
 
     # 400 if unable to parse some JSON passed by a client
     rescue_from JSON::MappingError do |error|
-      Log.debug(exception: error) { "missing/extraneous properties in client JSON" }
+      message = "Missing or extraneous properties in client JSON"
+      Log.debug(exception: error) { message }
 
-      if PROD
-        respond_with(:bad_request) do
-          text error.message
-          json({error: error.message})
-        end
+      if Api.production?
+        return render_error(HTTP::Status::BAD_REQUEST, message)
       else
-        respond_with(:bad_request) do
-          text error.inspect_with_backtrace
-          json({
-            error:     error.message,
-            backtrace: error.backtrace?,
-          })
-        end
+        return render_error(HTTP::Status::BAD_REQUEST, error.message, backtrace: error.backtrace?)
       end
     end
 
     rescue_from JSON::ParseException do |error|
-      Log.debug(exception: error) { "failed to parse client JSON" }
+      message = "Failed to parse client JSON"
+      Log.debug(exception: error) { message }
 
-      if PROD
-        respond_with(:bad_request) do
-          text error.message
-          json({error: error.message})
-        end
+      if Api.production?
+        return render_error(HTTP::Status::BAD_REQUEST, message)
       else
-        respond_with(:bad_request) do
-          text error.inspect_with_backtrace
-          json({
-            error:     error.message,
-            backtrace: error.backtrace?,
-          })
-        end
+        return render_error(HTTP::Status::BAD_REQUEST, error.message, backtrace: error.backtrace?)
       end
     end
 
@@ -167,8 +152,8 @@ module PlaceOS::Api
     # 400 if params fails validation before mutation
     rescue_from Error::InvalidParams do |error|
       model_errors = error.params.errors.map(&.to_s)
-      Log.debug(exception: error) { {message: "invalid params", model_errors: model_errors} }
-      render status: :bad_request, json: model_errors
+      Log.debug(exception: error) { {message: "Invalid params", model_errors: model_errors} }
+      return render_error(HTTP::Status::BAD_REQUEST, "Invalid params: #{model_errors.join(", ")}")
     end
   end
 end
