@@ -50,7 +50,7 @@ dependencies:
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ~> 4.2
+    version: ~> 5
 
   # For frontends client
   placeos-frontends:

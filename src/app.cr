@@ -61,12 +61,13 @@ OptionParser.parse(ARGV.dup) do |parser|
   parser.invalid_option { |o| fail.call("Error: Invalid Option", o) }
 end
 
-# Load the routes
-puts "Launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME.strip})"
-
 # Requiring config here ensures that the option parser runs before
 # we attempt to connect to redis etc.
 require "./config"
+
+# Load the routes
+Log.info { "Launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME.strip})" }
+
 server = ActionController::Server.new(port, host)
 
 # Start clustering
@@ -90,4 +91,4 @@ server.run do
 end
 
 # Shutdown message
-puts "#{PlaceOS::Api::APP_NAME} leaps through the veldt\n"
+Log.info { "#{PlaceOS::Api::APP_NAME} leaps through the veldt" }

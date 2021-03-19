@@ -16,7 +16,8 @@ module PlaceOS
 
     # Stores sessions until their websocket closes
     class Manager
-      @sessions = [] of Session
+      private getter sessions : Array(Session) { [] of Session }
+      private getter discovery : HoundDog::Discovery
 
       def initialize(@discovery : HoundDog::Discovery)
       end
@@ -28,24 +29,25 @@ module PlaceOS
           ws: ws,
           request_id: request_id,
           user: user,
-          discovery: @discovery,
+          discovery: discovery,
         )
 
-        @sessions << session
+        sessions << session
 
         ws.on_close do |_|
           Log.debug { "Session CLOSE" }
           session.cleanup
-          @sessions.delete(session)
+          sessions.delete(session)
         end
       end
     end
 
     # Class level subscriptions to modules
-    @@subscriptions = Driver::Proxy::Subscriptions.new
+    # class_getter subscriptions : ::Proxy::Subscriptions { ::Proxy::Subscriptions.new }
+    class_getter subscriptions : Driver::Proxy::Subscriptions = Driver::Proxy::Subscriptions.new
 
     # Local subscriptions
-    @bindings = {} of String => Driver::Subscriptions::Subscription
+    private getter bindings = {} of String => Driver::Subscriptions::Subscription
 
     # Background task to clear module metadata caches
     @cache_cleaner : Tasker::Task?
@@ -322,7 +324,7 @@ module PlaceOS
       } }
 
       subscription = delete_binding(sys_id, module_name, index, name)
-      @@subscriptions.unsubscribe(subscription) if subscription
+      self.class.subscriptions.unsubscribe(subscription) if subscription
 
       respond(Response.new(id: request_id, type: Response::Type::Success))
     rescue e : Driver::Proxy::RemoteDriver::Error
@@ -464,7 +466,7 @@ module PlaceOS
     # Check for existing binding to a module
     #
     def has_binding?(sys_id, module_name, index, name)
-      @bindings.has_key? Session.binding_key(sys_id, module_name, index, name)
+      bindings.has_key? Session.binding_key(sys_id, module_name, index, name)
     end
 
     # Create a binding to a module on the Session
@@ -488,7 +490,7 @@ module PlaceOS
         end
 
         # Triggers should be subscribed to directly.
-        @bindings[key] = @@subscriptions.subscribe(name, "state") do |_, event|
+        bindings[key] = self.class.subscriptions.subscribe(name, "state") do |_, event|
           notify_update(
             request_id: request_id,
             system_id: sys_id,
@@ -500,7 +502,7 @@ module PlaceOS
         end
       else
         # Subscribe and set local binding
-        @bindings[key] = @@subscriptions.subscribe(sys_id, module_name, index, name) do |_, event|
+        bindings[key] = self.class.subscriptions.subscribe(sys_id, module_name, index, name) do |_, event|
           notify_update(
             request_id: request_id,
             system_id: sys_id,
@@ -519,7 +521,7 @@ module PlaceOS
     #
     def delete_binding(sys_id, module_name, index, name)
       key = Session.binding_key(sys_id, module_name, index, name)
-      @bindings.delete key
+      bindings.delete key
     end
 
     # Event handlers
@@ -574,7 +576,7 @@ module PlaceOS
       @cache_cleaner.try &.cancel
 
       # Unbind all modules
-      @bindings.clear
+      bindings.clear
 
       # Ignore (stop debugging) all modules
       debug_sessions.each_value &.close

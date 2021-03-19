@@ -1,4 +1,7 @@
 dependencies:
+  placeos-driver:
+    github: placeos/driver
+    version: ~> 5
   retriable:
     github: Sija/retriable.cr
   neuroplastic:
