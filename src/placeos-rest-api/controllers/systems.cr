@@ -4,6 +4,7 @@ require "placeos-core/client"
 require "placeos-driver/proxy/system"
 
 require "./application"
+require "./modules"
 require "./settings"
 require "../session"
 
@@ -307,7 +308,7 @@ module PlaceOS::Api
       sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
-      render json: module_state(sys_id, module_name, index)
+      render json: self.class.module_state(sys_id, module_name, index)
     end
 
     # Returns the state lookup for a given key on a module
@@ -316,7 +317,7 @@ module PlaceOS::Api
       sys_id, key, module_slug = params["sys_id"], params["key"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
-      render json: module_state(sys_id, module_name, index, key)
+      render json: self.class.module_state(sys_id, module_name, index, key)
     end
 
     # Lists functions available on the driver
@@ -361,7 +362,7 @@ module PlaceOS::Api
       render json: response
     end
 
-    def module_state(sys_id : String, module_name : String, index : Int32, key : String? = nil)
+    def self.module_state(sys_id : String, module_name : String, index : Int32, key : String? = nil)
       # Look up module's id for module on system
       module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
         system_id: sys_id,
@@ -369,12 +370,7 @@ module PlaceOS::Api
         index: index
       )
 
-      if module_id
-        # Grab drive(r state proxy
-        storage = PlaceOS::Driver::RedisStorage.new(module_id)
-        # Perform lookup, otherwise dump state
-        key ? storage[key] : storage.to_h
-      end
+      Modules.module_state(module_id, key) if module_id
     end
 
     # Websocket API
