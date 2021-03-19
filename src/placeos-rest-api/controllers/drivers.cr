@@ -129,7 +129,19 @@ module PlaceOS::Api
       compiled = self.class.driver_compiled?(current_driver, repository, request_id)
 
       Log.info { "#{compiled ? "" : "not "}compiled" }
-      head compiled ? HTTP::Status::OK : HTTP::Status::NOT_FOUND
+
+      if compiled
+        # Driver binary present
+        head :ok
+      else
+        if current_driver.compilation_output.nil?
+          # Driver not compiled yet
+          head :not_found
+        else
+          # Driver previously failed to compile
+          render :service_unavailable, json: {compilation_output: current_driver.compilation_output}
+        end
+      end
     end
 
     def self.driver_compiled?(driver : Model::Driver, repository : Model::Repository, request_id : String, key : String? = nil) : Bool
