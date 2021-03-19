@@ -239,12 +239,12 @@ module PlaceOS::Api
 
     # Dumps the complete status state of the module
     get("/:id/state", :state) do
-      render json: module_state(current_module)
+      render json: self.class.module_state(current_module)
     end
 
     # Returns the value of the requested status variable
     get("/:id/state/:key", :state_lookup) do
-      render json: module_state(current_module, params["key"])
+      render json: self.class.module_state(current_module, params["key"])
     end
 
     post("/:id/ping", :ping) do
@@ -285,8 +285,9 @@ module PlaceOS::Api
       Api::Drivers.driver_compiled?(driver, repository, request_id, mod.id.as(String))
     end
 
-    def module_state(mod : Model::Module, key : String? = nil)
-      storage = Driver::RedisStorage.new(mod.id.as(String))
+    def self.module_state(mod : Model::Module | String, key : String? = nil)
+      id = mod.is_a?(String) ? mod : mod.id.as(String)
+      storage = Driver::RedisStorage.new(id)
       key ? storage[key] : storage.to_h
     end
 
