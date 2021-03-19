@@ -1,6 +1,5 @@
 require "action-controller/logger"
 require "log_helper"
-require "placeos-log-backend"
 require "secrets-env"
 
 require "./constants"

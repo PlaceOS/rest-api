@@ -4,7 +4,7 @@ module PlaceOS; end
 class PlaceOS::Driver; end
 
 require "http"
-require "placeos-log-backend"
+# require "placeos-log-backend"
 require "promise"
 require "random"
 require "rethinkdb-orm"
