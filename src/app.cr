@@ -66,7 +66,7 @@ end
 require "./config"
 
 # Load the routes
-Log.info { "Launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME.strip})" }
+PlaceOS::Api::Log.info { "launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME.strip})" }
 
 server = ActionController::Server.new(port, host)
 
@@ -86,9 +86,9 @@ Signal::TERM.trap &terminate
 
 # Start the server
 server.run do
-  puts "Listening on #{server.print_addresses}"
+  PlaceOS::Api::Log.info { "listening on #{server.print_addresses}" }
   STDOUT.flush
 end
 
 # Shutdown message
-Log.info { "#{PlaceOS::Api::APP_NAME} leaps through the veldt" }
+PlaceOS::Api::Log.info { "#{PlaceOS::Api::APP_NAME} leaps through the veldt" }

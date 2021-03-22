@@ -7,7 +7,7 @@ require "./placeos-rest-api/controllers/application"
 require "./placeos-rest-api/controllers/*"
 
 module PlaceOS::Api
-  Log = ::Log.for(APP_NAME)
+  Log = ::Log.for(self)
 
   class_getter? production : Bool = PROD
 end
