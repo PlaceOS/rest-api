@@ -1,6 +1,6 @@
 name: placeos-rest-api
 version: 1.25.0
-crystal: ~> 0.36
+crystal: ~> 1
 
 targets:
   rest-api:
@@ -15,7 +15,7 @@ dependencies:
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
-    version: ~> 2
+    version: ~> 3
 
   # Email validations
   CrystalEmail:
@@ -55,7 +55,7 @@ dependencies:
   # For frontends client
   placeos-frontends:
     github: placeos/frontends
-    version: ~> 0.10, ">= 0.10.9"
+    version: ~> 0.11
 
   # Database view
   placeos-models:
@@ -75,7 +75,7 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: ~> 3
+    version: ~> 4
 
   # Client for RubberSoul RethinkDB Elasticsearch indexer
   rubber-soul:
@@ -96,6 +96,7 @@ development_dependencies:
   # Linter
   ameba:
     github: crystal-ameba/ameba
+    version: ">= 0.14"
 
   # Mock data generation
   faker:

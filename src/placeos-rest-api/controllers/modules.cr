@@ -248,7 +248,7 @@ module PlaceOS::Api
     end
 
     post("/:id/ping", :ping) do
-      if current_module.role == Model::Driver::Role::Logic
+      if current_module.role.logic?
         Log.debug { {controller: "Modules", action: "ping", module_id: current_module.id, role: current_module.role.to_s} }
         head :not_acceptable
       else
