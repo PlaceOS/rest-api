@@ -14,7 +14,7 @@ require "simple_retry"
 require "../lib/action-controller/spec/curl_context"
 
 Spec.before_suite do
-  Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: Log::Severity::Debug)
+  Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: Log::Severity::Trace)
   clear_tables
 end
 
