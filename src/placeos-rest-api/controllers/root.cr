@@ -12,6 +12,9 @@ module PlaceOS::Api
     before_action :check_admin, except: [:root, :healthz, :version, :signal]
     skip_action :check_oauth_scope, only: :signal
 
+    # Healthcheck
+    ###############################################################################################
+
     get "/", :root do
       head self.class.healthcheck? ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR
     end
@@ -38,8 +41,8 @@ module PlaceOS::Api
       false
     end
 
-    private def self.rethinkdb_healthcheck
-      connection = RethinkDB.connect(
+    private class_getter rethinkdb_admin_connection : RethinkDB::Connection do
+      RethinkDB.connect(
         host: RethinkORM.settings.host,
         port: RethinkORM.settings.port,
         db: "rethinkdb",
@@ -47,12 +50,17 @@ module PlaceOS::Api
         password: RethinkORM.settings.password,
         max_retry_attempts: 1,
       )
+    end
+
+    private def self.rethinkdb_healthcheck
       RethinkDB
         .table("server_status")
         .pluck("id", "name")
-        .run(connection)
-        .first? ensure connection.close
+        .run(rethinkdb_admin_connection)
+        .first?
     end
+
+    ###############################################################################################
 
     get "/version", :version do
       render json: {
