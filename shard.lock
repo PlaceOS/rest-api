@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 4.3.0
+    version: 4.3.2
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -51,7 +51,7 @@ shards:
 
   etcd:
     git: https://github.com/place-labs/crystal-etcd.git
-    version: 1.2.1
+    version: 1.2.2
 
   exec_from:
     git: https://github.com/place-labs/exec_from.git
@@ -123,7 +123,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 3.7.0
+    version: 3.7.1
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
