@@ -111,6 +111,7 @@ module PlaceOS::Api
     end
 
     def create
+      body = self.body.gets_to_end
       new_user = Model::User.from_json(body)
       new_user.assign_admin_attributes_from_json(body)
 
