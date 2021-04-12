@@ -112,6 +112,8 @@ module PlaceOS::Api
 
     def create
       new_user = Model::User.from_json(body)
+      new_user.assign_admin_attributes_from_json(body)
+
       # allow sys-admins to create users on other domains
       new_user.authority ||= current_authority.as(Model::Authority)
 
