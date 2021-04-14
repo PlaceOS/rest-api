@@ -86,6 +86,7 @@ module PlaceOS::Api
         client_ip: client_ip,
         request_id: request_id
       )
+
       response.headers["X-Request-ID"] = request_id
     end
 

@@ -1,21 +1,34 @@
 require "placeos-log-backend"
+require "raven"
+require "raven/integrations/action-controller"
 
 module PlaceOS::Api
+  # Configure Sentry
+  Raven.configure &.async=(true)
+  standard_sentry = Raven::LogBackend.new
+  comprehensive_sentry = Raven::LogBackend.new(capture_all: true)
+
   # Logging configuration
   log_backend = PlaceOS::LogBackend.log_backend
   log_level = Api.production? ? ::Log::Severity::Info : ::Log::Severity::Debug
-
-  ::Log.setup "*", :warn, log_backend
-
   namespaces = ["action-controller.*", "place_os.*"]
-  namespaces.each do |namespace|
-    ::Log.builder.bind(namespace, log_level, log_backend)
-  end
 
-  # Extra verbose coordination logging
-  if ENV["PLACE_VERBOSE_CLUSTERING"]?.presence
-    ::Log.builder.bind "hound_dog.*", ::Log::Severity::Debug, log_backend
-    ::Log.builder.bind "clustering.*", ::Log::Severity::Debug, log_backend
+  ::Log.setup do |config|
+    config.bind "*", :warn, log_backend
+
+    namespaces.each do |namespace|
+      config.bind namespace, log_level, log_backend
+
+      # Bind raven's backend
+      config.bind namespace, :info, standard_sentry
+      config.bind namespace, :warn, comprehensive_sentry
+    end
+
+    # Extra verbose coordination logging
+    if ENV["PLACE_VERBOSE_CLUSTERING"]?.presence
+      config.bind "hound_dog.*", ::Log::Severity::Trace, log_backend
+      config.bind "clustering.*", ::Log::Severity::Trace, log_backend
+    end
   end
 
   PlaceOS::LogBackend.register_severity_switch_signals(

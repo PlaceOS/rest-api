@@ -1,7 +1,7 @@
 dependencies:
-  retriable:
-    github: Sija/retriable.cr
   neuroplastic:
     github: place-labs/neuroplastic
+  retriable:
+    github: Sija/retriable.cr
   secrets-env:
     github: spider-gazelle/secrets-env
