@@ -57,6 +57,10 @@ dependencies:
     github: placeos/frontends
     version: ~> 0.11
 
+  # Centrally defined logging configuration
+  placeos-log-backend:
+    github: place-labs/log-backend
+
   # Database view
   placeos-models:
     github: placeos/models
