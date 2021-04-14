@@ -8,7 +8,6 @@ require "tasker"
 
 require "./error"
 require "./utilities/params"
-require "./utilities/severity_converter"
 
 module PlaceOS
   class Api::Session
@@ -35,7 +34,7 @@ module PlaceOS
         sessions << session
 
         ws.on_close do |_|
-          Log.debug { "Session CLOSE" }
+          Log.trace { {frame: "CLOSE"} }
           session.cleanup
           sessions.delete(session)
         end
@@ -63,12 +62,12 @@ module PlaceOS
     )
       # Register event handlers
       @ws.on_message do |message|
-        Log.debug { "Session TEXT (#{message})" }
+        Log.trace { {frame: "TEXT", text: message} }
         on_message(message)
       end
 
       @ws.on_ping do
-        Log.debug { "Session PING" }
+        Log.trace { {frame: "PING"} }
         @ws.pong
       end
 
@@ -159,7 +158,6 @@ module PlaceOS
       @[JSON::Field(key: "mod")]
       property module_id : String?
 
-      @[JSON::Field(converter: SeverityConverter)]
       property level : ::Log::Severity?
 
       alias Metadata = NamedTuple(
@@ -187,10 +185,6 @@ module PlaceOS
         Notify
         Error
         Debug
-
-        def to_json(json)
-          json.string(to_s.downcase)
-        end
       end
     end
 
@@ -205,7 +199,7 @@ module PlaceOS
       args : Array(JSON::Any)
     )
       Log.debug { {
-        message:       "Session (exec)",
+        message:       "exec",
         ws_request_id: request_id,
         sys_id:        sys_id,
         module_name:   module_name,
@@ -258,7 +252,7 @@ module PlaceOS
       name : String
     )
       Log.debug { {
-        message:       "Session (bind)",
+        message:       "bind",
         ws_request_id: request_id,
         sys_id:        sys_id,
         module_name:   module_name,
@@ -315,7 +309,7 @@ module PlaceOS
       name : String
     )
       Log.debug { {
-        message:       "Session (unbind)",
+        message:       "unbind",
         ws_request_id: request_id,
         sys_id:        sys_id,
         module_name:   module_name,
@@ -367,7 +361,8 @@ module PlaceOS
 
         ws = driver.debug
         ws.on_message do |message|
-          level, message = Tuple(::Log::Severity, String).from_json(message)
+          level_value, message = Tuple(Int32, String).from_json(message)
+          level = ::Log::Severity.from_value(level_value)
 
           respond(
             Response.new(
@@ -387,6 +382,13 @@ module PlaceOS
 
         spawn(same_thread: true) { ws.run }
         debug_sessions[{sys_id, module_name, index}] = ws
+      else
+        Log.trace { {
+          message:     "reusing existing debug socket",
+          sys_id:      sys_id,
+          module_name: module_name,
+          index:       index,
+        } }
       end
 
       respond(Response.new(id: request_id, type: Response::Type::Success))
@@ -483,7 +485,7 @@ module PlaceOS
       if module_name == "_TRIGGER_"
         # Ensure the trigger exists
         trig = Model::TriggerInstance.find(name)
-        unless trig && trig.control_system_id == sys_id
+        unless trig.try(&.control_system_id) == sys_id
           Log.warn { {message: "websocket binding attempted to access unknown trigger", sys_id: sys_id, trig_id: name} }
           respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger #{name} in system #{sys_id}")
           return false
@@ -526,17 +528,6 @@ module PlaceOS
 
     # Event handlers
     ###########################################################################
-
-    # # Message from a subscription
-    # #
-    # class Update
-    #   include JSON::Serializable
-    #   property sys_id : String
-    #   property mod_name : String
-    #   property index : Int32
-    #   property status : String
-    #   property value : JSON::Any
-    # end
 
     # Parse an update from a subscription and pass to listener
     #
@@ -632,8 +623,9 @@ module PlaceOS
     # Empty's metadata cache upon cache_timeout
     #
     protected def cache_plumbing
-      if (timeout = @cache_timeout)
+      if (timeout = @cache_timeout) && timeout > 0
         @cache_cleaner = Tasker.instance.every(timeout.seconds) do
+          Log.trace { "cleaning websocket session cache" }
           @metadata_cache.clear
           @module_id_cache.clear
         end
