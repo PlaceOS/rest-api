@@ -71,6 +71,11 @@ dependencies:
     github: spider-gazelle/promise
     version: ~> 2.2
 
+  # Sentry integration
+  raven:
+    github: Sija/raven.cr
+    branch: master
+
   # RethinkDB client
   rethinkdb:
     github: kingsleyh/crystal-rethinkdb
