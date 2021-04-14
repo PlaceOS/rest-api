@@ -361,23 +361,32 @@ module PlaceOS
 
         ws = driver.debug
         ws.on_message do |message|
-          level_value, message = Tuple(Int32, String).from_json(message)
-          level = ::Log::Severity.from_value(level_value)
+          begin
+            level_value, message = Tuple(Int32, String).from_json(message)
+            level = ::Log::Severity.from_value(level_value)
 
-          respond(
-            Response.new(
-              id: request_id,
-              module_id: module_name,
-              type: Response::Type::Debug,
-              level: level,
-              message: message,
-              meta: {
-                sys:   sys_id,
-                mod:   module_name,
-                index: index,
-                name:  name,
-              },
-            ))
+            respond(
+              Response.new(
+                id: request_id,
+                module_id: module_name,
+                type: Response::Type::Debug,
+                level: level,
+                message: message,
+                meta: {
+                  sys:   sys_id,
+                  mod:   module_name,
+                  index: index,
+                  name:  name,
+                },
+              ))
+          rescue e
+            Log.warn(exception: e) { {
+              message:     "failed to forward debug message",
+              sys_id:      sys_id,
+              module_name: module_name,
+              index:       index,
+            } }
+          end
         end
 
         spawn(same_thread: true) { ws.run }
