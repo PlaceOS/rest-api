@@ -36,7 +36,7 @@ module PlaceOS::Api
       token_domain_host = URI.parse(user_token.domain).host
       authority_domain_host = URI.parse(authority.domain.as(String)).host
       unless token_domain_host == authority_domain_host
-        Log.warn { {message: "authority domain does not match token's", action: "authorize!", token_domain: user_token.aud, authority_domain: authority.domain} }
+        Log.warn { {message: "authority domain does not match token's", action: "authorize!", token_domain: user_token.domain, authority_domain: authority.domain} }
         raise Error::Unauthorized.new "authority domain does not match token's"
       end
       user_token
@@ -49,7 +49,7 @@ module PlaceOS::Api
     def check_oauth_scope
       utoken = user_token
       unless utoken.scope.includes?("public")
-        Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.hostname, sub: utoken.sub} }
+        Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.hostname, id: utoken.id} }
         raise Error::Unauthorized.new "public scope required for access"
       end
     end

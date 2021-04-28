@@ -55,7 +55,7 @@ end
 # Yield an authenticated user, and a header with Authorization bearer set
 def authentication(scope = ["public"] of String)
   test_user_email = "test-suit-rest-api@place.tech"
-  existing = PlaceOS::Model::User.get_all([test_user_email], index: :email).first?
+  existing = PlaceOS::Model::User.find_all([test_user_email], index: :email).first?
 
   authenticated_user = if existing
                          existing
