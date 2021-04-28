@@ -116,7 +116,7 @@ module PlaceOS::Api
     # Finds all the systems with the specified email address
     get "/with_emails", :find_by_email do
       emails = params["in"].split(',').map(&.strip).reject(&.empty?).uniq!
-      systems = Model::ControlSystem.get_all(emails, index: :email).to_a
+      systems = Model::ControlSystem.find_all(emails, index: :email).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
       render json: systems
     end
@@ -184,7 +184,7 @@ module PlaceOS::Api
       documents = if current_control_system.zones.empty?
                     [] of Model::Zone
                   else
-                    Model::Zone.get_all(current_control_system.zones).to_a
+                    Model::Zone.find_all(current_control_system.zones).to_a
                   end
 
       set_collection_headers(documents.size, Model::Zone.table_name)
