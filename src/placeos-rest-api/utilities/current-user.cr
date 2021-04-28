@@ -7,14 +7,12 @@ require "placeos-models/user_jwt"
 module PlaceOS::Api
   # Helper to grab user and authority from a request
   module Utils::CurrentUser
-    @user_token : Model::UserJWT?
-    @current_user : Model::User?
-    @current_authority : Model::Authority?
-
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
-    def authorize!
-      return if @user_token
+    def authorize! : Model::UserJWT
+      unless (token = @user_token).nil?
+        return token
+      end
 
       token = acquire_token
 
@@ -41,6 +39,7 @@ module PlaceOS::Api
         Log.warn { {message: "authority domain does not match token's", action: "authorize!", token_domain: user_token.aud, authority_domain: authority.domain} }
         raise Error::Unauthorized.new "authority domain does not match token's"
       end
+      user_token
     rescue e
       # ensure that the user token is nil if this function ever errors.
       @user_token = nil
@@ -62,11 +61,7 @@ module PlaceOS::Api
     getter current_authority : Model::Authority? { Model::Authority.find_by_domain(request.hostname.as(String)) }
 
     # Getter for user_token
-    def user_token : Model::UserJWT
-      # FIXME: Remove when action-controller respects the ordering of route callbacks
-      authorize! unless @user_token
-      @user_token.as(Model::UserJWT)
-    end
+    getter user_token : Model::UserJWT { authorize! }
 
     # Read admin status from supplied request JWT
     def check_admin
