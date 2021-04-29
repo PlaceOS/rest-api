@@ -3,8 +3,6 @@ require "raven"
 require "raven/integrations/action-controller"
 
 module PlaceOS::Api
-  # Configure Sentry
-  Raven.configure &.async=(true)
   standard_sentry = Raven::LogBackend.new
   comprehensive_sentry = Raven::LogBackend.new(capture_all: true)
 
@@ -30,6 +28,9 @@ module PlaceOS::Api
       config.bind "clustering.*", ::Log::Severity::Trace, log_backend
     end
   end
+
+  # Configure Sentry
+  Raven.configure &.async=(true)
 
   PlaceOS::LogBackend.register_severity_switch_signals(
     production: Api.production?,
