@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.26.3
+version: 1.27.0
 crystal: ~> 1
 
 targets:
@@ -50,7 +50,7 @@ dependencies:
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ~> 5
+    version: ~> 5.1
 
   # For frontends client
   placeos-frontends:
