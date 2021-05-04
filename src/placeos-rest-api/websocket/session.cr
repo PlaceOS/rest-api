@@ -14,26 +14,24 @@ module PlaceOS::Api::WebSocket
     Log = ::Log.for(self)
 
     # Class level subscriptions to modules
-    # class_getter subscriptions : ::Proxy::Subscriptions { ::Proxy::Subscriptions.new }
     class_getter subscriptions : Driver::Proxy::Subscriptions = Driver::Proxy::Subscriptions.new
 
     # Local subscriptions
     private getter bindings = {} of String => Driver::Subscriptions::Subscription
 
     # Caching
-    # Background task to clear module metadata caches
     private getter cache_lock = Mutex.new
+    private getter cache_timeout : Time::Span = 10.minutes
+
+    # Background task to clear module metadata caches
+    private getter cache_cleaner : Tasker::Task?
+
+    private getter metadata_cache = {} of String => Driver::DriverModel::Metadata
+    private getter module_id_cache = {} of String => String
 
     private getter write_channel = Channel(String).new
 
-    private getter cache_timeout : Time::Span = 10.minutes
-
-    @metadata_cache = {} of String => Driver::DriverModel::Metadata
-    @module_id_cache = {} of String => String
-
-    @cache_cleaner : Tasker::Task?
-
-    private getter ws : HTTP::WebSocket
+    getter ws : HTTP::WebSocket
 
     def initialize(
       @ws : HTTP::WebSocket,
@@ -42,16 +40,16 @@ module PlaceOS::Api::WebSocket
       @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
     )
       # Register event handlers
-      @ws.on_message do |message|
+      ws.on_message do |message|
         Log.trace { {frame: "TEXT", text: message} }
         spawn(same_thread: true) do
           on_message(message)
         end
       end
 
-      @ws.on_ping do
+      ws.on_ping do
         Log.trace { {frame: "PING"} }
-        @ws.pong
+        ws.pong
       end
 
       @security_level = if @user.is_admin?
@@ -64,11 +62,11 @@ module PlaceOS::Api::WebSocket
 
       # Perform writes
       spawn(name: "socket_writes_#{request_id}", same_thread: true) { run_writes }
-      # Begin clearing cache
+      # Begin clearing cach
       spawn(name: "cache_cleaner_#{request_id}", same_thread: true) { cache_plumbing }
     end
 
-    # Websocket API Messages
+    # WebSocket API Messages
     ##############################################################################
 
     private abstract struct Base
@@ -122,14 +120,21 @@ module PlaceOS::Api::WebSocket
       getter args : Array(JSON::Any)?
     end
 
-    alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
-
-    # Websocket API Response
+    # WebSocket API Response
     struct Response < Base
+      # Driver response error codes
+      alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
+
+      # Response type
+      enum Type
+        Success
+        Notify
+        Error
+        Debug
+      end
+
       getter id : Int64
       getter type : Type
-
-      getter error_code : Int32?
 
       @[JSON::Field(key: "msg")]
       getter message : String?
@@ -137,7 +142,11 @@ module PlaceOS::Api::WebSocket
       @[JSON::Field(converter: String::RawConverter)]
       getter value : String?
 
-      getter meta : Metadata?
+      @[JSON::Field(converter: Enum::ValueConverter(PlaceOS::Api::WebSocket::Session::Response::ErrorCode))]
+      getter error_code : ErrorCode?
+
+      @[JSON::Field(key: "meta")]
+      getter metadata : Metadata?
 
       @[JSON::Field(key: "mod")]
       getter module_id : String?
@@ -153,30 +162,22 @@ module PlaceOS::Api::WebSocket
 
       def initialize(
         @id : Int64,
-        @type,
-        @error_code = nil,
-        message = nil,
-        value = nil,
-        @module_id = nil,
-        @level = nil,
-        @meta = nil
+        @type : Type,
+        @error_code : ErrorCode? = nil,
+        message : String? = nil,
+        value : String? = nil,
+        @module_id : String? = nil,
+        @level : ::Log::Severity? = nil,
+        @metadata : Metadata? = nil
       )
         # Remove invalid UTF-8 data from the payload
         @value = value.is_a?(String) ? value.scrub : nil
         # Remove invalid UTF-8 data from the error message
         @message = message.is_a?(String) ? message.scrub : nil
       end
-
-      # Response type
-      enum Type
-        Success
-        Notify
-        Error
-        Debug
-      end
     end
 
-    # Websocket API Handlers
+    # WebSocket API Handlers
     ##############################################################################
 
     # Grab core url for the module and dial an exec request
@@ -187,8 +188,9 @@ module PlaceOS::Api::WebSocket
       module_name : String,
       index : Int32,
       name : String,
-      args : Array(JSON::Any)
+      args : Array(JSON::Any)?
     )
+      args = [] of JSON::Any if args.nil?
       Log.debug { {message: "exec", args: args.to_json} }
 
       driver = Driver::Proxy::RemoteDriver.new(
@@ -202,8 +204,8 @@ module PlaceOS::Api::WebSocket
 
       respond(Response.new(
         id: request_id,
-        type: Response::Type::Success,
-        meta: {
+        type: :success,
+        metadata: {
           sys:   system_id,
           mod:   module_name,
           index: index,
@@ -218,7 +220,7 @@ module PlaceOS::Api::WebSocket
         message: "failed to execute request",
         error:   e.message,
       } }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to execute request"))
+      respond(error_response(request_id, :unexpected_failure, "failed to execute request"))
     end
 
     # Bind a websocket to a module subscription
@@ -238,7 +240,7 @@ module PlaceOS::Api::WebSocket
         end
       rescue error
         Log.warn(exception: error) { "websocket binding could not find system" }
-        respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{system_id} mod=#{module_name}"))
+        respond(error_response(request_id, :module_not_found, "could not find module: sys=#{system_id} mod=#{module_name}"))
         return
       end
 
@@ -249,8 +251,8 @@ module PlaceOS::Api::WebSocket
       # Could use a promise
       response = Response.new(
         id: request_id,
-        type: Response::Type::Success,
-        meta: {
+        type: :success,
+        metadata: {
           sys:   system_id,
           mod:   module_name,
           index: index,
@@ -263,7 +265,7 @@ module PlaceOS::Api::WebSocket
         message: "failed to bind",
         error:   e.message,
       } }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to bind"))
+      respond(error_response(request_id, :unexpected_failure, "failed to bind"))
     end
 
     # Unbind a websocket from a module subscription
@@ -280,7 +282,7 @@ module PlaceOS::Api::WebSocket
       subscription = delete_binding(system_id, module_name, index, name)
       self.class.subscriptions.unsubscribe(subscription) if subscription
 
-      respond(Response.new(id: request_id, type: Response::Type::Success))
+      respond(Response.new(id: request_id, type: :success))
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
@@ -288,7 +290,7 @@ module PlaceOS::Api::WebSocket
         message: "failed to unbind",
         error:   e.message,
       } }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to unbind"))
+      respond(error_response(request_id, :unexpected_failure, "failed to unbind"))
     end
 
     private getter debug_sessions = {} of {String, String, Int32} => HTTP::WebSocket
@@ -323,11 +325,11 @@ module PlaceOS::Api::WebSocket
             respond(
               Response.new(
                 id: request_id,
+                type: :debug,
                 module_id: module_name,
-                type: Response::Type::Debug,
                 level: level,
                 message: message,
-                meta: {
+                metadata: {
                   sys:   system_id,
                   mod:   module_name,
                   index: index,
@@ -345,10 +347,10 @@ module PlaceOS::Api::WebSocket
         Log.trace { "reusing existing debug socket" }
       end
 
-      respond(Response.new(id: request_id, type: Response::Type::Success))
+      respond(Response.new(id: request_id, type: :success))
     rescue e
       Log.error(exception: e) { "failed to attach debugger" }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to attach debugger"))
+      respond(error_response(request_id, :unexpected_failure, "failed to attach debugger"))
     end
 
     # Detach websocket from module debug output
@@ -363,10 +365,10 @@ module PlaceOS::Api::WebSocket
       socket = debug_sessions.delete({system_id, module_name, index})
       # Close the socket if it was present
       socket.try(&.close)
-      respond(Response.new(id: request_id, type: Response::Type::Success))
+      respond(Response.new(id: request_id, type: :success))
     rescue e
       Log.error(exception: e) { "failed to detach debugger" }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to detach debugger"))
+      respond(error_response(request_id, :unexpected_failure, "failed to detach debugger"))
     end
 
     ##############################################################################
@@ -378,13 +380,13 @@ module PlaceOS::Api::WebSocket
     def metadata?(system_id, module_name, index) : Driver::DriverModel::Metadata?
       key = Session.cache_key(system_id, module_name, index)
       # Try for value in the cache
-      cached = cache_lock.synchronize { @metadata_cache[key]? }
+      cached = cache_lock.synchronize { metadata_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
       if (module_id = module_id?(system_id, module_name, index))
         Driver::Proxy::System.driver_metadata?(module_id).tap do |meta|
-          cache_lock.synchronize { @metadata_cache[key] = meta } if meta
+          cache_lock.synchronize { metadata_cache[key] = meta } if meta
         end
       end
     end
@@ -396,12 +398,12 @@ module PlaceOS::Api::WebSocket
     def module_id?(system_id, module_name, index) : String?
       key = Session.cache_key(system_id, module_name, index)
       # Try for value in the cache
-      cached = cache_lock.synchronize { @module_id_cache[key]? }
+      cached = cache_lock.synchronize { module_id_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
       Driver::Proxy::System.module_id?(system_id, module_name, index).tap do |id|
-        cache_lock.synchronize { @module_id_cache[key] = id } if id
+        cache_lock.synchronize { module_id_cache[key] = id } if id
       end
     end
 
@@ -418,7 +420,7 @@ module PlaceOS::Api::WebSocket
 
       if module_name.starts_with?("_") && !@user.is_support?
         Log.warn { "websocket binding attempted to access privileged module" }
-        respond error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
+        respond error_response(request_id, :access_denied, "attempted to access protected module")
         return false
       end
 
@@ -427,7 +429,7 @@ module PlaceOS::Api::WebSocket
         trig = Model::TriggerInstance.find(name)
         unless trig.try(&.control_system_id) == system_id
           Log.warn { {message: "websocket binding attempted to access unknown trigger", trigger_instance_id: name} }
-          respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger instance #{name} in system #{system_id}")
+          respond error_response(request_id, :module_not_found, "no trigger instance #{name} in system #{system_id}")
           return false
         end
 
@@ -474,9 +476,9 @@ module PlaceOS::Api::WebSocket
     def notify_update(value, request_id, system_id, module_name, index, status)
       respond(Response.new(
         id: request_id,
-        type: Response::Type::Notify,
+        type: :notify,
         value: value,
-        meta: {
+        metadata: {
           sys:   system_id,
           mod:   module_name,
           index: index,
@@ -499,7 +501,7 @@ module PlaceOS::Api::WebSocket
       handle_request(request) if request
     rescue e
       Log.error(exception: e) { {message: "websocket request failed", data: data} }
-      response = error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
+      response = error_response(request.try(&.id), :request_failed, e.message)
       respond(response)
     end
 
@@ -507,7 +509,7 @@ module PlaceOS::Api::WebSocket
     #
     def cleanup
       # Stop the cache cleaner
-      @cache_cleaner.try &.cancel
+      cache_cleaner.try &.cancel
 
       # Unbind all modules
       bindings.clear
@@ -545,20 +547,21 @@ module PlaceOS::Api::WebSocket
     def parse_request(data) : Request?
       Request.from_json(data)
     rescue e
-      Log.warn { {message: "failed to parse", data: data} }
-      error_response(JSON.parse(data)["id"]?.try &.as_i64, ErrorCode::BadRequest, "bad request: #{e.message}")
+      id = (NamedTuple(id: Int64?).from_json(data) rescue nil).try &.[:id]
+      Log.warn { {message: "failed to parse", data: data, id: id} }
+      error_response(id, :bad_request, "bad request: #{e.message}")
       nil
     end
 
     protected def error_response(
       request_id : Int64?,
-      error_code,
+      error_code : Response::ErrorCode?,
       message : String?
     )
       Api::WebSocket::Session::Response.new(
         id: request_id || 0_i64,
-        type: Api::WebSocket::Session::Response::Type::Error,
-        error_code: error_code.to_i,
+        type: :error,
+        error_code: error_code,
         message: message || "",
       )
     end
@@ -603,9 +606,7 @@ module PlaceOS::Api::WebSocket
       in .unbind? then unbind(**arguments)
       in .debug?  then debug(**arguments)
       in .ignore? then ignore(**arguments)
-      in .exec?
-        args = request.args || [] of JSON::Any
-        exec(**arguments.merge({args: args}))
+      in .exec?   then exec(**arguments, args: request.args.as(Array(JSON::Any)))
       end
     end
   end
