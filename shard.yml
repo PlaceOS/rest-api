@@ -45,7 +45,7 @@ dependencies:
   # For core client
   placeos-core:
     github: placeos/core
-    version: ~> 3.2
+    version: ~> 3.9
 
   # For driver state helpers
   placeos-driver:
