@@ -172,10 +172,6 @@ module PlaceOS::Api
     end
 
     get "/:id/branches", :branches do
-      unless current_repo.repo_type == Model::Repository::Type::Interface
-        render :bad_request, text: "branching is only supported for interface repositories"
-      end
-
       branches = Api::Repositories.branches(
         repository: current_repo,
         request_id: request_id,
@@ -185,9 +181,26 @@ module PlaceOS::Api
     end
 
     def self.branches(repository : Model::Repository, request_id : String)
-      # Dial the frontends service
-      Frontends::Client.client(request_id: request_id) do |frontends_client|
-        frontends_client.branches(repository.folder_name)
+      case repository.repo_type
+      in .interface?
+        # Dial the frontends service
+        Frontends::Client.client(request_id: request_id) do |frontends_client|
+          frontends_client.branches(repository.folder_name)
+        end
+      in .driver?
+        Api::Systems.core_for(repository.id.as(String), request_id) do |core_client|
+          core_client.branches?(repository.folder_name)
+        end
+      end.tap do |result|
+        if result.nil?
+          Log.info { {
+            message:       "failed to retrieve branches",
+            repository_id: repository.id,
+            folder_name:   repository.folder_name,
+            name:          repository.name,
+            type:          repository.repo_type.to_s,
+          } }
+        end
       end
     end
 
