@@ -11,8 +11,15 @@ module PlaceOS::Api
 
     before_action :current_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
+    before_action :drivers_only, only: [:drivers, :details]
 
     getter current_repo : Model::Repository { find_repo }
+
+    private def drivers_only
+      unless current_repo.repo_type.driver?
+        render_error(:bad_request, "not a driver repository")
+      end
+    end
 
     def index
       elastic = Model::Repository.elastic
