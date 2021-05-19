@@ -2,7 +2,11 @@ require "placeos-log-backend"
 require "raven"
 require "raven/integrations/action-controller"
 
-module PlaceOS::Api
+require "./constants"
+
+module PlaceOS::Api::Logging
+  ::Log.progname = APP_NAME
+
   standard_sentry = Raven::LogBackend.new
   comprehensive_sentry = Raven::LogBackend.new(capture_all: true)
 
