@@ -1,4 +1,7 @@
 dependencies:
+  placeos-models:
+    github: placeos/models
+    version: ~> 5.0
   neuroplastic:
     github: place-labs/neuroplastic
   retriable:

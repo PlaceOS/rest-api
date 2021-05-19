@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.27.1
+version: 1.27.2
 crystal: ~> 1
 
 targets:
@@ -64,7 +64,7 @@ dependencies:
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 4.12
+    version: ~> 5.0
 
   # A familiar abstraction over native Fibers
   promise:
