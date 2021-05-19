@@ -68,6 +68,36 @@ module PlaceOS::Api
             result.status_code.should eq 200
           end
         end
+
+        describe "driver only actions" do
+          it "errors if enumerating drivers in an interface repo" do
+            repository = Model::Generator.repository(type: Model::Repository::Type::Interface).save!
+
+            id = repository.id.as(String)
+            path = "#{base}#{id}/drivers"
+            result = curl(
+              method: "GET",
+              path: path,
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
+            )
+
+            result.status.should eq HTTP::Status::BAD_REQUEST
+          end
+
+          it "errors when requesting driver details from an interface repo" do
+            repository = Model::Generator.repository(type: Model::Repository::Type::Interface).save!
+
+            id = repository.id.as(String)
+            path = "#{base}#{id}/details"
+            result = curl(
+              method: "GET",
+              path: path,
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
+            )
+
+            result.status.should eq HTTP::Status::BAD_REQUEST
+          end
+        end
       end
     end
   end
