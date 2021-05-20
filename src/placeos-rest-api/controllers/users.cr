@@ -21,11 +21,9 @@ module PlaceOS::Api
 
     # Render the current user
     get("/current", :current) do
-      begin
-        render json: current_user.as_admin_json
-      rescue e : RethinkORM::Error::DocumentNotFound
-        head :unauthorized
-      end
+      render json: current_user.as_admin_json
+    rescue e : RethinkORM::Error::DocumentNotFound
+      head :unauthorized
     end
 
     # Obtain a token to the current users SSO resource
@@ -141,6 +139,8 @@ module PlaceOS::Api
     def destroy
       user.destroy
       head :ok
+    rescue e : Model::Error
+      render_error(HTTP::Status::BAD_REQUEST, e.message)
     end
 
     ###############################################################################################
