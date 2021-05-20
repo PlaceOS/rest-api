@@ -27,11 +27,12 @@ x-rubber-soul-client-env: &rubber-soul-client-env
   RUBBER_SOUL_URI: ${RUBBER_SOUL_URI:-http://rubber-soul:3000}
 
 services:
-  api: # Rest API
+  test: # Rest API
     build:
       context: ./
       dockerfile: Dockerfile.test
-    hostname: api
+      args:
+        crystal_version: ${CRYSTAL_VERSION:-1.0.0}
     volumes:
       - ./spec:/app/spec
       - ./src:/app/src
@@ -43,6 +44,7 @@ services:
       - rubber-soul
     environment:
       # Environment
+      GITHUB_ACTION: ${GITHUB_ACTION:-}
       <<: *deployment-env
       # Service Hosts
       <<: *elastic-client-env
@@ -74,7 +76,7 @@ services:
     hostname: rethink
 
   rubber-soul: # RethinkDB to Elasticsearch Service
-    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-edge}
+    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-nightly}
     restart: always
     hostname: rubber-soul
     depends_on:
