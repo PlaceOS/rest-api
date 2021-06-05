@@ -348,7 +348,7 @@ module PlaceOS::Api
                          end
 
       # Delete keys to metadata for functions with higher privilege
-      functions = metadata.functions.reject!(hidden_functions)
+      functions = metadata.interface.reject!(hidden_functions)
 
       # Transform function metadata
       response = functions.transform_values do |arguments|
