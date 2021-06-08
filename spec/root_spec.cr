@@ -15,16 +15,12 @@ module PlaceOS::Api
         result = curl("GET", File.join(base, "version"), headers: authorization_header)
         result.status_code.should eq 200
 
-        response = NamedTuple(
-          app: String,
-          version: String,
-          build_time: String,
-          commit: String).from_json(result.body)
+        response = PlaceOS::Model::Version.from_json(result.body)
 
-        response[:app].should eq APP_NAME
-        response[:version].should eq VERSION
-        response[:build_time].should eq BUILD_TIME
-        response[:commit].should eq BUILD_COMMIT
+        response.service.should eq APP_NAME
+        response.version.should eq VERSION
+        response.build_time.should eq BUILD_TIME
+        response.commit.should eq BUILD_COMMIT
       end
 
       describe "signal" do

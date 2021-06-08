@@ -5,6 +5,8 @@ require "rethinkdb"
 require "rethinkdb-orm"
 require "rubber-soul/client"
 
+require "placeos-models/version"
+
 module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
@@ -63,12 +65,16 @@ module PlaceOS::Api
     ###############################################################################################
 
     get "/version", :version do
-      render json: {
-        app:        APP_NAME,
-        version:    VERSION,
-        commit:     BUILD_COMMIT,
-        build_time: BUILD_TIME,
-      }
+      render json: Root.version
+    end
+
+    class_getter version : PlaceOS::Model::Version do
+      PlaceOS::Model::Version.new(
+        service: APP_NAME,
+        commit: BUILD_COMMIT,
+        version: VERSION,
+        build_time: BUILD_TIME
+      )
     end
 
     class SignalParams < Params
