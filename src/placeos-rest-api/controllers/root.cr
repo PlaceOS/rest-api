@@ -8,6 +8,7 @@ require "placeos-frontends/client"
 
 require "placeos-models/version"
 require "uri"
+require "promise"
 
 module PlaceOS::Api
   class Root < Application
@@ -70,16 +71,8 @@ module PlaceOS::Api
       render json: Root.version
     end
 
-    get "/rversion", :version do # test
-      render json: Root.rubber_version
-    end
-
     get "/cluster/versions", :cversion do
-      render json: {Root.frontend_version.service => Root.frontend_version,
-                    Root.rubber_version.service   => Root.rubber_version,
-                    Root.core_version.service     => Root.core_version,
-                    Root.triggers_version.service => Root.triggers_version,
-                    Root.dispatch_version.service => Root.dispatch_version}
+      render json: construct_versions
     end
 
     class_getter version : PlaceOS::Model::Version do
@@ -91,24 +84,43 @@ module PlaceOS::Api
       )
     end
 
-    class_getter frontend_version : (PlaceOS::Model::Version | Nil) do
+    def construct_versions : Hash
+      versions = Hash(String, PlaceOS::Model::Version).new
+      Promise.all(
+        Promise.defer { frontend_version },
+        Promise.defer { rubber_version },
+        Promise.defer { core_version },
+        Promise.defer { triggers_version },
+        Promise.defer { dispatch_version },
+      ).then do |results|
+        results.each do |result|
+          versions[result.service] = result
+        end
+      end
+      versions
+    end
+
+    private def frontend_version : (PlaceOS::Model::Version | Nil)
       Frontends::Client.client(&.version)
     end
 
-    class_getter rubber_version : (PlaceOS::Model::Version | Nil) do
+    private def rubber_version : (PlaceOS::Model::Version | Nil)
       RubberSoul::Client.client(&.version)
     end
 
-    class_getter core_version : (PlaceOS::Model::Version | Nil) do
-      Core::Client.client(&.version)
+    private def core_version : (PlaceOS::Model::Version | Nil)
+      # Core::Client.client(&.version)
+      RubberSoul::Client.client(&.version)
     end
 
-    class_getter triggers_version : (PlaceOS::Model::Version | Nil) do
-      response = HTTP::Client.get "??/api/triggers/v2/version"
+    private def triggers_version : (PlaceOS::Model::Version | Nil)
+      trigger_uri = TRIGGERS_URI.dup
+      trigger_uri.path = "/api/triggers/v2/version"
+      response = HTTP::Client.get trigger_uri
       PlaceOS::Model::Version.from_json(response.body)
     end
 
-    class_getter dispatch_version : (PlaceOS::Model::Version | Nil) do
+    private def dispatch_version : (PlaceOS::Model::Version | Nil)
       response = HTTP::Client.get "??/api/server/version"
       PlaceOS::Model::Version.from_json(response.body)
     end

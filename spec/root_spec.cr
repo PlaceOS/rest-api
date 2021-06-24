@@ -23,13 +23,6 @@ module PlaceOS::Api
         response.commit.should eq BUILD_COMMIT
       end
 
-      it "renders rversion" do
-        result = curl("GET", File.join(base, "rversion"), headers: authorization_header)
-        response = PlaceOS::Model::Version.from_json(result.body)
-        result.status_code.should eq 200
-        response.service.should eq "rubber-soul"
-      end
-
       describe "signal" do
         it "writes an arbitrary payload to a redis subscription" do
           subscription_channel = "test"
