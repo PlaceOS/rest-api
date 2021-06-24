@@ -45,7 +45,8 @@ dependencies:
   # For core client
   placeos-core:
     github: placeos/core
-    version: ~> 3.9
+    #version: ~> 3.9
+    branch: service-version
 
   # For driver state helpers
   placeos-driver:
@@ -55,7 +56,8 @@ dependencies:
   # For frontends client
   placeos-frontends:
     github: placeos/frontends
-    version: ~> 0.11
+    branch: service-version
+    #version: ~> 0.11
 
   # Centrally defined logging configuration
   placeos-log-backend:
@@ -90,6 +92,7 @@ dependencies:
   rubber-soul:
     github: placeos/rubber-soul
     version: ~> 1.16
+    branch: service-vers
 
   # Scheduling
   tasker:

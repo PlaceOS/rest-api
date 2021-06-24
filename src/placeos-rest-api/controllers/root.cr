@@ -4,14 +4,16 @@ require "../utilities/core_discovery"
 require "rethinkdb"
 require "rethinkdb-orm"
 require "rubber-soul/client"
+require "placeos-frontends/client"
 
 require "placeos-models/version"
+require "uri"
 
 module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal]
+    before_action :check_admin, except: [:root, :healthz, :version, :signal, :rversion, :cversion]
     skip_action :check_oauth_scope, only: :signal
 
     # Healthcheck
@@ -68,6 +70,18 @@ module PlaceOS::Api
       render json: Root.version
     end
 
+    get "/rversion", :version do # test
+      render json: Root.rubber_version
+    end
+
+    get "/cluster/versions", :cversion do
+      render json: {Root.frontend_version.service => Root.frontend_version,
+                    Root.rubber_version.service   => Root.rubber_version,
+                    Root.core_version.service     => Root.core_version,
+                    Root.triggers_version.service => Root.triggers_version,
+                    Root.dispatch_version.service => Root.dispatch_version}
+    end
+
     class_getter version : PlaceOS::Model::Version do
       PlaceOS::Model::Version.new(
         service: APP_NAME,
@@ -75,6 +89,28 @@ module PlaceOS::Api
         version: VERSION,
         build_time: BUILD_TIME
       )
+    end
+
+    class_getter frontend_version : (PlaceOS::Model::Version | Nil) do
+      Frontends::Client.client(&.version)
+    end
+
+    class_getter rubber_version : (PlaceOS::Model::Version | Nil) do
+      RubberSoul::Client.client(&.version)
+    end
+
+    class_getter core_version : (PlaceOS::Model::Version | Nil) do
+      Core::Client.client(&.version)
+    end
+
+    class_getter triggers_version : (PlaceOS::Model::Version | Nil) do
+      response = HTTP::Client.get "??/api/triggers/v2/version"
+      PlaceOS::Model::Version.from_json(response.body)
+    end
+
+    class_getter dispatch_version : (PlaceOS::Model::Version | Nil) do
+      response = HTTP::Client.get "??/api/server/version"
+      PlaceOS::Model::Version.from_json(response.body)
     end
 
     class SignalParams < Params
