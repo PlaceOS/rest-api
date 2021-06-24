@@ -109,8 +109,7 @@ module PlaceOS::Api
     end
 
     private def core_version : (PlaceOS::Model::Version | Nil)
-      # Core::Client.client(&.version)
-      RubberSoul::Client.client(&.version)
+      Core::Client.client(URI.parse(ENV["PLACE_URI"]), &.version)
     end
 
     private def triggers_version : (PlaceOS::Model::Version | Nil)
@@ -121,7 +120,7 @@ module PlaceOS::Api
     end
 
     private def dispatch_version : (PlaceOS::Model::Version | Nil)
-      response = HTTP::Client.get "??/api/server/version"
+      response = HTTP::Client.get "#{ENV["PLACE_URI"]}/api/server/version"
       PlaceOS::Model::Version.from_json(response.body)
     end
 
