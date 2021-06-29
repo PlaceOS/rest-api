@@ -46,7 +46,6 @@ dependencies:
   placeos-core:
     github: placeos/core
     #version: ~> 3.9
-    branch: service-version
 
   # For driver state helpers
   placeos-driver:
@@ -56,8 +55,6 @@ dependencies:
   # For frontends client
   placeos-frontends:
     github: placeos/frontends
-    branch: service-version
-    #version: ~> 0.11
 
   # Centrally defined logging configuration
   placeos-log-backend:
@@ -121,3 +118,7 @@ development_dependencies:
   # Time mocking
   timecop:
     github: crystal-community/timecop.cr
+
+  webmock:
+    github: manastech/webmock.cr
+    branch: master
