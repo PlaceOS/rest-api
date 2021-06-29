@@ -84,20 +84,25 @@ module PlaceOS::Api
       )
     end
 
-    def self.construct_versions : Hash
-      versions = Hash(String, PlaceOS::Model::Version).new
-      Promise.all(
-        Promise.defer { frontend_version },
-        Promise.defer { rubber_version },
-        Promise.defer { core_version },
-        Promise.defer { triggers_version },
-        Promise.defer { dispatch_version },
-      ).then do |results|
-        results.each do |result|
-          versions[result.service] = result
-        end
-      end
-      versions
+    private SERVICES = %w(frontend rubber core triggers dispatch)
+
+    def self.construct_versions : Array(PlaceOS::Model::Version)
+      version_channel = Channel(PlaceOS::Model::Version?).new
+      {% for service in SERVICES %}
+        spawn do
+          %version = begin
+                      {{service.id}}_version
+                    rescue
+                      Log.warn { {service: {{ service }}, message: "failed to request version" }}
+                      nil
+                    end
+          version_channel.send(%version)
+          end
+        
+      {% end %}
+      Array(PlaceOS::Model::Version?).new(SERVICES.size) do
+        version_channel.receive
+      end.compact
     end
 
     private def self.frontend_version : (PlaceOS::Model::Version | Nil)

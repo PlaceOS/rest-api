@@ -9,6 +9,7 @@ require "promise"
 require "random"
 require "rethinkdb-orm"
 require "simple_retry"
+require "webmock"
 
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
@@ -18,6 +19,9 @@ Spec.before_suite do
   clear_tables
 end
 
+Spec.before_each do
+  WebMock.allow_net_connect = true
+end
 # Application config
 require "../src/config"
 
