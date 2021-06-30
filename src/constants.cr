@@ -12,7 +12,11 @@ module PlaceOS::Api
   ETCD_HOST = ENV["ETCD_HOST"]? || "localhost"
   ETCD_PORT = (ENV["ETCD_PORT"]? || "2379").to_i
 
-  PLACE_URI = URI.parse(ENV["PLACE_URI"]? || "http://127.0.0.1:3000")
+  PLACE_DISPATCH_HOST = ENV["PLACE_DISPATCH_HOST"]? || "dispatch"
+  PLACE_DISPATCH_PORT = (ENV["PLACE_DISPATCH_PORT"]? || "3000").to_i
+
+  CORE_HOST = ENV["CORE_HOST"]? || "version"
+  CORE_PORT = (ENV["CORE_PORT"]? || "3000").to_i
 
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")

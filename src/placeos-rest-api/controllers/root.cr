@@ -114,7 +114,8 @@ module PlaceOS::Api
     end
 
     private def self.core_version : (PlaceOS::Model::Version | Nil)
-      Core::Client.client(PLACE_URI, &.version)
+      uri = URI.new(host: CORE_HOST, port: CORE_PORT, scheme: "http")
+      Core::Client.client(uri, &.version)
     end
 
     private def self.triggers_version : (PlaceOS::Model::Version | Nil)
@@ -125,7 +126,8 @@ module PlaceOS::Api
     end
 
     private def self.dispatch_version : (PlaceOS::Model::Version | Nil)
-      response = HTTP::Client.get "#{PLACE_URI}/api/server/version"
+      uri = URI.new(host: PLACE_DISPATCH_HOST, port: PLACE_DISPATCH_PORT, scheme: "http")
+      response = HTTP::Client.get "#{uri}/api/server/version"
       PlaceOS::Model::Version.from_json(response.body)
     end
 
