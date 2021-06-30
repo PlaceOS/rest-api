@@ -89,8 +89,7 @@ dependencies:
   # Client for RubberSoul RethinkDB Elasticsearch indexer
   rubber-soul:
     github: placeos/rubber-soul
-    version: ~> 1.16
-    branch: service-vers
+    version: ~> 1.19.1
 
   # Scheduling
   tasker:
