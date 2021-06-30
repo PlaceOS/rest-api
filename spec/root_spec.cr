@@ -29,11 +29,11 @@ module PlaceOS::Api
         WebMock
           .stub(:get, "127.0.0.1:3000/api/frontends/v1/version").to_return(body: %({"service":"frontend", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
         WebMock
-          .stub(:get, "127.0.0.1:3000/api/core/v1/version").to_return(body: %({"service":"core", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
+          .stub(:get, "version:3000/api/core/v1/version").to_return(body: %({"service":"core", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
         WebMock
           .stub(:get, "rubber-soul:3000/api/rubber-soul/v1/version").to_return(body: %({"service":"rubber", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
         WebMock
-          .stub(:get, "127.0.0.1:3000/api/server/version").to_return(body: %({"service":"dispatch", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
+          .stub(:get, "dispatch:3000/api/server/version").to_return(body: %({"service":"dispatch", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
         versions = Root.construct_versions
         versions.size.should eq(5)
         versions.map(&.service).sort.should eq Root::SERVICES.sort
