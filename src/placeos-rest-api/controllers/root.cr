@@ -84,7 +84,7 @@ module PlaceOS::Api
       )
     end
 
-    private SERVICES = %w(frontend rubber core triggers dispatch)
+    SERVICES = %w(frontend rubber core triggers dispatch)
 
     def self.construct_versions : Array(PlaceOS::Model::Version)
       version_channel = Channel(PlaceOS::Model::Version?).new
