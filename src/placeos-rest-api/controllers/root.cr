@@ -97,7 +97,6 @@ module PlaceOS::Api
                     end
           version_channel.send(%version)
           end
-        
       {% end %}
       Array(PlaceOS::Model::Version?).new(SERVICES.size) do
         version_channel.receive
@@ -113,7 +112,7 @@ module PlaceOS::Api
     end
 
     protected def self.core_version : PlaceOS::Model::Version?
-      puts Api::Systems.core_for("version", &.version)
+      Api::Systems.core_for("version", &.version)
     end
 
     protected def self.triggers_version : PlaceOS::Model::Version?

@@ -23,6 +23,7 @@ Spec.before_each do
   WebMock.reset
   WebMock.allow_net_connect = true
 end
+
 # Application config
 require "../src/config"
 
