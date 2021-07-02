@@ -52,17 +52,14 @@ module PlaceOS::Api
                          true
                        end
 
-      children = current_zone.children.all
-      filtered = include_parent ? children : children.reject &.id.==(parent_id)
-
-      results = filtered.map do |zone|
-        {
-          zone:     zone,
-          metadata: Model::Metadata.build_metadata(zone, name),
-        }
+      render_json do |json|
+        json.array do
+          current_zone.children.all.each do |zone|
+            next if !include_parent && zone.id == parent_id
+            {zone: zone, metadata: Model::Metadata.build_metadata(zone, name)}.to_json(json)
+          end
+        end
       end
-
-      render json: results.to_a
     end
 
     # ameba:disable Metrics/CyclomaticComplexity
