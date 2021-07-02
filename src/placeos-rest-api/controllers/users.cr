@@ -155,7 +155,7 @@ module PlaceOS::Api
     # - `emails`: comma-seperated list of emails *required*
     # # Returns
     # - `[{id: "<user-id>", groups: ["<group>"]}]`
-    get("/groups") do
+    get("/groups", :groups) do
       emails_param = params["emails"]?.presence
       return render_error(HTTP::Status::BAD_REQUEST, "Missing `emails` param") if emails_param.nil?
 
@@ -164,7 +164,13 @@ module PlaceOS::Api
 
       return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, errors.join(", ")) unless errors.empty?
 
-      render json: Model::User.find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails).to_a
+      render_json do |json|
+        json.array do
+          Model::User
+            .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails)
+            .each &.to_groups_json(json)
+        end
+      end
     end
 
     def self.validate_emails(emails) : Array(String)
