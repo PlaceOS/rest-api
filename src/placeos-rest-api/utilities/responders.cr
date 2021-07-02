@@ -8,7 +8,9 @@ module PlaceOS::Api
     def render_json(status : HTTP::Status = :ok)
       response.status_code = status.code
       response.content_type = "application/json"
-      yield response
+      JSON.builder(response) do |json|
+        yield json
+      end
       @render_called = true
     end
 

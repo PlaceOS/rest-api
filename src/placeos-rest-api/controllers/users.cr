@@ -21,8 +21,8 @@ module PlaceOS::Api
 
     # Render the current user
     get("/current", :current) do
-      render_json do |io|
-        current_user.to_admin_json(io)
+      render_json do |json|
+        current_user.to_admin_json(json)
       end
     rescue e : RethinkORM::Error::DocumentNotFound
       head :unauthorized
@@ -100,19 +100,17 @@ module PlaceOS::Api
       authority_id = params["authority_id"]?
       query.filter({"authority_id" => [authority_id]}) if authority_id
 
-      render_json do |io|
-        JSON.build(io) do |json|
-          json.array do
-            paginate_results(elastic, query).each &.to_admin_json(json)
-          end
+      render_json do |json|
+        json.array do
+          paginate_results(elastic, query).each &.to_admin_json(json)
         end
       end
     end
 
     def show
       # We only want to provide limited "public" information
-      render_json do |io|
-        is_admin? ? user.to_admin_json(io) : user.to_public_json(io)
+      render_json do |json|
+        is_admin? ? user.to_admin_json(json) : user.to_public_json(json)
       end
     end
 
