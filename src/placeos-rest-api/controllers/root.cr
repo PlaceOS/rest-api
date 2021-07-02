@@ -13,7 +13,7 @@ module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal, :rversion, :cversion]
+    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version]
     skip_action :check_oauth_scope, only: :signal
 
     # Healthcheck
@@ -70,7 +70,7 @@ module PlaceOS::Api
       render json: Root.version
     end
 
-    get "/cluster/versions", :cversion do
+    get "/cluster/versions", :cluster_version do
       render json: Root.construct_versions
     end
 
