@@ -83,7 +83,7 @@ module PlaceOS::Api
       )
     end
 
-    SERVICES = %w(frontends rubber_soul core triggers dispatch)
+    SERVICES = %w(core dispatch frontends rest_api rubber_soul triggers)
 
     def self.construct_versions : Array(PlaceOS::Model::Version)
       version_channel = Channel(PlaceOS::Model::Version?).new
@@ -96,33 +96,36 @@ module PlaceOS::Api
                       nil
                     end
           version_channel.send(%version)
-          end
+        end
       {% end %}
+
       Array(PlaceOS::Model::Version?).new(SERVICES.size) do
         version_channel.receive
       end.compact
     end
 
-    protected def self.frontends_version : PlaceOS::Model::Version?
+    class_getter rest_api_version : PlaceOS::Model::Version = Root.version
+
+    protected def self.frontends_version : PlaceOS::Model::Version
       Frontends::Client.client(&.version)
     end
 
-    protected def self.rubber_soul_version : PlaceOS::Model::Version?
+    protected def self.rubber_soul_version : PlaceOS::Model::Version
       RubberSoul::Client.client(&.version)
     end
 
-    protected def self.core_version : PlaceOS::Model::Version?
+    protected def self.core_version : PlaceOS::Model::Version
       Api::Systems.core_for("version", &.version)
     end
 
-    protected def self.triggers_version : PlaceOS::Model::Version?
+    protected def self.triggers_version : PlaceOS::Model::Version
       trigger_uri = TRIGGERS_URI.dup
       trigger_uri.path = "/api/triggers/v2/version"
       response = HTTP::Client.get trigger_uri
       PlaceOS::Model::Version.from_json(response.body)
     end
 
-    protected def self.dispatch_version : PlaceOS::Model::Version?
+    protected def self.dispatch_version : PlaceOS::Model::Version
       uri = URI.new(host: PLACE_DISPATCH_HOST, port: PLACE_DISPATCH_PORT, scheme: "http")
       response = HTTP::Client.get "#{uri}/api/server/version"
       PlaceOS::Model::Version.from_json(response.body)

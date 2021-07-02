@@ -55,7 +55,7 @@ module PlaceOS::Api
 
         versions = Root.construct_versions
         versions.size.should eq(Root::SERVICES.size)
-        versions.map(&.service).sort!.should eq Root::SERVICES.sort
+        versions.map(&.service.gsub('-', '_')).sort!.should eq Root::SERVICES.sort
       end
 
       describe "signal" do
