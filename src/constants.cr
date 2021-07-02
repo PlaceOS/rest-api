@@ -15,9 +15,6 @@ module PlaceOS::Api
   PLACE_DISPATCH_HOST = ENV["PLACE_DISPATCH_HOST"]? || "dispatch"
   PLACE_DISPATCH_PORT = (ENV["PLACE_DISPATCH_PORT"]? || "3000").to_i
 
-  CORE_HOST = ENV["CORE_HOST"]? || "version"
-  CORE_PORT = (ENV["CORE_PORT"]? || "3000").to_i
-
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
 
