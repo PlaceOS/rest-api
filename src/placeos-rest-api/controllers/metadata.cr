@@ -33,6 +33,14 @@ module PlaceOS::Api
       render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
+    record Children, zone : Model::Zone, metadata : Hash(String, Model::Metadata::Interface) do
+      include JSON::Serializable
+
+      def initialize(@zone, metadata_key : String?)
+        @metadata = Model::Metadata.build_metadata(@zone, metadata_key)
+      end
+    end
+
     # Fetch metadata for Zone children
     #
     # Filter for a specific metadata by name via `name` param.
@@ -53,11 +61,9 @@ module PlaceOS::Api
                        end
 
       render_json do |json|
-        json.array do
-          current_zone.children.all.each do |zone|
-            next if !include_parent && zone.id == parent_id
-            {zone: zone, metadata: Model::Metadata.build_metadata(zone, name)}.to_json(json)
-          end
+        current_zone.children.all.each do |zone|
+          next if !include_parent && zone.id == parent_id
+          Children.new(zone, name).to_json(json)
         end
       end
     end
