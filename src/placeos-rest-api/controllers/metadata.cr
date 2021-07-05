@@ -23,7 +23,7 @@ module PlaceOS::Api
     # Filter for a specific metadata by name via `name` param
     def show
       parent_id = params["id"]
-      name = params["name"]?
+      name = params["name"]?.presence
 
       # Guest JWTs include the control system id that they have access to
       if user_token.scope.includes?("guest")
@@ -47,23 +47,17 @@ module PlaceOS::Api
     # Includes the parent metadata by default via `include_parent` param.
     get "/:id/children", :children_metadata do
       parent_id = params["id"]
-      name = params["name"]?
+      name = params["name"]?.presence
+      include_parent = params.has_key?("include_parent") ? param["include_parent"].downcase == "true" : true
 
       # Guest JWTs include the control system id that they have access to
       if user_token.scope.includes?("guest")
         head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
-      include_parent = if (_include = params["include_parent"]?)
-                         _include == "true"
-                       else
-                         true
-                       end
-
       render_json do |json|
         current_zone.children.all.each do |zone|
-          next if !include_parent && zone.id == parent_id
-          Children.new(zone, name).to_json(json)
+          Children.new(zone, name).to_json(json) if include_parent || zone.id != parent_id
         end
       end
     end
@@ -117,7 +111,8 @@ module PlaceOS::Api
 
     def destroy
       parent_id = params["id"]
-      name = params["name"]?
+      name = params["name"]?.presence
+
       head :bad_request unless name
 
       Model::Metadata.for(parent_id, name).each &.destroy
