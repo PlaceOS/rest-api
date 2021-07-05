@@ -168,7 +168,7 @@ module PlaceOS::Api
         json.array do
           Model::User
             .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails)
-            .each &.to_groups_json(json)
+            .each &.to_group_json(json)
         end
       end
     end
