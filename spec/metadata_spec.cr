@@ -24,12 +24,11 @@ module PlaceOS::Api
             headers: authorization_header,
           )
 
-          metadata = Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface))).from_json(result.body)
-          metadata.size.should eq 3
-
-          metadata.compact_map do |m|
-            m[:metadata] unless m[:metadata].empty?
-          end.size.should eq 3
+          Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+            .from_json(result.body)
+            .tap { |m| m.size.should eq(3) }
+            .compact_map(&.[:metadata].presence)
+            .size.should eq 3
 
           parent.destroy
         end
@@ -55,11 +54,11 @@ module PlaceOS::Api
             headers: authorization_header,
           )
 
-          metadata = Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface))).from_json(result.body)
-
-          metadata.compact_map do |m|
-            m[:metadata] unless m[:metadata].empty?
-          end.size.should eq 1
+          Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+            .from_json(result.body)
+            .compact_map(&.[:metadata].presence)
+            .size
+            .should eq 1
 
           parent.destroy
         end
