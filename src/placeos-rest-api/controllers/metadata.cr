@@ -56,8 +56,10 @@ module PlaceOS::Api
       end
 
       render_json do |json|
-        current_zone.children.all.each do |zone|
-          Children.new(zone, name).to_json(json) if include_parent || zone.id != parent_id
+        json.array do
+          current_zone.children.all.each do |zone|
+            Children.new(zone, name).to_json(json) if include_parent || zone.id != parent_id
+          end
         end
       end
     end
