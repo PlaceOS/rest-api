@@ -3,15 +3,15 @@ require "placeos-models"
 
 module PlaceOS::Api
   module Utils::Responders
-    # Write JSON to an IO
+    # Write JSON to the response IO
     #
-    def render_json(status : HTTP::Status = :ok)
-      response.status_code = status.code
-      response.content_type = "application/json"
-      JSON.build(response) do |json|
-        yield json
-      end
+    macro render_json(status = :ok, &block)
+      %response = @context.response
+      %response.status = {{status}}
+      %response.content_type = "application/json"
+      JSON.build(%response) {{block}}
       @render_called = true
+      return
     end
 
     # Renders API error messages in a consistent format
