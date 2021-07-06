@@ -27,7 +27,7 @@ module PlaceOS::Api
           Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
             .from_json(result.body)
             .tap { |m| m.size.should eq(3) }
-            .compact_map(&.[:metadata].presence)
+            .map(&.[:metadata])
             .size.should eq 3
 
           parent.destroy
@@ -56,7 +56,7 @@ module PlaceOS::Api
 
           Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
             .from_json(result.body)
-            .compact_map(&.[:metadata].presence)
+            .map(&.[:metadata])
             .size
             .should eq 1
 
