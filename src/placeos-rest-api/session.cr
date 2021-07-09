@@ -3,6 +3,7 @@ class PlaceOS::Driver; end
 
 require "hound-dog"
 require "log"
+require "mutex"
 require "placeos-driver/proxy/remote_driver"
 require "tasker"
 
@@ -15,10 +16,18 @@ module PlaceOS
 
     # Stores sessions until their websocket closes
     class Manager
+      private getter session_lock : Mutex = Mutex.new
       private getter sessions : Array(Session) { [] of Session }
       private getter discovery : HoundDog::Discovery
 
+      private getter session_cleanup_period : Time::Span = 1.hours
+
+      @session_cleaner : Tasker::Task?
+
       def initialize(@discovery : HoundDog::Discovery)
+        spawn(name: "cleanup_sessions", same_thread: true) do
+          cleanup_sessions
+        end
       end
 
       # Creates the session and handles the cleanup
@@ -31,12 +40,21 @@ module PlaceOS
           discovery: discovery,
         )
 
-        sessions << session
+        session_lock.synchronize { sessions << session }
 
         ws.on_close do |_|
           Log.trace { {frame: "CLOSE"} }
           session.cleanup
-          sessions.delete(session)
+          session_lock.synchronize { sessions.delete(session) }
+        end
+      end
+
+      # Periodically shrink the sessions array
+      protected def cleanup_sessions
+        @session_cleaner = Tasker.instance.every(session_cleanup_period) do
+          Log.trace { "shrinking sessions array" }
+          # NOTE: As crystal arrays do not shrink, we create a new one periodically
+          session_lock.synchronize { @sessions = sessions.dup }
         end
       end
     end
@@ -48,7 +66,13 @@ module PlaceOS
     # Local subscriptions
     private getter bindings = {} of String => Driver::Subscriptions::Subscription
 
+    # Caching
     # Background task to clear module metadata caches
+    private getter cache_lock = Mutex.new
+    private getter cache_timeout : Time::Span = 10.minutes
+
+    @metadata_cache = {} of String => Driver::DriverModel::Metadata
+    @module_id_cache = {} of String => String
     @cache_cleaner : Tasker::Task?
 
     getter ws : HTTP::WebSocket
@@ -70,10 +94,6 @@ module PlaceOS
         Log.trace { {frame: "PING"} }
         @ws.pong
       end
-
-      # NOTE: Might need a rw-lock/concurrent-map due to cache cleaning fiber
-      @metadata_cache = {} of String => Driver::DriverModel::Metadata
-      @module_id_cache = {} of String => String
 
       @security_level = if @user.is_admin?
                           Driver::Proxy::RemoteDriver::Clearance::Admin
@@ -447,13 +467,13 @@ module PlaceOS
     def metadata?(sys_id, module_name, index) : Driver::DriverModel::Metadata?
       key = Session.cache_key(sys_id, module_name, index)
       # Try for value in the cache
-      cached = @metadata_cache[key]?
+      cached = cache_lock.synchronize { @metadata_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
       if (module_id = module_id?(sys_id, module_name, index))
-        Driver::Proxy::System.driver_metadata?(module_id).tap do |metadata|
-          @metadata_cache[key] = metadata if metadata
+        Driver::Proxy::System.driver_metadata?(module_id).tap do |meta|
+          cache_lock.synchronize { @metadata_cache[key] = meta } if meta
         end
       end
     end
@@ -465,12 +485,12 @@ module PlaceOS
     def module_id?(sys_id, module_name, index) : String?
       key = Session.cache_key(sys_id, module_name, index)
       # Try for value in the cache
-      cached = @module_id_cache[key]?
+      cached = cache_lock.synchronize { @module_id_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
       Driver::Proxy::System.module_id?(sys_id, module_name, index).tap do |id|
-        @module_id_cache[key] = id if id
+        cache_lock.synchronize { @module_id_cache[key] = id } if id
       end
     end
 
@@ -632,11 +652,11 @@ module PlaceOS
     # Empty's metadata cache upon cache_timeout
     #
     protected def cache_plumbing
-      if (timeout = @cache_timeout) && timeout > 0
-        @cache_cleaner = Tasker.instance.every(timeout.seconds) do
-          Log.trace { "cleaning websocket session cache" }
-          @metadata_cache.clear
-          @module_id_cache.clear
+      @cache_cleaner = Tasker.instance.every(cache_timeout) do
+        Log.trace { "cleaning websocket session cache" }
+        cache_lock.synchronize do
+          @metadata_cache = {} of String => Driver::DriverModel::Metadata
+          @module_id_cache = {} of String => String
         end
       end
     end
