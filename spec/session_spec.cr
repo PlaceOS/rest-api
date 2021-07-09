@@ -27,7 +27,7 @@ module PlaceOS::Api
 
               ws.send Session::Request.new(
                 id: rand(10).to_i64,
-                sys_id: control_system.id.as(String),
+                system_id: control_system.id.as(String),
                 module_name: mod.resolved_name,
                 name: status_name,
                 command: Session::Request::Command::Bind,
@@ -67,7 +67,7 @@ module PlaceOS::Api
           results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
             request = {
               id:          id,
-              sys_id:      control_system.id.as(String),
+              system_id:   control_system.id.as(String),
               module_name: mod.resolved_name,
               name:        status_name,
               command:     Session::Request::Command::Bind,
