@@ -16,6 +16,8 @@ module PlaceOS
 
     # Stores sessions until their websocket closes
     class Manager
+      Log = ::Log.for(self)
+
       private getter session_lock : Mutex = Mutex.new
       private getter sessions : Array(Session) { [] of Session }
       private getter discovery : HoundDog::Discovery
@@ -33,6 +35,7 @@ module PlaceOS
       # Creates the session and handles the cleanup
       #
       def create_session(ws, request_id, user)
+        Log.trace { {request_id: request_id, frame: "OPEN"} }
         session = Session.new(
           ws: ws,
           request_id: request_id,
@@ -43,7 +46,7 @@ module PlaceOS
         session_lock.synchronize { sessions << session }
 
         ws.on_close do |_|
-          Log.trace { {frame: "CLOSE"} }
+          Log.trace { {request_id: request_id, frame: "CLOSE"} }
           session.cleanup
           session_lock.synchronize { sessions.delete(session) }
         end
@@ -81,13 +84,14 @@ module PlaceOS
       @ws : HTTP::WebSocket,
       @request_id : String,
       @user : Model::UserJWT,
-      @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE),
-      @cache_timeout : Int32? = 60 * 5
+      @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
     )
       # Register event handlers
       @ws.on_message do |message|
         Log.trace { {frame: "TEXT", text: message} }
-        on_message(message)
+        spawn(same_thread: true) do
+          on_message(message)
+        end
       end
 
       @ws.on_ping do
@@ -107,8 +111,9 @@ module PlaceOS
       spawn(name: "cache_cleaner", same_thread: true) { cache_plumbing }
     end
 
-    # Websocket API
+    # Websocket API Messages
     ##############################################################################
+
     private abstract struct Base
       include JSON::Serializable
     end
@@ -128,7 +133,7 @@ module PlaceOS
 
       def initialize(
         @id,
-        @sys_id,
+        @system_id,
         @module_name,
         @command,
         @name,
@@ -137,48 +142,48 @@ module PlaceOS
       )
       end
 
-      property id : Int64
+      getter id : Int64
 
       # Module location metadata
       @[JSON::Field(key: "sys")]
-      property sys_id : String
+      getter system_id : String
 
       @[JSON::Field(key: "mod")]
-      property module_name : String
+      getter module_name : String
 
-      property index : Int32 = 1
+      getter index : Int32 = 1
 
       # Command
       @[JSON::Field(key: "cmd")]
-      property command : Command
+      getter command : Command
 
       # Function name
-      property name : String
+      getter name : String
 
       # Function arguments
       @[JSON::Field(emit_null: true)]
-      property args : Array(JSON::Any)?
+      getter args : Array(JSON::Any)?
     end
 
     alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
 
     # Websocket API Response
     struct Response < Base
-      property id : Int64
-      property type : Type
+      getter id : Int64
+      getter type : Type
 
-      property error_code : Int32?
+      getter error_code : Int32?
 
       @[JSON::Field(key: "msg")]
-      property message : String?
+      getter message : String?
 
-      property value : String?
-      property meta : Metadata?
+      getter value : String?
+      getter meta : Metadata?
 
       @[JSON::Field(key: "mod")]
-      property module_id : String?
+      getter module_id : String?
 
-      property level : ::Log::Severity?
+      getter level : ::Log::Severity?
 
       alias Metadata = NamedTuple(
         sys: String,
@@ -208,28 +213,23 @@ module PlaceOS
       end
     end
 
+    # Websocket API Handlers
+    ##############################################################################
+
     # Grab core url for the module and dial an exec request
     #
     def exec(
       request_id : Int64,
-      sys_id : String,
+      system_id : String,
       module_name : String,
       index : Int32,
       name : String,
       args : Array(JSON::Any)
     )
-      Log.debug { {
-        message:       "exec",
-        ws_request_id: request_id,
-        sys_id:        sys_id,
-        module_name:   module_name,
-        index:         index,
-        name:          name,
-        args:          args.to_json,
-      } }
+      Log.debug { {message: "exec", args: args.to_json} }
 
       driver = Driver::Proxy::RemoteDriver.new(
-        sys_id: sys_id,
+        sys_id: system_id,
         module_name: module_name,
         index: index,
         discovery: @discovery
@@ -241,7 +241,7 @@ module PlaceOS
         id: request_id,
         type: Response::Type::Success,
         meta: {
-          sys:   sys_id,
+          sys:   system_id,
           mod:   module_name,
           index: index,
           name:  name,
@@ -252,12 +252,8 @@ module PlaceOS
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
       Log.error(exception: e) { {
-        message:     "failed to execute request",
-        sys_id:      sys_id,
-        module_name: module_name,
-        index:       index,
-        name:        name,
-        error:       e.message,
+        message: "failed to execute request",
+        error:   e.message,
       } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to execute request"))
     end
@@ -266,27 +262,20 @@ module PlaceOS
     #
     def bind(
       request_id : Int64,
-      sys_id : String,
+      system_id : String,
       module_name : String,
       index : Int32,
       name : String
     )
-      Log.debug { {
-        message:       "bind",
-        ws_request_id: request_id,
-        sys_id:        sys_id,
-        module_name:   module_name,
-        index:         index,
-        name:          name,
-      } }
+      Log.debug { "binding to module" }
       begin
         # Check if module previously bound
-        unless has_binding?(sys_id, module_name, index, name)
-          return unless create_binding(request_id, sys_id, module_name, index, name)
+        unless has_binding?(system_id, module_name, index, name)
+          return unless create_binding(request_id, system_id, module_name, index, name)
         end
       rescue error
-        Log.warn(exception: error) { {message: "websocket binding could not find system", sys_id: sys_id, module_name: module_name, index: index, name: name} }
-        respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{sys_id} mod=#{module_name}"))
+        Log.warn(exception: error) { "websocket binding could not find system" }
+        respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{system_id} mod=#{module_name}"))
         return
       end
 
@@ -299,7 +288,7 @@ module PlaceOS
         id: request_id,
         type: Response::Type::Success,
         meta: {
-          sys:   sys_id,
+          sys:   system_id,
           mod:   module_name,
           index: index,
           name:  name,
@@ -308,13 +297,8 @@ module PlaceOS
       respond(response)
     rescue e
       Log.error(exception: e) { {
-        message:       "failed to bind",
-        ws_request_id: request_id,
-        sys_id:        sys_id,
-        module_name:   module_name,
-        index:         index,
-        name:          name,
-        error:         e.message,
+        message: "failed to bind",
+        error:   e.message,
       } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to bind"))
     end
@@ -323,21 +307,14 @@ module PlaceOS
     #
     def unbind(
       request_id : Int64,
-      sys_id : String,
+      system_id : String,
       module_name : String,
       index : Int32,
       name : String
     )
-      Log.debug { {
-        message:       "unbind",
-        ws_request_id: request_id,
-        sys_id:        sys_id,
-        module_name:   module_name,
-        index:         index,
-        name:          name,
-      } }
+      Log.debug { "unbind module" }
 
-      subscription = delete_binding(sys_id, module_name, index, name)
+      subscription = delete_binding(system_id, module_name, index, name)
       self.class.subscriptions.unsubscribe(subscription) if subscription
 
       respond(Response.new(id: request_id, type: Response::Type::Success))
@@ -345,13 +322,8 @@ module PlaceOS
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
       Log.error(exception: e) { {
-        message:       "failed to unbind",
-        ws_request_id: request_id,
-        sys_id:        sys_id,
-        module_name:   module_name,
-        index:         index,
-        name:          name,
-        error:         e.message,
+        message: "failed to unbind",
+        error:   e.message,
       } }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to unbind"))
     end
@@ -362,19 +334,19 @@ module PlaceOS
     #
     def debug(
       request_id : Int64,
-      sys_id : String,
+      system_id : String,
       module_name : String,
       index : Int32,
       name : String
     )
       # NOTE: In the interest of saving a redis lookup, the frontend passes
       #       the module_id, rather than name.
-      existing_socket = debug_sessions[{sys_id, module_name, index}]?
+      existing_socket = debug_sessions[{system_id, module_name, index}]?
 
       if !existing_socket || existing_socket.closed?
         driver = Driver::Proxy::RemoteDriver.new(
           module_id: module_name,
-          sys_id: sys_id,
+          sys_id: system_id,
           module_name: module_name,
           discovery: @discovery
         )
@@ -393,43 +365,26 @@ module PlaceOS
                 level: level,
                 message: message,
                 meta: {
-                  sys:   sys_id,
+                  sys:   system_id,
                   mod:   module_name,
                   index: index,
                   name:  name,
                 },
               ))
           rescue e
-            Log.warn(exception: e) { {
-              message:     "failed to forward debug message",
-              sys_id:      sys_id,
-              module_name: module_name,
-              index:       index,
-            } }
+            Log.warn(exception: e) { "failed to forward debug message" }
           end
         end
 
         spawn(same_thread: true) { ws.run }
-        debug_sessions[{sys_id, module_name, index}] = ws
+        debug_sessions[{system_id, module_name, index}] = ws
       else
-        Log.trace { {
-          message:     "reusing existing debug socket",
-          sys_id:      sys_id,
-          module_name: module_name,
-          index:       index,
-        } }
+        Log.trace { "reusing existing debug socket" }
       end
 
       respond(Response.new(id: request_id, type: Response::Type::Success))
     rescue e
-      Log.error(exception: e) { {
-        message:       "failed to attach debugger",
-        ws_request_id: request_id,
-        sys_id:        sys_id,
-        module_name:   module_name,
-        index:         index,
-        name:          name,
-      } }
+      Log.error(exception: e) { "failed to attach debugger" }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to attach debugger"))
     end
 
@@ -437,24 +392,17 @@ module PlaceOS
     #
     def ignore(
       request_id : Int64,
-      sys_id : String,
+      system_id : String,
       module_name : String,
       index : Int32,
       name : String
     )
-      socket = debug_sessions.delete({sys_id, module_name, index})
+      socket = debug_sessions.delete({system_id, module_name, index})
       # Close the socket if it was present
       socket.try(&.close)
       respond(Response.new(id: request_id, type: Response::Type::Success))
     rescue e
-      Log.error(exception: e) { {
-        message:       "failed to detach debugger",
-        ws_request_id: request_id,
-        sys_id:        sys_id,
-        module_name:   module_name,
-        index:         index,
-        name:          name,
-      } }
+      Log.error(exception: e) { "failed to detach debugger" }
       respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to detach debugger"))
     end
 
@@ -464,14 +412,14 @@ module PlaceOS
     # - checks for fresh value in cache
     # - refreshes cache with new value if present
     #
-    def metadata?(sys_id, module_name, index) : Driver::DriverModel::Metadata?
-      key = Session.cache_key(sys_id, module_name, index)
+    def metadata?(system_id, module_name, index) : Driver::DriverModel::Metadata?
+      key = Session.cache_key(system_id, module_name, index)
       # Try for value in the cache
       cached = cache_lock.synchronize { @metadata_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
-      if (module_id = module_id?(sys_id, module_name, index))
+      if (module_id = module_id?(system_id, module_name, index))
         Driver::Proxy::System.driver_metadata?(module_id).tap do |meta|
           cache_lock.synchronize { @metadata_cache[key] = meta } if meta
         end
@@ -482,31 +430,31 @@ module PlaceOS
     # - checks for fresh value in cache
     # - refreshes cache with new value if present
     #
-    def module_id?(sys_id, module_name, index) : String?
-      key = Session.cache_key(sys_id, module_name, index)
+    def module_id?(system_id, module_name, index) : String?
+      key = Session.cache_key(system_id, module_name, index)
       # Try for value in the cache
       cached = cache_lock.synchronize { @module_id_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
-      Driver::Proxy::System.module_id?(sys_id, module_name, index).tap do |id|
+      Driver::Proxy::System.module_id?(system_id, module_name, index).tap do |id|
         cache_lock.synchronize { @module_id_cache[key] = id } if id
       end
     end
 
     # Check for existing binding to a module
     #
-    def has_binding?(sys_id, module_name, index, name)
-      bindings.has_key? Session.binding_key(sys_id, module_name, index, name)
+    def has_binding?(system_id, module_name, index, name)
+      bindings.has_key? Session.binding_key(system_id, module_name, index, name)
     end
 
     # Create a binding to a module on the Session
     #
-    def create_binding(request_id, sys_id, module_name, index, name) : Bool
-      key = Session.binding_key(sys_id, module_name, index, name)
+    protected def create_binding(request_id, system_id, module_name, index, name) : Bool
+      key = Session.binding_key(system_id, module_name, index, name)
 
       if module_name.starts_with?("_") && !@user.is_support?
-        Log.warn { {message: "websocket binding attempted to access privileged module", sys_id: sys_id, module_name: module_name, index: index, name: name} }
+        Log.warn { "websocket binding attempted to access privileged module" }
         respond error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
         return false
       end
@@ -514,9 +462,9 @@ module PlaceOS
       if module_name == "_TRIGGER_"
         # Ensure the trigger exists
         trig = Model::TriggerInstance.find(name)
-        unless trig.try(&.control_system_id) == sys_id
-          Log.warn { {message: "websocket binding attempted to access unknown trigger", sys_id: sys_id, trig_id: name} }
-          respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger #{name} in system #{sys_id}")
+        unless trig.try(&.control_system_id) == system_id
+          Log.warn { {message: "websocket binding attempted to access unknown trigger", trigger_instance_id: name} }
+          respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger instance #{name} in system #{system_id}")
           return false
         end
 
@@ -524,7 +472,7 @@ module PlaceOS
         bindings[key] = self.class.subscriptions.subscribe(name, "state") do |_, event|
           notify_update(
             request_id: request_id,
-            system_id: sys_id,
+            system_id: system_id,
             module_name: module_name,
             status: name,
             index: index,
@@ -533,10 +481,10 @@ module PlaceOS
         end
       else
         # Subscribe and set local binding
-        bindings[key] = self.class.subscriptions.subscribe(sys_id, module_name, index, name) do |_, event|
+        bindings[key] = self.class.subscriptions.subscribe(system_id, module_name, index, name) do |_, event|
           notify_update(
             request_id: request_id,
-            system_id: sys_id,
+            system_id: system_id,
             module_name: module_name,
             status: name,
             index: index,
@@ -550,8 +498,8 @@ module PlaceOS
 
     # Create a binding to a module on the Session
     #
-    def delete_binding(sys_id, module_name, index, name)
-      key = Session.binding_key(sys_id, module_name, index, name)
+    def delete_binding(system_id, module_name, index, name)
+      key = Session.binding_key(system_id, module_name, index, name)
       bindings.delete key
     end
 
@@ -607,13 +555,13 @@ module PlaceOS
     ###########################################################################
 
     # Index into module websocket sessions
-    def self.binding_key(sys_id, module_name, index, name)
-      "#{sys_id}_#{module_name}_#{index}_#{name}"
+    def self.binding_key(system_id, module_name, index, name)
+      {system_id, module_name, index, name}.join('_')
     end
 
     # Index into module_id cache
-    def self.cache_key(sys_id, module_name, index)
-      "#{sys_id}_#{module_name}_#{index}"
+    def self.cache_key(system_id, module_name, index)
+      {system_id, module_name, index}.join('_')
     end
 
     # Headers for requesting engine core,
@@ -678,11 +626,13 @@ module PlaceOS
     protected def __send__(request : Request)
       arguments = {
         request_id:  request.id,
-        sys_id:      request.sys_id,
+        system_id:   request.system_id,
         module_name: request.module_name,
         index:       request.index,
         name:        request.name,
       }
+      Log.context.set(**arguments.merge({ws_request_id: @request_id}))
+
       case request.command
       in .bind?   then bind(**arguments)
       in .unbind? then unbind(**arguments)

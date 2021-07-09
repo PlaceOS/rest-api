@@ -377,7 +377,9 @@ module PlaceOS::Api
     ###########################################################################
 
     ws("/control", :control) do |ws|
-      Log.debug { "WebSocket API request" }
+      Log.trace { "WebSocket API request" }
+      fixed_device = params["fixed_device"]?.try(&.downcase) == "true"
+      Log.context.set(fixed_device: fixed_device)
       Systems.session_manager.create_session(
         ws: ws,
         request_id: request_id,
