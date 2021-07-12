@@ -83,7 +83,7 @@ module PlaceOS::Api
       )
     end
 
-    SERVICES = %w(core dispatch frontends rest_api rubber_soul triggers)
+    SERVICES = %w(core dispatch frontends rest_api rubber_soul triggers source)
 
     def self.construct_versions : Array(PlaceOS::Model::Version)
       version_channel = Channel(PlaceOS::Model::Version?).new
@@ -128,6 +128,12 @@ module PlaceOS::Api
     protected def self.dispatch_version : PlaceOS::Model::Version
       uri = URI.new(host: PLACE_DISPATCH_HOST, port: PLACE_DISPATCH_PORT, scheme: "http")
       response = HTTP::Client.get "#{uri}/api/server/version"
+      PlaceOS::Model::Version.from_json(response.body)
+    end
+
+    protected def self.source_version : PlaceOS::Model::Version
+      uri = URI.new(host: PLACE_SOURCE_HOST, port: PLACE_SOURCE_PORT, scheme: "http")
+      response = HTTP::Client.get "#{uri}/api/source/v1/version"
       PlaceOS::Model::Version.from_json(response.body)
     end
 
