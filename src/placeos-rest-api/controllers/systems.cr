@@ -8,6 +8,16 @@ require "./modules"
 require "./settings"
 require "../session"
 
+# TODO: Remove after this PR is merged https://github.com/crystal-lang/crystal/pull/10922
+module Enumerable(T)
+  def tally_by(& : T -> U) : Hash(U, Int32) forall U
+    each_with_object(Hash(U, Int32).new) do |item, hash|
+      count = hash[value = yield item]?
+      hash[value] = count ? count + 1 : 1
+    end
+  end
+end
+
 module PlaceOS::Api
   class Systems < Application
     include Utils::CoreHelper
@@ -294,11 +304,9 @@ module PlaceOS::Api
     # Look-up a module types in a system, returning a count of each type
     #
     get("/:sys_id/types", :types) do
-      modules = Model::Module.in_control_system(current_control_system.id.as(String))
-      types = modules.each_with_object(Hash(String, Int32).new(0)) do |mod, count|
-        count[mod.resolved_name] += 1
-      end
-
+      types = Model::Module
+        .in_control_system(current_control_system.id.as(String))
+        .tally_by(&.resolved_name)
       render json: types
     end
 
