@@ -5,8 +5,7 @@ set -eu
 # this function is called when Ctrl-C is sent
 function trap_ctrlc ()
 {
-    echo "### cleaning up"
-    docker-compose down
+    docker-compose down &> /dev/null
     exit 2
 }
 
@@ -14,14 +13,14 @@ function trap_ctrlc ()
 # when signal 2 (SIGINT) is received
 trap "trap_ctrlc" 2
 
-docker-compose pull
+docker-compose pull &> /dev/null
 
-docker-compose build
+docker-compose build &> /dev/null
 
 exit_code="0"
 
 docker-compose run --rm test /app/entrypoint.sh "$@" || exit_code="$?"
 
-docker-compose down
+docker-compose down &> /dev/null
 
 exit ${exit_code}
