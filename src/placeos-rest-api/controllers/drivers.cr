@@ -93,10 +93,10 @@ module PlaceOS::Api
       found_driver = begin
         spawn do
           update_event = changefeed.find do |event|
-            driver_update = event[:value]
+            driver_update = event.value
             driver_update.destroyed? || !driver_update.commit.starts_with? "RECOMPILE"
           end
-          channel.send(update_event.try &.[:value])
+          channel.send(update_event.try &.value)
         end
 
         select

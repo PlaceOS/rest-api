@@ -84,10 +84,10 @@ module PlaceOS::Api
       found_repo = begin
         spawn do
           update_event = changefeed.find do |event|
-            repo = event[:value]
+            repo = event.value
             repo.destroyed? || !repo.should_pull?
           end
-          channel.send(update_event.try &.[:value])
+          channel.send(update_event.try &.value)
         end
 
         select
