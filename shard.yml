@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.29.2
+version: 1.29.3
 crystal: ~> 1
 
 targets:
@@ -19,7 +19,7 @@ dependencies:
 
   # Email validations
   CrystalEmail:
-    github: Nephos/CrystalEmail
+    github: place-labs/CrystalEmail
     version: ~> 0.2
 
   # Service discovery
@@ -45,7 +45,7 @@ dependencies:
   # For core client
   placeos-core:
     github: placeos/core
-    version: ~> 3.9
+    version: ">= 3.10.3"
 
   # For driver state helpers
   placeos-driver:
@@ -84,7 +84,7 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: ~> 4
+    version: ~> 5
 
   # Client for RubberSoul RethinkDB Elasticsearch indexer
   rubber-soul:
