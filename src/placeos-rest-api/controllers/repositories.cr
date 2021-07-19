@@ -73,8 +73,8 @@ module PlaceOS::Api
       # Keep the repository at `HEAD` if it was previously held at `HEAD`
       reset_to_head = repository.repo_type.interface? && repository.commit_hash == "HEAD"
 
-      # Do not pull if the repository is already pulled
-      repository.pull! unless repository.should_pull?
+      # Trigger a pull event
+      repository.pull!
 
       # Initiate changefeed on the document's commit_hash
       changefeed = Model::Repository.changes(repository.id.as(String))
@@ -93,7 +93,7 @@ module PlaceOS::Api
         select
         when received = channel.receive?
           received
-        when timeout(20.seconds)
+        when timeout(3.minutes)
           Log.info { "timeout" }
           raise "timeout for repository update"
         end
