@@ -131,7 +131,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 3.10.5
+    version: 3.10.6
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
