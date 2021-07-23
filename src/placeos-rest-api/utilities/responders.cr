@@ -31,7 +31,7 @@ module PlaceOS::Api
         result = yield result
       end
 
-      render json: result, status: status
+      render(json: result, status: status) unless @render_called
     end
 
     # :ditto:
