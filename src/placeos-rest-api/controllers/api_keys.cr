@@ -1,7 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
-  class Edges < Application
+  class ApiKeys < Application
     base "/api/engine/v2/api_keys/"
 
     before_action :check_admin
