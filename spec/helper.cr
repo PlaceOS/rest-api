@@ -46,7 +46,6 @@ def clear_tables
                     PlaceOS::Model::Trigger,
                     PlaceOS::Model::TriggerInstance,
                     PlaceOS::Model::Zone,
-                    PlaceOS::Model::ApiKey,
                   } %}
         Promise.defer { {{t.id}}.clear },
       {% end %}
