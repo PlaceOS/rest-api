@@ -54,7 +54,7 @@ def clear_tables
 end
 
 # Yield an authenticated user, and a header with X-API-Key set
-def xapi_authentication(scope = ["public"] of String)
+def x_api_authentication(scope = ["public"] of String)
   api_key = PlaceOS::Model::Generator.api_key(support: true, admin: true)
   api_key.save!
 

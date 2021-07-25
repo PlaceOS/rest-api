@@ -3,7 +3,7 @@ require "./helper"
 module PlaceOS::Api
   describe ApiKeys do
     # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = xapi_authentication
+    authenticated_user, authorization_header = x_api_authentication
     base = ApiKeys::NAMESPACE[0]
 
     with_server do
