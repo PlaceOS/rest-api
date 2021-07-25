@@ -35,7 +35,7 @@ dependencies:
   # Elasticsearch extension for RethinkORM
   neuroplastic:
     github: place-labs/neuroplastic
-    version: ~> 1.7
+    version: ~> 1.8
 
   # Performs ping requests
   pinger:
@@ -110,10 +110,6 @@ development_dependencies:
   # Mock data generation
   faker:
     github: askn/faker
-
-  # Retry
-  simple_retry:
-    github: spider-gazelle/simple_retry
 
   # Time mocking
   timecop:
