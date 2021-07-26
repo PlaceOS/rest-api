@@ -49,7 +49,7 @@ module PlaceOS::Api
       head :ok
     end
 
-    get "/inspect", :inspect_key
+    get "/inspect", :inspect_key do
       render json: authorize!
     end
 
