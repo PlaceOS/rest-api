@@ -4,7 +4,7 @@ module PlaceOS::Api
   class ApiKeys < Application
     base "/api/engine/v2/api_keys/"
 
-    before_action :check_admin
+    before_action :check_admin, except: :inspect_key
     before_action :body, only: [:create, :update, :update_alt]
 
     getter current_api_key : Model::ApiKey { find_api_key }
@@ -47,6 +47,10 @@ module PlaceOS::Api
     def destroy
       current_api_key.destroy
       head :ok
+    end
+
+    get "/inspect", :inspect_key
+      render json: authorize!
     end
 
     # Helpers
