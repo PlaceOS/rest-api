@@ -3,6 +3,7 @@ require "uri"
 require "placeos-models/authority"
 require "placeos-models/user"
 require "placeos-models/user_jwt"
+require "placeos-models/api_key"
 
 module PlaceOS::Api
   # Helper to grab user and authority from a request
@@ -12,6 +13,17 @@ module PlaceOS::Api
     def authorize! : Model::UserJWT
       unless (token = @user_token).nil?
         return token
+      end
+
+      # check for X-API-Key use
+      if (token = request.headers["X-API-Key"]?)
+        begin
+          @user_token = user_token = Model::ApiKey.find_key!(token).build_jwt
+          return user_token
+        rescue e
+          Log.warn(exception: e) { {message: "bad or unknown X-API-Key", action: "authorize!"} }
+          raise Error::Unauthorized.new "unknown X-API-Key"
+        end
       end
 
       token = acquire_token

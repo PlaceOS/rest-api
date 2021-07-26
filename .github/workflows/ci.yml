@@ -21,6 +21,7 @@ jobs:
         crystal:
           - nightly
           - 1.0.0
+          - 1.1.0
     steps:
       - uses: actions/checkout@v2
       - name: Run docker-compose test environment

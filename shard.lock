@@ -107,7 +107,7 @@ shards:
 
   lucky_router:
     git: https://github.com/luckyframework/lucky_router.git
-    version: 0.4.2
+    version: 0.5.0
 
   murmur3:
     git: https://github.com/aca-labs/murmur3.git
@@ -135,7 +135,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 5.4.9
+    version: 5.4.12
 
   placeos-frontends:
     git: https://github.com/placeos/frontends.git
@@ -145,9 +145,9 @@ shards:
     git: https://github.com/place-labs/log-backend.git
     version: 0.4.0
 
-  placeos-models: # Overridden
+  placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.7.5
+    version: 5.8.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -189,13 +189,13 @@ shards:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
     version: 5.0.0
 
-  retriable: # Overridden
+  retriable:
     git: https://github.com/sija/retriable.cr.git
     version: 0.2.4
 
   rubber-soul:
     git: https://github.com/placeos/rubber-soul.git
-    version: 1.19.6
+    version: 1.19.7
 
   rwlock:
     git: https://github.com/spider-gazelle/readers-writer.git
