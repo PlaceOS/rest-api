@@ -1,5 +1,5 @@
-ARG crystal_version=1.0.0
-FROM crystallang/crystal:${crystal_version}-alpine
+ARG CRYSTAL_VERSION=1.1.1
+FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine
 
 WORKDIR /app
 
@@ -20,9 +20,9 @@ COPY shard.lock /app
 
 RUN shards install --ignore-crystal-version
 
-COPY entrypoint.sh /app/entrypoint.sh
+COPY scripts /app/scripts
 
 # These provide certificate chain validation where communicating with external services over TLS
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
-CMD /app/entrypoint.sh
+CMD /app/scripts/entrypoint.sh
