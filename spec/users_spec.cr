@@ -44,6 +44,46 @@ module PlaceOS::Api
           model.destroy
         end
 
+        it "show via login_name" do
+          login = UUID.random.to_s
+          model = Model::Generator.user
+          model.login_name = login
+          model.save!
+          model.persisted?.should be_true
+          id = model.id.as(String)
+          result = curl(
+            method: "GET",
+            path: base + login,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          response_model = Model::User.from_trusted_json(result.body)
+          response_model.id.should eq id
+
+          model.destroy
+        end
+
+        it "show via staff_id" do
+          staff_id = "12345678"
+          model = Model::Generator.user
+          model.staff_id = staff_id
+          model.save!
+          model.persisted?.should be_true
+          id = model.id.as(String)
+          result = curl(
+            method: "GET",
+            path: base + staff_id,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          response_model = Model::User.from_trusted_json(result.body)
+          response_model.id.should eq id
+
+          model.destroy
+        end
+
         describe "update" do
           it "updates groups" do
             initial_groups = ["public"]
