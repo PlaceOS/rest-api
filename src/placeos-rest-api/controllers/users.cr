@@ -184,13 +184,31 @@ module PlaceOS::Api
 
     protected def find_user
       lookup = params["id"]
-      user = if lookup.is_email?
-               found = Model::User.find_by_emails(authority_id: current_user.authority_id.as(String), emails: [lookup]).first?
-               raise RethinkORM::Error::DocumentNotFound.new if found.nil?
-               found
-             else
-               Model::User.find!(lookup, runopts: {"read_mode" => "majority"})
-             end
+
+      # Index ordering to use for resolving the user.
+      ordering = if lookup.is_email?
+                   {:email, :login_name}
+                 elsif lookup.starts_with? Model::User.table_name
+                   {:id, :login_name, :staff_id}
+                 else
+                   {:login_name, :staff_id}
+                 end
+
+      query = ordering.each.compact_map do |id_type|
+        case id_type
+        when :id
+          Model::User.find(lookup)
+        when :email
+          authority = current_user.authority_id.as(String)
+          Model::User.find_by_email(authority_id: authority, email: lookup)
+        when :login_name
+          Model::User.find_by_login_name(lookup)
+        when :staff_id
+          Model::User.find_by_staff_id(lookup)
+        end
+      end
+
+      user = query.first { raise RethinkORM::Error::DocumentNotFound.new }
 
       Log.context.set(user_id: user.id)
       user
