@@ -10,14 +10,14 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    before_action :current_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
+    before_action :current_repository, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
 
-    getter current_repo : Model::Repository { find_repo }
+    getter current_repository : Model::Repository { find_repo }
 
     private def drivers_only
-      unless current_repo.repo_type.driver?
+      unless current_repository.repo_type.driver?
         render_error(:bad_request, "not a driver repository")
       end
     end
@@ -30,18 +30,18 @@ module PlaceOS::Api
     end
 
     def show
-      render json: current_repo
+      render json: current_repository
     end
 
     def update
-      current_repo.assign_attributes_from_json(self.body)
+      current_repository.assign_attributes_from_json(self.body)
 
       # Must destroy and re-add to change driver repository URIs
-      if current_repo.uri_changed? && current_repo.repo_type.driver?
+      if current_repository.uri_changed? && current_repository.repo_type.driver?
         return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "`uri` of Driver repositories cannot change")
       end
 
-      save_and_respond current_repo
+      save_and_respond current_repository
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
@@ -52,12 +52,12 @@ module PlaceOS::Api
     end
 
     def destroy
-      current_repo.destroy
+      current_repository.destroy
       head :ok
     end
 
     post "/:id/pull", :pull do
-      result = Repositories.pull_repository(current_repo)
+      result = Repositories.pull_repository(current_repository)
       if result
         destroyed, commit_hash = result
         if destroyed
@@ -97,7 +97,7 @@ module PlaceOS::Api
     end
 
     get "/:id/drivers", :drivers do
-      repository_folder = current_repo.folder_name
+      repository_folder = current_repository.folder_name
 
       # Request to core:
       # "/api/core/v1/drivers/?repository=#{repository}"
@@ -114,7 +114,7 @@ module PlaceOS::Api
       file_name = params["driver"]?
 
       commits = Api::Repositories.commits(
-        repository: current_repo,
+        repository: current_repository,
         request_id: request_id,
         limit: limit,
         file_name: file_name,
@@ -149,21 +149,23 @@ module PlaceOS::Api
       driver = params["driver"]
       commit = params["commit"]
 
-      # Request to core:
-      # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
-      # Returns: https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
-      details = Api::Systems.core_for(driver, request_id) do |core_client|
-        core_client.driver_details(driver, commit, current_repo.folder_name)
+      info = Build::Client.client do |client|
+        client.metadata(
+          file: driver,
+          url: current_repository.uri,
+          commit: commit,
+          username: current_repository.username,
+          password: current_repository.password,
+          request_id: request_id,
+        )
       end
 
-      # The raw JSON string is returned
-      response.headers["Content-Type"] = "application/json"
-      render text: details
+      render json: info
     end
 
     get "/:id/branches", :branches do
       branches = Api::Repositories.branches(
-        repository: current_repo,
+        repository: current_repository,
         request_id: request_id,
       )
 
