@@ -49,14 +49,14 @@ module PlaceOS::Api
             headers = HTTP::Headers.new
             headers["Content-Type"] = "application/json"
             body = {
-              service: $~["service"],
-              commit: "DEV",
-              version: "v1.0.0",
-              build_time: "Tue Jun 01 01:00:00 UTC 2021",
+              service:          $~["service"],
+              commit:           "DEV",
+              version:          "v1.0.0",
+              build_time:       "Tue Jun 01 01:00:00 UTC 2021",
               platform_version: "DEV",
             }.to_json
             HTTP::Client::Response.new(200, body, headers)
-        end
+          end
 
         # Dispatch currently exposes a non-standard version endpoint
         # https://github.com/PlaceOS/dispatch/issues/6
