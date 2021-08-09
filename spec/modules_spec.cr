@@ -145,7 +145,7 @@ module PlaceOS::Api
           found.should be_true
         end
 
-        it "connected query" do
+        pending "connected query" do
           mod = Model::Generator.module
           mod.ignore_connected = false
           mod.connected = true
