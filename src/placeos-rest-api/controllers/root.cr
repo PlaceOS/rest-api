@@ -91,8 +91,10 @@ module PlaceOS::Api
         spawn do
           %version = begin
                       {{service.id}}_version
-                    rescue
-                      Log.warn { {service: {{ service }}, message: "failed to request version" }}
+                    rescue e
+                      Log.warn(exception: e) do
+                        {service: {{ service }}, message: "failed to request version" }
+                      end
                       nil
                     end
           version_channel.send(%version)
