@@ -1,3 +1,4 @@
+require "placeos-build/client"
 require "placeos-frontends/client"
 
 require "./application"
@@ -109,30 +110,37 @@ module PlaceOS::Api
     end
 
     get "/:id/commits", :commits do
-      number_of_commits = params["limit"]?.try &.to_i
+      limit = params["limit"]?.try &.to_i
       file_name = params["driver"]?
 
       commits = Api::Repositories.commits(
         repository: current_repo,
         request_id: request_id,
-        number_of_commits: number_of_commits,
+        limit: limit,
         file_name: file_name,
       )
 
       render json: commits
     end
 
-    def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
-      number_of_commits = 50 if number_of_commits.nil?
-      if repository.repo_type == Model::Repository::Type::Driver
-        # Dial the core responsible for the driver
-        Api::Systems.core_for(repository.folder_name, request_id) do |core_client|
-          core_client.driver(file_name || ".", repository.folder_name, number_of_commits)
+    def self.commits(repository : Model::Repository, request_id : String, file_name : String? = nil, branch : String? = nil, limit : Int32? = nil)
+      limit = 50 if limit.nil?
+      branch = "master" if branch.nil?
+
+      case repository.repo_type
+      in .driver?
+        Build::Client.client do |client|
+          args = {url: repository.uri, request_id: request_id, count: limit, branch: branch, username: repository.username, password: repository.password}
+          if file_name
+            client.file_commits(**args.merge({file: file_name}))
+          else
+            client.repository_commits(**args)
+          end
         end
-      else
+      in .interface?
         # Dial the frontends service
         Frontends::Client.client(request_id: request_id) do |frontends_client|
-          frontends_client.commits(repository.folder_name, number_of_commits)
+          frontends_client.commits(repository.folder_name, limit)
         end
       end
     end
@@ -170,9 +178,7 @@ module PlaceOS::Api
           frontends_client.branches(repository.folder_name)
         end
       in .driver?
-        Api::Systems.core_for(repository.id.as(String), request_id) do |core_client|
-          core_client.branches?(repository.folder_name)
-        end
+        Build::Client.client &.branches(url: repository.uri, request_id: request_id, username: repository.username, password: repository.password)
       end.tap do |result|
         if result.nil?
           Log.info { {

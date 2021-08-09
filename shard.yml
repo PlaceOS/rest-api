@@ -42,6 +42,10 @@ dependencies:
     github: spider-gazelle/pinger
     version: ~> 1
 
+  # For build client
+  placeos-build:
+    github: placeos/build
+
   # For core client
   placeos-core:
     github: placeos/core

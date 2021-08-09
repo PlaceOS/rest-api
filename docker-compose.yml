@@ -7,6 +7,10 @@ x-deployment-env: &deployment-env
   SG_ENV: ${SG_ENV:-development}
   TZ: $TZ
 
+x-build-client-env: &build-client-env
+  PLACEOS_BUILD_HOST: ${PLACEOS_BUILD_HOST:-build}
+  PLACEOS_BUILD_PORT: ${PLACEOS_BUILD_PORT:-3000}
+
 x-elastic-client-env: &elastic-client-env
   ES_HOST: ${ELASTIC_HOST:-elastic}
   ES_PORT: ${ELASTIC_PORT:-9200}
@@ -47,10 +51,19 @@ services:
       GITHUB_ACTION: ${GITHUB_ACTION:-}
       <<: *deployment-env
       # Service Hosts
+      <<: *build-client-env
       <<: *elastic-client-env
       <<: *etcd-client-env
       <<: *redis-client-env
       <<: *rethinkdb-client-env
+
+  # TODO: Mock and remove after interface has stabilised
+  build:
+    image: placeos/build:${PLACE_BUILD_TAG:-nightly}
+    restart: always
+    hostname: build
+    environment:
+      <<: *deployment-env
 
   elastic:
     image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.6}

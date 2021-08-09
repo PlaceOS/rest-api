@@ -9,17 +9,25 @@ module PlaceOS::Api
 
   CORE_NAMESPACE = "core"
 
+  PROD = ENV["SG_ENV"]?.try(&.downcase) == "production"
+
+  # Service Configuration
+
   ETCD_HOST = ENV["ETCD_HOST"]? || "localhost"
   ETCD_PORT = (ENV["ETCD_PORT"]? || "2379").to_i
 
-  PLACE_DISPATCH_HOST = ENV["PLACE_DISPATCH_HOST"]? || "dispatch"
-  PLACE_DISPATCH_PORT = (ENV["PLACE_DISPATCH_PORT"]? || "3000").to_i
+  # PlaceOS Service Configuration
 
-  PLACE_SOURCE_HOST = ENV["PLACE_SOURCE_HOST"]? || "127.0.0.1"
-  PLACE_SOURCE_PORT = (ENV["PLACE_SOURCE_PORT"]? || 3000).to_i
+  PLACE_DISPATCH_HOST = (ENV["PLACEOS_DISPATCH_HOST"]? || ENV["PLACE_DISPATCH_HOST"]?).presence || "dispatch"
+  PLACE_DISPATCH_PORT = (ENV["PLACEOS_DISPATCH_PORT"]? || ENV["PLACE_DISPATCH_PORT"]?).presence.try &.to_i || 3000
 
-  # server defaults in `./app.cr`
-  TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
+  PLACE_SOURCE_HOST = (ENV["PLACEOS_SOURCE_HOST"]? || ENV["PLACE_SOURCE_HOST"]?).presence || "source"
+  PLACE_SOURCE_PORT = (ENV["PLACEOS_SOURCE_PORT"]? || ENV["PLACE_SOURCE_PORT"]?).presence.try &.to_i || 3000
 
-  PROD = ENV["SG_ENV"]?.try(&.downcase) == "production"
+  PLACE_BUILD_HOST = ENV["PLACEOS_BUILD_HOST"]?.presence || "build"
+  PLACE_BUILD_PORT = ENV["PLACEOS_BUILD_PORT"]?.presence.try &.to_i? || 3000
+
+  PLACE_BUILD_URI = URI.parse("http://#{BUILD_HOST}:#{BUILD_PORT}")
+
+  PLACE_TRIGGERS_URI = URI.parse(ENV["PLACEOS_TRIGGERS_URI"]?.presence || ENV["TRIGGERS_URI"]?.presence || "http://triggers:3000")
 end
