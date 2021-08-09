@@ -41,19 +41,29 @@ module PlaceOS::Api
       it "constructs service versions" do
         WebMock.allow_net_connect = false
 
-        # mock endpoints for service versions
+        version_endpoint = /\/api\/(?<service>[^\/]+)\/(?<version>[^\/]+)\/version/
         WebMock
-          .stub(:get, "triggers:3000/api/triggers/v2/version").to_return(body: %({"service":"triggers", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
+          .stub(:get, version_endpoint)
+          .to_return do |request|
+            request.path =~ version_endpoint
+            headers = HTTP::Headers.new
+            headers["Content-Type"] = "application/json"
+            body = {
+              service: $~["service"],
+              commit: "DEV",
+              version: "v1.0.0",
+              build_time: "Tue Jun 01 01:00:00 UTC 2021",
+              platform_version: "DEV",
+            }.to_json
+            HTTP::Client::Response.new(200, body, headers)
+        end
+
+        # Dispatch currently exposes a non-standard version endpoint
+        # https://github.com/PlaceOS/dispatch/issues/6
         WebMock
-          .stub(:get, "127.0.0.1:3000/api/frontends/v1/version").to_return(body: %({"service":"frontends", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
-        WebMock
-          .stub(:get, "127.0.0.1:9001/api/core/v1/version").to_return(body: %({"service":"core", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
-        WebMock
-          .stub(:get, "rubber-soul:3000/api/rubber-soul/v1/version").to_return(body: %({"service":"rubber_soul", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
-        WebMock
-          .stub(:get, "dispatch:3000/api/server/version").to_return(body: %({"service":"dispatch", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
-        WebMock
-          .stub(:get, "127.0.0.1:3000/api/source/v1/version").to_return(body: %({"service":"source", "commit":"DEV", "version":"1", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
+          .stub(:get, "dispatch:3000/api/server/version")
+          .to_return(body: %({"service":"dispatch", "commit":"DEV", "version":"v1.0.0", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
+
         versions = Root.construct_versions
         versions.size.should eq(Root::SERVICES.size)
         versions.map(&.service.gsub('-', '_')).sort!.should eq Root::SERVICES.sort
