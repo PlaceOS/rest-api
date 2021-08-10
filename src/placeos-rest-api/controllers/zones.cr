@@ -7,6 +7,10 @@ module PlaceOS::Api
     include Utils::CoreHelper
     base "/api/engine/v2/zones/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, except: [:index]
     before_action :current_zone, only: [:show, :update, :update_alt, :destroy]
@@ -158,6 +162,10 @@ module PlaceOS::Api
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def check_scopes
+      check_scope_access("zones")
     end
   end
 end

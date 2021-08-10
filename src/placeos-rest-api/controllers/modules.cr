@@ -11,6 +11,10 @@ module PlaceOS::Api
 
     base "/api/engine/v2/modules/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]
 
@@ -299,6 +303,10 @@ module PlaceOS::Api
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Module.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def check_scopes
+      check_scope_access("modules")
     end
   end
 end

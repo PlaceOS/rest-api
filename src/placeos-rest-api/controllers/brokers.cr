@@ -5,6 +5,11 @@ require "./application"
 module PlaceOS::Api
   class Brokers < Application
     base "/api/engine/v2/brokers/"
+
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
@@ -43,6 +48,10 @@ module PlaceOS::Api
 
     # Helpers
     ############################################################################
+
+    protected def check_scopes
+      check_scope_access("brokers")
+    end
 
     protected def find_broker
       id = params["id"]

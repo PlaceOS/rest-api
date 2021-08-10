@@ -9,6 +9,10 @@ module PlaceOS::Api
 
     base "/api/engine/v2/users/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :user, only: [:destroy, :update, :show]
 
     before_action :check_admin, only: [:index, :destroy, :create]
@@ -212,6 +216,10 @@ module PlaceOS::Api
 
       Log.context.set(user_id: user.id)
       user
+    end
+
+    protected def check_scopes
+      check_scope_access("users")
     end
 
     protected def check_authorization

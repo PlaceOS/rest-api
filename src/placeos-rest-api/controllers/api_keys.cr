@@ -4,6 +4,10 @@ module PlaceOS::Api
   class ApiKeys < Application
     base "/api/engine/v2/api_keys/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :update_alt]
+
     before_action :check_admin, except: :inspect_key
     before_action :body, only: [:create, :update, :update_alt]
 
@@ -61,6 +65,10 @@ module PlaceOS::Api
       Log.context.set(api_key: id)
       # Find will raise a 404 (not found) if there is an error
       Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def check_scopes
+      check_scope_access("api_keys")
     end
   end
 end

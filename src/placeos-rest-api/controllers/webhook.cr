@@ -4,6 +4,10 @@ module PlaceOS::Api
   class Webhook < Application
     base "/api/engine/v2/webhook/"
 
+    before_action :check_scopes
+
+    before_action :can_read, only: [:show]
+
     skip_action :authorize!, except: [:show]
     skip_action :set_user_id, except: [:show]
     skip_action :check_oauth_scope, except: [:show]
@@ -143,6 +147,10 @@ module PlaceOS::Api
       return @trigger_instance.as(Model::TriggerInstance) if @trigger_instance
       find_hook
       current_trigger_instance
+    end
+
+    protected def check_scopes
+      check_scope_access("webhook")
     end
   end
 end

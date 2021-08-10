@@ -4,6 +4,10 @@ module PlaceOS::Api
   class Settings < Application
     base "/api/engine/v2/settings/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
@@ -102,6 +106,10 @@ module PlaceOS::Api
       collated = model.settings_hierarchy.reverse!
       collated.each &.decrypt_for!(user)
       collated
+    end
+
+    protected def check_scopes
+      check_scope_access("setting")
     end
 
     protected def find_settings

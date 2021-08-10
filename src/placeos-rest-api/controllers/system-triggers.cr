@@ -7,6 +7,10 @@ module PlaceOS::Api
     base "/api/engine/v2/systems/:sys_id/triggers/"
     id_param :trig_id
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, only: [:create, :update, :update_alt, :destroy]
     before_action :check_support, only: [:index, :show]
 
@@ -141,6 +145,10 @@ module PlaceOS::Api
       Log.context.set(trigger_instance_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def check_scopes
+      check_scope_access("system-trigger")
     end
   end
 end

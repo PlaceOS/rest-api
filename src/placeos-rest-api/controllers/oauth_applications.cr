@@ -4,6 +4,10 @@ module PlaceOS::Api
   class OAuthApplications < Application
     base "/api/engine/v2/oauth_apps/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin
     before_action :current_app, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
@@ -54,6 +58,10 @@ module PlaceOS::Api
       Log.context.set(application_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def check_scopes
+      check_scope_access("oauth_applications")
     end
   end
 end

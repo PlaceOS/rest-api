@@ -7,6 +7,10 @@ module PlaceOS::Api
     # NOTE:: this API shares the base zones route
     base "/api/engine/v2/metadata"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_delete_permissions, only: :destroy
 
     before_action :current_zone, only: :children
@@ -141,6 +145,10 @@ module PlaceOS::Api
     # Does the user making the request have permissions to modify the data
     def check_delete_permissions
       raise Error::Forbidden.new unless is_support? || params["id"] == user_token.id
+    end
+
+    protected def check_scopes
+      check_scope_access("metdata")
     end
   end
 end

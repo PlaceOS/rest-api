@@ -4,6 +4,9 @@ module PlaceOS::Api
   class Schema < Application
     base "/api/engine/v2/schema/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
@@ -42,6 +45,10 @@ module PlaceOS::Api
       Log.context.set(schema_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::JsonSchema.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def check_scopes
+      check_scope_access("schema")
     end
   end
 end

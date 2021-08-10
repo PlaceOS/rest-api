@@ -9,6 +9,10 @@ module PlaceOS::Api
   class Edges < Application
     base "/api/engine/v2/edges/"
 
+    before_action :check_scopes
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :show, :edge]
     before_action :check_support, only: [:index, :show]
 
@@ -79,6 +83,10 @@ module PlaceOS::Api
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def check_scopes
+      check_scope_access("edges")
     end
 
     # Edge Connection Management
