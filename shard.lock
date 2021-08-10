@@ -151,7 +151,7 @@ shards:
 
   placeos-build:
     git: https://github.com/placeos/build.git
-    version: 0.3.0
+    version: 0.3.0+git.commit.0388aaece63a784c2692ed650ca471754421b99d
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
