@@ -28,6 +28,12 @@ module PlaceOS::Api
 
     id_param :sys_id
 
+    before_action :check_scopes
+
+    before_action :can_read, only: [:index, :show]
+
+    before_action :can_write, only: [:update, :destroy, :remove]
+
     before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
                                          :types, :functions, :state, :state_lookup]
 
@@ -397,6 +403,10 @@ module PlaceOS::Api
 
     # Helpers
     ###########################################################################
+
+    protected def check_scopes
+      check_scope_access("systems")
+    end
 
     # Use consistent hashing to determine the location of the module
     def self.locate_module(module_id : String) : URI

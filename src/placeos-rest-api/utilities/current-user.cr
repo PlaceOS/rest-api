@@ -7,9 +7,20 @@ require "placeos-models/api_key"
 
 module PlaceOS::Api
   # Helper to grab user and authority from a request
+
+  enum Scope
+    NoAcess
+    ReadAccess
+    WriteAccess
+    FullAccess
+  end
+
   module Utils::CurrentUser
+    @user_scope = Scope::NoAcess
+
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
+
     def authorize! : Model::UserJWT
       unless (token = @user_token).nil?
         return token
@@ -66,6 +77,41 @@ module PlaceOS::Api
       end
     end
 
+    def parse_scope
+      user_scopes = Hash(String, Scope).new
+      utoken = user_token
+      # default to NoAccess?
+      utoken.scope.each do |scope|
+        if scope == "public"
+          user_scopes["public"] = Scope::FullAccess
+          return
+        else
+          if !scope.includes?(".")
+            user_scopes[scope] = Scope::FullAccess
+          else
+            split = scope.split(".")
+            if split[1] == "read"
+              user_scopes[split[0]] = Scope::ReadAccess
+            else
+              if split[1] == "write"
+                user_scopes[split[0]] = Scope::WriteAccess
+              end
+            end
+          end
+        end
+      end
+      user_scopes
+    end
+
+    def check_scope_access(scope_name : String)
+      user_scopes = parse_scope.as(Hash)
+      if user_scopes.has_key?("public")
+        @user_scope = Scope::FullAccess
+      else
+        @user_scope = user_scopes[scope_name]
+      end
+    end
+
     # Obtains user referenced by user_token id
     getter current_user : Model::User { Model::User.find!(user_token.id) }
 
@@ -92,6 +138,16 @@ module PlaceOS::Api
     def is_support?
       token = user_token
       token.is_support? || token.is_admin?
+    end
+
+    def can_read
+      scope = @user_scope
+      raise Error::Forbidden.new unless scope == Scope::FullAccess || scope == Scope::ReadAccess
+    end
+
+    def can_write
+      scope = @user_scope
+      raise Error::Forbidden.new unless scope == Scope::FullAccess || scope == Scope::WriteAccess
     end
 
     # Pull JWT from...
