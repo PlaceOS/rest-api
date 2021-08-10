@@ -84,7 +84,7 @@ module PlaceOS::Api
       utoken.scope.each do |scope|
         if scope == "public"
           user_scopes["public"] = Scope::FullAccess
-          return
+          return user_scopes
         else
           if !scope.includes?(".")
             user_scopes[scope] = Scope::FullAccess
