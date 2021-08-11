@@ -51,9 +51,9 @@ end
 CREATION_LOCK = Mutex.new(protection: :reentrant)
 
 # Yield an authenticated user, and a header with X-API-Key set
-def x_api_authentication(scope = ["public"] of String)
+def x_api_authentication(sys_admin : Bool = true, support : Bool = true, scope = ["public"] of String)
   CREATION_LOCK.synchronize do
-    user, _header = authentication(scope)
+    user, _header = authentication(sys_admin, support, scope)
     unless api_key = user.api_tokens.first?
       api_key = PlaceOS::Model::ApiKey.new
       api_key.user = user
@@ -71,17 +71,17 @@ end
 
 # Yield an authenticated user, and a header with Authorization bearer set
 # This method is synchronised due to the redundant top-level calls.
-def authentication(scope = ["public"] of String)
+def authentication(sys_admin : Bool = true, support : Bool = true, scope = ["public"] of String)
   CREATION_LOCK.synchronize do
-    test_user_email = "test-suit-rest-api@place.tech"
+    test_user_email = "test-admin-#{sys_admin ? "1" : "0"}-supp-#{support ? "1" : "0"}-rest-api@place.tech"
     existing = PlaceOS::Model::User.find_all([test_user_email], index: :email).first?
 
     authenticated_user = if existing
                            existing
                          else
                            user = PlaceOS::Model::Generator.user
-                           user.sys_admin = true
-                           user.support = true
+                           user.sys_admin = sys_admin
+                           user.support = support
                            user.save!
                          end
     authorization_header = {

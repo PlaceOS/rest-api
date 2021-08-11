@@ -100,36 +100,37 @@ module PlaceOS::Api
           result.status_code.should eq 400
         end
 
-        it "prevents access to non-guest channels for guests" do
-          _, guest_header = authentication(["guest"])
-          result = curl("POST", File.join(base, "signal?channel=dummy"), body: "hello", headers: guest_header)
-          result.status_code.should eq 403
-        end
+        context "guests" do
+          _, guest_header = authentication(sys_admin: false, support: false, scope: ["guest"])
 
-        it "allows access to guest channels for guests" do
-          _, guest_header = authentication(["guest"])
-
-          subscription_channel = "/guest/dummy"
-          channel = Channel(String).new
-          subs = PlaceOS::Driver::Subscriptions.new
-
-          _subscription = subs.channel subscription_channel do |_, message|
-            channel.send(message)
+          it "prevented access to non-guest channels " do
+            result = curl("POST", File.join(base, "signal?channel=dummy"), body: "hello", headers: guest_header)
+            result.status_code.should eq 403
           end
 
-          params = HTTP::Params{"channel" => subscription_channel}
-          result = curl("POST", File.join(base, "signal?#{params}"), body: "hello", headers: guest_header)
-          result.status_code.should eq 200
+          it "allowed access to guest channels" do
+            subscription_channel = "/guest/dummy"
+            channel = Channel(String).new
+            subs = PlaceOS::Driver::Subscriptions.new
 
-          begin
-            select
-            when message = channel.receive
-              message.should eq "hello"
-            when timeout 2.seconds
-              raise "timeout"
+            _subscription = subs.channel subscription_channel do |_, message|
+              channel.send(message)
             end
-          ensure
-            subs.terminate
+
+            params = HTTP::Params{"channel" => subscription_channel}
+            result = curl("POST", File.join(base, "signal?#{params}"), body: "hello", headers: guest_header)
+            result.status_code.should eq 200
+
+            begin
+              select
+              when message = channel.receive
+                message.should eq "hello"
+              when timeout 2.seconds
+                raise "timeout"
+              end
+            ensure
+              subs.terminate
+            end
           end
         end
       end
