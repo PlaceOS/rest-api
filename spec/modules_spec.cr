@@ -1,15 +1,6 @@
 require "./helper"
 require "timecop"
 
-module PlaceOS
-  class Api::Modules
-    # Mock a stateful request to Core made by Api::Modules
-    def self.driver_compiled?(mod : Model::Module, request_id : String)
-      true
-    end
-  end
-end
-
 module PlaceOS::Api
   describe Modules do
     # ameba:disable Lint/UselessAssign

@@ -38,7 +38,7 @@ module PlaceOS::Api
       include_compilation_status = !params.has_key?("compilation_status") || params["compilation_status"] != "false"
 
       result = !include_compilation_status ? current_driver : with_fields(current_driver, {
-        :compilation_status => Api::Drivers.compilation_status(current_driver, request_id),
+        :compilation_status => Api::Drivers.driver_compiled?(current_driver, request_id),
       })
 
       render json: result
@@ -91,15 +91,10 @@ module PlaceOS::Api
       end
     end
 
-    # Check if the core responsible for the driver has finished compilation
+    # Check if build has finished compilation of the driver
     #
     get("/:id/compiled", :compiled) do
-      if (repository = current_driver.repository).nil?
-        Log.error { {repository_id: current_driver.repository_id, message: "failed to load driver's repository"} }
-        head :internal_server_error
-      end
-
-      compiled = self.class.driver_compiled?(current_driver, repository, request_id)
+      compiled = self.class.driver_compiled?(current_driver, request_id)
 
       Log.info { "#{compiled ? "" : "not "}compiled" }
 
@@ -117,44 +112,20 @@ module PlaceOS::Api
       end
     end
 
-    def self.driver_compiled?(driver : Model::Driver, repository : Model::Repository, request_id : String, key : String? = nil) : Bool
-      Api::Systems.core_for(key.presence || driver.file_name, request_id) do |core_client|
-        core_client.driver_compiled?(
-          file_name: URI.encode(driver.file_name),
-          repository: repository.folder_name,
-          commit: driver.commit,
-          tag: driver.id.as(String),
-        )
-      end
+    def self.driver_compiled?(driver : Model::Driver, request_id : String) : Bool
+      repository = driver.repository.not_nil!
+
+      !!Build::Client.client &.compiled(
+        file: driver.file_name,
+        url: repository.uri,
+        commit: driver.commit,
+        username: repository.username,
+        password: repository.decrypt_password,
+        request_id: request_id,
+      )
     rescue e
-      Log.error(exception: e) { "failed to request driver compilation status from core" }
+      Log.error(exception: e) { "failed to request driver compilation status from build" }
       false
-    end
-
-    # Returns the compilation status of a driver across the cluster
-    def self.compilation_status(
-      driver : Model::Driver,
-      request_id : String? = "migrate to Log"
-    ) : Hash(String, Bool)
-      tag = driver.id.as(String)
-      repository_folder = driver.repository!.folder_name
-
-      nodes = core_discovery.node_hash
-      result = Promise.all(nodes.map { |name, uri|
-        Promise.defer {
-          status = begin
-            Core::Client.client(uri, request_id) { |client|
-              client.driver_compiled?(driver.file_name, driver.commit, repository_folder, tag)
-            }
-          rescue e
-            Log.error(exception: e) { "failed to request compilation status from core" }
-            false
-          end
-          {name, status}
-        }
-      }).get
-
-      result.to_h
     end
 
     #  Helpers

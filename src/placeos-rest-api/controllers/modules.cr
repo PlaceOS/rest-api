@@ -277,12 +277,7 @@ module PlaceOS::Api
         return false
       end
 
-      if (repository = driver.repository).nil?
-        Log.error { "failed to load Driver<#{driver.id}>'s Repository<#{driver.repository_id}>" }
-        return false
-      end
-
-      Api::Drivers.driver_compiled?(driver, repository, request_id, mod.id.as(String))
+      Api::Drivers.driver_compiled?(driver, request_id)
     end
 
     def self.module_state(mod : Model::Module | String, key : String? = nil)
