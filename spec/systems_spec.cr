@@ -467,6 +467,28 @@ module PlaceOS::Api
           end
         end
       end
+
+      describe "/:id/metadata" do
+        it "shows system metadata" do
+          system = Model::Generator.control_system.save!
+          system_id = system.id.as(String)
+          meta = Model::Generator.metadata(name: "special", parent: system_id).save!
+
+          result = curl(
+            method: "GET",
+            path: base + "#{system_id}/metadata",
+            headers: authorization_header,
+          )
+
+          metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
+          metadata.size.should eq 1
+          metadata.first[1].parent_id.should eq system_id
+          metadata.first[1].name.should eq meta.name
+
+          system.destroy
+          meta.destroy
+        end
+      end
     end
   end
 end
