@@ -207,7 +207,11 @@ module PlaceOS::Api
           Model::User.find(lookup)
         when :email
           authority = current_user.authority_id.as(String)
-          Model::User.find_by_email(authority_id: authority, email: lookup)
+          Model::User.collection_query { |table|
+            table.filter({"authority_id" => authority}).filter do |row|
+              row["email"].match("(?i)^#{lookup}$")
+            end
+          }.first?
         when :login_name
           Model::User.find_by_login_name(lookup)
         when :staff_id
@@ -224,6 +228,15 @@ module PlaceOS::Api
     protected def check_authorization
       # Does the current user have permission to perform the current action
       head :forbidden unless user.id == current_user.id || is_admin?
+    end
+  end
+end
+
+# monkey patch support for the required query
+module RethinkDB
+  class DatumTerm
+    def match(other)
+      DatumTerm.new(TermType::MATCH, [self, other])
     end
   end
 end
