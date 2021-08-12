@@ -7,7 +7,6 @@ module PlaceOS::Api
     base "/api/engine/v2/systems/:sys_id/triggers/"
     id_param :trig_id
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -147,8 +146,12 @@ module PlaceOS::Api
       Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    protected def check_scopes
-      check_scope_access("system-trigger")
+    protected def can_read
+      can_scope_read("system-trigger")
+    end
+
+    protected def can_write
+      can_scope_write("system-trigger")
     end
   end
 end

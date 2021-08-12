@@ -4,7 +4,6 @@ module PlaceOS::Api
   class OAuthApplications < Application
     base "/api/engine/v2/oauth_apps/"
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -60,8 +59,12 @@ module PlaceOS::Api
       Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    protected def check_scopes
-      check_scope_access("oauth_applications")
+    protected def can_read
+      can_scope_read("oauth_applications")
+    end
+
+    protected def can_write
+      can_scope_write("ouath_applications")
     end
   end
 end

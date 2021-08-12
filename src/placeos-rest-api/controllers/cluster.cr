@@ -8,7 +8,6 @@ module PlaceOS::Api
     base "/api/engine/v2/cluster/"
     before_action :check_admin
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:destroy]
 
@@ -16,8 +15,12 @@ module PlaceOS::Api
       attribute include_status : Bool = false
     end
 
-    protected def check_scopes
-      check_scope_access("cluster")
+    protected def can_read
+      can_scope_read("cluster")
+    end
+
+    protected def can_write
+      can_scope_write("cluster")
     end
 
     def index

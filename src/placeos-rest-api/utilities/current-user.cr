@@ -69,49 +69,6 @@ module PlaceOS::Api
       raise e
     end
 
-    def check_oauth_scope
-      utoken = user_token
-      unless utoken.scope.includes?("public")
-        Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.hostname, id: utoken.id} }
-        raise Error::Unauthorized.new "public scope required for access"
-      end
-    end
-
-    def parse_scope
-      user_scopes = Hash(String, Scope).new
-      utoken = user_token
-      # default to NoAccess?
-      utoken.scope.each do |scope|
-        if scope == "public"
-          user_scopes["public"] = Scope::FullAccess
-          return user_scopes
-        else
-          if !scope.includes?(".")
-            user_scopes[scope] = Scope::FullAccess
-          else
-            split = scope.split(".")
-            if split[1] == "read"
-              user_scopes[split[0]] = Scope::ReadAccess
-            else
-              if split[1] == "write"
-                user_scopes[split[0]] = Scope::WriteAccess
-              end
-            end
-          end
-        end
-      end
-      user_scopes
-    end
-
-    def check_scope_access(scope_name : String)
-      user_scopes = parse_scope.as(Hash)
-      if user_scopes.has_key?("public")
-        @user_scope = Scope::FullAccess
-      else
-        @user_scope = user_scopes[scope_name]
-      end
-    end
-
     # Obtains user referenced by user_token id
     getter current_user : Model::User { Model::User.find!(user_token.id) }
 
@@ -140,14 +97,20 @@ module PlaceOS::Api
       token.is_support? || token.is_admin?
     end
 
-    def can_read
-      scope = @user_scope
-      raise Error::Forbidden.new unless scope == Scope::FullAccess || scope == Scope::ReadAccess
+    def can_scope_read(scope_name : String)
+      utoken = user_token
+      unless utoken.scope_public?
+        scope = utoken.get_scope(scope_name)
+        raise Error::Forbidden.new unless scope == Model::UserJWT::Scope::Access::Full || scope == Model::UserJWT::Scope::Access::Read
+      end
     end
 
-    def can_write
-      scope = @user_scope
-      raise Error::Forbidden.new unless scope == Scope::FullAccess || scope == Scope::WriteAccess
+    def can_scope_write(scope_name : String)
+      utoken = user_token
+      unless utoken.scope_public?
+        scope = utoken.get_scope(scope_name)
+        raise Error::Forbidden.new unless scope == Model::UserJWT::Scope::Access::Full || scope == Model::UserJWT::Scope::Access::Write
+      end
     end
 
     # Pull JWT from...

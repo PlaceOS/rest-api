@@ -7,8 +7,7 @@ module PlaceOS::Api
     # NOTE:: this API shares the base zones route
     base "/api/engine/v2/metadata"
 
-    before_action :check_scopes
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_delete_permissions, only: :destroy
@@ -16,9 +15,6 @@ module PlaceOS::Api
     before_action :current_zone, only: :children
 
     before_action :body, only: [:update, :update_alt]
-
-    # Allow unscoped read access to metadata
-    skip_action :check_oauth_scope, only: [:show, :children_metadata]
 
     getter current_zone : Model::Zone { find_zone }
 
@@ -147,8 +143,12 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless is_support? || params["id"] == user_token.id
     end
 
-    protected def check_scopes
-      check_scope_access("metdata")
+    protected def can_read
+      can_scope_read("metadata")
+    end
+
+    protected def can_write
+      can_scope_write("metadata")
     end
   end
 end

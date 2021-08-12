@@ -100,7 +100,7 @@ module PlaceOS::Api
           result.status_code.should eq 400
         end
 
-        it "prevents access to non-guest channels for guests" do
+        pending "prevents access to non-guest channels for guests" do
           _, guest_header = authentication(["guest"])
           result = curl("POST", File.join(base, "signal?channel=dummy"), body: "hello", headers: guest_header)
           result.status_code.should eq 403

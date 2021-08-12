@@ -14,7 +14,6 @@ module PlaceOS::Api
     base "/api/engine/v2/"
 
     before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version]
-    skip_action :check_oauth_scope, only: :signal
 
     # Healthcheck
     ###############################################################################################

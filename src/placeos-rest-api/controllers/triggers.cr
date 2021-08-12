@@ -4,7 +4,6 @@ module PlaceOS::Api
   class Triggers < Application
     base "/api/engine/v2/triggers/"
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -60,8 +59,13 @@ module PlaceOS::Api
 
     # Helpers
     ###########################################################################
-    protected def check_scopes
-      check_scope_access("triggers")
+
+    protected def can_read
+      can_scope_read("triggers")
+    end
+
+    protected def can_write
+      can_scope_write("triggers")
     end
 
     protected def find_trigger

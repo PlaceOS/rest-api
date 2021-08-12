@@ -4,7 +4,6 @@ module PlaceOS::Api
   class Domains < Application
     base "/api/engine/v2/domains/"
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -54,8 +53,12 @@ module PlaceOS::Api
       Model::Authority.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    protected def check_scopes
-      check_scope_access("domains")
+    protected def can_read
+      can_scope_read("domains")
+    end
+
+    protected def can_write
+      can_scope_write("domains")
     end
   end
 end

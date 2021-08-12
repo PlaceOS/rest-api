@@ -6,7 +6,6 @@ module PlaceOS::Api
     class {{auth_type.id}}Authentications < Application
       base "/api/engine/v2/{{auth_type.downcase.id}}_auths/"
 
-      before_action :check_scopes
       before_action :can_read, only: [:index, :show]
       before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -61,8 +60,11 @@ module PlaceOS::Api
         Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
       end
 
-      protected def check_scopes
-        check_scope_access("{{auth_type.downcase.id}}_authentications")
+      protected def can_read
+        can_scope_read("{{auth_type.downcase.id}}_authentications")
+      end
+      protected def can_write
+        can_scope_write("{{auth_type.downcase.id}}_authentications")
       end
     end
   {% end %}

@@ -9,7 +9,6 @@ module PlaceOS::Api
   class Edges < Application
     base "/api/engine/v2/edges/"
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -21,7 +20,6 @@ module PlaceOS::Api
 
     skip_action :authorize!, only: [:edge]
     skip_action :set_user_id, only: [:edge]
-    skip_action :check_oauth_scope, only: [:edge]
 
     getter current_edge : Model::Edge { find_edge }
 
@@ -85,8 +83,12 @@ module PlaceOS::Api
       Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    protected def check_scopes
-      check_scope_access("edges")
+    protected def can_read
+      can_scope_read("edges")
+    end
+
+    protected def can_write
+      can_scope_write("edges")
     end
 
     # Edge Connection Management

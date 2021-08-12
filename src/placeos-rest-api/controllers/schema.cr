@@ -4,7 +4,6 @@ module PlaceOS::Api
   class Schema < Application
     base "/api/engine/v2/schema/"
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
 
     before_action :check_admin, except: [:index, :show]
@@ -47,8 +46,8 @@ module PlaceOS::Api
       Model::JsonSchema.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    protected def check_scopes
-      check_scope_access("schema")
+    protected def can_read
+      can_scope_read("schema")
     end
   end
 end

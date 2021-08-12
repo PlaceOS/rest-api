@@ -66,6 +66,22 @@ end
 
 # Yield an authenticated user, and a header with Authorization bearer set
 def authentication(scope = ["public"] of String)
+  authenticated_user = generate_auth_user
+  authorization_header = {
+    "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user).encode}",
+  }
+  {authenticated_user, authorization_header}
+end
+
+def authentication(scope : Array(PlaceOS::Model::UserJWT::Scope))
+  authenticated_user = generate_auth_user
+  authorization_header = {
+    "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
+  }
+  {authenticated_user, authorization_header}
+end
+
+def generate_auth_user
   test_user_email = "test-suit-rest-api@place.tech"
   existing = PlaceOS::Model::User.find_all([test_user_email], index: :email).first?
 
@@ -77,11 +93,6 @@ def authentication(scope = ["public"] of String)
                          user.support = true
                          user.save!
                        end
-
-  authorization_header = {
-    "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
-  }
-  {authenticated_user, authorization_header}
 end
 
 # Check application responds with 404 when model not present

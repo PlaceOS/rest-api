@@ -7,7 +7,6 @@ module PlaceOS::Api
     include Utils::CoreHelper
     base "/api/engine/v2/zones/"
 
-    before_action :check_scopes
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -164,8 +163,12 @@ module PlaceOS::Api
       Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    protected def check_scopes
-      check_scope_access("zones")
+    protected def can_read
+      can_scope_read("zones")
+    end
+
+    protected def can_write
+      can_scope_write("zones")
     end
   end
 end
