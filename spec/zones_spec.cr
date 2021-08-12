@@ -51,7 +51,6 @@ module PlaceOS::Api
           )
 
           metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
-          puts metadata
           metadata.size.should eq 1
           metadata.first[1].parent_id.should eq zone_id
           metadata.first[1].name.should eq meta.name
