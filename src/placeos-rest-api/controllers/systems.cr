@@ -38,7 +38,8 @@ module PlaceOS::Api
     before_action :check_support, only: [:state, :state_lookup, :functions]
 
     before_action :current_control_system, only: [:show, :update, :destroy, :remove,
-                                                  :start, :stop, :execute, :types, :functions]
+                                                  :start, :stop, :execute,
+                                                  :types, :functions, :metadata]
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
     before_action :body, only: [:create, :execute, :update, :update_alt]
@@ -201,6 +202,14 @@ module PlaceOS::Api
       set_collection_headers(documents.size, Model::Zone.table_name)
 
       render json: documents
+    end
+
+    # Return metadata for the system
+    #
+    get "/:sys_id/metadata", :metadata do
+      parent_id = current_control_system.id.not_nil!
+      name = params["name"]?.presence
+      render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
     # Receive the collated settings for a system

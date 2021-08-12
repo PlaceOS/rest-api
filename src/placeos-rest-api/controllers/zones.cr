@@ -12,7 +12,7 @@ module PlaceOS::Api
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, except: [:index]
-    before_action :current_zone, only: [:show, :update, :update_alt, :destroy]
+    before_action :current_zone, only: [:show, :update, :update_alt, :destroy, :metadata]
 
     before_action :body, only: [:create, :update, :update_alt, :zone_execute]
 
@@ -75,6 +75,12 @@ module PlaceOS::Api
     def destroy
       current_zone.destroy
       head :ok
+    end
+
+    get "/:id/metadata", :metadata do
+      parent_id = current_zone.id.not_nil!
+      name = params["name"]?.presence
+      render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
     private enum ExecStatus

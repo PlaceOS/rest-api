@@ -2,6 +2,7 @@ require "oauth2"
 require "CrystalEmail"
 
 require "./application"
+require "./metadata"
 
 module PlaceOS::Api
   class Users < Application
@@ -153,6 +154,12 @@ module PlaceOS::Api
     end
 
     ###############################################################################################
+
+    get "/:id/metadata", :metadata do
+      parent_id = user.id.not_nil!
+      name = params["name"]?.presence
+      render json: Model::Metadata.build_metadata(parent_id, name)
+    end
 
     # # Params
     # - `emails`: comma-seperated list of emails *required*

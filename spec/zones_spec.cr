@@ -37,6 +37,28 @@ module PlaceOS::Api
           updated.destroy
         end
       end
+
+      describe "/:id/metadata" do
+        it "shows zone metadata" do
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.as(String)
+          meta = Model::Generator.metadata(name: "special", parent: zone_id).save!
+
+          result = curl(
+            method: "GET",
+            path: base + "#{zone_id}/metadata",
+            headers: authorization_header,
+          )
+
+          metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
+          metadata.size.should eq 1
+          metadata.first[1].parent_id.should eq zone_id
+          metadata.first[1].name.should eq meta.name
+
+          zone.destroy
+          meta.destroy
+        end
+      end
     end
   end
 end
