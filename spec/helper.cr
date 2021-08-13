@@ -103,7 +103,6 @@ def generate_auth_user
                          user.support = true
                          user.save!
                        end
-
 end
 
 # Check application responds with 404 when model not present

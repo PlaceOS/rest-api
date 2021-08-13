@@ -13,7 +13,7 @@ module PlaceOS::Api
       end
 
       it ".read scope" do
-        authenticated_user, authorization_header = authentication([PlaceOS::Model::UserJWT::Scope.new("zones", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+        _, authorization_header = authentication([PlaceOS::Model::UserJWT::Scope.new("zones", PlaceOS::Model::UserJWT::Scope::Access::Read)])
         result = curl(
           method: "GET",
           path: base,
@@ -22,10 +22,7 @@ module PlaceOS::Api
 
         result.success?.should be_true
         zone = Model::Generator.zone.save!
-        original_name = zone.name
         zone.name = UUID.random.to_s
-
-        id = zone.id.as(String)
         path = base
         result = curl(
           method: "POST",
@@ -38,7 +35,7 @@ module PlaceOS::Api
       end
 
       it ".write scope" do
-        authenticated_user, authorization_header = authentication([PlaceOS::Model::UserJWT::Scope.new("zones", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+        _, authorization_header = authentication([PlaceOS::Model::UserJWT::Scope.new("zones", PlaceOS::Model::UserJWT::Scope::Access::Write)])
         result = curl(
           method: "GET",
           path: base,
@@ -47,10 +44,8 @@ module PlaceOS::Api
 
         result.success?.should be_false
         zone = Model::Generator.zone.save!
-        original_name = zone.name
         zone.name = UUID.random.to_s
 
-        id = zone.id.as(String)
         path = base
         result = curl(
           method: "POST",
