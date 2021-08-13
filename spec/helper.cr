@@ -73,7 +73,7 @@ end
 # This method is synchronised due to the redundant top-level calls.
 def authentication(sys_admin : Bool = true, support : Bool = true, scope = ["public"] of String)
   CREATION_LOCK.synchronize do
-    authenticated_user = generate_auth_user(sys_admin,support)
+    authenticated_user = generate_auth_user(sys_admin, support)
     authorization_header = {
       "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user).encode}",
     }
@@ -81,9 +81,9 @@ def authentication(sys_admin : Bool = true, support : Bool = true, scope = ["pub
   end
 end
 
-def authentication(sys_admin : Bool = true, support : Bool = true, scope : Array(PlaceOS::Model::UserJWT::Scope))
+def authentication(sys_admin : Bool = true, support : Bool = true, scope = [Scope.new("public")] of Array(PlaceOS::Model::UserJWT::Scope))
   CREATION_LOCK.synchronize do
-    authenticated_user = generate_auth_user(sys_admin,support)
+    authenticated_user = generate_auth_user(sys_admin, support)
     authorization_header = {
       "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
     }
