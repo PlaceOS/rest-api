@@ -83,8 +83,8 @@ def authentication(sys_admin : Bool = true, support : Bool = true, scope = [Scop
 end
 
 def generate_auth_user(sys_admin, support, scopes)
-  scope_list = scopes.try(&.map { |scope| scope.to_s }).join("-")
-  test_user_email = "test-admin-#{sys_admin ? "1" : "0"}-supp-#{support ? "1" : "0"}-scop-#{scope_list}-rest-api@place.tech"
+  scope_list = scopes.try &.join('-', &.to_s)
+  test_user_email = "test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech"
   existing = PlaceOS::Model::User.find_all([test_user_email], index: :email).first?
 
   authenticated_user = if existing
