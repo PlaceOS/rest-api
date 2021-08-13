@@ -8,13 +8,6 @@ require "placeos-models/api_key"
 module PlaceOS::Api
   # Helper to grab user and authority from a request
 
-  enum Scope
-    NoAcess
-    ReadAccess
-    WriteAccess
-    FullAccess
-  end
-
   module Utils::CurrentUser
     @user_scope = Scope::NoAcess
 
@@ -101,7 +94,7 @@ module PlaceOS::Api
       utoken = user_token
       unless utoken.scope_public?
         scope = utoken.get_scope(scope_name)
-        raise Error::Forbidden.new unless scope == Model::UserJWT::Scope::Access::Full || scope == Model::UserJWT::Scope::Access::Read
+        raise Error::Forbidden.new unless scope.read?
       end
     end
 
@@ -109,7 +102,7 @@ module PlaceOS::Api
       utoken = user_token
       unless utoken.scope_public?
         scope = utoken.get_scope(scope_name)
-        raise Error::Forbidden.new unless scope == Model::UserJWT::Scope::Access::Full || scope == Model::UserJWT::Scope::Access::Write
+        raise Error::Forbidden.new unless scope.write?
       end
     end
 
