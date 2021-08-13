@@ -87,14 +87,12 @@ def generate_auth_user(sys_admin, support, scopes)
   test_user_email = "test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech"
   existing = PlaceOS::Model::User.find_all([test_user_email], index: :email).first?
 
-  authenticated_user = if existing
-                         existing
-                       else
-                         user = PlaceOS::Model::Generator.user
-                         user.sys_admin = sys_admin
-                         user.support = support
-                         user.save!
-                       end
+  existing || PlaceOS::Model::Generator.user.tap do |user|
+    user.email = test_user_email
+    user.sys_admin = sys_admin
+    user.support = support
+    user.save!
+  end
 end
 
 # Check application responds with 404 when model not present
