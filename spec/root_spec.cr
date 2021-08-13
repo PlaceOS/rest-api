@@ -99,9 +99,9 @@ module PlaceOS::Api
           result = curl("POST", File.join(base, "signal"), body: "hello", headers: authorization_header)
           result.status_code.should eq 400
         end
-        
+
         context "guests" do
-          _, guest_header = authentication(sys_admin: false, support: false, scope: ["guest"])
+          _, guest_header = authentication(sys_admin: false, support: false, scope: [Scope.new("guest")])
 
           it "prevented access to non-guest channels " do
             result = curl("POST", File.join(base, "signal?channel=dummy"), body: "hello", headers: guest_header)

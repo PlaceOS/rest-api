@@ -71,19 +71,10 @@ end
 
 # Yield an authenticated user, and a header with Authorization bearer set
 # This method is synchronised due to the redundant top-level calls.
-def authentication(sys_admin : Bool = true, support : Bool = true, scope = ["public"] of String)
-  CREATION_LOCK.synchronize do
-    authenticated_user = generate_auth_user(sys_admin, support)
-    authorization_header = {
-      "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user).encode}",
-    }
-    {authenticated_user, authorization_header}
-  end
-end
 
 def authentication(sys_admin : Bool = true, support : Bool = true, scope = [Scope.new("public")] of Array(PlaceOS::Model::UserJWT::Scope))
   CREATION_LOCK.synchronize do
-    authenticated_user = generate_auth_user(sys_admin, support)
+    authenticated_user = generate_auth_user(sys_admin, support, scopes)
     authorization_header = {
       "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
     }
@@ -91,7 +82,9 @@ def authentication(sys_admin : Bool = true, support : Bool = true, scope = [Scop
   end
 end
 
-def generate_auth_user(sys_admin, support)
+def generate_auth_user(sys_admin, support, scopes)
+  scope_list = scopes.try(&.map { |scope| scope.to_s }).join("-")
+  test_user_email = "test-admin-#{sys_admin ? "1" : "0"}-supp-#{support ? "1" : "0"}-scop-#{scope_list}-rest-api@place.tech"
   test_user_email = "test-admin-#{sys_admin ? "1" : "0"}-supp-#{support ? "1" : "0"}-rest-api@place.tech"
   existing = PlaceOS::Model::User.find_all([test_user_email], index: :email).first?
 
