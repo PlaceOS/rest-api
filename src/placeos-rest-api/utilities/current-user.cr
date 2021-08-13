@@ -93,7 +93,7 @@ module PlaceOS::Api
     def can_scope_read(scope_name : String)
       utoken = user_token
       unless utoken.scope_public?
-        scope = utoken.get_scope(scope_name)
+        scope = utoken.get_access(scope_name)
         raise Error::Forbidden.new unless scope.read?
       end
     end
@@ -101,7 +101,7 @@ module PlaceOS::Api
     def can_scope_write(scope_name : String)
       utoken = user_token
       unless utoken.scope_public?
-        scope = utoken.get_scope(scope_name)
+        scope = utoken.get_access(scope_name)
         raise Error::Forbidden.new unless scope.write?
       end
     end
