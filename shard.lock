@@ -147,7 +147,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.8.0
+    version: 5.9.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -183,7 +183,7 @@ shards:
 
   rethinkdb:
     git: https://github.com/kingsleyh/crystal-rethinkdb.git
-    version: 0.2.3
+    version: 0.3.0
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
