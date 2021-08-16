@@ -195,10 +195,8 @@ module PlaceOS::Api
       # Index ordering to use for resolving the user.
       ordering = if lookup.is_email?
                    {:email, :login_name}
-                 elsif lookup.starts_with? Model::User.table_name
-                   {:id, :login_name, :staff_id}
                  else
-                   {:login_name, :staff_id}
+                   {:id, :login_name, :staff_id}
                  end
 
       query = ordering.each.compact_map do |id_type|
