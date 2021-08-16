@@ -152,7 +152,7 @@ module PlaceOS::Api
       args = SignalParams.new(params).validate!
       channel = args.channel
 
-      if user_token.scope_guest?
+      if user_token.guest_scope?
         head :forbidden unless channel.includes?("/guest/")
       end
 

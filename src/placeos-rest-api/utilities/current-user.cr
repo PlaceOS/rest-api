@@ -92,7 +92,7 @@ module PlaceOS::Api
 
     def can_scope_read(scope_name : String)
       utoken = user_token
-      unless utoken.scope_public?
+      unless utoken.public_scope?
         scope = utoken.get_access(scope_name)
         return scope.read?
       end
@@ -110,7 +110,7 @@ module PlaceOS::Api
 
     def can_scope_write(scope_name : String)
       utoken = user_token
-      unless utoken.scope_public?
+      unless utoken.public_scope?
         scope = utoken.get_access(scope_name)
         return scope.write?
       end
