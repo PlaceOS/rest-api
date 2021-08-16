@@ -147,11 +147,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("system-trigger")
+      can_scopes_read("system-trigger")
     end
 
     protected def can_write
-      can_scope_write("system-trigger")
+      can_scopes_write("system-trigger")
     end
   end
 end

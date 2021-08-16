@@ -225,11 +225,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("repositories")
+      can_scopes_read("repositories")
     end
 
     protected def can_write
-      can_scope_write("repositories")
+      can_scopes_write("repositories")
     end
   end
 end

@@ -61,10 +61,10 @@ module PlaceOS::Api
       end
 
       protected def can_read
-        can_scope_read("{{auth_type.downcase.id}}_authentications")
+        can_scopes_read("{{auth_type.downcase.id}}_authentications")
       end
       protected def can_write
-        can_scope_write("{{auth_type.downcase.id}}_authentications")
+        can_scopes_write("{{auth_type.downcase.id}}_authentications")
       end
     end
   {% end %}

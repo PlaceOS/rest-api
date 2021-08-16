@@ -60,11 +60,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("oauth_applications")
+      can_scopes_read("oauth_applications")
     end
 
     protected def can_write
-      can_scope_write("ouath_applications")
+      can_scopes_write("ouath_applications")
     end
   end
 end

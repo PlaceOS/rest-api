@@ -54,11 +54,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("domains")
+      can_scopes_read("domains")
     end
 
     protected def can_write
-      can_scope_write("domains")
+      can_scopes_write("domains")
     end
   end
 end

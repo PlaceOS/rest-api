@@ -225,11 +225,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("users")
+      can_scopes_read("users")
     end
 
     protected def can_write
-      can_scope_write("users")
+      can_scopes_write("users")
     end
 
     protected def check_authorization

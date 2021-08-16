@@ -198,11 +198,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("drivers")
+      can_scopes_read("drivers")
     end
 
     protected def can_write
-      can_scope_write("drivers")
+      can_scopes_write("drivers")
     end
   end
 end

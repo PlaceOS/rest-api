@@ -61,11 +61,11 @@ module PlaceOS::Api
     ###########################################################################
 
     protected def can_read
-      can_scope_read("triggers")
+      can_scopes_read("triggers")
     end
 
     protected def can_write
-      can_scope_write("triggers")
+      can_scopes_write("triggers")
     end
 
     protected def find_trigger

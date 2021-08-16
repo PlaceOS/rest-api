@@ -170,11 +170,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("zones")
+      can_scopes_read("zones")
     end
 
     protected def can_write
-      can_scope_write("zones")
+      can_scopes_write("zones")
     end
   end
 end

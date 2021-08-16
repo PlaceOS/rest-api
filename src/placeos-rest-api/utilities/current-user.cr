@@ -94,16 +94,36 @@ module PlaceOS::Api
       utoken = user_token
       unless utoken.scope_public?
         scope = utoken.get_access(scope_name)
-        raise Error::Forbidden.new unless scope.read?
+        return scope.read?
       end
+      true
+    end
+
+    def can_scopes_read(*scope_names)
+      can_read = false
+      scope_names do |scope_name|
+        can_read = can_scope_read(scope_name)
+        break if can_read
+      end
+      raise Error::Forbidden.new unless can_read
     end
 
     def can_scope_write(scope_name : String)
       utoken = user_token
       unless utoken.scope_public?
         scope = utoken.get_access(scope_name)
-        raise Error::Forbidden.new unless scope.write?
+        return scope.write?
       end
+      true
+    end
+
+    def can_scopes_write(*scope_names)
+      can_write = false
+      scope_names do |scope_name|
+        can_write = can_scope_write(scope_name)
+        break if can_write
+      end
+      raise Error::Forbidden.new unless can_write
     end
 
     # Pull JWT from...

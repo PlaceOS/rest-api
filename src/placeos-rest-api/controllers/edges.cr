@@ -84,11 +84,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("edges")
+      can_scopes_read("edges")
     end
 
     protected def can_write
-      can_scope_write("edges")
+      can_scopes_write("edges")
     end
 
     # Edge Connection Management

@@ -14,6 +14,7 @@ module PlaceOS::Api
     base "/api/engine/v2/"
 
     before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version]
+    before_action :can_guest_write, only: [:signal]
 
     # Healthcheck
     ###############################################################################################
@@ -61,6 +62,10 @@ module PlaceOS::Api
         .pluck("id", "name")
         .run(rethinkdb_admin_connection)
         .first?
+    end
+
+    protected def can_guest_write
+      can_scopes_write("root", "guest")
     end
 
     ###############################################################################################

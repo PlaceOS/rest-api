@@ -49,11 +49,11 @@ module PlaceOS::Api
     ############################################################################
 
     protected def can_read
-      can_scope_read("brokers")
+      can_scopes_read("brokers")
     end
 
     protected def can_write
-      can_scope_write("brokers")
+      can_scopes_write("brokers")
     end
 
     protected def find_broker

@@ -47,7 +47,7 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("schema")
+      can_scopes_read("schema")
     end
   end
 end

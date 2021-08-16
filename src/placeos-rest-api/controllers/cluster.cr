@@ -16,11 +16,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("cluster")
+      can_scopes_read("cluster")
     end
 
     protected def can_write
-      can_scope_write("cluster")
+      can_scopes_write("cluster")
     end
 
     def index

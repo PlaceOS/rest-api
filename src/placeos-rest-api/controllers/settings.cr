@@ -108,11 +108,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("settings")
+      can_scopes_read("settings")
     end
 
     protected def can_write
-      can_scope_write("settings")
+      can_scopes_write("settings")
     end
 
     protected def find_settings

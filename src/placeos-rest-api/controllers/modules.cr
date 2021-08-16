@@ -305,11 +305,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("modules")
+      can_scopes_read("modules")
     end
 
     protected def can_write
-      can_scope_write("modules")
+      can_scopes_write("modules")
     end
   end
 end

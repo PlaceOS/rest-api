@@ -30,6 +30,7 @@ module PlaceOS::Api
 
     # Allow unscoped access to details of a single `ControlSystem`
     before_action :can_read, only: [:index]
+    before_action :can_guest_read, only: [:show, :sys_zones]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
@@ -136,7 +137,7 @@ module PlaceOS::Api
     # Renders a control system
     def show
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.scope_guest?
         head :forbidden unless user_token.user.roles.includes?(current_control_system.id)
         render json: current_control_system
       end
@@ -188,7 +189,7 @@ module PlaceOS::Api
     #
     get "/:sys_id/zones", :sys_zones do
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.scope_guest?
         head :forbidden unless user_token.user.roles.includes?(params["sys_id"])
       end
 
@@ -409,11 +410,15 @@ module PlaceOS::Api
     ###########################################################################
 
     protected def can_read
-      can_scope_read("systems")
+      can_scopes_read("systems")
     end
 
     protected def can_write
-      can_scope_write("systems")
+      can_scopes_write("systems")
+    end
+
+    protected def can_guest_read
+      can_scopes_read("systems", "guest")
     end
 
     # Use consistent hashing to determine the location of the module

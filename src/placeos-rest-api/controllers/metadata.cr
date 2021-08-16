@@ -8,6 +8,7 @@ module PlaceOS::Api
     base "/api/engine/v2/metadata"
 
     before_action :can_read, only: [:index]
+    before_action :can_guest_read, only: [:show, :children_metadata]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_delete_permissions, only: :destroy
@@ -26,7 +27,7 @@ module PlaceOS::Api
       name = params["name"]?.presence
 
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.scope_guest?
         head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
@@ -51,7 +52,7 @@ module PlaceOS::Api
       include_parent = params.has_key?("include_parent") ? params["include_parent"].downcase == "true" : true
 
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.scope_guest?
         head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
@@ -144,11 +145,15 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("metadata")
+      can_scopes_read("metadata")
     end
 
     protected def can_write
-      can_scope_write("metadata")
+      can_scopes_write("metadata")
+    end
+
+    protected def can_guest_read
+      can_scopes_read("metadata", "guest")
     end
   end
 end

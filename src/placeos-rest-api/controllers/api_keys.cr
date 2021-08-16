@@ -67,11 +67,11 @@ module PlaceOS::Api
     end
 
     protected def can_read
-      can_scope_read("api_keys")
+      can_scopes_read("api_keys")
     end
 
     protected def can_write
-      can_scope_write("api_keys")
+      can_scopes_write("api_keys")
     end
   end
 end
