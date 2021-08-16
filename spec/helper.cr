@@ -51,7 +51,6 @@ end
 CREATION_LOCK = Mutex.new(protection: :reentrant)
 
 # Yield an authenticated user, and a header with X-API-Key set
-# def x_api_authentication(sys_admin : Bool = true, support : Bool = true, scope = [PlaceOS::Model::UserJWT::Scope.new("public")] of Array(PlaceOS::Model::UserJWT::Scope))
 def x_api_authentication(sys_admin : Bool = true, support : Bool = true, scope : Array(PlaceOS::Model::UserJWT::Scope) = [PlaceOS::Model::UserJWT::Scope.new("public")])
   CREATION_LOCK.synchronize do
     user, _header = authentication(sys_admin, support, scope)
@@ -73,7 +72,7 @@ end
 # Yield an authenticated user, and a header with Authorization bearer set
 # This method is synchronised due to the redundant top-level calls.
 
-def authentication(sys_admin : Bool = true, support : Bool = true, scope = [PlaceOS::Model::UserJWT::Scope.new("public")] of Array(PlaceOS::Model::UserJWT::Scope))
+def authentication(sys_admin : Bool = true, support : Bool = true, scope : Array(PlaceOS::Model::UserJWT::Scope) = [PlaceOS::Model::UserJWT::Scope.new("public")])
   CREATION_LOCK.synchronize do
     authenticated_user = generate_auth_user(sys_admin, support, scope)
     authorization_header = {

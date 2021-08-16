@@ -147,7 +147,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.8.1
+    version: 5.9.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git

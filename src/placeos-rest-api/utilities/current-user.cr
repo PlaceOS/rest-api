@@ -99,7 +99,7 @@ module PlaceOS::Api
 
     def can_scopes_read(*scope_names)
       can_read = false
-      scope_names do |scope_name|
+      scope_names.each do |scope_name|
         can_read = can_scope_read(scope_name)
         break if can_read
       end
@@ -115,9 +115,9 @@ module PlaceOS::Api
       true
     end
 
-    def can_scopes_write(scope_names)
+    def can_scopes_write(*scope_names)
       can_write = false
-      scope_names do |scope_name|
+      scope_names.each do |scope_name|
         can_write = can_scope_write(scope_name)
         break if can_write
       end
