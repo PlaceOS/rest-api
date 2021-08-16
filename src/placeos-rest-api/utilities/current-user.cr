@@ -9,8 +9,6 @@ module PlaceOS::Api
   # Helper to grab user and authority from a request
 
   module Utils::CurrentUser
-    @user_scope = Scope::NoAcess
-
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
 
@@ -117,7 +115,7 @@ module PlaceOS::Api
       true
     end
 
-    def can_scopes_write(*scope_names)
+    def can_scopes_write(scope_names)
       can_write = false
       scope_names do |scope_name|
         can_write = can_scope_write(scope_name)
