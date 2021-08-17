@@ -135,7 +135,7 @@ module PlaceOS::Api
     # Renders a control system
     def show
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.guest_scope?
         head :forbidden unless user_token.user.roles.includes?(current_control_system.id)
         render json: current_control_system
       end
@@ -187,7 +187,7 @@ module PlaceOS::Api
     #
     get "/:sys_id/zones", :sys_zones do
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.guest_scope?
         head :forbidden unless user_token.user.roles.includes?(params["sys_id"])
       end
 

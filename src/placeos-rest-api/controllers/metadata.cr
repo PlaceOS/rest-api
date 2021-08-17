@@ -26,7 +26,7 @@ module PlaceOS::Api
       name = params["name"]?.presence
 
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.guest_scope?
         head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
@@ -51,7 +51,7 @@ module PlaceOS::Api
       include_parent = params.has_key?("include_parent") ? params["include_parent"].downcase == "true" : true
 
       # Guest JWTs include the control system id that they have access to
-      if user_token.scope.includes?("guest")
+      if user_token.guest_scope?
         head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 

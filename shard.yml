@@ -45,7 +45,7 @@ dependencies:
   # For build client
   placeos-build:
     github: placeos/build
-    version: ~> 0.4
+    branch: main
 
   # For core client
   placeos-core:
