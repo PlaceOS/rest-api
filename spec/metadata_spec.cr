@@ -213,8 +213,6 @@ module PlaceOS::Api
         zone_id = zone.id.as(String)
         meta = Model::Generator.metadata(name: "special", parent: zone_id).save!
 
-        params = HTTP::Params.encode({"name" => "John"})
-
         result = curl(
           method: "GET",
           path: "#{base}/#{zone_id}",
@@ -232,9 +230,6 @@ module PlaceOS::Api
 
         zone = Model::Generator.zone.save!
         zone_id = zone.id.as(String)
-        meta = Model::Generator.metadata(name: "special", parent: zone_id).save!
-
-        params = HTTP::Params.encode({"name" => "John"})
 
         result = curl(
           method: "POST",
