@@ -6,7 +6,7 @@ module PlaceOS::Api
         {% klass_name = klass.stringify.split("::").last.underscore %}
         base = {{ controller_klass }}::NAMESPACE[0]
         context "write" do
-            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("{{ controller_klass.stringify }}".downcase, PlaceOS::Model::UserJWT::Scope::Access::Write)])
+            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("{{ klass_name.id }}".downcase, PlaceOS::Model::UserJWT::Scope::Access::Write)])
 
             it "should not allow access to show" do
               model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
