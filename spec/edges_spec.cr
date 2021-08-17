@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Edges do
@@ -15,6 +16,10 @@ module PlaceOS::Api
 
       describe "CRUD operations", tags: "crud" do
         test_crd(Model::Edge, Edges)
+      end
+
+      describe "tests edges scopes" do
+        test_scope(Model::Edge, base, "edges")
       end
     end
   end

@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Repositories do
@@ -98,6 +99,10 @@ module PlaceOS::Api
             result.status.should eq HTTP::Status::BAD_REQUEST
           end
         end
+      end
+
+      describe "tests repositories scopes" do
+        test_scope(Model::Repository, base, "repositories")
       end
     end
   end

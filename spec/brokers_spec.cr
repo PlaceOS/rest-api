@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Brokers do
@@ -35,6 +36,10 @@ module PlaceOS::Api
           updated.id.should eq broker.id
           updated.name.should_not eq original_name
         end
+      end
+
+      describe "tests broker scopes" do
+        test_scope(Model::Broker, base, "brokers")
       end
     end
   end

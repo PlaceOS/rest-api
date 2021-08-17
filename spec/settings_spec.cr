@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Settings do
@@ -105,6 +106,10 @@ module PlaceOS::Api
           updated.settings_string.should_not eq original_settings
           updated.destroy
         end
+      end
+
+      describe "tests settings scopes" do
+        test_scope(Model::Settings, base, "settings")
       end
     end
   end

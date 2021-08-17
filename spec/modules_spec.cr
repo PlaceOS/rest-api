@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 require "timecop"
 
 module PlaceOS
@@ -314,6 +315,10 @@ module PlaceOS::Api
         body = JSON.parse(result.body)
         result.success?.should be_true
         body["pingable"].should be_true
+      end
+
+      describe "tests modules scopes" do
+        test_scope(Model::Module, base, "modules")
       end
     end
   end

@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   def self.spec_add_module(system, mod, headers)
@@ -488,6 +489,10 @@ module PlaceOS::Api
           system.destroy
           meta.destroy
         end
+      end
+
+      describe "tests systems scopes" do
+        test_scope(Model::ControlSystem, base, "systems")
       end
     end
   end

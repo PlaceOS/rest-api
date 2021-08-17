@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Drivers do
@@ -74,6 +75,10 @@ module PlaceOS::Api
             result.body.should contain "role must not change"
           end
         end
+      end
+
+      describe "tests drivers scopes" do
+        test_scope(Model::Driver, base, "drivers")
       end
     end
   end

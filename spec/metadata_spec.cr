@@ -205,6 +205,44 @@ module PlaceOS::Api
           metadata.size.should eq 1
         end
       end
+
+      it "checks that guests can read metadata" do
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        meta = Model::Generator.metadata(name: "special", parent: zone_id).save!
+
+        params = HTTP::Params.encode({"name" => "John"})
+
+        result = curl(
+          method: "GET",
+          path: "#{base}/#{zone_id}",
+          headers: authorization_header,
+        )
+
+        metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
+        metadata.size.should eq 1
+        metadata.first[1].parent_id.should eq zone_id
+        metadata.first[1].name.should eq meta.name
+      end
+
+      it "checks that guests cannot write metadata" do
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        meta = Model::Generator.metadata(name: "special", parent: zone_id).save!
+
+        params = HTTP::Params.encode({"name" => "John"})
+
+        result = curl(
+          method: "POST",
+          path: "#{base}/#{zone_id}",
+          headers: authorization_header,
+        )
+        result.success?.should be_false
+      end
     end
   end
 end
