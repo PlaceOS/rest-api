@@ -123,7 +123,7 @@ module PlaceOS::Api
       render json: commits
     end
 
-    def self.commits(repository : Model::Repository, request_id : String, file_name : String? = nil, branch : String? = nil, limit : Int32? = nil)
+    def self.commits(repository : Model::Repository, request_id : String, file_name : String? = nil, branch : String? = nil, limit : Int32? = nil) : Array(String)
       limit = 50 if limit.nil?
       branch = "master" if branch.nil?
 
@@ -136,12 +136,12 @@ module PlaceOS::Api
           else
             client.repository_commits(**args)
           end
-        end
+        end.map(&.commit)
       in .interface?
         # Dial the frontends service
         Frontends::Client.client(request_id: request_id) do |frontends_client|
           frontends_client.commits(repository.folder_name, limit)
-        end
+        end.map(&.[:commit])
       end
     end
 

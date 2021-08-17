@@ -225,3 +225,33 @@ macro test_crd(klass, controller_klass)
     {{ klass.id }}.find(id).should be_nil
   end
 end
+
+class MockServer
+  include ActionController::Router
+
+  def initialize
+    init_routes
+  end
+
+  private def init_routes
+    {% for klass in ActionController::Base::CONCRETE_CONTROLLERS %}
+      {{klass}}.__init_routes__(self)
+    {% end %}
+  end
+end
+
+MOCK_SERVER = MockServer.new
+
+abstract class PlaceOS::Api::Application < ActionController::Base
+  def self.with_request(verb, path, expect_failure = false)
+    io = IO::Memory.new
+    context = context(verb.upcase, path)
+    MOCK_SERVER.route_handler.search_route(context)
+    context.response.output = io
+
+    yield new(context)
+    io.rewind
+    context.response.status.success?.should (expect_failure ? be_false : be_true)
+    context
+  end
+end

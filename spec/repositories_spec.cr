@@ -69,53 +69,14 @@ module PlaceOS::Api
           end
         end
 
-        describe "GET /:id/commits" do
-          context "interface" do
-            pending "fetches the commits for a repository" do
-            end
-          end
-
-          context "driver" do
-            repo = Model::Generator.repository(type: :driver)
-            repo.uri = "https://github.com/placeOS/private-drivers"
-            repo.save!
-
-            it "fetches the commits for a repository" do
-              id = repo.id.as(String)
-              path = "#{base}#{id}/commits"
-              result = curl(
-                method: "GET",
-                path: path,
-                headers: authorization_header.merge({"Content-Type" => "application/json"}),
-              )
-
-              result.status.should eq HTTP::Status::OK
-              Array(String).from_json(result.body).should_not be_empty
-            end
-
-            it "fetches the commits for a file" do
-              id = repo.id.as(String)
-              params = HTTP::Params{
-                "driver" => "drivers/place/private_helper.cr",
-              }
-              path = "#{base}#{id}/commits?#{params}"
-              result = curl(
-                method: "GET",
-                path: path,
-                headers: authorization_header.merge({"Content-Type" => "application/json"}),
-              )
-
-              result.status.should eq HTTP::Status::OK
-              Array(String).from_json(result.body).should_not be_empty
-            end
-          end
-        end
-
         describe "driver only actions" do
-          it "errors if enumerating drivers in an interface repo" do
-            repository = Model::Generator.repository(type: :interface).save!
+          repo = Model::Generator.repository(type: :interface)
+          before_all do
+            repo.save!
+          end
 
-            id = repository.id.as(String)
+          it "errors if enumerating drivers in an interface repo" do
+            id = repo.id.as(String)
             path = "#{base}#{id}/drivers"
             result = curl(
               method: "GET",
@@ -127,9 +88,7 @@ module PlaceOS::Api
           end
 
           it "errors when requesting driver details from an interface repo" do
-            repository = Model::Generator.repository(type: Model::Repository::Type::Interface).save!
-
-            id = repository.id.as(String)
+            id = repo.id.as(String)
             path = "#{base}#{id}/details"
             result = curl(
               method: "GET",
@@ -138,6 +97,45 @@ module PlaceOS::Api
             )
 
             result.status.should eq HTTP::Status::BAD_REQUEST
+          end
+        end
+      end
+
+      describe "GET /:id/commits" do
+        context "interface" do
+          pending "fetches the commits for a repository" do
+          end
+        end
+
+        context "driver" do
+          repo = Model::Generator.repository(type: :driver).tap do |r|
+            r.uri = "https://github.com/placeOS/private-drivers"
+          end
+
+          before_all do
+            repo.save!
+          end
+
+          it "fetches the commits for a repository" do
+            id = repo.id.as(String)
+            response = Api::Repositories
+              .with_request("GET", "#{base}#{id}/commits", &.commits)
+              .response
+            response.status.should eq HTTP::Status::OK
+            Array(String).from_json(response.output).should_not be_empty
+          end
+
+          it "fetches the commits for a file" do
+            id = repo.id.as(String)
+            params = HTTP::Params{
+              "driver" => "drivers/place/private_helper.cr",
+            }
+            response = Api::Repositories
+              .with_request("GET", "#{base}#{id}/commits?#{params}", &.commits)
+              .response
+
+            response.status.should eq HTTP::Status::OK
+            Array(String).from_json(response.output).should_not be_empty
           end
         end
       end
