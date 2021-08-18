@@ -10,6 +10,7 @@ module PlaceOS::Api
     before_action :check_admin, except: :inspect_key
     before_action :body, only: [:create, :update, :update_alt]
 
+    getter controller_scope_resource : String = "api_keys"
     getter current_api_key : Model::ApiKey { find_api_key }
 
     def index

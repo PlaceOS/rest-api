@@ -16,6 +16,7 @@ module PlaceOS::Api
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
 
+    getter controller_scope_resource : String = "repositories"
     getter current_repo : Model::Repository { find_repo }
 
     private def drivers_only
@@ -222,14 +223,6 @@ module PlaceOS::Api
       Log.context.set(repository_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def can_read
-      can_scopes_read("repositories")
-    end
-
-    protected def can_write
-      can_scopes_write("repositories")
     end
   end
 end

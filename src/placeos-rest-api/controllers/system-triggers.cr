@@ -18,6 +18,7 @@ module PlaceOS::Api
     before_action :current_sys_trig, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
+    getter controller_scope_resource : String = "system-trigger"
     getter current_sys_trig : Model::TriggerInstance { find_sys_trig }
     getter current_system : Model::ControlSystem { find_system }
 
@@ -144,14 +145,6 @@ module PlaceOS::Api
       Log.context.set(trigger_instance_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def can_read
-      can_scopes_read("system-trigger")
-    end
-
-    protected def can_write
-      can_scopes_write("system-trigger")
     end
   end
 end

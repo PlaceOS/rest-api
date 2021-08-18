@@ -7,6 +7,8 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
+    getter controller_scope_resource : String = "drivers"
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
@@ -195,14 +197,6 @@ module PlaceOS::Api
       Log.context.set(driver_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def can_read
-      can_scopes_read("drivers")
-    end
-
-    protected def can_write
-      can_scopes_write("drivers")
     end
   end
 end

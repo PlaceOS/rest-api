@@ -21,6 +21,7 @@ module PlaceOS::Api
     before_action :ensure_json, only: [:update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
 
+    getter controller_scope_resource : String = "users"
     getter user : Model::User { find_user }
 
     # Render the current user
@@ -220,14 +221,6 @@ module PlaceOS::Api
 
       Log.context.set(user_id: user.id)
       user
-    end
-
-    protected def can_read
-      can_scopes_read("users")
-    end
-
-    protected def can_write
-      can_scopes_write("users")
     end
 
     protected def check_authorization

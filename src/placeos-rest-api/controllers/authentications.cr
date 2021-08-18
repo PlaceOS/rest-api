@@ -13,6 +13,7 @@ module PlaceOS::Api
       before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
       before_action :body, only: [:create, :update, :update_alt]
 
+      getter controller_scope_resource : String = "{{auth_type.downcase.id}}_authentications"
       getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
 
       def index
@@ -58,13 +59,6 @@ module PlaceOS::Api
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
         Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
-      end
-
-      protected def can_read
-        can_scopes_read("{{auth_type.downcase.id}}_authentications")
-      end
-      protected def can_write
-        can_scopes_write("{{auth_type.downcase.id}}_authentications")
       end
     end
   {% end %}

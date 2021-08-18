@@ -11,6 +11,8 @@ module PlaceOS::Api
     @trigger_instance : Model::TriggerInstance?
     @trigger : Model::Trigger?
 
+    getter controller_scope_resource : String = "webhook"
+
     def show
       render json: current_trigger
     end

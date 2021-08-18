@@ -14,6 +14,7 @@ module PlaceOS::Api
     before_action :ensure_json, only: [:create, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
 
+    getter controller_scope_resource : String = "triggers"
     getter current_trigger : Model::Trigger { find_trigger }
 
     def index
@@ -59,14 +60,6 @@ module PlaceOS::Api
 
     # Helpers
     ###########################################################################
-
-    protected def can_read
-      can_scopes_read("triggers")
-    end
-
-    protected def can_write
-      can_scopes_write("triggers")
-    end
 
     protected def find_trigger
       id = params["id"]

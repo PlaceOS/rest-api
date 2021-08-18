@@ -13,6 +13,7 @@ module PlaceOS::Api
     before_action :current_settings, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
+    getter controller_scope_resource : String = "settings"
     getter current_settings : Model::Settings { find_settings }
 
     def index
@@ -105,14 +106,6 @@ module PlaceOS::Api
       collated = model.settings_hierarchy.reverse!
       collated.each &.decrypt_for!(user)
       collated
-    end
-
-    protected def can_read
-      can_scopes_read("settings")
-    end
-
-    protected def can_write
-      can_scopes_write("settings")
     end
 
     protected def find_settings

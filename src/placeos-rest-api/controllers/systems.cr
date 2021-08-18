@@ -29,7 +29,7 @@ module PlaceOS::Api
     id_param :sys_id
 
     # Allow unscoped access to details of a single `ControlSystem`
-    before_action :can_read, only: [:index]
+    before_action :can_read, only: [:index, :find_by_email, :state_lookup, :functions]
     before_action :can_guest_read, only: [:show, :sys_zones]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
@@ -45,6 +45,7 @@ module PlaceOS::Api
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
     before_action :body, only: [:create, :execute, :update, :update_alt]
 
+    getter controller_scope_resource : String = "systems"
     getter current_control_system : Model::ControlSystem { find_system }
 
     # Websocket API session manager
@@ -408,14 +409,6 @@ module PlaceOS::Api
 
     # Helpers
     ###########################################################################
-
-    protected def can_read
-      can_scopes_read("systems")
-    end
-
-    protected def can_write
-      can_scopes_write("systems")
-    end
 
     protected def can_guest_read
       can_scopes_read("systems", "guest")

@@ -17,6 +17,7 @@ module PlaceOS::Api
 
     before_action :body, only: [:update, :update_alt]
 
+    getter controller_scope_resource : String = "metadata"
     getter current_zone : Model::Zone { find_zone }
 
     # Fetch metadata for a model
@@ -142,14 +143,6 @@ module PlaceOS::Api
     # Does the user making the request have permissions to modify the data
     def check_delete_permissions
       raise Error::Forbidden.new unless is_support? || params["id"] == user_token.id
-    end
-
-    protected def can_read
-      can_scopes_read("metadata")
-    end
-
-    protected def can_write
-      can_scopes_write("metadata")
     end
 
     protected def can_guest_read

@@ -11,6 +11,7 @@ module PlaceOS::Api
     before_action :current_app, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
+    getter controller_scope_resource : String = "oauth_applications"
     getter current_app : Model::DoorkeeperApplication { find_app }
 
     def index

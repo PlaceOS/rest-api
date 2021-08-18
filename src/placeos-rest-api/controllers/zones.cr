@@ -16,6 +16,7 @@ module PlaceOS::Api
 
     before_action :body, only: [:create, :update, :update_alt, :zone_execute]
 
+    getter controller_scope_resource : String = "zones"
     getter current_zone : Model::Zone { find_zone }
 
     def index
@@ -167,14 +168,6 @@ module PlaceOS::Api
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def can_read
-      can_scopes_read("zones")
-    end
-
-    protected def can_write
-      can_scopes_write("zones")
     end
   end
 end

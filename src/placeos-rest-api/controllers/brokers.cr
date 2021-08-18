@@ -15,6 +15,7 @@ module PlaceOS::Api
     before_action :current_broker, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
+    getter controller_scope_resource : String = "brokers"
     getter current_broker : Model::Broker { find_broker }
 
     def index
@@ -47,14 +48,6 @@ module PlaceOS::Api
 
     # Helpers
     ############################################################################
-
-    protected def can_read
-      can_scopes_read("brokers")
-    end
-
-    protected def can_write
-      can_scopes_write("brokers")
-    end
 
     protected def find_broker
       id = params["id"]

@@ -21,6 +21,7 @@ module PlaceOS::Api
     skip_action :authorize!, only: [:edge]
     skip_action :set_user_id, only: [:edge]
 
+    getter controller_scope_resource : String = "edges"
     getter current_edge : Model::Edge { find_edge }
 
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
@@ -81,14 +82,6 @@ module PlaceOS::Api
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def can_read
-      can_scopes_read("edges")
-    end
-
-    protected def can_write
-      can_scopes_write("edges")
     end
 
     # Edge Connection Management

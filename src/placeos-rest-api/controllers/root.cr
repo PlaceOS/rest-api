@@ -16,6 +16,8 @@ module PlaceOS::Api
     before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version]
     before_action :can_guest_write, only: [:signal]
 
+    getter controller_scope_resource : String = "root"
+
     # Healthcheck
     ###############################################################################################
 

@@ -21,6 +21,7 @@ module PlaceOS::Api
     before_action :current_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
     before_action :body, only: [:create, :execute, :update, :update_alt]
 
+    getter controller_scope_resource : String = "modules"
     getter current_module : Model::Module { find_module }
 
     private class IndexParams < Params
@@ -302,14 +303,6 @@ module PlaceOS::Api
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Module.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def can_read
-      can_scopes_read("modules")
-    end
-
-    protected def can_write
-      can_scopes_write("modules")
     end
   end
 end

@@ -9,6 +9,7 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
+    getter controller_scope_resource : String = "schema"
     getter current_schema : Model::JsonSchema { find_schema }
 
     def index
@@ -44,10 +45,6 @@ module PlaceOS::Api
       Log.context.set(schema_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::JsonSchema.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def can_read
-      can_scopes_read("schema")
     end
   end
 end

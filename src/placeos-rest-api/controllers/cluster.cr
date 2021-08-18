@@ -11,16 +11,10 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:destroy]
 
+    getter controller_scope_resource : String = "cluster"
+
     class ClusterParams < Params
       attribute include_status : Bool = false
-    end
-
-    protected def can_read
-      can_scopes_read("cluster")
-    end
-
-    protected def can_write
-      can_scopes_write("cluster")
     end
 
     def index

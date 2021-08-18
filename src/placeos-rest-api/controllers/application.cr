@@ -153,5 +153,16 @@ module PlaceOS::Api
       Log.debug(exception: error) { {message: "Invalid params", model_errors: model_errors} }
       return render_error(HTTP::Status::BAD_REQUEST, "Invalid params: #{model_errors.join(", ")}")
     end
+
+    # Scope check for controllers
+    abstract def controller_scope_resource : String
+
+    protected def can_write
+      can_scopes_write(controller_scope_resource)
+    end
+
+    protected def can_read
+      can_scopes_read(controller_scope_resource)
+    end
   end
 end
