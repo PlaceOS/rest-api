@@ -98,9 +98,7 @@ module PlaceOS::Api
     end
 
     def can_scopes_read(*scope_names)
-      raise Error::Forbidden.new unless scope_names.any? do |scope_name|
-                                          can_scope_read(scope_name)
-                                        end
+      raise Error::Forbidden.new unless scope_names.any? do |scope_name| can_scope_read(scope_name) end
     end
 
     def can_scope_write(scope_name : String)
@@ -113,9 +111,7 @@ module PlaceOS::Api
     end
 
     def can_scopes_write(*scope_names)
-      raise Error::Forbidden.new unless scope_names.any? do |scope_name|
-                                          can_scope_write(scope_name)
-                                        end
+      raise Error::Forbidden.new unless scope_names.any? do |scope_name| can_scope_write(scope_name) end
     end
 
     # Pull JWT from...

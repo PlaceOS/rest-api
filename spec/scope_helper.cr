@@ -9,7 +9,7 @@ module PlaceOS::Api
     scope_name = {{scope_name}}
     context "read" do
       it "allows access to show" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
         model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
         model.persisted?.should be_true
@@ -22,21 +22,21 @@ module PlaceOS::Api
       end
 
       it "allows access to index" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
         result = index_route({{ base }}, authorization_header)
         result.success?.should be_true
       end
 
       it "should not allow access to create" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
         body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
         result = create_route({{ base }}, body, authorization_header)
       end
 
       it "should not allow access to delete" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
         model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
         model.persisted?.should be_true
@@ -49,7 +49,7 @@ module PlaceOS::Api
 
     context "write" do
       it "should not allow access to show" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
         model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
         model.persisted?.should be_true
@@ -60,14 +60,14 @@ module PlaceOS::Api
       end
 
       it "should not allow access to index" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
         result = index_route({{ base }}, authorization_header)
         result.status_code.should eq 403
       end
 
       it "should allow access to create" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
         body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
         result = create_route({{ base }}, body, authorization_header)
@@ -79,7 +79,7 @@ module PlaceOS::Api
       end
 
       it "should allow access to delete" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
         model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
         model.persisted?.should be_true
         id = model.id.as(String)

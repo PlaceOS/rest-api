@@ -1,9 +1,6 @@
 require "./helper"
 
 module PlaceOS::Api
-  # WRITE = PlaceOS::Model::UserJWT::Scope::Access::Write
-  # READ  = PlaceOS::Model::UserJWT::Scope::Access::Read
-
   describe Metadata do
     base = Metadata::NAMESPACE[0]
     _, authorization_header = authentication
@@ -214,7 +211,7 @@ module PlaceOS::Api
           scope_name = "metadata"
 
           it "allows access to show" do
-            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
+            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
             parent = Model::Generator.zone.save!
             parent_id = parent.id.as(String)
@@ -226,7 +223,6 @@ module PlaceOS::Api
               Model::Generator.metadata(parent: child.id).save!
             end
 
-            id = parent.id.as(String)
             result = curl(
               method: "GET",
               path: "#{base}/#{parent_id}/children",
@@ -243,7 +239,7 @@ module PlaceOS::Api
           end
 
           it "should not allow access to delete" do
-            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
+            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
             parent = Model::Generator.zone.save!
             parent_id = parent.id.as(String)
@@ -269,7 +265,7 @@ module PlaceOS::Api
           scope_name = "metadata"
 
           it "should allow access to update" do
-            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
+            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
             parent = Model::Generator.zone.save!
             meta = Model::Metadata::Interface.new(
@@ -296,7 +292,7 @@ module PlaceOS::Api
           end
 
           it "should not allow access to show" do
-            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
+            _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
             parent = Model::Generator.zone.save!
             parent_id = parent.id.as(String)
@@ -308,7 +304,6 @@ module PlaceOS::Api
               Model::Generator.metadata(parent: child.id).save!
             end
 
-            id = parent.id.as(String)
             result = curl(
               method: "GET",
               path: "#{base}/#{parent_id}/children",
