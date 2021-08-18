@@ -164,5 +164,9 @@ module PlaceOS::Api
     protected def can_read
       can_scopes_read(controller_scope_resource)
     end
+
+    protected def can_guest_read
+      can_scopes_read(controller_scope_resource, "guest")
+    end
   end
 end

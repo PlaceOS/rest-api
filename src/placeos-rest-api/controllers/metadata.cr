@@ -144,9 +144,5 @@ module PlaceOS::Api
     def check_delete_permissions
       raise Error::Forbidden.new unless is_support? || params["id"] == user_token.id
     end
-
-    protected def can_guest_read
-      can_scopes_read("metadata", "guest")
-    end
   end
 end

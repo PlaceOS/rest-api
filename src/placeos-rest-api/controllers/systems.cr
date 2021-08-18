@@ -410,10 +410,6 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    protected def can_guest_read
-      can_scopes_read("systems", "guest")
-    end
-
     # Use consistent hashing to determine the location of the module
     def self.locate_module(module_id : String) : URI
       node = core_discovery.find?(module_id)
