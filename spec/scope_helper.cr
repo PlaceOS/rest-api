@@ -8,8 +8,6 @@ module PlaceOS::Api
     {% klass_name = klass.stringify.split("::").last.underscore %}
     scope_name = {{scope_name}}
     context "read" do
-      _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
-
       it "allows access to show" do
         _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, READ)])
 
@@ -35,7 +33,6 @@ module PlaceOS::Api
 
         body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
         result = create_route({{ base }}, body, authorization_header)
-        
       end
 
       it "should not allow access to delete" do
@@ -51,8 +48,6 @@ module PlaceOS::Api
     end
 
     context "write" do
-      _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
-
       it "should not allow access to show" do
         _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
 
@@ -85,7 +80,6 @@ module PlaceOS::Api
 
       it "should allow access to delete" do
         _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, WRITE)])
-        
         model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
         model.persisted?.should be_true
         id = model.id.as(String)
@@ -94,7 +88,6 @@ module PlaceOS::Api
         {{ klass.id }}.find(id).should be_nil
       end
     end
-    _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("public")])
   end
 end
 

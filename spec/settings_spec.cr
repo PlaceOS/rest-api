@@ -111,7 +111,7 @@ module PlaceOS::Api
       describe "scopes" do
         test_scope(Model::Settings, base, "settings")
 
-        it "tests scope on update" do
+        it "checks scope on update" do
           _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Write)])
           settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
           original_settings = settings.settings_string

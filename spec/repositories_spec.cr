@@ -104,7 +104,7 @@ module PlaceOS::Api
       describe "scopes" do
         test_scope(Model::Repository, base, "repositories")
 
-        it "tests scope on update" do
+        it "checks scope on update" do
           _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("repositories", PlaceOS::Model::UserJWT::Scope::Access::Write)])
           repository = Model::Generator.repository.save!
           original_name = repository.name

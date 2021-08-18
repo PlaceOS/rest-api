@@ -65,7 +65,7 @@ module PlaceOS::Api
       describe "scopes" do
         test_scope(Model::Zone, base, "zones")
 
-        it "tests scope on update" do
+        it "checks scope on update" do
           _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("zones", PlaceOS::Model::UserJWT::Scope::Access::Write)])
           zone = Model::Generator.zone.save!
           original_name = zone.name

@@ -320,7 +320,7 @@ module PlaceOS::Api
       describe "scopes" do
         test_scope(Model::Module, base, "modules")
 
-        it "tests scope on update" do
+        it "checks scope on update" do
           _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
           driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
           mod = Model::Generator.module(driver: driver).save!

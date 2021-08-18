@@ -9,7 +9,7 @@ module PlaceOS::Api
 
     before_action :can_read, only: [:index]
     before_action :can_guest_read, only: [:show, :children_metadata]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:update, :destroy, :update_alt]
 
     before_action :check_delete_permissions, only: :destroy
 

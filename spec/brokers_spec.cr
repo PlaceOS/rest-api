@@ -41,7 +41,7 @@ module PlaceOS::Api
       describe "scopes" do
         test_scope(Model::Broker, base, "brokers")
 
-        it "tests scope on update" do
+        it "checks scope on update" do
           _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("brokers", PlaceOS::Model::UserJWT::Scope::Access::Write)])
           broker = Model::Generator.broker.save!
           original_name = broker.name

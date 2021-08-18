@@ -82,7 +82,7 @@ module PlaceOS::Api
     describe "scopes" do
       test_scope(Model::Trigger, base, "triggers")
 
-      it "tests scope on update" do
+      it "checks scope on update" do
         _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("triggers", PlaceOS::Model::UserJWT::Scope::Access::Write)])
         trigger = Model::Generator.trigger.save!
         original_name = trigger.name
