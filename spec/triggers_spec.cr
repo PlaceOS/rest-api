@@ -79,8 +79,31 @@ module PlaceOS::Api
         end
       end
     end
-    describe "tests triggers scopes" do
+    describe "scopes" do
       test_scope(Model::Trigger, base, "triggers")
+
+      it "tests scope on update" do
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("triggers", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+        trigger = Model::Generator.trigger.save!
+        original_name = trigger.name
+
+        trigger.name = UUID.random.to_s
+
+        id = trigger.id.as(String)
+        path = base + id
+        result = update_route(path, trigger, authorization_header)
+
+        result.status_code.should eq 200
+        updated = Model::Trigger.from_trusted_json(result.body)
+
+        updated.id.should eq trigger.id
+        updated.name.should_not eq original_name
+        updated.destroy
+
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("triggers", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+        result = update_route(path, trigger, authorization_header)
+        result.status_code.should eq 403
+      end
     end
   end
 end

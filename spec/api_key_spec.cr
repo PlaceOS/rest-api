@@ -18,7 +18,7 @@ module PlaceOS::Api
         test_crd(Model::ApiKey, ApiKeys)
       end
 
-      describe "tests api scopes" do
+      describe "scopes" do
         test_scope(Model::ApiKey, base, "api_keys")
       end
     end

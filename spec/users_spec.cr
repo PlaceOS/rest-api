@@ -150,7 +150,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "tests users scopes" do
+      describe "scopes" do
         test_scope(Model::User, base, "users")
       end
     end

@@ -62,8 +62,32 @@ module PlaceOS::Api
         end
       end
 
-      describe "tests zones scopes" do
+      describe "scopes" do
         test_scope(Model::Zone, base, "zones")
+
+        it "tests scope on update" do
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("zones", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          zone = Model::Generator.zone.save!
+          original_name = zone.name
+          zone.name = UUID.random.to_s
+
+          id = zone.id.as(String)
+          path = base + id
+          result = update_route(path, zone, authorization_header)
+
+          result.success?.should be_true
+          updated = Model::Zone.from_trusted_json(result.body)
+
+          updated.id.should eq zone.id
+          updated.name.should_not eq original_name
+          updated.destroy
+
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("zones", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, zone, authorization_header)
+
+          result.success?.should be_false
+          result.status_code.should eq 403
+        end
       end
     end
   end

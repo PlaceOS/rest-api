@@ -491,7 +491,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "tests systems scopes" do
+      describe "scopes" do
         test_scope(Model::ControlSystem, base, "systems")
       end
     end

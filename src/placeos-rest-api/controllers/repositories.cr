@@ -6,7 +6,7 @@ module PlaceOS::Api
   class Repositories < Application
     base "/api/engine/v2/repositories/"
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index, :show, :branches, :commits]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt] # brances, commits?
 
     before_action :check_admin, except: [:index, :show]

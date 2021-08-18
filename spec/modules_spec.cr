@@ -317,8 +317,33 @@ module PlaceOS::Api
         body["pingable"].should be_true
       end
 
-      describe "tests modules scopes" do
+      describe "scopes" do
         test_scope(Model::Module, base, "modules")
+
+        it "tests scope on update" do
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+          mod = Model::Generator.module(driver: driver).save!
+
+          connected = mod.connected
+          mod.connected = !connected
+
+          id = mod.id.as(String)
+          path = base + id
+
+          result = update_route(path, mod, authorization_header)
+
+          result.status_code.should eq 200
+          updated = Model::Module.from_trusted_json(result.body)
+          updated.id.should eq mod.id
+          updated.connected.should eq !connected
+
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, mod, authorization_header)
+
+          result.success?.should be_false
+          result.status_code.should eq 403
+        end
       end
     end
   end

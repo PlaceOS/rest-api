@@ -18,7 +18,7 @@ module PlaceOS::Api
         test_crd(Model::Edge, Edges)
       end
 
-      describe "tests edges scopes" do
+      describe "scopes" do
         test_scope(Model::Edge, base, "edges")
       end
     end

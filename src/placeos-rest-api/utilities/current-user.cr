@@ -98,12 +98,9 @@ module PlaceOS::Api
     end
 
     def can_scopes_read(*scope_names)
-      can_read = false
-      scope_names.each do |scope_name|
-        can_read = can_scope_read(scope_name)
-        break if can_read
-      end
-      raise Error::Forbidden.new unless can_read
+      raise Error::Forbidden.new unless scope_names.any? do |scope_name|
+                                          can_scope_read(scope_name)
+                                        end
     end
 
     def can_scope_write(scope_name : String)
@@ -116,12 +113,9 @@ module PlaceOS::Api
     end
 
     def can_scopes_write(*scope_names)
-      can_write = false
-      scope_names.each do |scope_name|
-        can_write = can_scope_write(scope_name)
-        break if can_write
-      end
-      raise Error::Forbidden.new unless can_write
+      raise Error::Forbidden.new unless scope_names.any? do |scope_name|
+                                          can_scope_write(scope_name)
+                                        end
     end
 
     # Pull JWT from...
