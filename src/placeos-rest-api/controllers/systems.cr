@@ -29,9 +29,12 @@ module PlaceOS::Api
     id_param :sys_id
 
     # Allow unscoped access to details of a single `ControlSystem`
-    before_action :can_read, only: [:index, :find_by_email, :state_lookup, :functions]
+    before_action :can_read, only: [:index, :find_by_email]
     before_action :can_guest_read, only: [:show, :sys_zones]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt, :start, :stop]
+
+    before_action :can_read_runtime, only: [:types, :functions, :state, :state_lookup]
+    before_action :can_write_runtime, only: [:control, :execute]
 
     before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
                                          :types, :functions, :state, :state_lookup]
@@ -440,6 +443,14 @@ module PlaceOS::Api
       Log.context.set(control_system_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    protected def can_write_control
+      can_scopes_write("control")
+    end
+
+    protected def can_read_control
+      can_scopes_read("control")
     end
   end
 end
