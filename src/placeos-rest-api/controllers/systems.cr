@@ -33,8 +33,8 @@ module PlaceOS::Api
     before_action :can_guest_read, only: [:show, :sys_zones]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt, :start, :stop]
 
-    before_action :can_read_runtime, only: [:types, :functions, :state, :state_lookup]
-    before_action :can_write_runtime, only: [:control, :execute]
+    before_action :can_read_control, only: [:types, :functions, :state, :state_lookup]
+    before_action :can_write_control, only: [:control, :execute]
 
     before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
                                          :types, :functions, :state, :state_lookup]
