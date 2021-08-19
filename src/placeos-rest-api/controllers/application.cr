@@ -72,6 +72,8 @@ module PlaceOS::Api
 
     getter request_id : String { UUID.random.to_s }
 
+    @available_scopes = Array(String).new
+
     # This makes it simple to match client requests with server side logs.
     # When building microservices, this ID should be propagated to upstream services.
     def set_request_id
@@ -159,14 +161,20 @@ module PlaceOS::Api
 
     protected def can_write
       can_scopes_write(controller_scope_resource)
+      add_scope(controller_scope_resource)
     end
 
     protected def can_read
       can_scopes_read(controller_scope_resource)
+      add_scope(controller_scope_resource)
     end
 
     protected def can_guest_read
       can_scopes_read(controller_scope_resource, "guest")
+    end
+
+    macro add_scope(resource)
+      @available_scopes << {{resource}} unless @available_scopes.includes?({{resource}})
     end
   end
 end

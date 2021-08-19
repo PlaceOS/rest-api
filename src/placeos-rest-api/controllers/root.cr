@@ -13,7 +13,7 @@ module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version]
+    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :available_scopes]
     before_action :can_guest_write, only: [:signal]
 
     getter controller_scope_resource : String = "root"
@@ -78,6 +78,10 @@ module PlaceOS::Api
 
     get "/cluster/versions", :cluster_version do
       render json: Root.construct_versions
+    end
+
+    get "/available_scopes", :available_scopes do
+      render json: available_scopes.to_json
     end
 
     class_getter version : PlaceOS::Model::Version do
