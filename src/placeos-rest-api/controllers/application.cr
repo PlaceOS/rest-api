@@ -157,24 +157,8 @@ module PlaceOS::Api
     end
 
     # Scope check for controllers
-    abstract def controller_scope_resource : String
-
-    protected def can_write
-      can_scopes_write(controller_scope_resource)
-      add_scope(controller_scope_resource)
-    end
-
-    protected def can_read
-      can_scopes_read(controller_scope_resource)
-      add_scope(controller_scope_resource)
-    end
-
-    protected def can_guest_read
-      can_scopes_read(controller_scope_resource, "guest")
-    end
-
-    macro add_scope(resource)
-      @available_scopes << {{resource}} unless @available_scopes.includes?({{resource}})
+    def controller_scope_resource : String
+      ROUTE_RESOURCE
     end
   end
 end
