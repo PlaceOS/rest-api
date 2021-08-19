@@ -1,9 +1,6 @@
 require "../lib/action-controller/spec/curl_context"
 
 module PlaceOS::Api
-  WRITE = PlaceOS::Model::UserJWT::Scope::Access::Write
-  READ  = PlaceOS::Model::UserJWT::Scope::Access::Read
-
   macro test_scope(klass, base, scope_name)
     {% klass_name = klass.stringify.split("::").last.underscore %}
     scope_name = {{scope_name}}

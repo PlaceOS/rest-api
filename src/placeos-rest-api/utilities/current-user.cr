@@ -88,34 +88,43 @@ module PlaceOS::Api
       token.is_support? || token.is_admin?
     end
 
-    def can_scope_read(scope_name : String)
-      utoken = user_token
-      unless utoken.public_scope?
-        scope = utoken.get_access(scope_name)
-        return scope.read?
-      end
-      true
+    macro inherited
+      ROUTE_RESOURCE = {{ @type.stringify.split("::").last.underscore }}
     end
 
-    def can_scopes_read(*scope_names)
-      raise Error::Forbidden.new unless scope_names.any? do |scope_name|
-                                          can_scope_read(scope_name)
-                                        end
+    protected def can_write
+      can_scope_access!(ROUTE_RESOURCE, :write)
     end
 
-    def can_scope_write(scope_name : String)
-      utoken = user_token
-      unless utoken.public_scope?
-        scope = utoken.get_access(scope_name)
-        return scope.write?
-      end
-      true
+    protected def can_read
+      can_scope_access!(ROUTE_RESOURCE, :read)
     end
 
-    def can_scopes_write(*scope_names)
-      raise Error::Forbidden.new unless scope_names.any? do |scope_name|
-                                          can_scope_write(scope_name)
-                                        end
+    macro generate_scope_check(*scopes)
+      {% for scope in scopes %}
+        protected def can_{{ scope }}_write
+          can_scopes_access([ROUTE_RESOURCE, {{ scope }}], :write)
+        end
+
+        protected def can_{{ scope }}_read
+          can_scopes_access([ROUTE_RESOURCE, {{ scope }}], :read)
+        end
+      {% end %}
+    end
+
+    generate_scope_check("guest")
+
+    SCOPES = [] of String
+
+    macro can_scope_access!(scope, access)
+      {% SCOPES << scope unless SCOPE.contains? scope %}
+      raise Error::Forbidden.new unless user_token.public_scope? || user_token.get_access(scope_name) == {{ access }})
+    end
+
+    macro can_scopes_access!(scopes, access)
+      {% for scope in scopes %}
+        can_scope_access!({{scopes}}, {{access}})
+      {% end %}
     end
 
     # Pull JWT from...
