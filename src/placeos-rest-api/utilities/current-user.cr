@@ -92,33 +92,36 @@ module PlaceOS::Api
       ROUTE_RESOURCE = {{ @type.stringify.split("::").last.underscore }}
     end
 
+    READ  = PlaceOS::Model::UserJWT::Scope::Access::Read
+    WRITE = PlaceOS::Model::UserJWT::Scope::Access::Write
+
     protected def can_write
-      can_scope_access!(ROUTE_RESOURCE, :write)
+      can_scope_access!(ROUTE_RESOURCE, WRITE)
     end
 
     protected def can_read
-      can_scope_access!(ROUTE_RESOURCE, :read)
+      can_scope_access!(ROUTE_RESOURCE, READ)
     end
 
     macro generate_scope_check(*scopes)
       {% for scope in scopes %}
         protected def can_{{ scope }}_write
-          can_scopes_access([ROUTE_RESOURCE, {{ scope }}], :write)
+          can_scopes_access([ROUTE_RESOURCE, {{ scope }}], WRITE)
         end
 
         protected def can_{{ scope }}_read
-          can_scopes_access([ROUTE_RESOURCE, {{ scope }}], :read)
+          can_scopes_access([ROUTE_RESOURCE, {{ scope }}], READ)
         end
       {% end %}
     end
 
-    generate_scope_check("guest")
+    # generate_scope_check("guest")
 
     SCOPES = [] of String
 
     macro can_scope_access!(scope, access)
-      {% SCOPES << scope unless SCOPE.contains? scope %}
-      raise Error::Forbidden.new unless user_token.public_scope? || user_token.get_access(scope_name) == {{ access }})
+      {% SCOPES << scope unless SCOPES.includes? scope %}
+      raise Error::Forbidden.new unless user_token.public_scope? || user_token.get_access({{ scope }}) == {{ access }}
     end
 
     macro can_scopes_access!(scopes, access)

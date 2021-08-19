@@ -66,13 +66,5 @@ module PlaceOS::Api
       # Find will raise a 404 (not found) if there is an error
       Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
     end
-
-    protected def can_read
-      can_scopes_read("api_keys")
-    end
-
-    protected def can_write
-      can_scopes_write("api_keys")
-    end
   end
 end

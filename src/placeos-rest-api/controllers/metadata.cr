@@ -8,7 +8,7 @@ module PlaceOS::Api
     base "/api/engine/v2/metadata"
 
     before_action :can_read, only: [:index]
-    before_action :can_guest_read, only: [:show, :children_metadata]
+    # before_action :can_guest_read, only: [:show, :children_metadata]
     before_action :can_write, only: [:update, :destroy, :update_alt]
 
     before_action :check_delete_permissions, only: :destroy

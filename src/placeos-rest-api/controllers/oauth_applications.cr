@@ -59,13 +59,5 @@ module PlaceOS::Api
       # Find will raise a 404 (not found) if there is an error
       Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
     end
-
-    protected def can_read
-      can_scopes_read("oauth_applications")
-    end
-
-    protected def can_write
-      can_scopes_write("ouath_applications")
-    end
   end
 end
