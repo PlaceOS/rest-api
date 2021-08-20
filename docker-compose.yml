@@ -41,6 +41,7 @@ services:
       - ./spec:/app/spec
       - ./src:/app/src
     depends_on:
+      - build
       - elastic
       - etcd
       - redis
