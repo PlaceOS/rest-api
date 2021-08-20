@@ -1,5 +1,5 @@
 ARG CRYSTAL_VERSION=1.1.1
-FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine
+FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine as build
 WORKDIR /app
 
 # Set the commit via a build arg
@@ -24,11 +24,10 @@ RUN adduser \
 
 # Add trusted CAs for communicating with external services
 RUN apk update && \
-    apk upgrade && \
     apk add --no-cache \
-      ca-certificates
-
-RUN  update-ca-certificates
+      ca-certificates \
+    && \
+    update-ca-certificates
 
 # Install shards for caching
 COPY shard.yml shard.yml
@@ -46,15 +45,15 @@ RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_VERSION=$PLACE_VERSION \
     crystal build --release --error-trace /app/src/app.cr -o /app/rest-api
 
-# Extract dependencies
-RUN ldd /app/rest-api | tr -s '[:blank:]' '\n' | grep '^/' | \
-    xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
-RUN ldd /bin/ping | tr -s '[:blank:]' '\n' | grep '^/' | \
-    xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
-
-RUN ldd /bin/ping6 | tr -s '[:blank:]' '\n' | grep '^/' | \
-    xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'
+# Extract binary dependencies
+RUN for binary in "/app/rest-api" "/bin/ping" "/bin/ping6"; do \
+        ldd "$binary" | \
+        tr -s '[:blank:]' '\n' | \
+        grep '^/' | \
+        xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'; \
+    done
 
 # Build a minimal docker image
 FROM scratch
@@ -62,25 +61,25 @@ WORKDIR /
 ENV PATH=$PATH:/
 
 # Copy the user information over
-COPY --from=0 /etc/passwd /etc/passwd
-COPY --from=0 /etc/group /etc/group
+COPY --from=build etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
 
 # These are required for communicating with external services
-COPY --from=0 /etc/hosts /etc/hosts
+COPY --from=build /etc/hosts /etc/hosts
 
 # These provide certificate chain validation where communicating with external services over TLS
-COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 # This is required for Timezone support
-COPY --from=0 /usr/share/zoneinfo/ /usr/share/zoneinfo/
+COPY --from=build /usr/share/zoneinfo/ /usr/share/zoneinfo/
 
 # this is required to ping things
-COPY --from=0 /bin/ping /ping
-COPY --from=0 /bin/ping6 /ping6
+COPY --from=build /bin/ping /ping
+COPY --from=build /bin/ping6 /ping6
 
-COPY --from=0 /app/deps /
-COPY --from=0 /app/rest-api /rest-api
+COPY --from=build /app/deps /
+COPY --from=build /app/rest-api /rest-api
 
 # Use an unprivileged user.
 USER appuser:appuser

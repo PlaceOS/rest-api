@@ -1,17 +1,20 @@
 ARG CRYSTAL_VERSION=1.1.1
 FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine
-
 WORKDIR /app
 
 # Set the commit through a build arg
 ARG PLACE_COMMIT="DEV"
 
-# Add trusted CAs for communicating with external services
-RUN apk add --no-cache ca-certificates tzdata bash
-
-RUN update-ca-certificates
-
-RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing watchexec
+# - Add trusted CAs for communicating with external services
+# - Add watchexec for running tests on change
+RUN apk add --no-cache \
+        bash \
+        ca-certificates \
+    && \
+    apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing \
+        watchexec \
+    && \
+    update-ca-certificates
 
 COPY .ameba.yml /app
 COPY shard.yml /app
@@ -25,4 +28,4 @@ COPY scripts /app/scripts
 # These provide certificate chain validation where communicating with external services over TLS
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
-CMD /app/scripts/entrypoint.sh
+CMD ["/app/scripts/entrypoint.sh"]
