@@ -42,7 +42,7 @@ module PlaceOS::Api
 
     macro can_scope_access!(scope, access)
       {% SCOPES << scope unless SCOPES.includes? scope %}
-      raise Error::Forbidden.new unless user_token.public_scope? || user_token.get_access({{ scope }}) == {{ access }}
+      raise Error::Forbidden.new unless user_token.public_scope? || user_token.get_access({{ scope }}).includes? {{ access }}
     end
 
     macro can_scopes_access!(scopes, access)
