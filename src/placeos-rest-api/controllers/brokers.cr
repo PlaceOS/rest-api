@@ -6,16 +6,23 @@ module PlaceOS::Api
   class Brokers < Application
     base "/api/engine/v2/brokers/"
 
+    # Scopes
+    ###############################################################################################
+
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
+    # Callbacks
+    ###############################################################################################
+
     before_action :current_broker, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
-    getter controller_scope_resource : String = "brokers"
+    ###############################################################################################
+
     getter current_broker : Model::Broker { find_broker }
 
     def index

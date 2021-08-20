@@ -9,11 +9,17 @@ module PlaceOS::Api
   class Edges < Application
     base "/api/engine/v2/edges/"
 
+    # Scopes
+    ###############################################################################################
+
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :show, :edge]
     before_action :check_support, only: [:index, :show]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt, :token]
     before_action :body, only: [:create, :update, :update_alt]
@@ -21,7 +27,8 @@ module PlaceOS::Api
     skip_action :authorize!, only: [:edge]
     skip_action :set_user_id, only: [:edge]
 
-    getter controller_scope_resource : String = "edges"
+    ###############################################################################################
+
     getter current_edge : Model::Edge { find_edge }
 
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }

@@ -13,10 +13,8 @@ module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :available_scopes]
-    # before_action :can_guest_write, only: [:signal]
-
-    getter controller_scope_resource : String = "root"
+    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :scopes]
+    before_action :can_write_guest, only: [:signal]
 
     # Healthcheck
     ###############################################################################################
@@ -66,10 +64,6 @@ module PlaceOS::Api
         .first?
     end
 
-    # protected def can_guest_write
-    #   can_scopes_write("root", "guest")
-    # end
-
     ###############################################################################################
 
     get "/version", :version do
@@ -80,8 +74,10 @@ module PlaceOS::Api
       render json: Root.construct_versions
     end
 
-    get "/available_scopes", :available_scopes do
-      render json: ROUTE_RESOURCE.to_json
+    class_getter scopes = SCOPES
+
+    get "/scopes", :scopes do
+      render json: Root.scopes
     end
 
     class_getter version : PlaceOS::Model::Version do

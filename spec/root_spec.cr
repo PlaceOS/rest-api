@@ -39,7 +39,7 @@ module PlaceOS::Api
       end
 
       it "gets scope names" do
-        result = curl("GET", File.join(base, "available_scopes"), headers: authorization_header)
+        result = curl("GET", File.join(base, "scopes"), headers: authorization_header)
         puts result
       end
 

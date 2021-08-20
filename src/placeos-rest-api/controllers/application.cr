@@ -17,6 +17,9 @@ module PlaceOS::Api
     # Helpers for determining picking off user from JWT, authorization
     include Utils::CurrentUser
 
+    # Helpers for defining scope checks on controller actions
+    include Utils::Scopes
+
     # Core service discovery
     class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
 
@@ -71,8 +74,6 @@ module PlaceOS::Api
     end
 
     getter request_id : String { UUID.random.to_s }
-
-    @available_scopes = Array(String).new
 
     # This makes it simple to match client requests with server side logs.
     # When building microservices, this ID should be propagated to upstream services.
@@ -154,11 +155,6 @@ module PlaceOS::Api
       model_errors = error.params.errors.map(&.to_s)
       Log.debug(exception: error) { {message: "Invalid params", model_errors: model_errors} }
       return render_error(HTTP::Status::BAD_REQUEST, "Invalid params: #{model_errors.join(", ")}")
-    end
-
-    # Scope check for controllers
-    def controller_scope_resource : String
-      ROUTE_RESOURCE
     end
   end
 end

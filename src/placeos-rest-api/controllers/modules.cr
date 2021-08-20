@@ -11,17 +11,24 @@ module PlaceOS::Api
 
     base "/api/engine/v2/modules/"
 
+    # Scopes
+    ###############################################################################################
+
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]
 
+    # Callbacks
+    ###############################################################################################
+
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
     before_action :current_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
     before_action :body, only: [:create, :execute, :update, :update_alt]
 
-    getter controller_scope_resource : String = "modules"
+    ###############################################################################################
+
     getter current_module : Model::Module { find_module }
 
     private class IndexParams < Params
