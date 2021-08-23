@@ -4,10 +4,12 @@ module PlaceOS::Api
   # Helpers to generate scope checks
   module Utils::Scopes
     macro included
+      {% verbatim do %}
       macro inherited
         ROUTE_RESOURCE = {{ @type.stringify.split("::").last.underscore }}
         __create_scope_checks__
       end
+      {% end %}
     end
 
     alias Access = PlaceOS::Model::UserJWT::Scope::Access
