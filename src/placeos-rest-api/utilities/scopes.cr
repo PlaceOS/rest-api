@@ -28,7 +28,7 @@ module PlaceOS::Api
           {% for scope in scopes %}
             protected def can_write_{{ scope.id }}
               can_scopes_access!([ROUTE_RESOURCE, {{ scope }}], Access::Write)
-            end
+          end
 
             protected def can_read_{{ scope.id }}
               can_scopes_access!([ROUTE_RESOURCE, {{ scope }}], Access::Read)
@@ -42,15 +42,18 @@ module PlaceOS::Api
 
     SCOPES = [] of String
 
+    def can_scope_access?(scope, access)
+      [user_token.public_scope?, user_token.guest_scope?, user_token.get_access(scope).includes? access].any?
+    end
+
     macro can_scope_access!(scope, access)
       {% SCOPES << scope unless SCOPES.includes? scope %}
-      raise Error::Forbidden.new unless user_token.public_scope? || user_token.get_access({{ scope }}).includes? {{ access }}
+      raise Error::Forbidden.new unless can_scope_access? {{scope}}, {{access}}
     end
 
     macro can_scopes_access!(scopes, access)
-      {% for scope in scopes %}
-        can_scope_access!({{scope}}, {{access}})
-      {% end %}
+      {% SCOPES << scopes %}
+      raise Error::Forbidden.new if !{{scopes}}.any? { |scope| can_scope_access? scope, {{access}} }
     end
   end
 end

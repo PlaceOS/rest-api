@@ -326,6 +326,7 @@ module PlaceOS::Api
             headers: authorization_header,
           )
 
+          result.status_code.should eq 200
           metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
           metadata.size.should eq 1
           metadata.values.first.parent_id.should eq zone_id

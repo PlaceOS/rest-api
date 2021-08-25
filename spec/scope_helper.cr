@@ -30,6 +30,7 @@ module PlaceOS::Api
 
         body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
         result = create_route({{ base }}, body, authorization_header)
+        result.status_code.should eq 403
       end
 
       it "should not allow access to delete" do
