@@ -15,12 +15,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v1.5.0
+        uses: hadolint/hadolint-action@v1.6.0
         with:
           config: .hadolint.yaml
           dockerfile: Dockerfile
       - name: Lint Dockerfile.test
-        uses: hadolint/hadolint-action@v1.5.0
+        uses: hadolint/hadolint-action@v1.6.0
         with:
           config: .hadolint.yaml
           dockerfile: Dockerfile.test
