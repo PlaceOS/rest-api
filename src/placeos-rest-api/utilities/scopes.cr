@@ -43,6 +43,7 @@ module PlaceOS::Api
     SCOPES = [] of String
 
     def can_scope_access?(scope, access)
+      # ameba:disable Performance/AnyInsteadOfEmpty
       [user_token.public_scope?, user_token.guest_scope?, user_token.get_access(scope).includes? access].any?
     end
 
