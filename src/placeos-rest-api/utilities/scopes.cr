@@ -48,12 +48,11 @@ module PlaceOS::Api
     end
 
     macro can_scope_access!(scope, access)
-      {% SCOPES << scope unless SCOPES.includes? scope %}
+      SCOPES << {{scope}} unless SCOPES.includes? {{scope}}
       raise Error::Forbidden.new unless can_scope_access? {{scope}}, {{access}}
     end
 
     macro can_scopes_access!(scopes, access)
-      {% SCOPES << scopes %}
       raise Error::Forbidden.new if !{{scopes}}.any? { |scope| can_scope_access? scope, {{access}} }
     end
   end

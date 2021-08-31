@@ -12,9 +12,6 @@ module PlaceOS::Api
     class Forbidden < Error
     end
 
-    class Forbidden < Error
-    end
-
     class NoBody < Error
     end
 
