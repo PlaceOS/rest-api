@@ -40,30 +40,7 @@ module PlaceOS::Api
 
       describe "scopes" do
         test_scope(Model::Broker, base, "brokers")
-
-        it "checks scope on update" do
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("brokers", PlaceOS::Model::UserJWT::Scope::Access::Write)])
-          broker = Model::Generator.broker.save!
-          original_name = broker.name
-          broker.name = UUID.random.to_s
-
-          id = broker.id.as(String)
-          path = base + id
-
-          result = update_route(path, broker, authorization_header)
-
-          result.status_code.should eq 200
-          updated = Model::Broker.from_trusted_json(result.body)
-
-          updated.id.should eq broker.id
-          updated.name.should_not eq original_name
-
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("brokers", PlaceOS::Model::UserJWT::Scope::Access::Read)])
-          result = update_route(path, broker, authorization_header)
-
-          result.success?.should be_false
-          result.status_code.should eq 403
-        end
+        test_update_write_scope(Model::Broker, base, "brokers")
       end
     end
   end

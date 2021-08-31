@@ -103,29 +103,7 @@ module PlaceOS::Api
 
       describe "scopes" do
         test_scope(Model::Repository, base, "repositories")
-
-        it "checks scope on update" do
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("repositories", PlaceOS::Model::UserJWT::Scope::Access::Write)])
-          repository = Model::Generator.repository.save!
-          original_name = repository.name
-          repository.name = UUID.random.to_s
-
-          id = repository.id.as(String)
-          path = base + id
-          result = update_route(path, repository, authorization_header)
-
-          result.status_code.should eq 200
-          updated = Model::Repository.from_trusted_json(result.body)
-
-          updated.id.should eq repository.id
-          updated.name.should_not eq original_name
-
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("repositories", PlaceOS::Model::UserJWT::Scope::Access::Read)])
-          result = update_route(path, repository, authorization_header)
-
-          result.success?.should be_false
-          result.status_code.should eq 403
-        end
+        test_update_write_scope(Model::Repository, base, "repositories")
       end
     end
   end

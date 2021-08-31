@@ -87,6 +87,34 @@ module PlaceOS::Api
       end
     end
   end
+
+  macro test_update_write_scope(klass, base, scope_name)
+    {% klass_name = klass.stringify.split("::").last.underscore %}
+    scope_name = {{scope_name}}
+    it "checks scope on update" do
+    _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          model = Model::Generator.{{ klass_name.id }}.save!
+          original_name = model.name
+          model.name = UUID.random.to_s
+
+          id = model.id.as(String)
+          path = base + id
+          result = update_route(path, model, authorization_header)
+
+          result.success?.should be_true
+          updated = {{klass.id}}.from_trusted_json(result.body)
+
+          updated.id.should eq model.id
+          updated.name.should_not eq original_name
+          updated.destroy
+
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, model, authorization_header)
+
+          result.success?.should be_false
+          result.status_code.should eq 403
+    end
+  end
 end
 
 def show_route(base, id, authorization_header)
