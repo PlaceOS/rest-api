@@ -60,7 +60,7 @@ module PlaceOS::Api
 
     def check_oauth_scope
       utoken = user_token
-      unless utoken.scope.includes?("public")
+      unless utoken.public_scope?
         Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.hostname, id: utoken.id} }
         raise Error::Unauthorized.new "public scope required for access"
       end
