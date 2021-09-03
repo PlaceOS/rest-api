@@ -58,10 +58,6 @@ module PlaceOS::Api
             HTTP::Client::Response.new(200, body, headers)
           end
 
-        WebMock
-          .stub(:get, "http://localhost:3000/api/frontends/v1/version")
-          .to_return(body: %({"service":"frontend_loader", "commit":"DEV", "version":"v1.0.0", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
-
         # Dispatch currently exposes a non-standard version endpoint
         # https://github.com/PlaceOS/dispatch/issues/6
         WebMock
