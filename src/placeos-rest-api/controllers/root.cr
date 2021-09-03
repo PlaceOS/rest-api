@@ -109,7 +109,7 @@ module PlaceOS::Api
     class_getter rest_api_version : PlaceOS::Model::Version = Root.version
 
     protected def self.frontends_version : PlaceOS::Model::Version
-      Frontends::Client.client(&.version)
+      FrontendLoader::Client.client(&.version)
     end
 
     protected def self.rubber_soul_version : PlaceOS::Model::Version

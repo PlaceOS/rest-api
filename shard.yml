@@ -43,9 +43,9 @@ dependencies:
     version: ~> 1
 
   # For core client
-  placeos-core:
-    github: placeos/core
-    version: ">= 3.10.3"
+  placeos-core-client:
+    github: placeos/core-client
+    version: ~> 0.3
 
   # For driver state helpers
   placeos-driver:
@@ -53,9 +53,9 @@ dependencies:
     version: ~> 5.1
 
   # For frontends client
-  placeos-frontends:
-    github: placeos/frontends
-    version: ~> 0.11
+  placeos-frontend-loader:
+    github: placeos/frontend-loader
+    version: ~> 1.1
 
   # Centrally defined logging configuration
   placeos-log-backend:
