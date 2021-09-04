@@ -4,7 +4,7 @@ require "../utilities/core_discovery"
 require "rethinkdb"
 require "rethinkdb-orm"
 require "rubber-soul/client"
-require "placeos-frontends/client"
+require "placeos-frontend-loader/client"
 
 require "placeos-models/version"
 require "uri"
@@ -83,7 +83,7 @@ module PlaceOS::Api
       )
     end
 
-    SERVICES = %w(core dispatch frontends rest_api rubber_soul triggers source)
+    SERVICES = %w(core dispatch frontend_loader rest_api rubber_soul triggers source)
 
     def self.construct_versions : Array(PlaceOS::Model::Version)
       version_channel = Channel(PlaceOS::Model::Version?).new
@@ -108,8 +108,8 @@ module PlaceOS::Api
 
     class_getter rest_api_version : PlaceOS::Model::Version = Root.version
 
-    protected def self.frontends_version : PlaceOS::Model::Version
-      Frontends::Client.client(&.version)
+    protected def self.frontend_loader_version : PlaceOS::Model::Version
+      FrontendLoader::Client.client(&.version)
     end
 
     protected def self.rubber_soul_version : PlaceOS::Model::Version

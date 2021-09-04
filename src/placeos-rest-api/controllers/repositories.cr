@@ -1,4 +1,4 @@
-require "placeos-frontends/client"
+require "placeos-frontend-loader/client"
 
 require "./application"
 
@@ -117,7 +117,7 @@ module PlaceOS::Api
     #
     # Returns a hash of folder_name to commit
     get "/interfaces", :loaded_interfaces do
-      render json: PlaceOS::Frontends::Client.client(&.loaded)
+      render json: PlaceOS::FrontendLoader::Client.client(&.loaded)
     end
 
     get "/:id/drivers", :drivers do
@@ -149,15 +149,16 @@ module PlaceOS::Api
 
     def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
       number_of_commits = 50 if number_of_commits.nil?
-      if repository.repo_type == Model::Repository::Type::Driver
+      case repository.repo_type
+      in .driver?
         # Dial the core responsible for the driver
         Api::Systems.core_for(repository.folder_name, request_id) do |core_client|
-          core_client.driver(file_name || ".", repository.folder_name, number_of_commits)
+          core_client.driver(file_name || ".", repository.folder_name, repository.branch, number_of_commits)
         end
-      else
+      in .interface?
         # Dial the frontends service
-        Frontends::Client.client(request_id: request_id) do |frontends_client|
-          frontends_client.commits(repository.folder_name, number_of_commits)
+        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+          frontends_client.commits(repository.folder_name, repository.branch, number_of_commits)
         end
       end
     end
@@ -191,7 +192,7 @@ module PlaceOS::Api
       case repository.repo_type
       in .interface?
         # Dial the frontends service
-        Frontends::Client.client(request_id: request_id) do |frontends_client|
+        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
           frontends_client.branches(repository.folder_name)
         end
       in .driver?

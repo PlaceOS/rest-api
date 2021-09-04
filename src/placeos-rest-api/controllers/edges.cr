@@ -1,5 +1,5 @@
 require "hound-dog"
-require "placeos-core/client"
+require "placeos-core-client"
 require "promise"
 
 require "./application"
