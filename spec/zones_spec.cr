@@ -63,8 +63,8 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_scope(Model::Zone, base, "zones")
-        test_update_write_scope(Model::Zone, base, "zones")
+        test_controller_scope(Zones)
+        test_update_write_scope(Zones)
       end
     end
   end

@@ -19,7 +19,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_scope(Model::Edge, base, "edges")
+        test_controller_scope(Edges)
       end
     end
   end

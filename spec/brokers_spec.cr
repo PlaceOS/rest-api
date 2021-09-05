@@ -39,8 +39,8 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_scope(Model::Broker, base, "brokers")
-        test_update_write_scope(Model::Broker, base, "brokers")
+        test_update_write_scope(Brokers)
+        test_controller_scope(Brokers)
       end
     end
   end

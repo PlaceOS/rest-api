@@ -80,8 +80,8 @@ module PlaceOS::Api
       end
     end
     describe "scopes" do
-      test_scope(Model::Trigger, base, "triggers")
-      test_update_write_scope(Model::Trigger, base, "triggers")
+      test_controller_scope(Triggers)
+      test_update_write_scope(Triggers)
     end
   end
 end

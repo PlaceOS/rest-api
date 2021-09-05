@@ -85,7 +85,7 @@ end
 def generate_auth_user(sys_admin, support, scopes)
   scope_list = scopes.try &.join('-', &.to_s)
   test_user_email = "test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech"
-  existing = PlaceOS::Model::User.find_all([test_user_email], index: :email).first?
+  existing = PlaceOS::Model::User.where(email: test_user_email).first?
 
   existing || PlaceOS::Model::Generator.user.tap do |user|
     user.email = test_user_email

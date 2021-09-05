@@ -19,7 +19,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_scope(Model::ApiKey, base, "api_keys")
+        test_controller_scope(ApiKeys)
       end
     end
   end

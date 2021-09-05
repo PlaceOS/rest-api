@@ -493,8 +493,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_scope(Model::ControlSystem, base, "systems")
-
+        test_controller_scope(Systems)
         it "should not allow start" do
           _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
 

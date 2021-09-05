@@ -78,7 +78,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_scope(Model::Driver, base, "drivers")
+        test_controller_scope(Drivers)
       end
     end
   end

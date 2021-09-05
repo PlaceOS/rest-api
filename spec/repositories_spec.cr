@@ -102,8 +102,8 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_scope(Model::Repository, base, "repositories")
-        test_update_write_scope(Model::Repository, base, "repositories")
+        test_controller_scope(Repositories)
+        test_update_write_scope(Repositories)
       end
     end
   end

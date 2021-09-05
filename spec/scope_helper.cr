@@ -1,55 +1,71 @@
 require "../lib/action-controller/spec/curl_context"
 
 module PlaceOS::Api
-  macro test_scope(klass, base, scope_name)
-    {% klass_name = klass.stringify.split("::").last.underscore %}
-    scope_name = {{scope_name}}
-    context "read" do
-      it "allows access to show" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+  macro test_controller_scope(klass)
+    {% base = klass.resolve.constant(:NAMESPACE).first %}
 
-        model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
+    {% if klass.stringify == "Repositories" %}
+      {% model_name = "Repository" %}
+      {% model_gen = "repository" %}
+    {% elsif klass.stringify == "Systems" %}
+      {% model_name = "ControlSystem" %}
+      {% model_gen = "control_system" %}
+    {% elsif klass.stringify == "Settings" %}
+      {% model_name = "Settings" %}
+      {% model_gen = "settings" %}
+    {% else %}
+      {% model_name = klass.stringify.gsub(/[s]$/, " ").strip %}
+      {% model_gen = model_name.underscore %}
+    {% end %}
+
+    {% scope_name = klass.stringify.underscore %}
+
+    context "read2" do
+      it "allows access to show" do
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
+
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
         id = model.id.as(String)
         result = show_route({{ base }}, id, authorization_header)
         result.status_code.should eq 200
-        response_model = {{ klass.id }}.from_trusted_json(result.body)
+        response_model = Model::{{ model_name.id }}.from_trusted_json(result.body)
         response_model.id.should eq id
         model.destroy
       end
 
       it "allows access to index" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
 
         result = index_route({{ base }}, authorization_header)
         result.success?.should be_true
       end
 
       it "should not allow access to create" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
 
-        body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
+        body = PlaceOS::Model::Generator.{{ model_gen.id }}.to_json
         result = create_route({{ base }}, body, authorization_header)
         result.status_code.should eq 403
       end
 
       it "should not allow access to delete" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
 
-        model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
         id = model.id.as(String)
         result = delete_route({{ base }}, id, authorization_header)
         result.status_code.should eq 403
-        {{ klass.id }}.find(id).should_not be_nil
+        Model::{{ model_name.id }}.find(id).should_not be_nil
       end
     end
 
-    context "write" do
+    context "write2" do
       it "should not allow access to show" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
 
-        model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
         id = model.id.as(String)
         result = show_route({{ base }}, id, authorization_header)
@@ -58,42 +74,52 @@ module PlaceOS::Api
       end
 
       it "should not allow access to index" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
 
         result = index_route({{ base }}, authorization_header)
         result.status_code.should eq 403
       end
 
       it "should allow access to create" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
 
-        body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
+        body = PlaceOS::Model::Generator.{{ model_gen.id }}.to_json
         result = create_route({{ base }}, body, authorization_header)
         result.success?.should be_true
 
         body = result.body.as(String)
-        response_model = {{ klass.id }}.from_trusted_json(result.body)
+        response_model = Model::{{ model_name.id }}.from_trusted_json(result.body)
         response_model.destroy
       end
 
       it "should allow access to delete" do
-        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
-        model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
+        _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
         id = model.id.as(String)
         result = delete_route({{ base }}, id, authorization_header)
         result.success?.should be_true
-        {{ klass.id }}.find(id).should be_nil
+        Model::{{ model_name.id }}.find(id).should be_nil
       end
     end
   end
 
-  macro test_update_write_scope(klass, base, scope_name)
-    {% klass_name = klass.stringify.split("::").last.underscore %}
-    scope_name = {{scope_name}}
+  macro test_update_write_scope(klass)
+    {% base = klass.resolve.constant(:NAMESPACE).first %}
+
+    {% if klass.stringify == "Repositories" %}
+      {% model_name = "Repository" %}
+      {% model_gen = "repository" %}
+    {% else %}
+      {% model_name = klass.stringify.gsub(/[s]$/, " ").strip %}
+      {% model_gen = model_name.underscore %}
+    {% end %}
+
+    {% scope_name = klass.stringify.underscore %}
+
     it "checks scope on update" do
-    _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, PlaceOS::Model::UserJWT::Scope::Access::Write)])
-          model = Model::Generator.{{ klass_name.id }}.save!
+    _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          model = Model::Generator.{{ model_gen.id }}.save!
           original_name = model.name
           model.name = UUID.random.to_s
 
@@ -102,13 +128,13 @@ module PlaceOS::Api
           result = update_route(path, model, authorization_header)
 
           result.success?.should be_true
-          updated = {{klass.id}}.from_trusted_json(result.body)
+          updated = Model::{{ model_name.id }}.from_trusted_json(result.body)
 
           updated.id.should eq model.id
           updated.name.should_not eq original_name
           updated.destroy
 
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, PlaceOS::Model::UserJWT::Scope::Access::Read)])
           result = update_route(path, model, authorization_header)
 
           result.success?.should be_false
