@@ -74,7 +74,7 @@ module PlaceOS::Api
       render json: Root.construct_versions
     end
 
-    class_getter scopes = SCOPES
+    class_getter(scopes) { SCOPES }
 
     get "/scopes", :scopes do
       render json: Root.scopes

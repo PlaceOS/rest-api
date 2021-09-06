@@ -20,7 +20,7 @@ module PlaceOS::Api
 
     {% scope_name = klass.stringify.underscore %}
 
-    context "read2" do
+    context "read" do
       it "allows access to show" do
         _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
 
@@ -61,7 +61,7 @@ module PlaceOS::Api
       end
     end
 
-    context "write2" do
+    context "write" do
       it "should not allow access to show" do
         _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
 
