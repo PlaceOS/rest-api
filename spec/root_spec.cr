@@ -40,7 +40,8 @@ module PlaceOS::Api
 
       it "gets scope names" do
         result = curl("GET", File.join(base, "scopes"), headers: authorization_header)
-        puts result.body
+        scopes = Array(String).from_json(result.body)
+        scopes.size.should eq(Root.scopes.size)
       end
 
       it "constructs service versions" do

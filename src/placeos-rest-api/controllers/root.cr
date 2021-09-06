@@ -74,6 +74,7 @@ module PlaceOS::Api
       render json: Root.construct_versions
     end
 
+    # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
     class_getter(scopes) { SCOPES }
 
     get "/scopes", :scopes do
