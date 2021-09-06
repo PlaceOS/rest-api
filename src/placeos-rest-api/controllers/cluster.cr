@@ -1,7 +1,7 @@
 require "promise"
 require "./application"
 
-require "placeos-core/client"
+require "placeos-core-client"
 
 module PlaceOS::Api
   class Cluster < Application

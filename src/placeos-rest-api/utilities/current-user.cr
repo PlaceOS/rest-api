@@ -60,6 +60,14 @@ module PlaceOS::Api
       raise e
     end
 
+    def check_oauth_scope
+      utoken = user_token
+      unless utoken.public_scope?
+        Log.warn { {message: "unknown scope #{utoken.scope}", action: "authorize!", host: request.hostname, id: utoken.id} }
+        raise Error::Unauthorized.new "public scope required for access"
+      end
+    end
+
     # Obtains user referenced by user_token id
     getter current_user : Model::User { Model::User.find!(user_token.id) }
 

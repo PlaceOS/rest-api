@@ -1,6 +1,6 @@
 require "hound-dog"
 
-require "placeos-core/client"
+require "placeos-core-client"
 require "placeos-driver/proxy/system"
 
 require "./application"

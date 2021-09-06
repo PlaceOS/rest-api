@@ -3,8 +3,9 @@ on: push
 jobs:
   style:
     runs-on: ubuntu-latest
-    container:
-      image: crystallang/crystal
+    container: crystallang/crystal:latest
+    strategy:
+      fail-fast: false
     steps:
       - uses: actions/checkout@v2
       - name: Format
@@ -13,6 +14,16 @@ jobs:
         uses: crystal-ameba/github-action@v0.2.12
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v1.6.0
+        with:
+          config: .hadolint.yaml
+          dockerfile: Dockerfile
+      - name: Lint Dockerfile.test
+        uses: hadolint/hadolint-action@v1.6.0
+        with:
+          config: .hadolint.yaml
+          dockerfile: Dockerfile.test
 
   test:
     runs-on: ubuntu-latest
@@ -26,6 +37,7 @@ jobs:
         include:
           - crystal: nightly
             stable: false
+    continue-on-error: ${{ !matrix.stable }}
     steps:
       - uses: actions/checkout@v2
       - name: Run docker-compose test environment
