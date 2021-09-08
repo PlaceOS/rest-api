@@ -16,22 +16,22 @@ module PlaceOS::Api
 
     macro __create_scope_checks__
       protected def can_write
-        can_scope_access!(ROUTE_RESOURCE, Access::Write)
+        can_scopes_access!([{{ROUTE_RESOURCE}}], Access::Write)
       end
 
       protected def can_read
-        can_scope_access!(ROUTE_RESOURCE, Access::Read)
+        can_scopes_access!([{{ROUTE_RESOURCE}}], Access::Read)
       end
 
       {% verbatim do %}
         macro generate_scope_check(*scopes)
           {% for scope in scopes %}
             protected def can_write_{{ scope.id }}
-              can_scopes_access!([ROUTE_RESOURCE, {{ scope }}], Access::Write)
+              can_scopes_access!([{{ROUTE_RESOURCE}}, {{ scope }}], Access::Write)
           end
 
             protected def can_read_{{ scope.id }}
-              can_scopes_access!([ROUTE_RESOURCE, {{ scope }}], Access::Read)
+              can_scopes_access!([{{ROUTE_RESOURCE}}, {{ scope }}], Access::Read)
             end
           {% end %}
         end
@@ -42,18 +42,20 @@ module PlaceOS::Api
 
     SCOPES = [] of String
 
-    def can_scope_access?(scope, access)
-      # ameba:disable Performance/AnyInsteadOfEmpty
-      [user_token.public_scope?, user_token.guest_scope?, user_token.get_access(scope).includes? access].any?
-    end
-
-    macro can_scope_access!(scope, access)
-      {% SCOPES << scope.resolve? unless SCOPES.includes? scope.resolve? %}
-      raise Error::Forbidden.new unless can_scope_access? {{scope}}, {{access}}
+    macro can_scope_access?(scope, access)
+      {% SCOPES << scope unless SCOPES.includes? scope %}
+      user_token.public_scope? || user_token.get_access({{scope}}).includes? {{access}}
     end
 
     macro can_scopes_access!(scopes, access)
-      raise Error::Forbidden.new if !{{scopes}}.any? { |scope| can_scope_access? scope, {{access}} }
+      has_access = false
+      {% for scope in scopes %}
+        has_access = true if can_scope_access?({{scope}}, {{access}})
+      {% end %}
+
+      unless has_access
+        raise Error::Forbidden.new("User does not have {{ access }} access to {{ scopes.join(", ").id }}")
+      end
     end
   end
 end
