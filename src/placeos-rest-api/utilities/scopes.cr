@@ -38,7 +38,7 @@ module PlaceOS::Api
 
         # Example:
         # `can_read_guest()` is called in the Metadata controller
-        # This will successfully authenticate if the user JWT contains the scope `metadata.Read` OR `guest`
+        # This will successfully authenticate if the user JWT contains the scope `metadata.read` OR `guest.read`
         generate_scope_check("guest")
       {% end %}
     end
