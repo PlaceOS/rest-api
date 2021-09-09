@@ -36,6 +36,9 @@ module PlaceOS::Api
           {% end %}
         end
 
+        # Example:
+        # `can_read_guest()` is called in the Metadata controller
+        # This will successfully authenticate if the user JWT contains the scope `metadata.Read` OR `guest`
         generate_scope_check("guest")
       {% end %}
     end
@@ -47,6 +50,7 @@ module PlaceOS::Api
       user_token.public_scope? || user_token.get_access({{scope}}).includes? {{access}}
     end
 
+    # NOTE: A user JWT only needs one scope present, if mulitple scopes are supplied, to successfully authenticate a route
     macro can_scopes_access!(scopes, access)
       has_access = false
       {% for scope in scopes %}
