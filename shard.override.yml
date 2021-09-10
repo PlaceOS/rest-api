@@ -3,3 +3,5 @@ dependencies:
     github: place-labs/neuroplastic
   secrets-env:
     github: spider-gazelle/secrets-env
+  rethinkdb:
+    github: place-labs/crystal-rethinkdb
