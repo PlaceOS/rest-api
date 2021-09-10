@@ -5,3 +5,5 @@ dependencies:
     github: spider-gazelle/secrets-env
   rethinkdb:
     github: place-labs/crystal-rethinkdb
+    version: ~> 0.3
+    branch: fix/connection-retry
