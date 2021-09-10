@@ -6,6 +6,9 @@ module PlaceOS::Api
     authenticated_user, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
+    pending "GET /:id/compiled"
+    pending "POST /:id/recompile"
+
     with_server do
       describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
