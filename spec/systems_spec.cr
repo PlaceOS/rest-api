@@ -141,7 +141,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:sys_id/zones" do
+      describe "GET /:sys_id/zones" do
         it "lists zones for a system" do
           control_system = Model::Generator.control_system.save!
 
@@ -166,52 +166,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:sys_id/module/:module_id" do
-        it "removes if not in use by another ControlSystem" do
-          cs = Model::Generator.control_system.save!
-          mod = Model::Generator.module(control_system: cs).save!
-          cs.persisted?.should be_true
-          mod.persisted?.should be_true
-
-          mod_id = mod.id.as(String)
-          cs_id = cs.id.as(String)
-
-          Model::ControlSystem.add_module(cs_id, mod_id)
-
-          mod_id = mod.id.as(String)
-
-          spec_delete_module(cs, mod, authorization_header)
-
-          Model::Module.find(mod_id).should be_nil
-          {mod, cs}.each &.try &.destroy
-        end
-
-        it "keeps module if in use by another ControlSystem" do
-          cs1 = Model::Generator.control_system.save!
-          cs2 = Model::Generator.control_system.save!
-          mod = Model::Generator.module.save!
-          cs1.persisted?.should be_true
-          cs2.persisted?.should be_true
-          mod.persisted?.should be_true
-
-          mod_id = mod.id.as(String)
-          # Add module to systems
-          cs1.update_fields(modules: [mod_id])
-          cs2.update_fields(modules: [mod_id])
-
-          cs1.modules.should contain mod_id
-          cs2.modules.should contain mod_id
-
-          cs1 = spec_delete_module(cs1, mod, authorization_header)
-
-          cs2 = Model::ControlSystem.find!(cs2.id.as(String))
-          cs2.modules.should contain mod_id
-
-          Model::Module.find(mod_id).should_not be_nil
-
-          {mod, cs1, cs2}.each &.destroy
-        end
-
+      describe "PUT /:sys_id/module/:module_id" do
         it "adds a module if not present" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module.save!
@@ -258,7 +213,54 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:sys_id/settings" do
+      describe "DELETE /:sys_id/module/:module_id" do
+        it "removes if not in use by another ControlSystem" do
+          cs = Model::Generator.control_system.save!
+          mod = Model::Generator.module(control_system: cs).save!
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
+
+          mod_id = mod.id.as(String)
+          cs_id = cs.id.as(String)
+
+          Model::ControlSystem.add_module(cs_id, mod_id)
+
+          mod_id = mod.id.as(String)
+
+          spec_delete_module(cs, mod, authorization_header)
+
+          Model::Module.find(mod_id).should be_nil
+          {mod, cs}.each &.try &.destroy
+        end
+
+        it "keeps module if in use by another ControlSystem" do
+          cs1 = Model::Generator.control_system.save!
+          cs2 = Model::Generator.control_system.save!
+          mod = Model::Generator.module.save!
+          cs1.persisted?.should be_true
+          cs2.persisted?.should be_true
+          mod.persisted?.should be_true
+
+          mod_id = mod.id.as(String)
+          # Add module to systems
+          cs1.update_fields(modules: [mod_id])
+          cs2.update_fields(modules: [mod_id])
+
+          cs1.modules.should contain mod_id
+          cs2.modules.should contain mod_id
+
+          cs1 = spec_delete_module(cs1, mod, authorization_header)
+
+          cs2 = Model::ControlSystem.find!(cs2.id.as(String))
+          cs2.modules.should contain mod_id
+
+          Model::Module.find(mod_id).should_not be_nil
+
+          {mod, cs1, cs2}.each &.destroy
+        end
+      end
+
+      describe "GET /:sys_id/settings" do
         it "collates System settings" do
           control_system = Model::Generator.control_system.save!
           control_system_settings_string = %(frangos: 1)
@@ -321,8 +323,8 @@ module PlaceOS::Api
         end
       end
 
-      describe "module function" do
-        it "types" do
+      describe "GET /:sys_id/types" do
+        it "returns types of modules in a system" do
           expected = {
             "Display"  => 2,
             "Switcher" => 1,
@@ -358,17 +360,23 @@ module PlaceOS::Api
           mods.each &.destroy
           cs.destroy
         end
+      end
 
-        pending "functions" do
+      pending "GET /:sys_id/functions/:module_slug" do
+      end
+
+      pending "GET /:sys_id/:module_slug/:key" do
+        it "fetches the state for `key` in module defined by `module_slug`" do
         end
+      end
 
-        pending "state" do
+      pending "GET /:sys_id/:module_slug" do
+        it "fetches the state of a module defined by `module_slug`" do
         end
+      end
 
-        pending "state_lookup" do
-        end
-
-        it "start" do
+      describe "POST /:sys_id/start" do
+        it "start modules in a system" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
           cs.update_fields(modules: [mod.id.as(String)])
@@ -391,8 +399,10 @@ module PlaceOS::Api
           mod.destroy
           cs.destroy
         end
+      end
 
-        it "stop" do
+      describe "POST /:sys_id/stop" do
+        it "stops modules in a system" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs)
           mod.running = true
@@ -416,6 +426,28 @@ module PlaceOS::Api
 
           mod.destroy
           cs.destroy
+        end
+      end
+
+      describe "GET /:sys_id/metadata" do
+        it "shows system metadata" do
+          system = Model::Generator.control_system.save!
+          system_id = system.id.as(String)
+          meta = Model::Generator.metadata(name: "special", parent: system_id).save!
+
+          result = curl(
+            method: "GET",
+            path: base + "#{system_id}/metadata",
+            headers: authorization_header,
+          )
+
+          metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
+          metadata.size.should eq 1
+          metadata.first[1].parent_id.should eq system_id
+          metadata.first[1].name.should eq meta.name
+
+          system.destroy
+          meta.destroy
         end
       end
 
@@ -465,28 +497,6 @@ module PlaceOS::Api
 
             result.status_code.should eq 409
           end
-        end
-      end
-
-      describe "/:id/metadata" do
-        it "shows system metadata" do
-          system = Model::Generator.control_system.save!
-          system_id = system.id.as(String)
-          meta = Model::Generator.metadata(name: "special", parent: system_id).save!
-
-          result = curl(
-            method: "GET",
-            path: base + "#{system_id}/metadata",
-            headers: authorization_header,
-          )
-
-          metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
-          metadata.size.should eq 1
-          metadata.first[1].parent_id.should eq system_id
-          metadata.first[1].name.should eq meta.name
-
-          system.destroy
-          meta.destroy
         end
       end
     end
