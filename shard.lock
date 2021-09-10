@@ -175,7 +175,7 @@ shards:
 
   rethinkdb: # Overridden
     git: https://github.com/place-labs/crystal-rethinkdb.git
-    version: 1.0.0
+    version: 0.3.1+git.commit.bd193b6fed95619da3d963267bf61ed35b1fd7f5
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
