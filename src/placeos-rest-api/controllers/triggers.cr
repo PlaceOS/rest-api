@@ -4,12 +4,23 @@ module PlaceOS::Api
   class Triggers < Application
     base "/api/engine/v2/triggers/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :current_trigger, only: [:show, :update, :update_alt, :destroy]
     before_action :ensure_json, only: [:create, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
+
+    ###############################################################################################
 
     getter current_trigger : Model::Trigger { find_trigger }
 

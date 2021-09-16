@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 require "timecop"
 
 module PlaceOS
@@ -314,6 +315,35 @@ module PlaceOS::Api
         body = JSON.parse(result.body)
         result.success?.should be_true
         body["pingable"].should be_true
+      end
+
+      describe "scopes" do
+        test_controller_scope(Modules)
+
+        it "checks scope on update" do
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+          mod = Model::Generator.module(driver: driver).save!
+
+          connected = mod.connected
+          mod.connected = !connected
+
+          id = mod.id.as(String)
+          path = base + id
+
+          result = update_route(path, mod, authorization_header)
+
+          result.status_code.should eq 200
+          updated = Model::Module.from_trusted_json(result.body)
+          updated.id.should eq mod.id
+          updated.connected.should eq !connected
+
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, mod, authorization_header)
+
+          result.success?.should be_false
+          result.status_code.should eq 403
+        end
       end
     end
   end

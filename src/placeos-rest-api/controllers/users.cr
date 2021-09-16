@@ -6,17 +6,26 @@ require "./metadata"
 
 module PlaceOS::Api
   class Users < Application
-    include Utils::CurrentUser
-
     base "/api/engine/v2/users/"
 
-    before_action :user, only: [:destroy, :update, :show, :metadata]
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
+    before_action :user, only: [:destroy, :update, :show]
 
     before_action :check_admin, only: [:index, :destroy, :create]
-    before_action :check_authorization, only: [:update, :update_alt]
 
+    # Callbacks
+    ###############################################################################################
+
+    before_action :check_authorization, only: [:update, :update_alt]
     before_action :ensure_json, only: [:update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
+
+    ###############################################################################################
 
     getter user : Model::User { find_user }
 

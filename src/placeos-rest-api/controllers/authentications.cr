@@ -6,9 +6,21 @@ module PlaceOS::Api
     class {{auth_type.id}}Authentications < Application
       base "/api/engine/v2/{{auth_type.downcase.id}}_auths/"
 
+      # Scopes
+      ###############################################################################################
+
+      before_action :can_read, only: [:index, :show]
+      before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
       before_action :check_admin
+
+      # Callbacks
+      ###############################################################################################
+
       before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
       before_action :body, only: [:create, :update, :update_alt]
+
+      ###############################################################################################
 
       getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
 

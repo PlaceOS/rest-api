@@ -5,13 +5,25 @@ require "./application"
 module PlaceOS::Api
   class Zones < Application
     include Utils::CoreHelper
+
     base "/api/engine/v2/zones/"
+
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, except: [:index]
-    before_action :current_zone, only: [:show, :update, :update_alt, :destroy, :metadata]
 
+    # Callbacks
+    ###############################################################################################
+
+    before_action :current_zone, only: [:show, :update, :update_alt, :destroy, :metadata]
     before_action :body, only: [:create, :update, :update_alt, :zone_execute]
+
+    ###############################################################################################
 
     getter current_zone : Model::Zone { find_zone }
 

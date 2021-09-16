@@ -4,8 +4,17 @@ require "./application"
 
 module PlaceOS::Api
   class Metadata < Application
-    # NOTE:: this API shares the base zones route
     base "/api/engine/v2/metadata"
+
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index]
+    before_action :can_read_guest, only: [:show, :children_metadata]
+    before_action :can_write, only: [:update, :destroy, :update_alt]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :check_delete_permissions, only: :destroy
 
@@ -13,8 +22,7 @@ module PlaceOS::Api
 
     before_action :body, only: [:update, :update_alt]
 
-    # Allow unscoped read access to metadata
-    skip_action :check_oauth_scope, only: [:show, :children_metadata]
+    ###############################################################################################
 
     getter current_zone : Model::Zone { find_zone }
 

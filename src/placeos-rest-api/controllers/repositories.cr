@@ -6,12 +6,23 @@ module PlaceOS::Api
   class Repositories < Application
     base "/api/engine/v2/repositories/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show, :branches, :commits]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt] # brances, commits?
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :current_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
+
+    ###############################################################################################
 
     getter current_repo : Model::Repository { find_repo }
 

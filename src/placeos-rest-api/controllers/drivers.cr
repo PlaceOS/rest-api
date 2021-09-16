@@ -4,11 +4,22 @@ module PlaceOS::Api
   class Drivers < Application
     base "/api/engine/v2/drivers/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
+    # Callbacks
+    ###############################################################################################
+
     before_action :current_driver, only: [:show, :update, :update_alt, :destroy, :recompile]
     before_action :body, only: [:create, :update, :update_alt]
+
+    ###############################################################################################
 
     getter current_driver : Model::Driver { find_driver }
 

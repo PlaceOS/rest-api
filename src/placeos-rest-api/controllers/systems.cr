@@ -28,10 +28,28 @@ module PlaceOS::Api
 
     id_param :sys_id
 
+    # Scopes
+    ###############################################################################################
+
+    # For access to the module runtime.
+    generate_scope_check "control"
+
+    # Allow unscoped access to details of a single `ControlSystem`
+    before_action :can_read_guest, only: [:show, :sys_zones]
+
+    before_action :can_read, only: [:index, :find_by_email]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt, :start, :stop]
+
+    before_action :can_read_control, only: [:types, :functions, :state, :state_lookup]
+    before_action :can_write_control, only: [:control, :execute]
+
     before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
                                          :types, :functions, :state, :state_lookup]
 
     before_action :check_support, only: [:state, :state_lookup, :functions]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :current_control_system, only: [:show, :update, :destroy, :remove,
                                                   :start, :stop, :execute,
@@ -39,9 +57,6 @@ module PlaceOS::Api
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
     before_action :body, only: [:create, :execute, :update, :update_alt]
-
-    # Allow unscoped access to details of a single `ControlSystem`
-    skip_action :check_oauth_scope, only: [:show, :sys_zones]
 
     getter current_control_system : Model::ControlSystem { find_system }
 

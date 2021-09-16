@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Users do
@@ -147,6 +148,10 @@ module PlaceOS::Api
           user.destroy
           meta.destroy
         end
+      end
+
+      describe "scopes" do
+        test_controller_scope(Users)
       end
     end
   end

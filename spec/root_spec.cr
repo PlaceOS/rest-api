@@ -38,6 +38,12 @@ module PlaceOS::Api
         response.commit.should eq BUILD_COMMIT
       end
 
+      it "gets scope names" do
+        result = curl("GET", File.join(base, "scopes"), headers: authorization_header)
+        scopes = Array(String).from_json(result.body)
+        scopes.size.should eq(Root.scopes.size)
+      end
+
       it "constructs service versions" do
         WebMock.allow_net_connect = false
 

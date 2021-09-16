@@ -4,10 +4,17 @@ module PlaceOS::Api
   class Webhook < Application
     base "/api/engine/v2/webhook/"
 
+    # Scopes
+    ###############################################################################################
+
+    # Callbacks
+    ###############################################################################################
+
     skip_action :authorize!, except: [:show]
     skip_action :set_user_id, except: [:show]
-    skip_action :check_oauth_scope, except: [:show]
     before_action :find_hook
+
+    ###############################################################################################
 
     @trigger_instance : Model::TriggerInstance?
     @trigger : Model::Trigger?

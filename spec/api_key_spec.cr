@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe ApiKeys do
@@ -15,6 +16,10 @@ module PlaceOS::Api
 
       describe "CRUD operations", tags: "crud" do
         test_crd(Model::ApiKey, ApiKeys)
+      end
+
+      describe "scopes" do
+        test_controller_scope(ApiKeys)
       end
     end
   end

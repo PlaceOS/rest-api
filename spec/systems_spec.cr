@@ -1,4 +1,6 @@
 require "./helper"
+require "./scope_helper"
+require "http/web_socket"
 
 module PlaceOS::Api
   def self.spec_add_module(system, mod, headers)
@@ -497,6 +499,79 @@ module PlaceOS::Api
 
             result.status_code.should eq 409
           end
+        end
+      end
+
+      describe "/:id/metadata" do
+        it "shows system metadata" do
+          system = Model::Generator.control_system.save!
+          system_id = system.id.as(String)
+          meta = Model::Generator.metadata(name: "special", parent: system_id).save!
+
+          result = curl(
+            method: "GET",
+            path: base + "#{system_id}/metadata",
+            headers: authorization_header,
+          )
+
+          metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
+          metadata.size.should eq 1
+          metadata.first[1].parent_id.should eq system_id
+          metadata.first[1].name.should eq meta.name
+
+          system.destroy
+          meta.destroy
+        end
+      end
+
+      describe "scopes" do
+        test_controller_scope(Systems)
+        it "should not allow start" do
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
+
+          cs = Model::Generator.control_system.save!
+          mod = Model::Generator.module(control_system: cs).save!
+          cs.update_fields(modules: [mod.id.as(String)])
+
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
+          mod.running.should be_false
+
+          path = base + "#{cs.id}/start"
+
+          result = curl(
+            method: "POST",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 403
+        end
+
+        it "should allow start" do
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :write)])
+
+          cs = Model::Generator.control_system.save!
+          mod = Model::Generator.module(control_system: cs).save!
+          cs.update_fields(modules: [mod.id.as(String)])
+
+          cs.persisted?.should be_true
+          mod.persisted?.should be_true
+          mod.running.should be_false
+
+          path = base + "#{cs.id}/start"
+
+          result = curl(
+            method: "POST",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          Model::Module.find!(mod.id.as(String)).running.should be_true
+
+          mod.destroy
+          cs.destroy
         end
       end
     end

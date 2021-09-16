@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Settings do
@@ -104,6 +105,34 @@ module PlaceOS::Api
           updated.id.should eq settings.id
           updated.settings_string.should_not eq original_settings
           updated.destroy
+        end
+      end
+
+      describe "scopes" do
+        test_controller_scope(Settings)
+
+        it "checks scope on update" do
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
+          original_settings = settings.settings_string
+          settings.settings_string = %(hello: "world"\n)
+
+          id = settings.id.as(String)
+          path = base + id
+          result = update_route(path, settings, authorization_header)
+
+          result.status_code.should eq 200
+          updated = Model::Settings.from_trusted_json(result.body)
+
+          updated.id.should eq settings.id
+          updated.settings_string.should_not eq original_settings
+          updated.destroy
+
+          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, settings, authorization_header)
+
+          result.success?.should be_false
+          result.status_code.should eq 403
         end
       end
     end

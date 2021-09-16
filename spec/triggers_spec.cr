@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Triggers do
@@ -77,6 +78,10 @@ module PlaceOS::Api
           end
         end
       end
+    end
+    describe "scopes" do
+      test_controller_scope(Triggers)
+      test_update_write_scope(Triggers)
     end
   end
 end

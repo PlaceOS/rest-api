@@ -1,4 +1,5 @@
 require "./helper"
+require "./scope_helper"
 
 module PlaceOS::Api
   describe Zones do
@@ -14,6 +15,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
+        _, authorization_header = authentication
         test_crd(klass: Model::Zone, controller_klass: Zones)
         it "update" do
           zone = Model::Generator.zone.save!
@@ -58,6 +60,11 @@ module PlaceOS::Api
           zone.destroy
           meta.destroy
         end
+      end
+
+      describe "scopes" do
+        test_controller_scope(Zones)
+        test_update_write_scope(Zones)
       end
     end
   end

@@ -91,6 +91,19 @@ def authentication(sys_admin : Bool = true, support : Bool = true, scope = [Plac
   end
 end
 
+def generate_auth_user(sys_admin, support, scopes)
+  scope_list = scopes.try &.join('-', &.to_s)
+  test_user_email = "test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech"
+  existing = PlaceOS::Model::User.where(email: test_user_email).first?
+
+  existing || PlaceOS::Model::Generator.user.tap do |user|
+    user.email = test_user_email
+    user.sys_admin = sys_admin
+    user.support = support
+    user.save!
+  end
+end
+
 # Check application responds with 404 when model not present
 def test_404(base, model_name, headers)
   it "404s if #{model_name} isn't present in database", tags: "search" do

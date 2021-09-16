@@ -6,7 +6,15 @@ require "placeos-core-client"
 module PlaceOS::Api
   class Cluster < Application
     base "/api/engine/v2/cluster/"
+
+    # Scopes
+    ###############################################################################################
+
     before_action :check_admin
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:destroy]
+
+    ###############################################################################################
 
     class ClusterParams < Params
       attribute include_status : Bool = false

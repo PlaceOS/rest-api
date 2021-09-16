@@ -7,9 +7,11 @@ require "placeos-models/api_key"
 
 module PlaceOS::Api
   # Helper to grab user and authority from a request
+
   module Utils::CurrentUser
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
+
     def authorize! : Model::UserJWT
       unless (token = @user_token).nil?
         return token
