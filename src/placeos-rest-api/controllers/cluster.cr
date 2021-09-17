@@ -26,9 +26,16 @@ module PlaceOS::Api
 
       if arguments.include_status
         promises = details.map do |core_id, uri|
-          Promise.defer do
+          Promise.defer {
             Cluster.node_status(core_id, uri, request_id)
-          end
+          }.catch { |error|
+            Log.error(exception: error) { {
+              message:  "failure to request a core node's status",
+              core_uri: uri.to_s,
+              core_id:  core_id,
+            } }
+            nil
+          }
         end
 
         # [
