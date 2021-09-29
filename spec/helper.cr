@@ -175,7 +175,6 @@ macro test_base_index(klass, controller_klass)
         .map(&.["id"].as_s)
         .any?(doc.id)
     end
-    
     found.should be_true
   end
 end
