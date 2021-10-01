@@ -639,7 +639,7 @@ module PlaceOS
       in .debug?  then debug(**arguments)
       in .ignore? then ignore(**arguments)
       in .exec?
-        args = request.args.as(Array(JSON::Any))
+        args = request.args || [] of JSON::Any
         exec(**arguments.merge({args: args}))
       end
     end
