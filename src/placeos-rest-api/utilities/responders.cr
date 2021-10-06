@@ -27,7 +27,7 @@ module PlaceOS::Api
     def save_and_respond(resource)
       result, status = save_and_status(resource)
 
-      if status.ok? && result.is_a?(PlaceOS::Model::ModelBase)
+      if status.success? && result.is_a?(PlaceOS::Model::ModelBase)
         result = yield result
       end
 
