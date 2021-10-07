@@ -180,12 +180,10 @@ module PlaceOS::Api
 
       return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, errors.join(", ")) unless errors.empty?
 
-      parsed_emails = emails.map &->PlaceOS::Model::Email.new(String)
-
       render_json do |json|
         json.array do
           Model::User
-            .find_by_emails(authority_id: current_user.authority_id.as(String), emails: parsed_emails)
+            .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails)
             .each &.to_group_json(json)
         end
       end
