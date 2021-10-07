@@ -214,8 +214,7 @@ module PlaceOS::Api
           Model::User.find(lookup)
         when :email
           authority = current_user.authority_id.as(String)
-          email = PlaceOS::Model::Email.new(lookup)
-          Model::User.find_by_email(authority_id: authority, email: email)
+          Model::User.find_by_email(authority_id: authority, email: lookup)
         when :login_name
           Model::User.find_by_login_name(lookup)
         when :staff_id
