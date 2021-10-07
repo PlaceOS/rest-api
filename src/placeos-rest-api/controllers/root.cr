@@ -136,7 +136,7 @@ module PlaceOS::Api
 
     protected def self.dispatch_version : PlaceOS::Model::Version
       uri = URI.new(host: PLACE_DISPATCH_HOST, port: PLACE_DISPATCH_PORT, scheme: "http")
-      response = HTTP::Client.get "#{uri}/api/server/version"
+      response = HTTP::Client.get "#{uri}/api/dispatch/v1/version"
       PlaceOS::Model::Version.from_json(response.body)
     end
 

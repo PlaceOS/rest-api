@@ -67,7 +67,7 @@ module PlaceOS::Api
         # Dispatch currently exposes a non-standard version endpoint
         # https://github.com/PlaceOS/dispatch/issues/6
         WebMock
-          .stub(:get, "dispatch:3000/api/server/version")
+          .stub(:get, "dispatch:3000/api/dispatch/v1/version")
           .to_return(body: %({"service":"dispatch", "commit":"DEV", "version":"v1.0.0", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
 
         versions = Root.construct_versions
