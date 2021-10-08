@@ -18,7 +18,7 @@ module PlaceOS::Api
       end
 
       # check for X-API-Key use
-      if (token = request.headers["X-API-Key"]? || params["api-key"]?)
+      if (token = request.headers["X-API-Key"]? || params["api-key"]? || cookies["api-key"]?.try(&.value))
         begin
           @user_token = user_token = Model::ApiKey.find_key!(token).build_jwt
           return user_token
