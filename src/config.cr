@@ -17,7 +17,7 @@ module PlaceOS::Api
     settings.etcd_port = Api::ETCD_PORT
   end
 
-  filters = ["bearer_token", "secret", "password"]
+  filters = ["bearer_token", "secret", "password", "api-key"]
 
   # Add handlers that should run before your application
   ActionController::Server.before(
