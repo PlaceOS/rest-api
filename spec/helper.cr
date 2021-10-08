@@ -73,7 +73,7 @@ end
 # This method is synchronised due to the redundant top-level calls.
 def authentication(sys_admin : Bool = true, support : Bool = true, scope = [PlaceOS::Model::UserJWT::PUBLIC])
   CREATION_LOCK.synchronize do
-    test_user_email = "test-admin-#{sys_admin ? "1" : "0"}-supp-#{support ? "1" : "0"}-rest-api@place.tech"
+    test_user_email = PlaceOS::Model::Email.new("test-admin-#{sys_admin ? "1" : "0"}-supp-#{support ? "1" : "0"}-rest-api@place.tech")
     existing = PlaceOS::Model::User.where(email: test_user_email).first?
 
     authenticated_user = if existing
@@ -93,7 +93,7 @@ end
 
 def generate_auth_user(sys_admin, support, scopes)
   scope_list = scopes.try &.join('-', &.to_s)
-  test_user_email = "test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech"
+  test_user_email = PlaceOS::Model::Email.new("test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech")
   existing = PlaceOS::Model::User.where(email: test_user_email).first?
 
   existing || PlaceOS::Model::Generator.user.tap do |user|
@@ -175,7 +175,6 @@ macro test_base_index(klass, controller_klass)
         .map(&.["id"].as_s)
         .any?(doc.id)
     end
-
     found.should be_true
   end
 end
