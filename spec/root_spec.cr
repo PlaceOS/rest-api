@@ -64,12 +64,6 @@ module PlaceOS::Api
             HTTP::Client::Response.new(200, body, headers)
           end
 
-        # Dispatch currently exposes a non-standard version endpoint
-        # https://github.com/PlaceOS/dispatch/issues/6
-        WebMock
-          .stub(:get, "dispatch:3000/api/server/version")
-          .to_return(body: %({"service":"dispatch", "commit":"DEV", "version":"v1.0.0", "build_time":"Tue Jun 01 01:00:00 UTC 2021", "platform_version":"DEV"}))
-
         versions = Root.construct_versions
         versions.size.should eq(Root::SERVICES.size)
         versions.map(&.service.gsub('-', '_')).sort!.should eq Root::SERVICES.sort
