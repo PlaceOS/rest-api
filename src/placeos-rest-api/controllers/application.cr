@@ -62,9 +62,18 @@ module PlaceOS::Api
     # Simplifies determining user's requests in server-side logs
     before_action :set_user_id, except: [:root]
 
+    before_action :open_tele, except: [:root]
+
     # Set user_id from parsed JWT
     def set_user_id
       Log.context.set(user_id: user_token.id)
+    end
+
+    def open_tele
+      OpenTelemetry.trace "current user" do |span|
+        span["user_id"] = user_token.id
+        span["domain"] = user_token.domain
+      end
     end
 
     getter body : IO do

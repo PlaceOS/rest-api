@@ -105,6 +105,10 @@ shards:
     git: https://github.com/luckyframework/lucky_router.git
     version: 0.5.1
 
+  mpsc:
+    git: https://github.com/jgaskins/mpsc.git
+    version: 0.1.0+git.commit.c28385fe33d591d5d068f945912675b7c7bc4e3c
+
   murmur3:
     git: https://github.com/aca-labs/murmur3.git
     version: 0.1.1+git.commit.7cbe25c0ca8d052c9d98c377c824dcb0e038c790
@@ -116,6 +120,10 @@ shards:
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
     version: 2.1.5
+
+  opentelemetry:
+    git: https://github.com/jgaskins/opentelemetry.git
+    version: 0.3.4
 
   pars:
     git: https://github.com/place-labs/pars.git
@@ -147,7 +155,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.12.0
+    version: 5.12.2
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -160,6 +168,10 @@ shards:
   promise:
     git: https://github.com/spider-gazelle/promise.git
     version: 2.2.3
+
+  protobuf:
+    git: https://github.com/m-o-e/protobuf.cr.git
+    version: 2.2.3+git.commit.e3226fa1a2b0333016bb83b4120b7eec22e21df0
 
   raven:
     git: https://github.com/sija/raven.cr.git

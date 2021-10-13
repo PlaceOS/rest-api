@@ -101,6 +101,9 @@ dependencies:
     github: spider-gazelle/secrets-env
     version: ~> 1
 
+  opentelemetry:
+    github: jgaskins/opentelemetry
+
 development_dependencies:
   # Linter
   ameba:
