@@ -26,20 +26,4 @@ jobs:
           dockerfile: Dockerfile.test
 
   test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        stable: [true]
-        crystal:
-          - 1.1.1
-        include:
-          - crystal: nightly
-            stable: false
-    continue-on-error: ${{ !matrix.stable }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run docker-compose test environment
-        run: ./test
-        env:
-          CRYSTAL_VERSION: ${{ matrix.crystal }}
+    uses: PlaceOS/.github/workflows/containerised-test.yml@main
