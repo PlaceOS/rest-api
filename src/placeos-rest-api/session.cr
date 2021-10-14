@@ -182,7 +182,9 @@ module PlaceOS
       @[JSON::Field(key: "msg")]
       getter message : String?
 
+      @[JSON::Field(converter: String::RawConverter)]
       getter value : String?
+
       getter meta : Metadata?
 
       @[JSON::Field(key: "mod")]
@@ -251,8 +253,8 @@ module PlaceOS
           index: index,
           name:  name,
         },
-        value: "%{}",
-      ), response)
+        value: response,
+      ))
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
@@ -514,7 +516,7 @@ module PlaceOS
     # Parse an update from a subscription and pass to listener
     #
     def notify_update(value, request_id, system_id, module_name, index, status)
-      response = Response.new(
+      respond(Response.new(
         id: request_id,
         type: Response::Type::Notify,
         value: value,
@@ -523,9 +525,8 @@ module PlaceOS
           mod:   module_name,
           index: index,
           name:  status,
-        },
-      )
-      respond(response)
+        }
+      ))
     end
 
     protected def write(data)
@@ -590,7 +591,7 @@ module PlaceOS
     rescue e
       Log.warn { {message: "failed to parse", data: data} }
       error_response(JSON.parse(data)["id"]?.try &.as_i64, ErrorCode::BadRequest, "bad request: #{e.message}")
-      return
+      nil
     end
 
     protected def error_response(
@@ -624,16 +625,9 @@ module PlaceOS
       end
     end
 
-    protected def respond(response : Response, payload = nil)
+    protected def respond(response : Response)
       return if @ws.closed?
-
-      if payload
-        # Avoids parsing and serialising when payload is already in JSON format
-        partial = response.to_json
-        write(partial.sub(%("%{}"), payload))
-      else
-        write(response.to_json)
-      end
+      write(response.to_json)
     end
 
     # Delegate request to correct handler
