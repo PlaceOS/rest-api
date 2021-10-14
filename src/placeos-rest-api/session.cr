@@ -96,7 +96,7 @@ module PlaceOS
 
       @ws.on_ping do
         Log.trace { {frame: "PING"} }
-        @ws.pong
+        cache_lock.synchronize { @ws.pong }
       end
 
       @security_level = if @user.is_admin?
@@ -526,7 +526,7 @@ module PlaceOS
     # Request handler
     #
     protected def on_message(data)
-      return @ws.send("pong") if data == "ping"
+      return cache_lock.synchronize { @ws.send("pong") } if data == "ping"
 
       # Execute the request
       request = parse_request(data)
@@ -612,12 +612,13 @@ module PlaceOS
     protected def respond(response : Response, payload = nil)
       return if @ws.closed?
 
+      partial = response.to_json
       if payload
         # Avoids parsing and serialising when payload is already in JSON format
-        partial = response.to_json
-        @ws.send(partial.sub(%("%{}"), payload))
+        partial = partial.sub(%("%{}"), payload)
+        cache_lock.synchronize { @ws.send(partial) }
       else
-        @ws.send(response.to_json)
+        cache_lock.synchronize { @ws.send(partial) }
       end
     end
 
