@@ -72,13 +72,16 @@ module PlaceOS
     # Caching
     # Background task to clear module metadata caches
     private getter cache_lock = Mutex.new
+
+    private getter write_channel = Channel(String).new
+
     private getter cache_timeout : Time::Span = 10.minutes
 
     @metadata_cache = {} of String => Driver::DriverModel::Metadata
     @module_id_cache = {} of String => String
     @cache_cleaner : Tasker::Task?
 
-    getter ws : HTTP::WebSocket
+    private getter ws : HTTP::WebSocket
 
     def initialize(
       @ws : HTTP::WebSocket,
@@ -107,8 +110,10 @@ module PlaceOS
                           Driver::Proxy::RemoteDriver::Clearance::User
                         end
 
+      # Perform writes
+      spawn(name: "socket_writes_#{request_id}", same_thread: true) { run_writes }
       # Begin clearing cache
-      spawn(name: "cache_cleaner", same_thread: true) { cache_plumbing }
+      spawn(name: "cache_cleaner_#{request_id}", same_thread: true) { cache_plumbing }
     end
 
     # Websocket API Messages
@@ -523,10 +528,14 @@ module PlaceOS
       respond(response)
     end
 
+    protected def write(data)
+      write_channel.send(data)
+    end
+
     # Request handler
     #
     protected def on_message(data)
-      return @ws.send("pong") if data == "ping"
+      return write("pong") if data == "ping"
 
       # Execute the request
       request = parse_request(data)
@@ -609,15 +618,21 @@ module PlaceOS
       end
     end
 
+    private def run_writes
+      while data = write_channel.receive?
+        ws.send(data)
+      end
+    end
+
     protected def respond(response : Response, payload = nil)
       return if @ws.closed?
 
       if payload
         # Avoids parsing and serialising when payload is already in JSON format
         partial = response.to_json
-        @ws.send(partial.sub(%("%{}"), payload))
+        write(partial.sub(%("%{}"), payload))
       else
-        @ws.send(response.to_json)
+        write(response.to_json)
       end
     end
 
