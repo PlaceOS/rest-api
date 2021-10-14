@@ -72,13 +72,16 @@ module PlaceOS
     # Caching
     # Background task to clear module metadata caches
     private getter cache_lock = Mutex.new
+
+    private getter write_channel = Channel(String).new
+
     private getter cache_timeout : Time::Span = 10.minutes
 
     @metadata_cache = {} of String => Driver::DriverModel::Metadata
     @module_id_cache = {} of String => String
     @cache_cleaner : Tasker::Task?
 
-    getter ws : HTTP::WebSocket
+    private getter ws : HTTP::WebSocket
 
     def initialize(
       @ws : HTTP::WebSocket,
@@ -107,8 +110,10 @@ module PlaceOS
                           Driver::Proxy::RemoteDriver::Clearance::User
                         end
 
+      # Perform writes
+      spawn(name: "socket_writes_#{request_id}", same_thread: true) { run_writes }
       # Begin clearing cache
-      spawn(name: "cache_cleaner", same_thread: true) { cache_plumbing }
+      spawn(name: "cache_cleaner_#{request_id}", same_thread: true) { cache_plumbing }
     end
 
     # Websocket API Messages
@@ -177,7 +182,9 @@ module PlaceOS
       @[JSON::Field(key: "msg")]
       getter message : String?
 
+      @[JSON::Field(converter: String::RawConverter)]
       getter value : String?
+
       getter meta : Metadata?
 
       @[JSON::Field(key: "mod")]
@@ -246,8 +253,8 @@ module PlaceOS
           index: index,
           name:  name,
         },
-        value: "%{}",
-      ), response)
+        value: response,
+      ))
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
@@ -509,7 +516,7 @@ module PlaceOS
     # Parse an update from a subscription and pass to listener
     #
     def notify_update(value, request_id, system_id, module_name, index, status)
-      response = Response.new(
+      respond(Response.new(
         id: request_id,
         type: Response::Type::Notify,
         value: value,
@@ -518,15 +525,18 @@ module PlaceOS
           mod:   module_name,
           index: index,
           name:  status,
-        },
-      )
-      respond(response)
+        }
+      ))
+    end
+
+    protected def write(data)
+      write_channel.send(data)
     end
 
     # Request handler
     #
     protected def on_message(data)
-      return @ws.send("pong") if data == "ping"
+      return write("pong") if data == "ping"
 
       # Execute the request
       request = parse_request(data)
@@ -581,7 +591,7 @@ module PlaceOS
     rescue e
       Log.warn { {message: "failed to parse", data: data} }
       error_response(JSON.parse(data)["id"]?.try &.as_i64, ErrorCode::BadRequest, "bad request: #{e.message}")
-      return
+      nil
     end
 
     protected def error_response(
@@ -609,16 +619,15 @@ module PlaceOS
       end
     end
 
-    protected def respond(response : Response, payload = nil)
-      return if @ws.closed?
-
-      if payload
-        # Avoids parsing and serialising when payload is already in JSON format
-        partial = response.to_json
-        @ws.send(partial.sub(%("%{}"), payload))
-      else
-        @ws.send(response.to_json)
+    private def run_writes
+      while data = write_channel.receive?
+        ws.send(data)
       end
+    end
+
+    protected def respond(response : Response)
+      return if @ws.closed?
+      write(response.to_json)
     end
 
     # Delegate request to correct handler
