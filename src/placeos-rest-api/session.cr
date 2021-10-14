@@ -204,11 +204,13 @@ module PlaceOS
         @type,
         @error_code = nil,
         @message = nil,
-        @value = nil,
+        value = nil,
         @module_id = nil,
         @level = nil,
         @meta = nil
       )
+        # Remove invalid UTF-8 data from the payload
+        @value = value.is_a?(String) ? value.scrub : nil
       end
 
       # Response type
