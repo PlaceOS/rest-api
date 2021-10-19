@@ -19,7 +19,7 @@ docker-compose build -q
 
 exit_code="0"
 
-docker-compose run --rm test /app/scripts/entrypoint.sh "$@" || exit_code="$?"
+docker-compose run --rm test $@ || exit_code="$?"
 
 docker-compose down &> /dev/null
 

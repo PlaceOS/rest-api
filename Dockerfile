@@ -43,7 +43,11 @@ COPY ./src /app/src
 RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_COMMIT=$PLACE_COMMIT \
     PLACE_VERSION=$PLACE_VERSION \
-    crystal build --release --error-trace /app/src/app.cr -o /app/rest-api
+    crystal build \
+        --release \
+        --error-trace \
+        -o /app/rest-api \
+        /app/src/app.cr
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
