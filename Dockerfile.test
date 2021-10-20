@@ -16,7 +16,6 @@ RUN apk add --no-cache \
     && \
     update-ca-certificates
 
-COPY .ameba.yml /app
 COPY shard.yml /app
 COPY shard.override.yml /app
 COPY shard.lock /app

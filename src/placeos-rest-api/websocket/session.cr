@@ -2,65 +2,16 @@
 class PlaceOS::Driver; end
 
 require "hound-dog"
-require "log"
 require "mutex"
 require "placeos-driver/proxy/remote_driver"
 require "tasker"
 
-require "./error"
-require "./utilities/params"
+require "../error"
+require "../utilities/params"
 
-module PlaceOS
-  class Api::Session
+module PlaceOS::Api::WebSocket
+  class Session
     Log = ::Log.for(self)
-
-    # Stores sessions until their websocket closes
-    class Manager
-      Log = ::Log.for(self)
-
-      private getter session_lock : Mutex = Mutex.new
-      private getter sessions : Array(Session) { [] of Session }
-      private getter discovery : HoundDog::Discovery
-
-      private getter session_cleanup_period : Time::Span = 1.hours
-
-      @session_cleaner : Tasker::Task?
-
-      def initialize(@discovery : HoundDog::Discovery)
-        spawn(name: "cleanup_sessions", same_thread: true) do
-          cleanup_sessions
-        end
-      end
-
-      # Creates the session and handles the cleanup
-      #
-      def create_session(ws, request_id, user)
-        Log.trace { {request_id: request_id, frame: "OPEN"} }
-        session = Session.new(
-          ws: ws,
-          request_id: request_id,
-          user: user,
-          discovery: discovery,
-        )
-
-        session_lock.synchronize { sessions << session }
-
-        ws.on_close do |_|
-          Log.trace { {request_id: request_id, frame: "CLOSE"} }
-          session.cleanup
-          session_lock.synchronize { sessions.delete(session) }
-        end
-      end
-
-      # Periodically shrink the sessions array
-      protected def cleanup_sessions
-        @session_cleaner = Tasker.instance.every(session_cleanup_period) do
-          Log.trace { "shrinking sessions array" }
-          # NOTE: As crystal arrays do not shrink, we create a new one periodically
-          session_lock.synchronize { @sessions = sessions.dup }
-        end
-      end
-    end
 
     # Class level subscriptions to modules
     # class_getter subscriptions : ::Proxy::Subscriptions { ::Proxy::Subscriptions.new }
@@ -79,6 +30,7 @@ module PlaceOS
 
     @metadata_cache = {} of String => Driver::DriverModel::Metadata
     @module_id_cache = {} of String => String
+
     @cache_cleaner : Tasker::Task?
 
     private getter ws : HTTP::WebSocket
@@ -544,7 +496,7 @@ module PlaceOS
 
       # Execute the request
       request = parse_request(data)
-      __send__(request) if request
+      handle_request(request) if request
     rescue e
       Log.error(exception: e) { {message: "websocket request failed", data: data} }
       response = error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
@@ -603,9 +555,9 @@ module PlaceOS
       error_code,
       message : String?
     )
-      Api::Session::Response.new(
+      Api::WebSocket::Session::Response.new(
         id: request_id || 0_i64,
-        type: Api::Session::Response::Type::Error,
+        type: Api::WebSocket::Session::Response::Type::Error,
         error_code: error_code.to_i,
         message: message || "",
       )
@@ -636,7 +588,7 @@ module PlaceOS
 
     # Delegate request to correct handler
     #
-    protected def __send__(request : Request)
+    protected def handle_request(request : Request)
       arguments = {
         request_id:  request.id,
         system_id:   request.system_id,

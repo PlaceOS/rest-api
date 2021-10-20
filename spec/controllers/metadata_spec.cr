@@ -1,4 +1,4 @@
-require "./helper"
+require "../helper"
 
 module PlaceOS::Api
   describe Metadata do
@@ -25,7 +25,7 @@ module PlaceOS::Api
 
           Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
             .from_json(result.body)
-            .tap { |m| m.size.should eq(3) }
+            .tap(&.size.should eq(3))
             .count(&.[:metadata].empty?.!)
             .should eq 3
 
@@ -230,7 +230,7 @@ module PlaceOS::Api
             result.status_code.should eq 200
             Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
               .from_json(result.body)
-              .tap { |m| m.size.should eq(3) }
+              .tap(&.size.should eq(3))
               .count(&.[:metadata].empty?.!)
               .should eq 3
 

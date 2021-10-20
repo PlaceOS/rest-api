@@ -1,5 +1,5 @@
-require "./helper"
-require "./scope_helper"
+require "../helper"
+require "../scope_helper"
 
 module PlaceOS::Api
   describe Brokers do

@@ -1,5 +1,5 @@
-require "./helper"
-require "./scope_helper"
+require "../helper"
+require "../scope_helper"
 require "http/web_socket"
 
 module PlaceOS::Api
@@ -292,7 +292,7 @@ module PlaceOS::Api
           result.success?.should be_true
 
           settings = Array(Hash(String, JSON::Any)).from_json(result.body)
-          settings_hierarchy_ids = settings.map { |s| s["id"].to_s }
+          settings_hierarchy_ids = settings.map &.["id"].to_s
 
           settings_hierarchy_ids.should eq expected_settings_ids
           {control_system, zone0, zone1}.each &.destroy
