@@ -12,6 +12,8 @@ then
 fi
 
 watch="false"
+PARAMS=""
+
 while [[ $# -gt 0 ]]
 do
   arg="$1"
@@ -20,11 +22,15 @@ do
     watch="true"
     shift
     ;;
+    *)
+    PARAMS="$PARAMS $1"
+    shift
+    ;;
   esac
 done
 
 if [[ "$watch" == "true" ]]; then
-  CRYSTAL_WORKERS=$(nproc) watchexec -e cr -c -r -w src -w spec -- scripts/crystal-spec.sh -v ${@}
+  CRYSTAL_WORKERS=$(nproc) watchexec -e cr -c -r -w src -w spec -- scripts/crystal-spec.sh -v $PARAMS
 else
-  CRYSTAL_WORKERS=$(nproc) scripts/crystal-spec.sh -v ${@}
+  CRYSTAL_WORKERS=$(nproc) scripts/crystal-spec.sh -v $PARAMS
 fi

@@ -169,14 +169,18 @@ module PlaceOS::Api
       head :ok
     end
 
+    getter? backfill : Bool do
+      params["backfill"]?.presence.in?("1", "true")
+    end
+
     post "/reindex", :reindex do
-      RubberSoul::Client.client &.reindex(backfill: params["backfill"]? == "true")
-      head :ok
+      success = RubberSoul::Client.client &.reindex(backfill: backfill?)
+      head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
 
     post "/backfill", :backfill do
-      RubberSoul::Client.client &.backfill
-      head :ok
+      success = RubberSoul::Client.client &.backfill
+      head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
   end
 end
