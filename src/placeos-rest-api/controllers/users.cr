@@ -217,9 +217,11 @@ module PlaceOS::Api
         when :email
           Model::User.find_by_email(authority_id: authority, email: lookup)
         when :login_name
-          Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
+          # Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
+          Model::User.find_by_login_name(lookup)
         when :staff_id
-          Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
+          # Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
+          Model::User.find_by_staff_id(lookup)
         end
       end
 
