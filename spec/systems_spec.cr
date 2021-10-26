@@ -458,6 +458,7 @@ module PlaceOS::Api
 
         describe "update" do
           it "if version is valid" do
+            _, authorization_header = authentication
             cs = Model::Generator.control_system.save!
             cs.persisted?.should be_true
 
@@ -483,6 +484,7 @@ module PlaceOS::Api
           end
 
           it "fails when version is invalid" do
+            _, authorization_header = authentication
             cs = Model::Generator.control_system.save!
             id = cs.id.as(String)
             cs.persisted?.should be_true
@@ -504,6 +506,7 @@ module PlaceOS::Api
 
       describe "/:id/metadata" do
         it "shows system metadata" do
+          _, authorization_header = authentication
           system = Model::Generator.control_system.save!
           system_id = system.id.as(String)
           meta = Model::Generator.metadata(name: "special", parent: system_id).save!

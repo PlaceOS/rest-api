@@ -12,6 +12,7 @@ module PlaceOS::Api
         pending "searchs on keys"
         pending "returns settings for a set of parent ids"
         it "returns settings for parent id" do
+          _, authorization_header = authentication
           sys = Model::Generator.control_system.save!
           settings = [
             Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys),
@@ -47,6 +48,7 @@ module PlaceOS::Api
 
       describe "history" do
         it "returns history for a master setting" do
+          _, authorization_header = authentication
           sys = Model::Generator.control_system.save!
 
           setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
@@ -86,6 +88,7 @@ module PlaceOS::Api
       describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Settings, controller_klass: Settings)
         it "update" do
+          _, authorization_header = authentication
           settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
           original_settings = settings.settings_string
           settings.settings_string = %(hello: "world"\n)

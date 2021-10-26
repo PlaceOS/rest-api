@@ -17,6 +17,7 @@ module PlaceOS::Api
         test_crd(Model::Broker, Brokers)
 
         it "update" do
+          _, authorization_header = authentication
           broker = Model::Generator.broker.save!
           original_name = broker.name
           broker.name = UUID.random.to_s

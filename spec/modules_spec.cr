@@ -24,6 +24,7 @@ module PlaceOS::Api
         test_crd(klass: Model::Module, controller_klass: Modules)
 
         it "update preserves logic module connection status" do
+          _, authorization_header = authentication
           driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
           mod = Model::Generator.module(driver: driver).save!
 
@@ -46,6 +47,7 @@ module PlaceOS::Api
         end
 
         it "update" do
+          _, authorization_header = authentication
           driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
           mod = Model::Generator.module(driver: driver).save!
 

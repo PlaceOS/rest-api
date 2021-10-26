@@ -18,6 +18,7 @@ module PlaceOS::Api
         _, authorization_header = authentication
         test_crd(klass: Model::Zone, controller_klass: Zones)
         it "update" do
+          _, authorization_header = authentication
           zone = Model::Generator.zone.save!
           original_name = zone.name
           zone.name = UUID.random.to_s

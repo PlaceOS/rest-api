@@ -42,6 +42,7 @@ module PlaceOS::Api
         test_crd(klass: Model::Driver, controller_klass: Drivers)
 
         describe "update" do
+          _, authorization_header = authentication
           it "if role is preserved" do
             driver = Model::Generator.driver.save!
             original_name = driver.name
@@ -63,6 +64,7 @@ module PlaceOS::Api
           end
 
           it "fails if role differs" do
+            _, authorization_header = authentication
             driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
             driver.role = Model::Driver::Role::Device
             id = driver.id.as(String)
