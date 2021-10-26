@@ -189,8 +189,7 @@ end
 macro test_crd(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
   base = {{ controller_klass }}::NAMESPACE[0]
-  # authenticated_user, authorization_header = authentication
-  
+
   it "create" do
     _, authorization_header = authentication
     body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json

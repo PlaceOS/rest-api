@@ -208,8 +208,6 @@ module PlaceOS::Api
                    {:id, :login_name, :staff_id}
                  end
 
-      # comment
-
       query = ordering.each.compact_map do |id_type|
         case id_type
         when :id
