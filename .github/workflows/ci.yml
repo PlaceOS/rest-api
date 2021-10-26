@@ -39,6 +39,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run docker-compose test environment
-        run: ./test
+        run: ./test --order random
         env:
           CRYSTAL_VERSION: ${{ matrix.crystal }}
