@@ -321,7 +321,7 @@ module PlaceOS::Api
         test_controller_scope(Modules)
 
         it "checks scope on update" do
-          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
           driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
           mod = Model::Generator.module(driver: driver).save!
 
@@ -331,15 +331,15 @@ module PlaceOS::Api
           id = mod.id.as(String)
           path = base + id
 
-          result = update_route(path, mod, diff_authorization_header)
+          result = update_route(path, mod, scoped_authorization_header)
 
           result.status_code.should eq 200
           updated = Model::Module.from_trusted_json(result.body)
           updated.id.should eq mod.id
           updated.connected.should eq !connected
 
-          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Read)])
-          result = update_route(path, mod, diff_authorization_header)
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, mod, scoped_authorization_header)
 
           result.success?.should be_false
           result.status_code.should eq 403

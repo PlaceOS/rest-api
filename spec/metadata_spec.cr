@@ -210,7 +210,7 @@ module PlaceOS::Api
           scope_name = "metadata"
 
           it "allows access to show" do
-            _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
             parent = Model::Generator.zone.save!
             parent_id = parent.id.as(String)
@@ -225,7 +225,7 @@ module PlaceOS::Api
             result = curl(
               method: "GET",
               path: "#{base}/#{parent_id}/children",
-              headers: diff_authorization_header,
+              headers: scoped_authorization_header,
             )
             result.status_code.should eq 200
             Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
@@ -238,7 +238,7 @@ module PlaceOS::Api
           end
 
           it "should not allow access to delete" do
-            _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
             parent = Model::Generator.zone.save!
             parent_id = parent.id.as(String)
@@ -255,7 +255,7 @@ module PlaceOS::Api
             result = curl(
               method: "DELETE",
               path: "#{base}/#{id}",
-              headers: diff_authorization_header,
+              headers: scoped_authorization_header,
             )
             result.status_code.should eq 403
           end
@@ -264,7 +264,7 @@ module PlaceOS::Api
           scope_name = "metadata"
 
           it "should allow access to update" do
-            _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
             parent = Model::Generator.zone.save!
             meta = Model::Metadata::Interface.new(
@@ -282,7 +282,7 @@ module PlaceOS::Api
               method: "PUT",
               path: path,
               body: meta.to_json,
-              headers: diff_authorization_header.merge({"Content-Type" => "application/json"}),
+              headers: scoped_authorization_header.merge({"Content-Type" => "application/json"}),
             )
 
             new_metadata = Model::Metadata::Interface.from_json(result.body)
@@ -291,7 +291,7 @@ module PlaceOS::Api
           end
 
           it "should not allow access to show" do
-            _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
             parent = Model::Generator.zone.save!
             parent_id = parent.id.as(String)
@@ -306,14 +306,14 @@ module PlaceOS::Api
             result = curl(
               method: "GET",
               path: "#{base}/#{parent_id}/children",
-              headers: diff_authorization_header,
+              headers: scoped_authorization_header,
             )
             result.status_code.should eq 403
           end
         end
 
         it "checks that guests can read metadata" do
-          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
 
           zone = Model::Generator.zone.save!
           zone_id = zone.id.as(String)
@@ -322,7 +322,7 @@ module PlaceOS::Api
           result = curl(
             method: "GET",
             path: "#{base}/#{zone_id}",
-            headers: diff_authorization_header,
+            headers: scoped_authorization_header,
           )
 
           result.status_code.should eq 200
@@ -333,7 +333,7 @@ module PlaceOS::Api
         end
 
         it "checks that guests cannot write metadata" do
-          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
 
           zone = Model::Generator.zone.save!
           zone_id = zone.id.as(String)
@@ -341,7 +341,7 @@ module PlaceOS::Api
           result = curl(
             method: "POST",
             path: "#{base}/#{zone_id}",
-            headers: diff_authorization_header,
+            headers: scoped_authorization_header,
           )
           result.success?.should be_false
         end
