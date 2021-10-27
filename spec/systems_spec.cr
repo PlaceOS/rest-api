@@ -37,8 +37,6 @@ module PlaceOS::Api
   end
 
   describe Systems do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
     base = Systems::NAMESPACE[0]
 
     with_server do
@@ -48,7 +46,6 @@ module PlaceOS::Api
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
         it "filters systems by zones" do
-          _, authorization_header = authentication
           Model::ControlSystem.clear
 
           num_systems = 5
@@ -83,7 +80,6 @@ module PlaceOS::Api
         end
 
         it "filters systems by email" do
-          _, authorization_header = authentication
           Model::ControlSystem.clear
           num_systems = 5
 
@@ -112,7 +108,6 @@ module PlaceOS::Api
         end
 
         it "filters systems by modules" do
-          _, authorization_header = authentication
           Model::ControlSystem.clear
           num_systems = 5
 
@@ -148,7 +143,6 @@ module PlaceOS::Api
 
       describe "GET /:sys_id/zones" do
         it "lists zones for a system" do
-          _, authorization_header = authentication
           control_system = Model::Generator.control_system.save!
 
           zone0 = Model::Generator.zone.save!
@@ -174,7 +168,6 @@ module PlaceOS::Api
 
       describe "PUT /:sys_id/module/:module_id" do
         it "adds a module if not present" do
-          _, authorization_header = authentication
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module.save!
           cs.persisted?.should be_true
@@ -201,7 +194,6 @@ module PlaceOS::Api
         end
 
         it "adds module after removal from system" do
-          _, authorization_header = authentication
           cs1 = Model::Generator.control_system.save!
           cs2 = Model::Generator.control_system.save!
 
@@ -223,7 +215,6 @@ module PlaceOS::Api
 
       describe "DELETE /:sys_id/module/:module_id" do
         it "removes if not in use by another ControlSystem" do
-          _, authorization_header = authentication
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
           cs.persisted?.should be_true
@@ -243,7 +234,6 @@ module PlaceOS::Api
         end
 
         it "keeps module if in use by another ControlSystem" do
-          _, authorization_header = authentication
           cs1 = Model::Generator.control_system.save!
           cs2 = Model::Generator.control_system.save!
           mod = Model::Generator.module.save!
@@ -272,7 +262,6 @@ module PlaceOS::Api
 
       describe "GET /:sys_id/settings" do
         it "collates System settings" do
-          _, authorization_header = authentication
           control_system = Model::Generator.control_system.save!
           control_system_settings_string = %(frangos: 1)
           Model::Generator.settings(control_system: control_system, settings_string: control_system_settings_string).save!
@@ -310,7 +299,6 @@ module PlaceOS::Api
         end
 
         it "returns an empty array for a system without associated settings" do
-          _, authorization_header = authentication
           control_system = Model::Generator.control_system.save!
 
           zone0 = Model::Generator.zone.save!
@@ -337,7 +325,6 @@ module PlaceOS::Api
 
       describe "GET /:sys_id/types" do
         it "returns types of modules in a system" do
-          _, authorization_header = authentication
           expected = {
             "Display"  => 2,
             "Switcher" => 1,
@@ -390,7 +377,6 @@ module PlaceOS::Api
 
       describe "POST /:sys_id/start" do
         it "start modules in a system" do
-          _, authorization_header = authentication
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
           cs.update_fields(modules: [mod.id.as(String)])
@@ -417,7 +403,6 @@ module PlaceOS::Api
 
       describe "POST /:sys_id/stop" do
         it "stops modules in a system" do
-          _, authorization_header = authentication
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs)
           mod.running = true
@@ -446,7 +431,6 @@ module PlaceOS::Api
 
       describe "GET /:sys_id/metadata" do
         it "shows system metadata" do
-          _, authorization_header = authentication
           system = Model::Generator.control_system.save!
           system_id = system.id.as(String)
           meta = Model::Generator.metadata(name: "special", parent: system_id).save!
@@ -472,7 +456,6 @@ module PlaceOS::Api
 
         describe "update" do
           it "if version is valid" do
-            _, authorization_header = authentication
             cs = Model::Generator.control_system.save!
             cs.persisted?.should be_true
 
@@ -498,7 +481,6 @@ module PlaceOS::Api
           end
 
           it "fails when version is invalid" do
-            _, authorization_header = authentication
             cs = Model::Generator.control_system.save!
             id = cs.id.as(String)
             cs.persisted?.should be_true
@@ -520,7 +502,6 @@ module PlaceOS::Api
 
       describe "/:id/metadata" do
         it "shows system metadata" do
-          _, authorization_header = authentication
           system = Model::Generator.control_system.save!
           system_id = system.id.as(String)
           meta = Model::Generator.metadata(name: "special", parent: system_id).save!
@@ -544,7 +525,7 @@ module PlaceOS::Api
       describe "scopes" do
         test_controller_scope(Systems)
         it "should not allow start" do
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
+          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
 
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
@@ -559,14 +540,14 @@ module PlaceOS::Api
           result = curl(
             method: "POST",
             path: path,
-            headers: authorization_header,
+            headers: diff_authorization_header,
           )
 
           result.status_code.should eq 403
         end
 
         it "should allow start" do
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :write)])
+          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :write)])
 
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
@@ -581,7 +562,7 @@ module PlaceOS::Api
           result = curl(
             method: "POST",
             path: path,
-            headers: authorization_header,
+            headers: diff_authorization_header,
           )
 
           result.status_code.should eq 200

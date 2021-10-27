@@ -3,7 +3,6 @@ require "timecop"
 
 module PlaceOS::Api
   describe SystemTriggers do
-    _, authorization_header = authentication
     base = SystemTriggers::NAMESPACE[0]
 
     with_server do

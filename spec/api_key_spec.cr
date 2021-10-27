@@ -3,12 +3,11 @@ require "./scope_helper"
 
 module PlaceOS::Api
   describe ApiKeys do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = x_api_authentication
+    _, diff_authorization_header = x_api_authentication
     base = ApiKeys::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::ApiKey.table_name, headers: authorization_header)
+      test_404(base, model_name: Model::ApiKey.table_name, headers: diff_authorization_header)
 
       describe "index", tags: "search" do
         test_base_index(Model::ApiKey, ApiKeys)

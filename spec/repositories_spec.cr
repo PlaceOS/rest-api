@@ -18,7 +18,6 @@ module PlaceOS::Api
         test_crd(Model::Repository, Repositories)
 
         it "update" do
-          _, authorization_header = authentication
           repository = Model::Generator.repository.save!
           original_name = repository.name
           repository.name = UUID.random.to_s
@@ -40,7 +39,6 @@ module PlaceOS::Api
         end
 
         describe "mutating URIs" do
-          _, authorization_header = authentication
           it "does not update Driver repositories with modified URIs" do
             repository = Model::Generator.repository(type: Model::Repository::Type::Driver).save!
 
@@ -57,7 +55,6 @@ module PlaceOS::Api
           end
 
           it "does update Interface repositories with modified URIs" do
-            _, authorization_header = authentication
             repository = Model::Generator.repository(type: Model::Repository::Type::Interface).save!
 
             id = repository.id.as(String)
@@ -75,7 +72,6 @@ module PlaceOS::Api
 
         describe "driver only actions" do
           it "errors if enumerating drivers in an interface repo" do
-            _, authorization_header = authentication
             repository = Model::Generator.repository(type: Model::Repository::Type::Interface).save!
 
             id = repository.id.as(String)
@@ -90,7 +86,6 @@ module PlaceOS::Api
           end
 
           it "errors when requesting driver details from an interface repo" do
-            _, authorization_header = authentication
             repository = Model::Generator.repository(type: Model::Repository::Type::Interface).save!
 
             id = repository.id.as(String)

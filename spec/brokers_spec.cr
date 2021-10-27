@@ -3,8 +3,6 @@ require "./scope_helper"
 
 module PlaceOS::Api
   describe Brokers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
     base = Brokers::NAMESPACE[0]
 
     with_server do
@@ -17,7 +15,6 @@ module PlaceOS::Api
         test_crd(Model::Broker, Brokers)
 
         it "update" do
-          _, authorization_header = authentication
           broker = Model::Generator.broker.save!
           original_name = broker.name
           broker.name = UUID.random.to_s
