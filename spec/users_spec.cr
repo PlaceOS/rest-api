@@ -116,6 +116,7 @@ module PlaceOS::Api
 
       describe "/current" do
         it "renders the current user" do
+          authenticated_user, authorization_header = authentication
           result = curl(
             method: "GET",
             path: File.join(base, "/current"),

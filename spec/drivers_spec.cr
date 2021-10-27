@@ -3,8 +3,6 @@ require "./scope_helper"
 
 module PlaceOS::Api
   describe Drivers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
     pending "GET /:id/compiled"

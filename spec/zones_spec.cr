@@ -3,8 +3,6 @@ require "./scope_helper"
 
 module PlaceOS::Api
   describe Zones do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
     base = Zones::NAMESPACE[0]
 
     with_server do
@@ -15,7 +13,6 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        _, authorization_header = authentication
         test_crd(klass: Model::Zone, controller_klass: Zones)
         it "update" do
           zone = Model::Generator.zone.save!

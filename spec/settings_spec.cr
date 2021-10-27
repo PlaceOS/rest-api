@@ -3,7 +3,6 @@ require "./scope_helper"
 
 module PlaceOS::Api
   describe Settings do
-    _, authorization_header = authentication
     base = Api::Settings::NAMESPACE[0]
     with_server do
       test_404(base, model_name: Model::Settings.table_name, headers: authorization_header)
@@ -112,14 +111,14 @@ module PlaceOS::Api
         test_controller_scope(Settings)
 
         it "checks scope on update" do
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Write)])
           settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
           original_settings = settings.settings_string
           settings.settings_string = %(hello: "world"\n)
 
           id = settings.id.as(String)
           path = base + id
-          result = update_route(path, settings, authorization_header)
+          result = update_route(path, settings, scoped_authorization_header)
 
           result.status_code.should eq 200
           updated = Model::Settings.from_trusted_json(result.body)
@@ -128,8 +127,8 @@ module PlaceOS::Api
           updated.settings_string.should_not eq original_settings
           updated.destroy
 
-          _, authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Read)])
-          result = update_route(path, settings, authorization_header)
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, settings, scoped_authorization_header)
 
           result.success?.should be_false
           result.status_code.should eq 403

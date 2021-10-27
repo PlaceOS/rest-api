@@ -3,8 +3,6 @@ require "./scope_helper"
 
 module PlaceOS::Api
   describe Brokers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
     base = Brokers::NAMESPACE[0]
 
     with_server do

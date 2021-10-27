@@ -8,6 +8,7 @@ require "webmock"
 
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
+require "./spec_constants"
 
 Spec.before_suite do
   Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: :trace)
@@ -154,9 +155,9 @@ end
 # Test search on name field
 macro test_base_index(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
-  authenticated_user, authorization_header = authentication
 
   it "queries #{ {{ klass_name }} }", tags: "search" do
+  _, authorization_header = authentication
     name = UUID.random.to_s
     doc = PlaceOS::Model::Generator.{{ klass_name.id }}
     doc.name = name
@@ -188,9 +189,9 @@ end
 macro test_crd(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
   base = {{ controller_klass }}::NAMESPACE[0]
-  authenticated_user, authorization_header = authentication
 
   it "create" do
+    _, authorization_header = authentication
     body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
     result = curl(
       method: "POST",
@@ -207,6 +208,7 @@ macro test_crd(klass, controller_klass)
   end
 
   it "show" do
+    _, authorization_header = authentication
     model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
     id = model.id.as(String)
@@ -224,6 +226,7 @@ macro test_crd(klass, controller_klass)
   end
 
   it "destroy" do
+    _, authorization_header = authentication
     model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
     model.persisted?.should be_true
     id = model.id.as(String)
