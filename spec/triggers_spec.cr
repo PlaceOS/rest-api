@@ -36,7 +36,6 @@ module PlaceOS::Api
       describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Trigger, controller_klass: Triggers)
         it "update" do
-          _, authorization_header = authentication
           trigger = Model::Generator.trigger.save!
           original_name = trigger.name
 
@@ -61,7 +60,6 @@ module PlaceOS::Api
 
         describe "show" do
           it "includes trigger_instances with truthy `instances`" do
-            _, authorization_header = authentication
             trigger = Model::Generator.trigger.save!
             trigger_instance = Model::Generator.trigger_instance(trigger).save!
             trigger_instance_id = trigger_instance.id.as(String)

@@ -3,8 +3,6 @@ require "./scope_helper"
 
 module PlaceOS::Api
   describe Drivers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
     pending "GET /:id/compiled"
@@ -14,7 +12,6 @@ module PlaceOS::Api
       describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
         it "filters queries by driver role" do
-          _, authorization_header = authentication
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
           service.name = UUID.random.to_s
           service.save!
@@ -43,7 +40,6 @@ module PlaceOS::Api
         test_crd(klass: Model::Driver, controller_klass: Drivers)
 
         describe "update" do
-          _, authorization_header = authentication
           it "if role is preserved" do
             driver = Model::Generator.driver.save!
             original_name = driver.name
@@ -65,7 +61,6 @@ module PlaceOS::Api
           end
 
           it "fails if role differs" do
-            _, authorization_header = authentication
             driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
             driver.role = Model::Driver::Role::Device
             id = driver.id.as(String)
