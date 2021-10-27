@@ -11,6 +11,7 @@ module PlaceOS::Api
 
       describe "CRUD operations", tags: "crud" do
         it "show" do
+          _, authorization_header = authentication
           model = Model::Generator.user.save!
           model.persisted?.should be_true
           id = model.id.as(String)
@@ -28,6 +29,7 @@ module PlaceOS::Api
         end
 
         it "show via email" do
+          _, authorization_header = authentication
           model = Model::Generator.user.save!
           model.persisted?.should be_true
           id = model.id.as(String)
@@ -46,6 +48,7 @@ module PlaceOS::Api
         end
 
         it "show via login_name" do
+          _, authorization_header = authentication
           login = UUID.random.to_s
           model = Model::Generator.user
           model.login_name = login
@@ -66,6 +69,7 @@ module PlaceOS::Api
         end
 
         it "show via staff_id" do
+          _, authorization_header = authentication
           staff_id = "12345678"
           model = Model::Generator.user
           model.staff_id = staff_id
@@ -87,6 +91,7 @@ module PlaceOS::Api
 
         describe "update" do
           it "updates groups" do
+            _, authorization_header = authentication
             initial_groups = ["public"]
 
             model = Model::Generator.user
@@ -116,6 +121,7 @@ module PlaceOS::Api
 
       describe "/current" do
         it "renders the current user" do
+          authenticated_user, authorization_header = authentication
           result = curl(
             method: "GET",
             path: File.join(base, "/current"),

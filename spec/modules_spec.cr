@@ -24,6 +24,7 @@ module PlaceOS::Api
         test_crd(klass: Model::Module, controller_klass: Modules)
 
         it "update preserves logic module connection status" do
+          _, authorization_header = authentication
           driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
           mod = Model::Generator.module(driver: driver).save!
 
@@ -46,6 +47,7 @@ module PlaceOS::Api
         end
 
         it "update" do
+          _, authorization_header = authentication
           driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
           mod = Model::Generator.module(driver: driver).save!
 
@@ -121,6 +123,7 @@ module PlaceOS::Api
         end
 
         it "as_of query" do
+          _, authorization_header = authentication
           mod1 = Model::Generator.module
           mod1.connected = true
           Timecop.freeze(2.days.ago) do
@@ -169,6 +172,7 @@ module PlaceOS::Api
         end
 
         it "no logic query" do
+          _, authorization_header = authentication
           driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
           mod = Model::Generator.module(driver: driver)
           mod.role = Model::Driver::Role::Service
@@ -193,6 +197,7 @@ module PlaceOS::Api
 
     describe "/:id/settings" do
       it "collates Module settings" do
+        _, authorization_header = authentication
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
         driver_settings_string = %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)
         Model::Generator.settings(driver: driver, settings_string: driver_settings_string).save!
@@ -236,6 +241,7 @@ module PlaceOS::Api
       end
 
       it "returns an empty array for a logic module without associated settings" do
+        _, authorization_header = authentication
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
 
         control_system = Model::Generator.control_system.save!
@@ -284,6 +290,7 @@ module PlaceOS::Api
 
     describe "ping" do
       it "fails for logic module" do
+        _, authorization_header = authentication
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
         mod = Model::Generator.module(driver: driver).save!
         path = "#{base}#{mod.id}/ping"
@@ -298,6 +305,7 @@ module PlaceOS::Api
       end
 
       it "pings a module" do
+        _, authorization_header = authentication
         driver = Model::Generator.driver(role: Model::Driver::Role::Device)
         driver.default_port = 8080
         driver.save!

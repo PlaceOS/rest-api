@@ -8,6 +8,7 @@ module PlaceOS::Api
     with_server do
       describe "/metadata/:id/children/" do
         it "shows zone children metadata" do
+          _, authorization_header = authentication
           parent = Model::Generator.zone.save!
           parent_id = parent.id.as(String)
 
@@ -34,6 +35,7 @@ module PlaceOS::Api
         end
 
         it "filters zone children metadata" do
+          _, authorization_header = authentication
           parent = Model::Generator.zone.save!
           parent_id = parent.id.as(String)
 
@@ -65,6 +67,7 @@ module PlaceOS::Api
 
       describe "/metadata" do
         it "creates metadata" do
+          _, authorization_header = authentication
           parent = Model::Generator.zone.save!
           meta = Model::Metadata::Interface.new(
             name: "test",
@@ -90,6 +93,7 @@ module PlaceOS::Api
         end
 
         it "updates metadata" do
+          _, authorization_header = authentication
           parent = Model::Generator.zone.save!
           meta = Model::Metadata::Interface.new(
             name: "test",
@@ -138,6 +142,7 @@ module PlaceOS::Api
 
       describe "/metadata/:id" do
         it "shows control_system metadata" do
+          _, authorization_header = authentication
           control_system = Model::Generator.control_system.save!
           control_system_id = control_system.id.as(String)
           meta = Model::Generator.metadata(name: "special", parent: control_system_id).save!
@@ -155,6 +160,7 @@ module PlaceOS::Api
         end
 
         it "filters control_system metadata" do
+          _, authorization_header = authentication
           control_system = Model::Generator.control_system.save!
           control_system_id = control_system.id.as(String)
 
@@ -172,6 +178,7 @@ module PlaceOS::Api
         end
 
         it "shows zone metadata" do
+          _, authorization_header = authentication
           zone = Model::Generator.zone.save!
           zone_id = zone.id.as(String)
           meta = Model::Generator.metadata(name: "special", parent: zone_id).save!
@@ -189,6 +196,7 @@ module PlaceOS::Api
         end
 
         it "filters zone metadata" do
+          _, authorization_header = authentication
           zone = Model::Generator.zone.save!
           zone_id = zone.id.as(String)
 
