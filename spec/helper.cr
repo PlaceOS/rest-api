@@ -154,7 +154,6 @@ end
 # Test search on name field
 macro test_base_index(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
-  # authenticated_user, authorization_header = authentication
 
   it "queries #{ {{ klass_name }} }", tags: "search" do
   _, authorization_header = authentication
