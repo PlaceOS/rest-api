@@ -101,7 +101,7 @@ module PlaceOS::Api
         end
 
         context "guests" do
-          _, guest_header = authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::GUEST])
+          _, guest_header = authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::Scope::GUEST])
 
           it "prevented access to non-guest channels " do
             result = curl("POST", File.join(base, "signal?channel=dummy"), body: "hello", headers: guest_header)
