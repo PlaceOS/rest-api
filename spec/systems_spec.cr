@@ -525,7 +525,7 @@ module PlaceOS::Api
       describe "scopes" do
         test_controller_scope(Systems)
         it "should not allow start" do
-          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
 
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
@@ -540,14 +540,14 @@ module PlaceOS::Api
           result = curl(
             method: "POST",
             path: path,
-            headers: diff_authorization_header,
+            headers: scoped_authorization_header,
           )
 
           result.status_code.should eq 403
         end
 
         it "should allow start" do
-          _, diff_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :write)])
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :write)])
 
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
@@ -562,7 +562,7 @@ module PlaceOS::Api
           result = curl(
             method: "POST",
             path: path,
-            headers: diff_authorization_header,
+            headers: scoped_authorization_header,
           )
 
           result.status_code.should eq 200
