@@ -80,7 +80,6 @@ module PlaceOS::Api
         end
 
         it "filters systems by email" do
-          #
           Model::ControlSystem.clear
           num_systems = 5
 
@@ -109,7 +108,6 @@ module PlaceOS::Api
         end
 
         it "filters systems by modules" do
-          #
           Model::ControlSystem.clear
           num_systems = 5
 
