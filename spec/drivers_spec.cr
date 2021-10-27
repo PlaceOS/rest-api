@@ -14,6 +14,7 @@ module PlaceOS::Api
       describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
         it "filters queries by driver role" do
+          _, authorization_header = authentication
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
           service.name = UUID.random.to_s
           service.save!
