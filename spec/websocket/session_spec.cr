@@ -1,8 +1,9 @@
-require "./helper"
+require "../helper"
 
 require "placeos-driver/storage"
 
-module PlaceOS::Api
+module PlaceOS::Api::WebSocket
+  authenticated_user, authorization_header = authentication
   base = Systems::NAMESPACE[0]
 
   describe Session do
@@ -155,10 +156,10 @@ def test_websocket_api(base, authorization_header)
 
   # Create a Module
   mod = PlaceOS::Model::Generator.module(control_system: control_system).save!
-  updates = [] of PlaceOS::Api::Session::Response
+  updates = [] of PlaceOS::Api::WebSocket::Session::Response
 
   on_message = ->(message : String) {
-    updates << PlaceOS::Api::Session::Response.from_json message
+    updates << PlaceOS::Api::WebSocket::Session::Response.from_json message
   }
 
   # Set metadata in redis to allow binding to module

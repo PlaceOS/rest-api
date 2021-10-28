@@ -6,7 +6,7 @@ require "placeos-driver/proxy/system"
 require "./application"
 require "./modules"
 require "./settings"
-require "../session"
+require "../websocket"
 
 # TODO: Remove after this PR is merged https://github.com/crystal-lang/crystal/pull/10922
 module Enumerable(T)
@@ -61,7 +61,7 @@ module PlaceOS::Api
     getter current_control_system : Model::ControlSystem { find_system }
 
     # Websocket API session manager
-    class_getter session_manager : Session::Manager { Session::Manager.new(core_discovery) }
+    class_getter session_manager : WebSocket::Manager { WebSocket::Manager.new(core_discovery) }
 
     # Strong params for index method
     class IndexParams < Params
