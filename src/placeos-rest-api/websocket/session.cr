@@ -28,7 +28,7 @@ module PlaceOS::Api::WebSocket
 
     private getter write_channel = Channel(String).new
 
-    getter ws : HTTP::WebSocket
+    private getter ws : HTTP::WebSocket
 
     def initialize(
       @ws : HTTP::WebSocket,
@@ -59,119 +59,8 @@ module PlaceOS::Api::WebSocket
 
       # Perform writes
       spawn(name: "socket_writes_#{request_id}", same_thread: true) { run_writes }
-      # Begin clearing cach
+      # Begin clearing cache
       spawn(name: "cache_cleaner_#{request_id}", same_thread: true) { cache_plumbing }
-    end
-
-    # WebSocket API Messages
-    ##############################################################################
-
-    private abstract struct Base
-      include JSON::Serializable
-    end
-
-    # A websocket API request
-    struct Request < Base
-      include JSON::Serializable::Strict
-
-      # Commands available over websocket API
-      enum Command
-        Exec
-        Bind
-        Unbind
-        Debug
-        Ignore
-      end
-
-      def initialize(
-        @id,
-        @system_id,
-        @module_name,
-        @command,
-        @name,
-        @index = 1,
-        @args = nil
-      )
-      end
-
-      getter id : Int64
-
-      # Module location metadata
-      @[JSON::Field(key: "sys")]
-      getter system_id : String
-
-      @[JSON::Field(key: "mod")]
-      getter module_name : String
-
-      getter index : Int32 = 1
-
-      # Command
-      @[JSON::Field(key: "cmd")]
-      getter command : Command
-
-      # Function name
-      getter name : String
-
-      # Function arguments
-      @[JSON::Field(emit_null: true)]
-      getter args : Array(JSON::Any)?
-    end
-
-    # WebSocket API Response
-    struct Response < Base
-      # Driver response error codes
-      alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
-
-      # Response type
-      enum Type
-        Success
-        Notify
-        Error
-        Debug
-      end
-
-      getter id : Int64
-      getter type : Type
-
-      @[JSON::Field(key: "msg")]
-      getter message : String?
-
-      @[JSON::Field(converter: String::RawConverter)]
-      getter value : String?
-
-      @[JSON::Field(converter: Enum::ValueConverter(PlaceOS::Api::WebSocket::Session::Response::ErrorCode))]
-      getter error_code : ErrorCode?
-
-      @[JSON::Field(key: "meta")]
-      getter metadata : Metadata?
-
-      @[JSON::Field(key: "mod")]
-      getter module_id : String?
-
-      getter level : ::Log::Severity?
-
-      alias Metadata = NamedTuple(
-        sys: String,
-        mod: String,
-        index: Int32,
-        name: String,
-      )
-
-      def initialize(
-        @id : Int64,
-        @type : Type,
-        @error_code : ErrorCode? = nil,
-        message : String? = nil,
-        value : String? = nil,
-        @module_id : String? = nil,
-        @level : ::Log::Severity? = nil,
-        @metadata : Metadata? = nil
-      )
-        # Remove invalid UTF-8 data from the payload
-        @value = value.is_a?(String) ? value.scrub : nil
-        # Remove invalid UTF-8 data from the error message
-        @message = message.is_a?(String) ? message.scrub : nil
-      end
     end
 
     # WebSocket API Handlers
@@ -582,7 +471,7 @@ module PlaceOS::Api::WebSocket
     end
 
     protected def respond(response : Response)
-      return if @ws.closed?
+      return if ws.closed?
       write(response.to_json)
     end
 
@@ -608,3 +497,6 @@ module PlaceOS::Api::WebSocket
     end
   end
 end
+
+require "./session/request"
+require "./session/response"
