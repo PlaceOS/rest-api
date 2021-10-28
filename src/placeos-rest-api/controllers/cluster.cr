@@ -112,7 +112,7 @@ module PlaceOS::Api
 
         if args.include_status
           promises = driver_keys.map do |key|
-            Promise.defer do
+            Promise.defer(timeout: 200.milliseconds) do
               driver_status = begin
                 client.driver_status(key)
               rescue e
