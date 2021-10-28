@@ -52,7 +52,7 @@ module PlaceOS::Api::WebSocket
             # Check for successful bind response
             updates.first.type.should eq Session::Response::Type::Success
             # Check all responses correct metadata
-            updates.all? { |v| v.meta == expected_meta }.should be_true
+            updates.all? { |v| v.metadata == expected_meta }.should be_true
             # Check all messages received
             updates.size.should eq 3 # Check for status variable updates
             updates[1..2].compact_map(&.value.try &.to_i).should eq [1, 2]
@@ -83,7 +83,7 @@ module PlaceOS::Api::WebSocket
           # Check all messages received
           updates.size.should eq 2
           # Check all responses correct metadata
-          updates.all? { |v| v.meta == expected_meta }.should be_true
+          updates.all? { |v| v.metadata == expected_meta }.should be_true
           # Check for successful bind response
           updates.shift.type.should eq Session::Response::Type::Success
           # Check for successful unbind response
