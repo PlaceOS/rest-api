@@ -1,6 +1,3 @@
-# FIXME: Hack to allow resolution of PlaceOS::Driver class/module
-class PlaceOS::Driver; end
-
 require "hound-dog"
 require "mutex"
 require "placeos-driver/proxy/remote_driver"
@@ -606,7 +603,7 @@ module PlaceOS::Api::WebSocket
       in .unbind? then unbind(**arguments)
       in .debug?  then debug(**arguments)
       in .ignore? then ignore(**arguments)
-      in .exec?   then exec(**arguments, args: request.args.as(Array(JSON::Any)))
+      in .exec?   then exec(**arguments, args: request.args)
       end
     end
   end
