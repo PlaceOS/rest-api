@@ -26,6 +26,16 @@ module PlaceOS::Api
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name.keyword" => {order: :asc}}
 
+    def boolean_param(key : String, default : Bool = false, allow_empty : Bool = false) : Bool
+      return true if allow_empty && params.has_key?(key) && params[key].nil?
+
+      case params[key]?.presence.try(&.downcase)
+      when .in?("1", "true")  then true
+      when .in?("0", "false") then false
+      else                         default
+      end
+    end
+
     def paginate_results(elastic, query, route = base_route)
       data = elastic.search(query)
       range_start = query.offset

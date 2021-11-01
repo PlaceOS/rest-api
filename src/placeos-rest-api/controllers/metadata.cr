@@ -56,7 +56,7 @@ module PlaceOS::Api
     get "/:id/children", :children_metadata do
       parent_id = params["id"]
       name = params["name"]?.presence
-      include_parent = params.has_key?("include_parent") ? params["include_parent"].downcase == "true" : true
+      include_parent = boolean_param("include_parent", default: true)
 
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?

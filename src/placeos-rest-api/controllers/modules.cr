@@ -142,7 +142,7 @@ module PlaceOS::Api
     end
 
     def show
-      complete = params["complete"]? == "true"
+      complete = boolean_param("complete")
 
       response = !complete ? current_module : with_fields(current_module, {
         :driver => restrict_attributes(current_module.driver, only: DRIVER_ATTRIBUTES),
