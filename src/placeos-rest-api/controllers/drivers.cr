@@ -46,7 +46,7 @@ module PlaceOS::Api
     end
 
     def show
-      include_compilation_status = !params.has_key?("compilation_status") || params["compilation_status"] != "false"
+      include_compilation_status = boolean_param("compilation_status", default: true)
 
       result = !include_compilation_status ? current_driver : with_fields(current_driver, {
         :compilation_status => Api::Drivers.compilation_status(current_driver, request_id),

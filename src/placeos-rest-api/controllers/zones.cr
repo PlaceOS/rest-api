@@ -57,9 +57,8 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
-    # BREAKING CHANGE: param key `data` used to attempt to retrieve a setting from the zone
     def show
-      if params.has_key? "complete"
+      if boolean_param("complete", allow_empty: true)
         # Include trigger data in response
         render json: with_fields(current_zone, {
           :trigger_data => current_zone.trigger_data,

@@ -37,7 +37,7 @@ module PlaceOS::Api
       )
 
       # Execute the requested method
-      if params["exec"]? == "true"
+      if boolean_param("exec")
         exec_params = ExecParams.new(params).validate!
 
         if current_trigger_instance.exec_enabled

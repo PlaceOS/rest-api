@@ -155,7 +155,7 @@ module PlaceOS::Api
         render json: current_control_system
       end
 
-      complete = params["complete"]? == "true"
+      complete = boolean_param("complete")
       render json: !complete ? current_control_system : with_fields(current_control_system, {
         :module_data => current_control_system.module_data,
         :zone_data   => current_control_system.zone_data,
@@ -410,8 +410,7 @@ module PlaceOS::Api
 
     ws("/control", :control) do |ws|
       Log.trace { "WebSocket API request" }
-      fixed_device = params["fixed_device"]?.try(&.downcase) == "true"
-      Log.context.set(fixed_device: fixed_device)
+      Log.context.set(fixed_device: boolean_param("fixed_device"))
       Systems.session_manager.create_session(
         ws: ws,
         request_id: request_id,

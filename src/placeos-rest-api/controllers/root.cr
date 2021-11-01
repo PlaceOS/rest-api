@@ -170,7 +170,7 @@ module PlaceOS::Api
     end
 
     getter? backfill : Bool do
-      params["backfill"]?.presence.in?("1", "true")
+      boolean_param("backfill")
     end
 
     post "/reindex", :reindex do
