@@ -25,6 +25,10 @@ module PlaceOS::Api
       params["driver"]
     end
 
+    getter core_id : String do
+      params["id"]
+    end
+
     ###############################################################################################
 
     def index
@@ -97,7 +101,6 @@ module PlaceOS::Api
     end
 
     def show
-      core_id = params["id"]
       uri = self.class.core_discovery.node_hash[core_id]?
 
       Log.context.set(core_id: core_id, uri: uri.try &.to_s, include_status: include_status?)
@@ -188,8 +191,6 @@ module PlaceOS::Api
     end
 
     def destroy
-      core_id = params["id"]
-
       uri = self.class.core_discovery.node_hash[core_id]
       if Core::Client.client(uri, request_id, &.terminate(driver))
         head :ok

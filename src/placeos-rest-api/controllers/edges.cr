@@ -40,17 +40,15 @@ module PlaceOS::Api
 
     # Validate the present of the id and check the secret before routing to core
     ws("/control", :edge) do |socket|
-      if (authentication_token = token).nil?
-        return render_error(HTTP::Status::BAD_REQUEST, "Missing 'token' param")
+      authentication_token = required_param(token)
 
-        edge_id = Model::Edge.validate_token?(authentication_token)
+      edge_id = Model::Edge.validate_token?(authentication_token)
 
-        if edge_id.nil?
-          head status: :unauthorized
-        else
-          Log.info { {edge_id: edge_id, message: "new edge connection"} }
-          Edges.connection_manager.add_edge(edge_id, socket)
-        end
+      if edge_id.nil?
+        head status: :unauthorized
+      else
+        Log.info { {edge_id: edge_id, message: "new edge connection"} }
+        Edges.connection_manager.add_edge(edge_id, socket)
       end
     end
 

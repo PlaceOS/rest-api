@@ -23,7 +23,38 @@ module PlaceOS::Api
     before_action :current_zone, only: [:show, :update, :update_alt, :destroy, :metadata]
     before_action :body, only: [:create, :update, :update_alt, :zone_execute]
 
+    # Params
     ###############################################################################################
+
+    getter name : String? do
+      params["name"]?.presence
+    end
+
+    getter zone_id : String do
+      params["id"]
+    end
+
+    getter module_slug : String do
+      params["module_slug"]
+    end
+
+    getter method : String do
+      params["method"]
+    end
+
+    getter? complete : Bool do
+      boolean_param("complete", allow_empty: true)
+    end
+
+    ###############################################################################################
+
+    getter parent_id : String? do
+      params["parent_id"]?.presence || params["parent"]?.presence
+    end
+
+    getter tags : Array(String)? do
+      params["tags"]?.presence.try &.gsub(/[^0-9a-z ]/i, "").split(',').reject(&.empty?).uniq!
+    end
 
     getter current_zone : Model::Zone { find_zone }
 
@@ -33,23 +64,19 @@ module PlaceOS::Api
       query.sort(NAME_SORT_ASC)
 
       # Limit results to the children of this parent
-      if params.has_key? "parent"
+      if parent = parent_id
         query.must({
-          "parent_id" => [params["parent"]],
+          "parent_id" => [parent],
         })
       end
 
-      if params.has_key? "tags"
-        # list of unique tags
-        tags = params["tags"].gsub(/[^0-9a-z ]/i, "").split(',').reject(&.empty?).uniq!
-
-        head :bad_request if tags.empty?
-
+      # Limit results to zones containing the passed list of tags
+      if (filter_tags = tags) && !filter_tags.empty?
         query.must({
-          "tags" => tags,
+          "tags" => filter_tags,
         })
       else
-        head :forbidden unless is_support? || is_admin?
+        return head :forbidden unless is_support? || is_admin?
 
         query.search_field "name"
       end
@@ -58,7 +85,7 @@ module PlaceOS::Api
     end
 
     def show
-      if boolean_param("complete", allow_empty: true)
+      if complete?
         # Include trigger data in response
         render json: with_fields(current_zone, {
           :trigger_data => current_zone.trigger_data,
@@ -87,7 +114,6 @@ module PlaceOS::Api
 
     get "/:id/metadata", :metadata do
       parent_id = current_zone.id.not_nil!
-      name = params["name"]?.presence
       render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
@@ -114,30 +140,28 @@ module PlaceOS::Api
 
     # Execute a method on a module across all systems in a Zone
     post "/:id/exec/:module_slug/:method", :zone_execute do
-      zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
       args = Array(JSON::Any).from_json(self.body)
 
-      # Crystal BUG: total function, it should destructure with correct types
-      module_parts = Driver::Proxy::RemoteDriver.get_parts(module_slug)
-      module_name, index = module_parts
+      module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
 
       results = Promise.map(current_zone.systems) do |system|
         system_id = system.id.as(String)
+        Log.context.set(system_id: system_id, module_name: module_name, index: index)
         begin
           remote_driver = Driver::Proxy::RemoteDriver.new(
             sys_id: system_id,
-            module_name: module_name.as(String),
-            index: index.as(Int32)
+            module_name: module_name,
+            index: index
           )
 
           output = remote_driver.exec(
             security: driver_clearance(user_token),
-            function: method.as(String), # BUG: This should not require casting
+            function: method,
             args: args,
             request_id: request_id,
           )
 
-          Log.debug { {message: "module exec success", system_id: system_id, module_name: module_name, index: index, method: method, output: output} }
+          Log.debug { {message: "module exec success", method: method, output: output} }
 
           {system_id, ExecStatus::Success}
         rescue e : Driver::Proxy::RemoteDriver::Error

@@ -58,6 +58,47 @@ module PlaceOS::Api
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
     before_action :body, only: [:create, :execute, :update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter control_system_id : String do
+      route_params["sys_id"]
+    end
+
+    getter module_id : String do
+      route_params["module_id"]
+    end
+
+    getter module_slug : String do
+      route_params["module_slug"]
+    end
+
+    getter method : String do
+      route_params["method"]
+    end
+
+    getter key : String do
+      route_params["key"]
+    end
+
+    getter name : String? do
+      params["name"]?.presence
+    end
+
+    getter in : Array(String)? do
+      params["in"]?.presence.try &.split(',').map(&.strip).reject(&.empty?).uniq!
+    end
+
+    getter? complete : Bool do
+      boolean_param("complete")
+    end
+
+    getter version : Int32? do
+      params["version"]?.presence.try &.to_i
+    end
+
+    ###############################################################################################
+
     getter current_control_system : Model::ControlSystem { find_system }
 
     # Websocket API session manager
@@ -141,7 +182,7 @@ module PlaceOS::Api
 
     # Finds all the systems with the specified email address
     get "/with_emails", :find_by_email do
-      emails = params["in"].split(',').map(&.strip).reject(&.empty?).uniq!
+      emails = required_param(in)
       systems = Model::ControlSystem.find_all(emails, index: :email).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
       render json: systems
@@ -155,33 +196,22 @@ module PlaceOS::Api
         render json: current_control_system
       end
 
-      complete = boolean_param("complete")
-      render json: !complete ? current_control_system : with_fields(current_control_system, {
+      render json: !complete? ? current_control_system : with_fields(current_control_system, {
         :module_data => current_control_system.module_data,
         :zone_data   => current_control_system.zone_data,
       })
     end
 
-    class UpdateParams < Params
-      attribute version : Int32, presence: true
-    end
-
     # Updates a control system
     def update
-      args = UpdateParams.new(params)
+      system_version = required_param(version)
 
-      unless args.valid?
-        return render_error(HTTP::Status::PRECONDITION_FAILED, "Missing System version parameter")
-      end
-
-      version = args.version
-
-      if version != current_control_system.version
+      if system_version != current_control_system.version
         return render_error(HTTP::Status::CONFLICT, "Attempting to edit an old System version")
       end
 
       current_control_system.assign_attributes_from_json(self.body)
-      current_control_system.version = version + 1
+      current_control_system.version = system_version + 1
 
       save_and_respond(current_control_system)
     end
@@ -203,7 +233,7 @@ module PlaceOS::Api
     get "/:sys_id/zones", :sys_zones do
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
-        head :forbidden unless user_token.user.roles.includes?(params["sys_id"])
+        return head :forbidden unless user_token.user.roles.includes?(control_system_id)
       end
 
       # Save the DB hit if there are no zones on the system
@@ -222,7 +252,6 @@ module PlaceOS::Api
     #
     get "/:sys_id/metadata", :metadata do
       parent_id = current_control_system.id.not_nil!
-      name = params["name"]?.presence
       render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
@@ -235,9 +264,6 @@ module PlaceOS::Api
     # Adds the module from the system if it doesn't already exist
     #
     put("/:sys_id/module/:module_id", :add_module) do
-      control_system_id = params["sys_id"]
-      module_id = params["module_id"]
-
       head :not_found unless Model::Module.exists?(module_id)
 
       module_present = current_control_system.modules.includes?(module_id) || Model::ControlSystem.add_module(control_system_id, module_id)
@@ -253,8 +279,6 @@ module PlaceOS::Api
     # Removes the module from the system and deletes it if not used elsewhere
     #
     delete("/:sys_id/module/:module_id", :remove_module) do
-      module_id = params["module_id"]
-
       if current_control_system.modules.includes?(module_id)
         current_control_system.remove_module(module_id)
         current_control_system.save!
@@ -299,12 +323,13 @@ module PlaceOS::Api
     # Runs a function in a system module
     #
     post("/:sys_id/:module_slug/:method", :execute) do
-      sys_id, module_slug, method = params["sys_id"], params["module_slug"], params["method"]
       module_name, index = RemoteDriver.get_parts(module_slug)
+      Log.context.set(module_name: module_name, index: index, method: method)
+
       args = Array(JSON::Any).from_json(self.body)
 
       remote_driver = RemoteDriver.new(
-        sys_id: sys_id,
+        sys_id: control_system_id,
         module_name: module_name,
         index: index,
         discovery: self.class.core_discovery
@@ -320,9 +345,6 @@ module PlaceOS::Api
       render text: ret_val
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
-    rescue e
-      Log.error(exception: e) { {message: "core execute request failed", sys_id: sys_id, module_name: module_name} }
-      render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
     end
 
     # Look-up a module types in a system, returning a count of each type
@@ -337,34 +359,31 @@ module PlaceOS::Api
     # Returns the state of an associated module
     #
     get("/:sys_id/:module_slug", :state) do
-      sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
-      render json: self.class.module_state(sys_id, module_name, index)
+      render json: self.class.module_state(control_system_id, module_name, index)
     end
 
     # Returns the state lookup for a given key on a module
     #
     get("/:sys_id/:module_slug/:key", :state_lookup) do
-      sys_id, key, module_slug = params["sys_id"], params["key"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
-      render json: self.class.module_state(sys_id, module_name, index, key)
+      render json: self.class.module_state(control_system_id, module_name, index, key)
     end
 
     # Lists functions available on the driver
     # Filters higher privilege functions.
     get("/:sys_id/functions/:module_slug", :functions) do
-      sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
       metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(
-        system_id: sys_id,
+        system_id: control_system_id,
         module_name: module_name,
         index: index,
       )
 
       unless metadata
-        Log.debug { "metadata not found for #{module_slug} on #{sys_id}" }
+        Log.debug { "metadata not found for #{module_slug} on #{control_system_id}" }
         head :not_found
       end
 
@@ -447,10 +466,9 @@ module PlaceOS::Api
     end
 
     protected def find_system
-      id = params["sys_id"]
-      Log.context.set(control_system_id: id)
+      Log.context.set(control_system_id: control_system_id)
       # Find will raise a 404 (not found) if there is an error
-      Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
+      Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
     end
   end
 end
