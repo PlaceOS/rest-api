@@ -25,6 +25,7 @@ module PlaceOS::Api
 
     def index
       # Pick off role from HTTP params, render error if present and invalid
+      # TODO: This is an example of a need to improve validation model of params.
       role = params["role"]?.try &.to_i?.try do |r|
         parsed = Model::Driver::Role.from_value?(r)
         return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Invalid `role`") if parsed.nil?

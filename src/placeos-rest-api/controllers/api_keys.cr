@@ -17,16 +17,26 @@ module PlaceOS::Api
 
     before_action :body, only: [:create, :update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter authority_id : String? do
+      params["authority_id"]?.presence
+    end
+
     ###############################################################################################
 
     getter current_api_key : Model::ApiKey { find_api_key }
+
+    ###############################################################################################
 
     def index
       elastic = Model::ApiKey.elastic
       query = elastic.query(params)
 
-      authority_id = params["authority_id"]?
-      query.filter({"authority_id" => [authority_id]}) if authority_id
+      if authority = authority_id
+        query.filter({"authority_id" => [authority]})
+      end
 
       query.sort(NAME_SORT_ASC)
 
