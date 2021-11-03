@@ -3,7 +3,7 @@ require "../utilities/core_discovery"
 
 require "rethinkdb"
 require "rethinkdb-orm"
-require "rubber-soul/client"
+require "search-ingest/client"
 require "placeos-frontend-loader/client"
 
 require "placeos-models/version"
@@ -90,7 +90,7 @@ module PlaceOS::Api
       )
     end
 
-    SERVICES = %w(core dispatch frontend_loader rest_api rubber_soul triggers source)
+    SERVICES = %w(core dispatch frontend_loader rest_api search_ingest source triggers)
 
     def self.construct_versions : Array(PlaceOS::Model::Version)
       version_channel = Channel(PlaceOS::Model::Version?).new
@@ -119,8 +119,8 @@ module PlaceOS::Api
       FrontendLoader::Client.client(&.version)
     end
 
-    protected def self.rubber_soul_version : PlaceOS::Model::Version
-      RubberSoul::Client.client(&.version)
+    protected def self.search_ingest_version : PlaceOS::Model::Version
+      SearchIngest::Client.client(&.version)
     end
 
     protected def self.core_version : PlaceOS::Model::Version
@@ -174,12 +174,12 @@ module PlaceOS::Api
     end
 
     post "/reindex", :reindex do
-      success = RubberSoul::Client.client &.reindex(backfill: backfill?)
+      success = SearchIngest::Client.client &.reindex(backfill: backfill?)
       head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
 
     post "/backfill", :backfill do
-      success = RubberSoul::Client.client &.backfill
+      success = SearchIngest::Client.client &.backfill
       head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
   end
