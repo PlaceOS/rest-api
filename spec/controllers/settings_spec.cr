@@ -7,6 +7,40 @@ module PlaceOS::Api
     with_server do
       test_404(base, model_name: Model::Settings.table_name, headers: authorization_header)
 
+      describe "support user" do
+        context "access" do
+          it "index" do
+            _, support_header = authentication(sys_admin: false, support: true)
+            sys = Model::Generator.control_system.save!
+            setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
+            setting.settings_string = "tree: 1"
+            setting.save!
+            result = curl(
+              method: "GET",
+              path: File.join(base, "?parent_id=#{sys.id}"),
+              headers: support_header,
+            )
+
+            result.status_code.should eq 200
+          end
+
+          it "show" do
+            _, support_header = authentication(sys_admin: false, support: true)
+            sys = Model::Generator.control_system.save!
+            setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
+            setting.settings_string = "tree: 1"
+            setting.save!
+            result = curl(
+              method: "GET",
+              path: File.join(base, setting.id.as(String)),
+              headers: support_header,
+            )
+
+            result.status_code.should eq 200
+          end
+        end
+      end
+
       describe "index", tags: "search" do
         pending "searchs on keys"
         pending "returns settings for a set of parent ids"
