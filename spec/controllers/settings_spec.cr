@@ -9,13 +9,12 @@ module PlaceOS::Api
 
       describe "support user" do
         context "access" do
-          _, support_header = authentication(sys_admin: false, support: true)
-          sys = Model::Generator.control_system.save!
-          setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
-          setting.settings_string = "tree: 1"
-          setting.save!
-
           it "index" do
+            _, support_header = authentication(sys_admin: false, support: true)
+            sys = Model::Generator.control_system.save!
+            setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
+            setting.settings_string = "tree: 1"
+            setting.save!
             result = curl(
               method: "GET",
               path: File.join(base, "?parent_id=#{sys.id}"),
@@ -26,6 +25,11 @@ module PlaceOS::Api
           end
 
           it "show" do
+            _, support_header = authentication(sys_admin: false, support: true)
+            sys = Model::Generator.control_system.save!
+            setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
+            setting.settings_string = "tree: 1"
+            setting.save!
             result = curl(
               method: "GET",
               path: File.join(base, setting.id.as(String)),
