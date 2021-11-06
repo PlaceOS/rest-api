@@ -36,6 +36,8 @@ services:
     volumes:
       - ./spec:/app/spec
       - ./src:/app/src
+      - ./shard.lock:/app/shard.lock
+      - ./shard.yml:/app/shard.yml
     depends_on:
       - elastic
       - etcd
