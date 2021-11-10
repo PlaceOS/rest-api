@@ -101,6 +101,10 @@ dependencies:
     github: spider-gazelle/secrets-env
     version: ~> 1
 
+  openapi-generator:
+    github: place-labs/openapi-generator
+    branch: perf/action-controller
+
 development_dependencies:
   # Linter
   ameba:

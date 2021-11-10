@@ -1,10 +1,17 @@
 require "promise"
+require "action-controller"
+require "openapi-generator"
+require "openapi-generator/providers/action-controller"
+require "openapi-generator/helpers/action-controller"
+require "placeos-log-backend"
 
 require "./application"
 
 module PlaceOS::Api
   class Zones < Application
     include Utils::CoreHelper
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
 
     base "/api/engine/v2/zones/"
 
@@ -27,6 +34,23 @@ module PlaceOS::Api
 
     getter current_zone : Model::Zone { find_zone }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all zones
+        parameters:
+          #{Schema.qp "limit", "The maximum numbers of zones to return", type: "integer"}
+          #{Schema.qp "parent", "Limit results to the children of this parent zone", type: "string"}
+          #{Schema.qp "tags", "return zones with the specified tags", type: "string"}
+          #{Schema.qp "q", "Search query term", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array Zone}
+      YAML
+    )]
     def index
       elastic = Model::Zone.elastic
       query = elastic.query(params)
@@ -58,6 +82,20 @@ module PlaceOS::Api
     end
 
     # BREAKING CHANGE: param key `data` used to attempt to retrieve a setting from the zone
+    @[OpenAPI(
+      <<-YAML
+        summary: get a zone
+        parameters:
+          #{Schema.qp name: "complete", description: "Include trigger data in response", required: false, type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Zone}
+      YAML
+    )]
     def show
       if params.has_key? "complete"
         # Include trigger data in response
@@ -69,6 +107,22 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a zone
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Zone}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Zone}
+      YAML
+    )]
     def update
       current_zone.assign_attributes_from_json(self.body)
       save_and_respond current_zone
@@ -77,15 +131,63 @@ module PlaceOS::Api
     # TODO: replace manual id with interpolated value from `id_param`
     put "/:id", :update_alt { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a zone
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Zone}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref Zone}
+      YAML
+    )]
     def create
       save_and_respond Model::Zone.from_json(self.body)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a zone
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_zone.destroy
       head :ok
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get the metadata of a zone
+        security:
+        - bearerAuth: []
+      YAML
+    )]
+
+    @[OpenAPI(
+      <<-YAML
+        summary: Get the metadata of a zone
+        parameters:
+          #{Schema.qp "name", "The name of the metadata?", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array Zone}
+      YAML
+    )]
     get "/:id/metadata", :metadata do
       parent_id = current_zone.id.not_nil!
       name = params["name"]?.presence
@@ -100,6 +202,13 @@ module PlaceOS::Api
 
     # Return triggers attached to current zone
     #
+    @[OpenAPI(
+      <<-YAML
+        summary: get the triggers attached to current zone
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     get "/:id/triggers", :trigger_instances do
       triggers = current_zone.trigger_data
       set_collection_headers(triggers.size, Model::Trigger.table_name)
@@ -113,8 +222,11 @@ module PlaceOS::Api
       module_missing : Array(String) = [] of String
     ) { include JSON::Serializable }
 
-    # Execute a method on a module across all systems in a Zone
-    post "/:id/exec/:module_slug/:method", :zone_execute do
+    post("/:id/exec/:module_slug/:method", :zone_execute, annotations: @[OpenAPI(<<-YAML
+        summary: Execute a method on a module across all systems in a Zone
+        # parameters:
+        YAML
+    )]) do
       zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
       args = Array(JSON::Any).from_json(self.body)
 

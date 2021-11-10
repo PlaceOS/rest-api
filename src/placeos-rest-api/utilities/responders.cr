@@ -70,8 +70,6 @@ module PlaceOS::Api
       fields && !fields.empty? ? attrs.merge(fields) : attrs
     end
 
-    private alias DriverError = Driver::Proxy::RemoteDriver::ErrorCode
-
     # RemoteDriver Execute error responder
     #
     # With respond = `true`, method acts as a logging function
@@ -86,16 +84,16 @@ module PlaceOS::Api
       )
 
       status = case error.error_code
-               in DriverError::ModuleNotFound, DriverError::SystemNotFound
+               in .module_not_found?, .system_not_found?
                  Log.info { error.message }
                  HTTP::Status::NOT_FOUND
-               in DriverError::ParseError, DriverError::BadRequest, DriverError::UnknownCommand
+               in .parse_error?, .bad_request?, .unknown_command?
                  Log.error { error.message }
                  HTTP::Status::BAD_REQUEST
-               in DriverError::RequestFailed, DriverError::UnexpectedFailure
+               in .request_failed?, .unexpected_failure?
                  Log.info { error.message }
                  HTTP::Status::INTERNAL_SERVER_ERROR
-               in DriverError::AccessDenied
+               in .access_denied?
                  Log.info { error.message }
                  HTTP::Status::UNAUTHORIZED
                end

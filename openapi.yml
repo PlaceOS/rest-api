@@ -1,0 +1,179 @@
+---
+openapi: 3.0.1
+info:
+  title: PlaceOS Rest-API
+  version: 1.30.2
+paths:
+  /api/engine/v2/zones:
+    get:
+      summary: get all zones
+      parameters:
+      - name: limit
+        in: query
+        description: The maximum numbers of zones to return
+        required: false
+        schema:
+          type: integer
+      - name: parent
+        in: query
+        description: Limit results to the children of this parent zone
+        required: false
+        schema:
+          type: string
+      - name: tags
+        in: query
+        description: return zones with the specified tags
+        required: false
+        schema:
+          type: string
+      - name: q
+        in: query
+        description: Search query term
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Zone'
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a zone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/zones/{id}:
+    get:
+      summary: get a zone
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: complete
+        in: query
+        description: Include trigger data in response
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a zone
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a zone
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/zones/{id}/exec/{module_slug}/{method}:
+    post:
+      summary: Execute a method on a module across all systems in a Zone
+      parameters:
+      - name: method
+        in: path
+        required: true
+        schema:
+          type: string
+        example: method
+      - name: module_slug
+        in: path
+        required: true
+        schema:
+          type: string
+        example: module_slug
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+components:
+  schemas:
+    Zone:
+      required:
+      - name
+      - description
+      type: object
+      properties:
+        name:
+          type: string
+          example: Zone 1301
+        description:
+          type: string
+          example: This zone has space for 137 people
+  responses: {}
+  parameters: {}
+  examples: {}
+  requestBodies: {}
+  headers: {}
+  securitySchemes: {}
+  links: {}
+  callbacks: {}

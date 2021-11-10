@@ -113,6 +113,14 @@ shards:
     git: https://github.com/place-labs/neuroplastic.git
     version: 1.8.0
 
+  open_api:
+    git: https://github.com/elbywan/open_api.cr.git
+    version: 1.3.0
+
+  openapi-generator:
+    git: https://github.com/place-labs/openapi-generator.git
+    version: 2.1.0+git.commit.d925772ae1f36c51c0665d743bba4ac6ca9466a8
+
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
     version: 2.1.5
