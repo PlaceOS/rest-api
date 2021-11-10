@@ -29,22 +29,7 @@ module PlaceOS::Api
       end
 
       it "constructs service versions" do
-        version_endpoint = /(?!:6000).*\/api\/(?<service>[^\/]+)\/(?<version>[^\/]+)\/version/
-        WebMock
-          .stub(:get, version_endpoint)
-          .to_return do |request|
-            request.path =~ version_endpoint
-            headers = HTTP::Headers.new
-            headers["Content-Type"] = "application/json"
-            body = {
-              service:          $~["service"],
-              commit:           "DEV",
-              version:          "v1.0.0",
-              build_time:       "Tue Jun 01 01:00:00 UTC 2021",
-              platform_version: "DEV",
-            }.to_json
-            HTTP::Client::Response.new(200, body, headers)
-          end
+        HttpMocks.service_version
 
         versions = Root.construct_versions
         versions.size.should eq(Root::SERVICES.size)

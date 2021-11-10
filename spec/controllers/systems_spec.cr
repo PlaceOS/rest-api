@@ -1,5 +1,4 @@
 require "../helper"
-require "../scope_helper"
 require "http/web_socket"
 
 module PlaceOS::Api

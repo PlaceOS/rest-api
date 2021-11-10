@@ -54,7 +54,7 @@ services:
       <<: *rethinkdb-client-env
 
   elastic:
-    image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.6}
+    image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.9.1}
     restart: always
     environment:
       discovery.type: single-node

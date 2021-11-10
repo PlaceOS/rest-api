@@ -12,7 +12,7 @@ ARG IMAGE_UID="10001"
 ENV UID=$IMAGE_UID
 ENV USER=appuser
 
-# See https://stackoverflow.com/a/55757473/12429735RUN
+# See https://stackoverflow.com/a/55757473/12429735
 RUN adduser \
     --disabled-password \
     --gecos "" \

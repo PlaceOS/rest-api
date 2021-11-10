@@ -4,45 +4,22 @@ require "promise"
 require "random"
 require "rethinkdb-orm"
 require "simple_retry"
-require "webmock"
 
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
+
 require "./spec_constants"
 require "./scope_helper"
+require "./http_mocks"
 
 Spec.before_suite do
   Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: :trace)
   clear_tables
 end
 
-Spec.before_suite do
-  WebMock.allow_net_connect = true
-
-  # Mock etcd response for core nodes request
-  WebMock.stub(:post, "http://etcd:2379/v3beta/kv/range")
-    .with(
-      body: "{\"key\":\"c2VydmljZS9jb3JlLw==\",\"range_end\":\"c2VydmljZS9jb3JlMA==\"}",
-      headers: {"Content-Type" => "application/json"}
-    )
-    .to_return(
-      body: {
-        count: "1",
-        kvs:   [{
-          key:   "c2VydmljZS9jb3JlLw==",
-          value: Base64.strict_encode("http://127.0.0.1:9001"),
-        }],
-      }.to_json
-    )
-
-  WebMock
-    .stub(:get, /\/api\/core\/v1\/drivers\/.*\/compiled/)
-    .to_return(
-      headers: HTTP::Headers{
-        "Content-Type" => "application/json",
-      },
-      body: true.to_json
-    )
+Spec.before_each do
+  PlaceOS::Api::HttpMocks.reset
+  PlaceOS::Api::HttpMocks.etcd_range
 end
 
 Spec.after_suite { clear_tables }
