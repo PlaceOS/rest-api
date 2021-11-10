@@ -16,6 +16,35 @@ Spec.before_suite do
   clear_tables
 end
 
+Spec.before_suite do
+  WebMock.allow_net_connect = true
+
+  # Mock etcd response for core nodes request
+  WebMock.stub(:post, "http://etcd:2379/v3beta/kv/range")
+    .with(
+      body: "{\"key\":\"c2VydmljZS9jb3JlLw==\",\"range_end\":\"c2VydmljZS9jb3JlMA==\"}",
+      headers: {"Content-Type" => "application/json"}
+    )
+    .to_return(
+      body: {
+        count: "1",
+        kvs:   [{
+          key:   "c2VydmljZS9jb3JlLw==",
+          value: Base64.strict_encode("http://127.0.0.1:9001"),
+        }],
+      }.to_json
+    )
+
+  WebMock
+    .stub(:get, /\/api\/core\/v1\/drivers\/.*\/compiled/)
+    .to_return(
+      headers: HTTP::Headers{
+        "Content-Type" => "application/json",
+      },
+      body: true.to_json
+    )
+end
+
 Spec.after_suite { clear_tables }
 
 # Application config
