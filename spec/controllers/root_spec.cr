@@ -29,7 +29,7 @@ module PlaceOS::Api
       end
 
       it "constructs service versions" do
-        version_endpoint = /\/api\/(?<service>[^\/]+)\/(?<version>[^\/]+)\/version/
+        version_endpoint = /(?!:6000).*\/api\/(?<service>[^\/]+)\/(?<version>[^\/]+)\/version/
         WebMock
           .stub(:get, version_endpoint)
           .to_return do |request|
