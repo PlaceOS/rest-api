@@ -28,16 +28,15 @@ x-rubber-soul-client-env: &rubber-soul-client-env
 
 services:
   test: # Rest API
-    build:
-      context: ./
-      dockerfile: Dockerfile.test
-      args:
-        CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.1.1}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.2.1}
     volumes:
-      - ./spec:/app/spec
-      - ./src:/app/src
-      - ./shard.lock:/app/shard.lock
-      - ./shard.yml:/app/shard.yml
+      - ${PWD}/spec:/app/spec
+      - ${PWD}/src:/app/src
+      - ${PWD}/lib:/app/lib
+      - ${PWD}/shard.lock:/app/shard.lock
+      - ${PWD}/shard.override.yml:/app/shard.override.yml
+      - ${PWD}/shard.yml:/app/shard.yml
+      - ${PWD}/coverage:/app/coverage
     depends_on:
       - elastic
       - etcd
