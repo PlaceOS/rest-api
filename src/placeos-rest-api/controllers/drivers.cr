@@ -158,7 +158,7 @@ module PlaceOS::Api
     def self.driver_compiled?(driver : Model::Driver, repository : Model::Repository, request_id : String, key : String? = nil) : Bool
       Api::Systems.core_for(key.presence || driver.file_name, request_id) do |core_client|
         core_client.driver_compiled?(
-          file_name: URI.encode(driver.file_name),
+          file_name: URI.encode_path(driver.file_name),
           repository: repository.folder_name,
           commit: driver.commit,
           tag: driver.id.as(String),

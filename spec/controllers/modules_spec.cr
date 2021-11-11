@@ -1,5 +1,4 @@
 require "../helper"
-require "../scope_helper"
 require "timecop"
 
 module PlaceOS

@@ -1,5 +1,4 @@
 require "../helper"
-require "../scope_helper"
 
 module PlaceOS::Api
   describe Drivers do
@@ -37,6 +36,10 @@ module PlaceOS::Api
       test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
+        before_all do
+          HttpMocks.core_compiled
+        end
+
         test_crd(klass: Model::Driver, controller_klass: Drivers)
 
         describe "update" do
@@ -79,6 +82,10 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
+        before_all do
+          HttpMocks.core_compiled
+        end
+
         test_controller_scope(Drivers)
       end
     end
