@@ -26,6 +26,13 @@ module PlaceOS::Api
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name.keyword" => {order: :asc}}
 
+    macro required_param(key)
+      if (%value = {{ key }}).nil?
+        return render_error(HTTP::Status::BAD_REQUEST, "Missing '{{ key }}' param")
+      end
+      %value
+    end
+
     def boolean_param(key : String, default : Bool = false, allow_empty : Bool = false) : Bool
       return true if allow_empty && params.has_key?(key) && params[key].nil?
 

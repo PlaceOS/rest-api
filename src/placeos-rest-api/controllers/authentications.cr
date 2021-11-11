@@ -20,6 +20,13 @@ module PlaceOS::Api
       before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
       before_action :body, only: [:create, :update, :update_alt]
 
+      # Params
+      ###############################################################################################
+
+      getter authority_id : String? do
+        params["authority_id"].presence || params["authority"]?.presence
+      end
+
       ###############################################################################################
 
       getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
@@ -28,7 +35,7 @@ module PlaceOS::Api
         elastic = Model::{{auth_type.id}}Authentication.elastic
         query = elastic.query(params)
 
-        if authority = params["authority"]?
+        if authority = authority_id
           query.filter({
             "authority_id" => [authority],
           })

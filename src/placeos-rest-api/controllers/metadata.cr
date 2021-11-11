@@ -22,17 +22,30 @@ module PlaceOS::Api
 
     before_action :body, only: [:update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter parent_id : String do
+      params["id"]
+    end
+
+    getter name : String? do
+      params["name"]?.presence
+    end
+
+    getter? include_parent : Bool do
+      boolean_param("include_parent", default: true)
+    end
+
     ###############################################################################################
 
     getter current_zone : Model::Zone { find_zone }
 
+    ###############################################################################################
     # Fetch metadata for a model
     #
     # Filter for a specific metadata by name via `name` param
     def show
-      parent_id = params["id"]
-      name = params["name"]?.presence
-
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         head :forbidden unless name && guest_ids.includes?(parent_id)
@@ -54,10 +67,6 @@ module PlaceOS::Api
     # Filter for a specific metadata by name via `name` param.
     # Includes the parent metadata by default via `include_parent` param.
     get "/:id/children", :children_metadata do
-      parent_id = params["id"]
-      name = params["name"]?.presence
-      include_parent = boolean_param("include_parent", default: true)
-
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         head :forbidden unless name && guest_ids.includes?(parent_id)
@@ -66,7 +75,7 @@ module PlaceOS::Api
       render_json do |json|
         json.array do
           current_zone.children.all.each do |zone|
-            Children.new(zone, name).to_json(json) if include_parent || zone.id != parent_id
+            Children.new(zone, name).to_json(json) if include_parent? || zone.id != parent_id
           end
         end
       end
@@ -74,7 +83,6 @@ module PlaceOS::Api
 
     # ameba:disable Metrics/CyclomaticComplexity
     def update
-      parent_id = params["id"]
       metadata = Model::Metadata::Interface.from_json(self.body)
 
       # We need a name to lookup the metadata
@@ -120,12 +128,11 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def destroy
-      parent_id = params["id"]
-      name = params["name"]?.presence
+      if (metadata_name = name).nil?
+        head :bad_request
+      end
 
-      head :bad_request unless name
-
-      Model::Metadata.for(parent_id, name).each &.destroy
+      Model::Metadata.for(parent_id, metadata_name).each &.destroy
 
       head :ok
     end
@@ -134,10 +141,9 @@ module PlaceOS::Api
     ###########################################################################
 
     def find_zone
-      id = params["id"]
-      Log.context.set(zone_id: id)
+      Log.context.set(zone_id: parent_id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Zone.find!(id)
+      Model::Zone.find!(parent_id)
     end
 
     # Fetch zones for system the current user has a role for
@@ -148,7 +154,8 @@ module PlaceOS::Api
 
     # Does the user making the request have permissions to modify the data
     def check_delete_permissions
-      raise Error::Forbidden.new unless is_support? || params["id"] == user_token.id
+      # NOTE: Will the user token ever be assigned a zone id?
+      raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
     end
   end
 end

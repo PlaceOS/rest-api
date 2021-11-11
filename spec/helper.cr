@@ -19,6 +19,7 @@ end
 
 Spec.before_each do
   PlaceOS::Api::HttpMocks.reset
+  PlaceOS::Api::HttpMocks.etcd_range
 end
 
 Spec.after_suite { clear_tables }
