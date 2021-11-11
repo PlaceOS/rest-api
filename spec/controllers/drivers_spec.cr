@@ -36,7 +36,8 @@ module PlaceOS::Api
       test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
-        before_all do
+        before_each do
+          HttpMocks.etcd_range
           HttpMocks.core_compiled
         end
 
@@ -82,7 +83,8 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        before_all do
+        before_each do
+          HttpMocks.etcd_range
           HttpMocks.core_compiled
         end
 
