@@ -98,7 +98,7 @@ module PlaceOS::Api::WebSocket
       describe Session::Response do
         it "scrubs invalid UTF-8 chars from the error message" do
           Session::Response.new(
-            type: Session::Response::Type::Success,
+            type: Session::Response::Type::Error,
             id: 1234_i64,
             message: String.new(Bytes[0xc3, 0x28]),
           ).to_json.should contain(Char::REPLACEMENT)

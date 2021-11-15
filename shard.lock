@@ -45,6 +45,10 @@ shards:
     git: https://github.com/spider-gazelle/crunits.git
     version: 1.1.0
 
+  crystal-kcov:
+    git: https://github.com/vici37/crystal-kcov.git
+    version: 0.1.0+git.commit.6c2191d080e01a49106b483cf0c4a0145e3f9090
+
   db:
     git: https://github.com/crystal-lang/crystal-db.git
     version: 0.10.1
@@ -59,7 +63,7 @@ shards:
 
   etcd:
     git: https://github.com/place-labs/crystal-etcd.git
-    version: 1.2.4
+    version: 1.2.5
 
   exec_from:
     git: https://github.com/place-labs/exec_from.git
@@ -147,7 +151,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.14.0
+    version: 5.14.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
