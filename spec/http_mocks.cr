@@ -9,7 +9,7 @@ module PlaceOS::Api::HttpMocks
   # Mock etcd response for core nodes request.
   # The primary request for core discovery.
   def self.etcd_range
-    WebMock.stub(:post, "http://etcd:2379/v3beta/kv/range")
+    WebMock.stub(:post, "http://etcd:2379/v3/kv/range")
       .with(
         body: "{\"key\":\"c2VydmljZS9jb3JlLw==\",\"range_end\":\"c2VydmljZS9jb3JlMA==\"}",
         headers: {"Content-Type" => "application/json"}
