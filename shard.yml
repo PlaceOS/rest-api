@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.30.2
+version: 1.31.0
 crystal: ">= 1.1.1"
 
 targets:
@@ -106,6 +106,10 @@ development_dependencies:
   ameba:
     github: crystal-ameba/ameba
     version: ">= 0.14"
+
+  crystal-kcov:
+    github: Vici37/crystal-kcov
+    branch: master
 
   # Mock data generation
   faker:

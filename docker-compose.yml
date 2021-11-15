@@ -29,8 +29,11 @@ x-rubber-soul-client-env: &rubber-soul-client-env
 services:
   test: # Rest API
     image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.2.1}
+    security_opt:
+      - seccomp:unconfined
     volumes:
       - ${PWD}/spec:/app/spec
+      - ${PWD}/bin:/app/bin
       - ${PWD}/src:/app/src
       - ${PWD}/lib:/app/lib
       - ${PWD}/shard.lock:/app/shard.lock
