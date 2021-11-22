@@ -230,14 +230,13 @@ module PlaceOS::Api
       sys_id = current_module.control_system_id || ""
       args = Array(JSON::Any).from_json(self.body)
 
-      remote_driver = Driver::Proxy::RemoteDriver.new(
+      result = Driver::Proxy::RemoteDriver.new(
         module_id: module_id,
         sys_id: sys_id,
         module_name: current_module.name,
         discovery: self.class.core_discovery,
-      )
-
-      result = remote_driver.exec(
+        user_id: current_user.id,
+      ).exec(
         security: driver_clearance(user_token),
         function: method,
         args: args,
