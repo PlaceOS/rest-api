@@ -159,6 +159,7 @@ module PlaceOS::Api
             function: method,
             args: args,
             request_id: request_id,
+            user_id: current_user.id,
           )
 
           Log.debug { {message: "module exec success", method: method, output: output} }

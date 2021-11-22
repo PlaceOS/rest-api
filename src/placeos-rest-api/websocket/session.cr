@@ -30,6 +30,8 @@ module PlaceOS::Api::WebSocket
 
     private getter ws : HTTP::WebSocket
 
+    private getter user : Model::UserJWT
+
     def initialize(
       @ws : HTTP::WebSocket,
       @request_id : String,
@@ -49,9 +51,9 @@ module PlaceOS::Api::WebSocket
         ws.pong
       end
 
-      @security_level = if @user.is_admin?
+      @security_level = if user.is_admin?
                           Driver::Proxy::RemoteDriver::Clearance::Admin
-                        elsif @user.is_support?
+                        elsif user.is_support?
                           Driver::Proxy::RemoteDriver::Clearance::Support
                         else
                           Driver::Proxy::RemoteDriver::Clearance::User
@@ -79,14 +81,18 @@ module PlaceOS::Api::WebSocket
       args = [] of JSON::Any if args.nil?
       Log.debug { {message: "exec", args: args.to_json} }
 
-      driver = Driver::Proxy::RemoteDriver.new(
+      response = Driver::Proxy::RemoteDriver.new(
         sys_id: system_id,
         module_name: module_name,
         index: index,
-        discovery: @discovery
+        discovery: @discovery,
+        user_id: user.id,
+      ).exec(
+        security: @security_level,
+        function: name,
+        args: args,
+        request_id: @request_id
       )
-
-      response = driver.exec(@security_level, name, args, request_id: @request_id)
 
       respond(Response.new(
         id: request_id,
@@ -199,7 +205,8 @@ module PlaceOS::Api::WebSocket
           module_id: module_name,
           sys_id: system_id,
           module_name: module_name,
-          discovery: @discovery
+          discovery: @discovery,
+          user_id: user.id,
         )
 
         ws = driver.debug
