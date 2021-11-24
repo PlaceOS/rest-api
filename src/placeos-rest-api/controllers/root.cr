@@ -139,8 +139,8 @@ module PlaceOS::Api
       params["topic"]
     end
 
-    getter mqtt_access : String? do
-      params["acc"]?
+    getter mqtt_access : Int32? do
+      params["acc"]?.try(&.to_i?)
     end
 
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
