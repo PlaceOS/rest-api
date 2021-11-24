@@ -13,7 +13,7 @@ module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :scopes]
+    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :scopes, :mqtt_user, :mqtt_access]
     before_action :can_write_guest, only: [:signal]
 
     # Healthcheck
@@ -74,11 +74,66 @@ module PlaceOS::Api
       render json: Root.construct_versions
     end
 
+    get "/cluster/versions", :cluster_version do
+      render json: Root.construct_versions
+    end
+
     # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
     class_getter(scopes) { SCOPES }
 
     get "/scopes", :scopes do
       render json: Root.scopes
+    end
+
+    protected def mqtt_parse_token
+      token = acquire_token
+      raise Error::Unauthorized.new unless token
+      begin
+        @user_token = user_token = Model::UserJWT.decode(token)
+      rescue e : JWT::Error
+        Log.warn(exception: e) { {message: "bearer malformed", action: "mqtt_access"} }
+        # Request bearer was malformed
+        raise Error::Unauthorized.new "bearer malformed"
+      end
+    ensure
+      set_user_id
+    end
+
+    # For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
+    # jwt_response_mode: status, jwt_params_mode: form
+    post "/mqtt_user", :mqtt_user do
+      user_token = mqtt_parse_token
+      head :ok
+    end
+
+    # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
+    post "/mqtt_access", :mqtt_access do
+      user_token = mqtt_parse_token
+      client = params["clientid"]
+      topic = params["topic"]
+      acc = params["acc"]
+      response = HTTP::Status::FORBIDDEN
+      error = nil
+
+      Log.context.set(
+        mqtt_client: client,
+        mqtt_topic: topic,
+        mqtt_access: acc
+      )
+
+      case acc
+      when "1", "4" # read
+        response = HTTP::Status::OK
+      when "2", "3" # write
+        unless is_support?
+          error = "no write permissions"
+        end
+      else
+        error = "unknown access level requested: #{acc}"
+      end
+
+      Log.warn { error.to_s } if error
+      head response
     end
 
     class_getter version : PlaceOS::Model::Version do

@@ -74,10 +74,10 @@ module PlaceOS::Api
     before_action :set_request_id
 
     # All routes are authenticated, except root
-    before_action :authorize!, except: [:root]
+    before_action :authorize!, except: [:root, :mqtt_user, :mqtt_access]
 
     # Simplifies determining user's requests in server-side logs
-    before_action :set_user_id, except: [:root]
+    before_action :set_user_id, except: [:root, :mqtt_user, :mqtt_access]
 
     # Set user_id from parsed JWT
     def set_user_id
