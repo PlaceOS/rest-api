@@ -102,9 +102,10 @@ module PlaceOS::Api
 
     # MQTT Access Control
     ###############################################################################################
+
     protected def mqtt_parse_jwt
       unless (token = acquire_token)
-        raise Error::Unauthorized.new("Missing mqtt token")
+        raise Error::Unauthorized.new("missing mqtt token")
       end
 
       begin
@@ -156,8 +157,8 @@ module PlaceOS::Api
       )
 
       status = case access
-               in .read?, .subscribe?
-                 HTTP::Status::OK
+               in .deny?
+                 HTTP::Status::FORBIDDEN
                in .write?
                  if is_support?
                    HTTP::Status::OK
@@ -165,8 +166,8 @@ module PlaceOS::Api
                    Log.warn { "insufficient permissions" }
                    HTTP::Status::FORBIDDEN
                  end
-               in .deny?
-                 HTTP::Status::FORBIDDEN
+               in .read?, .subscribe?
+                 HTTP::Status::OK
                in Nil
                  Log.warn { "unknown access level requested" }
                  HTTP::Status::BAD_REQUEST
