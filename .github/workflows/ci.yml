@@ -2,7 +2,7 @@ name: CI
 on: push
 jobs:
   test:
-    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@aea47e9
+    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@main
 
   crystal-style:
     uses: PlaceOS/.github/.github/workflows/crystal-style.yml@main
