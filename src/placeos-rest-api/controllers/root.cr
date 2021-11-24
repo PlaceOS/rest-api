@@ -158,13 +158,15 @@ module PlaceOS::Api
       status = case access
                in .read?, .subscribe?
                  HTTP::Status::OK
-               in .write?, .deny?
+               in .write?
                  if is_support?
                    HTTP::Status::OK
                  else
                    Log.warn { "insufficient permissions" }
                    HTTP::Status::FORBIDDEN
                  end
+               in .deny?
+                 HTTP::Status::FORBIDDEN
                in Nil
                  Log.warn { "unknown access level requested" }
                  HTTP::Status::BAD_REQUEST
