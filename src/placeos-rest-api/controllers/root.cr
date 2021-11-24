@@ -89,7 +89,7 @@ module PlaceOS::Api
       token = acquire_token
       raise Error::Unauthorized.new unless token
       begin
-        @user_token = user_token = Model::UserJWT.decode(token)
+        @user_token = Model::UserJWT.decode(token)
       rescue e : JWT::Error
         Log.warn(exception: e) { {message: "bearer malformed", action: "mqtt_access"} }
         # Request bearer was malformed
@@ -102,13 +102,13 @@ module PlaceOS::Api
     # For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
     # jwt_response_mode: status, jwt_params_mode: form
     post "/mqtt_user", :mqtt_user do
-      user_token = mqtt_parse_token
+      mqtt_parse_token
       head :ok
     end
 
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     post "/mqtt_access", :mqtt_access do
-      user_token = mqtt_parse_token
+      mqtt_parse_token
       client = params["clientid"]
       topic = params["topic"]
       acc = params["acc"]
