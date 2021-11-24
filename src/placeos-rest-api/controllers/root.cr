@@ -157,7 +157,7 @@ module PlaceOS::Api
       )
 
       status = case access
-               in .deny?
+               in .deny?, .none?
                  HTTP::Status::FORBIDDEN
                in .write?
                  if is_support?
