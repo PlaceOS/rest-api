@@ -129,7 +129,7 @@ module PlaceOS::Api
     end
 
     getter mqtt_topic : String? do
-      params["topic"]
+      params["topic"]?
     end
 
     getter mqtt_access : Int32? do
@@ -138,7 +138,9 @@ module PlaceOS::Api
 
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     post "/mqtt_access", :mqtt_access do
-      client_id = required_param(mqtt_client_id)
+      Log.warn { "MQTT ACCESS REQUEST:\n#{request.body}" }
+
+      client_id = mqtt_client_id
       topic = required_param(mqtt_topic)
       access = MqttAcl.from_value?(required_param(mqtt_access))
 
