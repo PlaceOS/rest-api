@@ -124,14 +124,6 @@ module PlaceOS::Api
       head :ok
     end
 
-    @[Flags]
-    enum MqttAcl
-      Read      = 0x01
-      Write     = 0x02
-      Subscribe = 0x04
-      Deny      = 0x11
-    end
-
     getter mqtt_client_id : String? do
       params["clientid"]?
     end
@@ -156,24 +148,42 @@ module PlaceOS::Api
         mqtt_access: access.to_s,
       )
 
-      status = case access
-               in .deny?, .none?
-                 HTTP::Status::FORBIDDEN
-               in .write?
-                 if is_support?
-                   HTTP::Status::OK
-                 else
-                   Log.warn { "insufficient permissions" }
-                   HTTP::Status::FORBIDDEN
-                 end
-               in .read?, .subscribe?
-                 HTTP::Status::OK
-               in Nil
-                 Log.warn { "unknown access level requested" }
-                 HTTP::Status::BAD_REQUEST
-               end
+      head self.class.mqtt_acl_status(access, current_user)
+    end
 
-      head status
+    # Mosquitto MQTT broker accepts a flag enum for its ACL.
+    # Source: https://github.com/iegomez/mosquitto-go-auth/blob/master/backends/constants/constants.go
+    @[Flags]
+    enum MqttAcl
+      Read      = 0x01
+      Write     = 0x02
+      Subscribe = 0x04
+      Deny      = 0x11
+    end
+
+    # Evaluate the ACL permissions flags of the JWT
+    # - Allows `read` to users
+    # - Allows `subscribe` to users
+    # - Denies `write` to users
+    # - Allows `write` to support users and above
+    # - Denies `deny` to all users
+    def self.mqtt_acl_status(access : MqttAcl, user) : HTTP::Status
+      case access
+      when .deny?, .none?
+        HTTP::Status::FORBIDDEN
+      when .write?
+        if user.is_support?
+          HTTP::Status::OK
+        else
+          Log.warn { "insufficient permissions" }
+          HTTP::Status::FORBIDDEN
+        end
+      when .read?, .subscribe?
+        HTTP::Status::OK
+      else
+        Log.warn { "unknown access level requested" }
+        HTTP::Status::BAD_REQUEST
+      end
     end
 
     ###############################################################################################
