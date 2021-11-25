@@ -124,22 +124,22 @@ module PlaceOS::Api
       head :ok
     end
 
-    getter mqtt_client_id : String? do
+    getter mqtt_client_id_param: String? do
       params["clientid"]?
     end
 
-    getter mqtt_topic : String? do
+    getter mqtt_topic_parma : String? do
       params["topic"]?
     end
 
-    getter mqtt_access : Int32? do
+    getter mqtt_access_param : Int32? do
       params["acc"]?.try(&.to_i?)
     end
 
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     # acc=4&clientid=clientId-NwsUNfV30&topic=%2A
     post "/mqtt_access", :mqtt_access do
-      client_id = mqtt_client_id
+      client_id = mqtt_client_id_param
 
       begin
         request.body.try &.rewind
@@ -147,8 +147,8 @@ module PlaceOS::Api
       end
       Log.warn { "MQTT ACCESS REQUEST:\n  -> p: #{params.inspect}\n  -> b: #{request.body.try &.gets_to_end}" }
 
-      topic = required_param(mqtt_topic)
-      access = MqttAcl.from_value?(required_param(mqtt_access))
+      topic = required_param(mqtt_topic_parma)
+      access = MqttAcl.from_value?(required_param(mqtt_access_param))
 
       Log.context.set(
         mqtt_client: client_id,

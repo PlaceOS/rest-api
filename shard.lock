@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 4.5.2
+    version: 4.6.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
