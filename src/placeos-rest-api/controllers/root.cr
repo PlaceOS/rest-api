@@ -148,7 +148,7 @@ module PlaceOS::Api
       Log.warn { "MQTT ACCESS REQUEST:\n  -> p: #{params.inspect}\n  -> b: #{request.body.try &.gets_to_end}" }
 
       topic = required_param(mqtt_topic_parma)
-      access = MqttAcl.from_value?(required_param(mqtt_access_param))
+      access = MqttAcl.from_value(required_param(mqtt_access_param))
 
       Log.context.set(
         mqtt_client: client_id,
