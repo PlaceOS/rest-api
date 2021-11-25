@@ -24,11 +24,6 @@ module PlaceOS::Api
       :version,
     ]
 
-    before_action :mqtt_parse_jwt, only: [
-      :mqtt_access,
-      :mqtt_user,
-    ]
-
     before_action :can_write_guest, only: [:signal]
 
     # Healthcheck
@@ -103,16 +98,27 @@ module PlaceOS::Api
     # MQTT Access Control
     ###############################################################################################
 
-    protected def mqtt_parse_jwt
-      unless (token = acquire_token)
-        raise Error::Unauthorized.new("missing mqtt token")
-      end
+    protected def mqtt_parse_jwt(validate : Bool = true)
+      if (auth = request.headers["Authorization"]?)
+        case auth.count('.')
+        when 1 # work with x-api-key
+          @user_token = Model::ApiKey.find_key!(auth.lchop("Bearer ").rstrip).build_jwt
+        when 2 # work with jwt-token
+          unless (token = acquire_token)
+            raise Error::Unauthorized.new("missing mqtt token")
+          end
 
-      begin
-        @user_token = Model::UserJWT.decode(token)
-      rescue e : JWT::Error
-        Log.warn(exception: e) { {message: "bearer malformed", action: "mqtt_access"} }
-        raise Error::Unauthorized.new("bearer malformed")
+          begin
+            @user_token = Model::UserJWT.decode(token, validate: validate)
+          rescue e : JWT::Error
+            Log.warn(exception: e) { {message: "bearer malformed", action: "mqtt_access"} }
+            raise Error::Unauthorized.new("bearer malformed")
+          end
+        else
+          raise Error::Unauthorized.new("missing mqtt token")
+        end
+      else
+        raise Error::Unauthorized.new("missing mqtt token")
       end
     ensure
       set_user_id
@@ -121,6 +127,7 @@ module PlaceOS::Api
     # For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
     # jwt_response_mode: status, jwt_params_mode: form
     post "/mqtt_user", :mqtt_user do
+      mqtt_parse_jwt
       head :ok
     end
 
@@ -139,14 +146,11 @@ module PlaceOS::Api
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     # acc=4&clientid=clientId-NwsUNfV30&topic=%2A
     post "/mqtt_access", :mqtt_access do
+      # we don't want to validate this as it may have expired,
+      # this is purely a permissions check for an established connection
+      mqtt_parse_jwt validate: false
+
       client_id = mqtt_client_id_param
-
-      begin
-        request.body.try &.rewind
-      rescue
-      end
-      Log.warn { "MQTT ACCESS REQUEST:\n  -> p: #{params.inspect}\n  -> b: #{request.body.try &.gets_to_end}" }
-
       topic = required_param(mqtt_topic_parma)
       access = MqttAcl.from_value(required_param(mqtt_access_param))
 
