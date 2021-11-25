@@ -29,8 +29,9 @@ module PlaceOS::Api
     macro required_param(key)
       if (%value = {{ key }}).nil?
         return render_error(HTTP::Status::BAD_REQUEST, "Missing '{{ key }}' param")
+      else
+        %value
       end
-      %value
     end
 
     def boolean_param(key : String, default : Bool = false, allow_empty : Bool = false) : Bool
