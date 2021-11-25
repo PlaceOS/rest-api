@@ -124,7 +124,7 @@ module PlaceOS::Api
       head :ok
     end
 
-    getter mqtt_client_id_param: String? do
+    getter mqtt_client_id_param : String? do
       params["clientid"]?
     end
 
