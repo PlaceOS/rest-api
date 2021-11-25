@@ -138,7 +138,7 @@ module PlaceOS::Api
 
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     post "/mqtt_access", :mqtt_access do
-      Log.warn { "MQTT ACCESS REQUEST:\n#{request.body}" }
+      Log.warn { "MQTT ACCESS REQUEST:\n#{request.body.gets_to_end}" }
 
       client_id = mqtt_client_id
       topic = required_param(mqtt_topic)
