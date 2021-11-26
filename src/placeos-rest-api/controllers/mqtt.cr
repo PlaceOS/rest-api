@@ -53,23 +53,23 @@ module PlaceOS::Api
     # - x-api-key
     # - JWTs
     protected def mqtt_parse_jwt(validate : Bool = true)
-      if (auth = request.headers["Authorization"]?)
-        case auth.count('.')
-        when 1 # work with x-api-key
-          @user_token = Model::ApiKey.find_key!(auth.lchop("Bearer ").rstrip).build_jwt
-        when 2 # work with jwt-token
-          unless (token = acquire_token)
-            raise Error::Unauthorized.new("missing mqtt token")
-          end
-
-          begin
-            @user_token = Model::UserJWT.decode(token, validate: validate)
-          rescue e : JWT::Error
-            Log.warn(exception: e) { {message: "bearer malformed", action: "mqtt_access"} }
-            raise Error::Unauthorized.new("bearer malformed")
-          end
-        else
+      unless (auth = request.headers["Authorization"]?)
+        raise Error::Unauthorized.new("missing mqtt token")
+      end
+    
+      case auth.count('.')
+      when 1 # work with x-api-key
+        @user_token = Model::ApiKey.find_key!(auth.lchop("Bearer ").rstrip).build_jwt
+      when 2 # work with jwt-token
+        unless (token = acquire_token)
           raise Error::Unauthorized.new("missing mqtt token")
+        end
+
+        begin
+          @user_token = Model::UserJWT.decode(token, validate: validate)
+        rescue e : JWT::Error
+          Log.warn(exception: e) { {message: "bearer malformed", action: "mqtt_access"} }
+          raise Error::Unauthorized.new("bearer malformed")
         end
       else
         raise Error::Unauthorized.new("missing mqtt token")
