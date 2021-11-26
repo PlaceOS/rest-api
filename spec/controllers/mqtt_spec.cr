@@ -3,12 +3,14 @@ require "../helper"
 module PlaceOS::Api
   describe MQTT do
     with_server do
-      authenticated_user, _authorization_header = authentication
+      scope = PlaceOS::Model::UserJWT::Scope.new("systems", :write)
+      authenticated_user, _scoped_authorization_header = authentication(scope: [scope])
+      user_jwt = PlaceOS::Model::Generator.jwt(authenticated_user, scope)
 
       describe "MQTT Access" do
         describe ".mqtt_acl_status" do
           it "denies access for #{MQTT::MqttAcl::None} access" do
-            MQTT.mqtt_acl_status(MQTT::MqttAcl::None, authenticated_user).should eq HTTP::Status::FORBIDDEN
+            MQTT.mqtt_acl_status(MQTT::MqttAcl::None, user_jwt).should eq HTTP::Status::FORBIDDEN
           end
 
           it "denies access for #{MQTT::MqttAcl::Deny} access" do
@@ -17,7 +19,7 @@ module PlaceOS::Api
               .reject(MQTT::MqttAcl::Deny)
               .map { |access| access | MQTT::MqttAcl::Deny }
               .each do |access|
-                MQTT.mqtt_acl_status(access, authenticated_user).should eq HTTP::Status::FORBIDDEN
+                MQTT.mqtt_acl_status(access, user_jwt).should eq HTTP::Status::FORBIDDEN
               end
           end
 

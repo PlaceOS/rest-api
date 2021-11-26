@@ -45,7 +45,7 @@ module PlaceOS::Api
         mqtt_access: access.to_s,
       )
 
-      head self.class.mqtt_acl_status(access, current_user)
+      head self.class.mqtt_acl_status(access, user_token)
     end
 
     # MQTT Service communicates via Authorization header.
@@ -96,13 +96,13 @@ module PlaceOS::Api
     # - Denies `write` to users
     # - Allows `write` to support users and above
     # - Denies `deny` to all users
-    def self.mqtt_acl_status(access : MqttAcl, user) : HTTP::Status
+    protected def self.mqtt_acl_status(access : MqttAcl, user) : HTTP::Status
       case access
       when .deny?, .none?
         HTTP::Status::FORBIDDEN
       when .write?
         if user.is_support?
-          can_write
+          Utils::Scopes.can_scopes_access!(user, {"mqtt"}, Access::Write)
           HTTP::Status::OK
         else
           Log.warn { "insufficient permissions" }
