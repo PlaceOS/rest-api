@@ -100,28 +100,6 @@ module PlaceOS::Api
             end
           end
         end
-
-        context "MQTT Access" do
-          describe ".mqtt_acl_status" do
-            it "denies access for #{Root::MqttAcl::None} access" do
-              Root.mqtt_acl_status(Root::MqttAcl::None, authenticated_user).should eq HTTP::Status::FORBIDDEN
-            end
-
-            it "denies access for #{Root::MqttAcl::Deny} access" do
-              Root::MqttAcl
-                .values
-                .reject(Root::MqttAcl::Deny)
-                .map { |access| access | Root::MqttAcl::Deny }
-                .each do |access|
-                  Root.mqtt_acl_status(access, authenticated_user).should eq HTTP::Status::FORBIDDEN
-                end
-            end
-
-            pending "allows #{Root::MqttAcl::Read} access"
-            pending "allows #{Root::MqttAcl::Write} access for support and above"
-            pending "denies #{Root::MqttAcl::Write} access"
-          end
-        end
       end
     end
   end
