@@ -4,11 +4,6 @@ module PlaceOS::Api
   class MQTT < Application
     base "/api/engine/v2/mqtt/"
 
-    # Scopes
-    ###############################################################################################
-
-    before_action :can_read, only: [:mqtt_user, :mqtt_access]
-
     # Params
     ###############################################################################################
 
@@ -78,7 +73,9 @@ module PlaceOS::Api
         raise Error::Unauthorized.new("missing mqtt token")
       end
 
+      # Configure logging and check scope
       set_user_id
+      can_read
     end
 
     # Mosquitto MQTT broker accepts a flag enum for its ACL.
