@@ -48,8 +48,10 @@ module PlaceOS::Api
       head self.class.mqtt_acl_status(access, current_user)
     end
 
-    # MQTT Service can only communicate via Authorization header and
-    # we want to support both x-api-keys and jwt-tokens
+    # MQTT Service communicates via Authorization header.
+    # Supported authentication schemes...
+    # - x-api-key
+    # - JWTs
     protected def mqtt_parse_jwt(validate : Bool = true)
       if (auth = request.headers["Authorization"]?)
         case auth.count('.')
