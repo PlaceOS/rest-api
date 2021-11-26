@@ -3,8 +3,7 @@ require "../helper"
 module PlaceOS::Api
   describe MQTT do
     with_server do
-      authenticated_user, authorization_header = authentication
-      base = Api::MQTT::NAMESPACE[0]
+      authenticated_user, _authorization_header = authentication
 
       describe "MQTT Access" do
         describe ".mqtt_acl_status" do
