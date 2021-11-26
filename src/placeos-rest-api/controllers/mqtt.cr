@@ -102,6 +102,7 @@ module PlaceOS::Api
         HTTP::Status::FORBIDDEN
       when .write?
         if user.is_support?
+          can_write
           HTTP::Status::OK
         else
           Log.warn { "insufficient permissions" }
