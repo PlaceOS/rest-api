@@ -56,7 +56,7 @@ module PlaceOS::Api
       unless (auth = request.headers["Authorization"]?)
         raise Error::Unauthorized.new("missing mqtt token")
       end
-    
+
       case auth.count('.')
       when 1 # work with x-api-key
         @user_token = Model::ApiKey.find_key!(auth.lchop("Bearer ").rstrip).build_jwt
