@@ -77,7 +77,7 @@ module PlaceOS::Api
       else
         raise Error::Unauthorized.new("missing mqtt token")
       end
-    ensure
+
       set_user_id
     end
 
