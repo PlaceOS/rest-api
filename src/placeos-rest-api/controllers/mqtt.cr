@@ -31,8 +31,8 @@ module PlaceOS::Api
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     # example payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A
     post "/mqtt_access", :mqtt_access do
-      # we don't want to validate this as it may have expired,
-      # this is purely a permissions check for an established connection
+      # Skip validation of the JWT as it may have expired.
+      # This is acceptable as this route is a permission check for an established connection.
       mqtt_parse_jwt validate: false
 
       client_id = mqtt_client_id_param
