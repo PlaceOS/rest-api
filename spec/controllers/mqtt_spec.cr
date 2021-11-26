@@ -3,8 +3,8 @@ require "../helper"
 module PlaceOS::Api
   describe MQTT do
     with_server do
-      scope = PlaceOS::Model::UserJWT::Scope.new("systems", :write)
-      authenticated_user, _scoped_authorization_header = authentication(scope: [scope])
+      scope = [PlaceOS::Model::UserJWT::Scope.new("mqtt", :write)]
+      authenticated_user, _scoped_authorization_header = authentication(scope: scope)
       user_jwt = PlaceOS::Model::Generator.jwt(authenticated_user, scope)
 
       describe "MQTT Access" do
