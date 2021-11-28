@@ -20,12 +20,8 @@ module PlaceOS::Api
     end
 
     def self.can_scopes_access!(user_token : UserJWT, scopes : Enumerable(String), access : Access)
-      has_access = false
-      scopes.each do |scope|
-        if can_scope_access?(user_token, scope, access)
-          has_access = true
-          break
-        end
+      has_access = scopes.any? do |scope|
+        can_scope_access?(user_token, scope, access)
       end
 
       unless has_access
