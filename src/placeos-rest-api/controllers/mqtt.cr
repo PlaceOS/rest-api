@@ -23,14 +23,14 @@ module PlaceOS::Api
 
     # For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
     # jwt_response_mode: status, jwt_params_mode: form
-    post "/mqtt_user", :mqtt_user do
+    post "/user", :mqtt_user do
       mqtt_parse_jwt
       head :ok
     end
 
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     # example payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A
-    post "/mqtt_access", :mqtt_access do
+    post "/access", :mqtt_access do
       # Skip validation of the JWT as it may have expired.
       # This is acceptable as this route is a permission check for an established connection.
       mqtt_parse_jwt validate: false
