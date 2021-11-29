@@ -8,8 +8,8 @@ x-deployment-env: &deployment-env
   TZ: $TZ
 
 x-elastic-client-env: &elastic-client-env
-  ES_HOST: ${ELASTIC_HOST:-elastic}
-  ES_PORT: ${ELASTIC_PORT:-9200}
+  ELASTIC_HOST: ${ELASTIC_HOST:-elastic}
+  ELASTIC_PORT: ${ELASTIC_PORT:-9200}
 
 x-etcd-client-env: &etcd-client-env
   ETCD_HOST: ${ETCD_HOST:-etcd}
@@ -23,8 +23,8 @@ x-rethinkdb-client-env: &rethinkdb-client-env
   RETHINKDB_PORT: ${RETHINKDB_PORT:-28015}
   RETHINKDB_DB: ${RETHINKDB_DB:-place_development}
 
-x-rubber-soul-client-env: &rubber-soul-client-env
-  RUBBER_SOUL_URI: ${RUBBER_SOUL_URI:-http://rubber-soul:3000}
+x-search-ingest-client-env: &search-ingest-client-env
+  SEARCH_INGEST_URI: ${SEARCH_INGEST_URI:-http://search-ingest:3000}
 
 services:
   test: # Rest API
@@ -42,7 +42,7 @@ services:
       - etcd
       - redis
       - rethink
-      - rubber-soul
+      - search-ingest
     environment:
       # Environment
       GITHUB_ACTION: ${GITHUB_ACTION:-}
@@ -76,10 +76,10 @@ services:
     restart: always
     hostname: rethink
 
-  rubber-soul: # RethinkDB to Elasticsearch Service
-    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-nightly}
+  search-ingest: # RethinkDB to Elasticsearch Service
+    image: placeos/search-ingest:nightly
     restart: always
-    hostname: rubber-soul
+    hostname: search-ingest
     depends_on:
       - elastic
       - rethink
