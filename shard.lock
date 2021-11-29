@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 4.5.1
+    version: 4.6.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -47,7 +47,7 @@ shards:
 
   crystal-kcov:
     git: https://github.com/vici37/crystal-kcov.git
-    version: 0.1.0+git.commit.6c2191d080e01a49106b483cf0c4a0145e3f9090
+    version: 0.2.0+git.commit.d115c93879ef902ac8dda0a82704354e1cab902c
 
   db:
     git: https://github.com/crystal-lang/crystal-db.git
@@ -139,7 +139,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 5.9.0
+    version: 5.9.8
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -151,7 +151,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 5.14.1
+    version: 5.14.2
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git

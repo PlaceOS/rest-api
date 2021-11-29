@@ -3,7 +3,7 @@ require "../helper"
 module PlaceOS::Api
   describe Root do
     with_server do
-      _, authorization_header = authentication
+      _authenticated_user, authorization_header = authentication
       base = Api::Root::NAMESPACE[0]
 
       it "responds to health checks" do

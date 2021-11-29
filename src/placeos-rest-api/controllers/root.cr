@@ -13,7 +13,15 @@ module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :scopes]
+    before_action :check_admin, except: [
+      :cluster_version,
+      :healthz,
+      :root,
+      :scopes,
+      :signal,
+      :version,
+    ]
+
     before_action :can_write_guest, only: [:signal]
 
     # Healthcheck
@@ -74,12 +82,18 @@ module PlaceOS::Api
       render json: Root.construct_versions
     end
 
+    get "/cluster/versions", :cluster_version do
+      render json: Root.construct_versions
+    end
+
     # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
     class_getter(scopes) { SCOPES }
 
     get "/scopes", :scopes do
       render json: Root.scopes
     end
+
+    ###############################################################################################
 
     class_getter version : PlaceOS::Model::Version do
       PlaceOS::Model::Version.new(
