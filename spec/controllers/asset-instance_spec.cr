@@ -7,26 +7,23 @@ module PlaceOS::Api
 
     with_server do
       test_404(
-        base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}"),
+        base.gsub(/:zone_id/, "zone-#{Random.rand(9999)}"),
         model_name: Model::AssetInstance.table_name,
         headers: authorization_header,
       )
 
-      pending "index", tags: "search" do
-        it "as_of query" do
-          sys = Model::Generator.control_system.save!
-          path = base.gsub(/:sys_id/, sys.id)
-
+      describe "index", tags: "search" do
+        pending "as_of query" do
+          zone = Model::Generator.zone.save!
+          path = base.gsub(/:zone_id/, zone.id)
           inst1 = Model::Generator.asset_instance
-          inst1.control_system = sys
           Timecop.freeze(2.days.ago) do
             inst1.save!
           end
           inst1.persisted?.should be_true
 
           inst2 = Model::Generator.asset_instance
-          inst2.control_system = sys
-          inst2.save!
+
           inst2.persisted?.should be_true
 
           refresh_elastic(Model::AssetInstance.table_name)
@@ -46,7 +43,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        it "create", focus: true do
+        it "create" do
           zone = Model::Generator.zone.save!
           asset_instance = Model::Generator.asset_instance
           asset_instance.zone = zone
@@ -65,41 +62,22 @@ module PlaceOS::Api
           Model::AssetInstance.find(JSON.parse(body)["id"].as_s).try &.destroy
         end
 
-        it "show" do
-          sys = Model::Generator.control_system.save!
-          asset_instance = Model::Generator.asset_instance
-          asset_instance.control_system = sys
-          asset_instance.save!
-          id = asset_instance.id.not_nil!
-
-          path = base.gsub(/:sys_id/, sys.id) + id
-          result = curl(method: "GET", path: path, headers: authorization_header)
-
-          result.status_code.should eq 200
-
-          response_model = Model::AssetInstance.from_trusted_json(result.body)
-          response_model.id.should eq id
-
-          sys.destroy
-          asset_instance.destroy
+        pending "show" do
         end
 
-        pending "update" do
-          sys = Model::Generator.control_system.save!
+        it "update" do
           asset_instance = Model::Generator.asset_instance
-          asset_instance.control_system = sys
+          zone = Model::Generator.zone.save!
+          asset_instance.zone = zone
           asset_instance.save!
 
-          original_importance = asset_instance.important
-          updated_importance = !original_importance
-
           id = asset_instance.id.not_nil!
-          path = base.gsub(/:sys_id/, sys.id) + id
+          path = base.gsub(/:zone_id/, zone.id) + id
 
           result = curl(
             method: "PATCH",
             path: path,
-            body: {important: updated_importance}.to_json,
+            body: {approval: true}.to_json,
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
@@ -107,20 +85,20 @@ module PlaceOS::Api
           updated = Model::AssetInstance.from_trusted_json(result.body)
 
           updated.id.should eq asset_instance.id
-          updated.important.should_not eq original_importance
+          updated.approval.should be_true
           updated.destroy
         end
 
-        pending "destroy" do
-          sys = PlaceOS::Model::Generator.control_system.save!
+        it "destroy" do
           model = PlaceOS::Model::Generator.asset_instance
-          model.control_system = sys
-
+          zone = Model::Generator.zone.save!
+          model.zone = zone
           model.save!
+
           model.persisted?.should be_true
 
           id = model.id.not_nil!
-          path = base.gsub(/:sys_id/, sys.id) + id
+          path = base.gsub(/:zone_id/, zone.id) + id
 
           result = curl(method: "DELETE", path: path, headers: authorization_header)
           result.status_code.should eq 200

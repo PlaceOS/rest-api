@@ -15,7 +15,7 @@ module PlaceOS::Api
 
     # before_action :ensure_json, only: [:create]
 
-    getter current_sys_asset : Model::AssetInstance { find_sys_asset }
+    getter current_asset_inst : Model::AssetInstance { find_asset_inst }
     getter current_zone : Model::Zone { find_zone }
 
     def index
@@ -28,8 +28,8 @@ module PlaceOS::Api
     end
 
     def update
-      current_sys_asset.assign_attributes_from_json(self.body)
-      save_and_respond(current_sys_asset)
+      current_asset_inst.assign_attributes_from_json(self.body)
+      save_and_respond(current_asset_inst)
     end
 
     def create
@@ -43,7 +43,7 @@ module PlaceOS::Api
     end
 
     def destroy
-      current_sys_asset.destroy # expires the cache in after callback
+      current_asset_inst.destroy # expires the cache in after callback
       head :ok
     end
 
@@ -64,11 +64,11 @@ module PlaceOS::Api
       Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
     end
 
-    protected def find_sys_asset
-      id = params["asset_id"]
-      Log.context.set(asset_instance_id: id)
+    protected def find_asset_inst
+      id = params["id"]
+      Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::AssetInstance.find!(id, runopts: {"read_mode" => "majority"})
+      Model::AssetInstance.find!(id) # , runopts: {"read_mode" => "majority"})
     end
   end
 end
