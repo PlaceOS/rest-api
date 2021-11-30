@@ -84,6 +84,7 @@ services:
       - elastic
       - rethink
     environment:
+      LOG_LEVEL: trace
       # Service Hosts
       <<: *rethinkdb-client-env
       <<: *elastic-client-env
