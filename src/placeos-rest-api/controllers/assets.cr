@@ -26,6 +26,10 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
+    def show
+      render json: current_asset
+    end
+
     def update
       current_asset.assign_attributes_from_json(self.body)
       save_and_respond(current_asset)
@@ -40,13 +44,13 @@ module PlaceOS::Api
       head :ok
     end
 
-    # get "/:id/asset_instances", :asset_instances do
-    #   instances = current_asset.asset_instances.to_a
+    get "/:id/asset_instances", :asset_instances do
+      instances = current_asset.asset_instances.to_a
 
-    #   set_collection_headers(instances.size, Model::AssetInstance.table_name)
+      set_collection_headers(instances.size, Model::AssetInstance.table_name)
 
-    #   render json: instances
-    # end
+      render json: instances
+    end
 
     # Helpers
     ###########################################################################

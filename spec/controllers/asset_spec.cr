@@ -1,7 +1,7 @@
 require "../helper"
 
 module PlaceOS::Api
-  describe Assets do
+  describe Assets, focus: true do
     # ameba:disable Lint/UselessAssign
     authenticated_user, authorization_header = authentication
     base = Assets::NAMESPACE[0]
@@ -9,7 +9,7 @@ module PlaceOS::Api
     with_server do
       test_404(base, model_name: Model::Asset.table_name, headers: authorization_header)
 
-      pending "index", tags: "searchh" do
+      pending "index", tags: "search" do
         test_base_index(klass: Model::Asset, controller_klass: Assets)
       end
 
@@ -20,13 +20,12 @@ module PlaceOS::Api
 
           response = curl(
             method: "GET",
-            path: File.join(base, asset.id.not_nil!, "instances"),
+            path: File.join(base, asset.id.not_nil!, "asset_instances"),
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
           # Can't use from_json directly on the model as `id` will not be parsed
           result = Array(JSON::Any).from_json(response.body).map { |d| Model::AssetInstance.from_trusted_json(d.to_json) }
-
           result.all? { |i| i.asset_id == asset.id }.should be_true
           instances.compact_map(&.id).sort!.should eq result.compact_map(&.id).sort!
         end
@@ -79,7 +78,7 @@ module PlaceOS::Api
       # end
     end
 
-    describe "scopes" do
+    pending "scopes" do
       test_controller_scope(Assets)
       test_update_write_scope(Assets)
     end
