@@ -25,7 +25,7 @@ RUN adduser \
 # Add trusted CAs for communicating with external services
 RUN apk update && \
     apk add --no-cache \
-      ca-certificates \
+        ca-certificates \
     && \
     update-ca-certificates
 

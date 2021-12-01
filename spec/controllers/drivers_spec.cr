@@ -10,9 +10,10 @@ module PlaceOS::Api
     with_server do
       describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
+
         it "filters queries by driver role" do
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
-          service.name = UUID.random.to_s
+          service.name = random_name
           service.save!
 
           params = HTTP::Params.encode({
@@ -47,7 +48,7 @@ module PlaceOS::Api
           it "if role is preserved" do
             driver = Model::Generator.driver.save!
             original_name = driver.name
-            driver.name = UUID.random.to_s
+            driver.name = random_name
 
             id = driver.id.as(String)
             path = base + id

@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 4.6.0
+    version: 4.7.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -47,7 +47,7 @@ shards:
 
   crystal-kcov:
     git: https://github.com/vici37/crystal-kcov.git
-    version: 0.2.0+git.commit.d115c93879ef902ac8dda0a82704354e1cab902c
+    version: 0.2.0+git.commit.88516de9fe96df40ef62cdb6dbe0e2b6cbbd1697
 
   db:
     git: https://github.com/crystal-lang/crystal-db.git
@@ -115,7 +115,7 @@ shards:
 
   neuroplastic: # Overridden
     git: https://github.com/place-labs/neuroplastic.git
-    version: 1.8.0
+    version: 1.10.0
 
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
@@ -187,7 +187,7 @@ shards:
 
   rethinkdb: # Overridden
     git: https://github.com/place-labs/crystal-rethinkdb.git
-    version: 0.3.1+git.commit.af92ace5eb60e861a41b93456ac5d73b80feb7bb
+    version: 0.3.1+git.commit.07ce7c694a367efe3af9f8cb5670bc4bff5b6df0
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
@@ -203,7 +203,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.0.1
+    version: 2.0.3
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

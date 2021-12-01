@@ -459,7 +459,7 @@ module PlaceOS::Api
             cs.persisted?.should be_true
 
             original_name = cs.name
-            cs.name = UUID.random.to_s
+            cs.name = random_name
 
             id = cs.id.as(String)
 
