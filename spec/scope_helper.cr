@@ -121,7 +121,7 @@ module PlaceOS::Api
     _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, PlaceOS::Model::UserJWT::Scope::Access::Write)])
           model = Model::Generator.{{ model_gen.id }}.save!
           original_name = model.name
-          model.name = UUID.random.to_s
+          model.name = random_name
 
           id = model.id.as(String)
           path = base + id

@@ -70,7 +70,7 @@ module PlaceOS::Api
 
       describe "index", tags: "search" do
         pending "queries by parent driver" do
-          name = UUID.random.to_s
+          name = random_name
 
           driver = Model::Generator.driver
           driver.name = name

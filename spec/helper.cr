@@ -159,14 +159,18 @@ def until_expected(method, path, headers, timeout : Time::Span = 3.seconds, &blo
   !!success
 end
 
+def random_name
+  UUID.random.to_s.split('-').first
+end
+
 # Test search on name field
 macro test_base_index(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
 
   it "queries #{ {{ klass_name }} }", tags: "search" do
-  _, authorization_header = authentication
-    name = UUID.random.to_s
+    _, authorization_header = authentication
     doc = PlaceOS::Model::Generator.{{ klass_name.id }}
+    name = random_name
     doc.name = name
     doc.save!
 
