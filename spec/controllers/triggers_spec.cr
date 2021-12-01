@@ -38,7 +38,7 @@ module PlaceOS::Api
           trigger = Model::Generator.trigger.save!
           original_name = trigger.name
 
-          trigger.name = UUID.random.to_s
+          trigger.name = random_name
 
           id = trigger.id.as(String)
           path = base + id
