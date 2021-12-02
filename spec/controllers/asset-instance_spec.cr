@@ -7,22 +7,19 @@ module PlaceOS::Api
 
     with_server do
       test_404(
-        base.gsub(/:asset_id/, "asset-#{Random.rand(9999)}"),
+        base,
         model_name: Model::AssetInstance.table_name,
         headers: authorization_header,
       )
 
       describe "CRUD operations", tags: "crud" do
         it "create" do
-          asset = Model::Generator.asset.save!
-          asset_instance = Model::Generator.asset_instance
-          asset_instance.asset = asset
+          asset_instance = Model::Generator.asset_instance.save!
           body = asset_instance.to_json
 
-          path = base.gsub(/:asset_id/, asset.id)
           result = curl(
             method: "POST",
-            path: path,
+            path: base,
             body: body,
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
@@ -33,12 +30,8 @@ module PlaceOS::Api
         end
 
         it "show" do
-          asset = Model::Generator.asset.save!
-          asset_instance = Model::Generator.asset_instance
-          asset_instance.asset = asset
-          asset_instance.save!
-
-          path = base.gsub(/:asset_id/, asset.id) + asset_instance.id.not_nil!
+          asset_instance = Model::Generator.asset_instance.save!
+          path = base + asset_instance.id.not_nil!
 
           result = curl(
             method: "GET",
@@ -51,13 +44,10 @@ module PlaceOS::Api
         end
 
         it "update" do
-          asset_instance = Model::Generator.asset_instance
-          asset = Model::Generator.asset.save!
-          asset_instance.asset = asset
-          asset_instance.save!
+          asset_instance = Model::Generator.asset_instance.save!
 
           id = asset_instance.id.not_nil!
-          path = base.gsub(/:asset_id/, asset.id) + id
+          path = base + id
 
           result = curl(
             method: "PATCH",
@@ -69,21 +59,17 @@ module PlaceOS::Api
           result.status_code.should eq 200
           updated = Model::AssetInstance.from_trusted_json(result.body)
 
-          updated.id.should eq asset_instance.id
+          updated.id.should eq id
           updated.approval.should be_true
           updated.destroy
         end
 
         it "destroy" do
-          model = PlaceOS::Model::Generator.asset_instance
-          asset = Model::Generator.asset.save!
-          model.asset = asset
-          model.save!
-
+          model = PlaceOS::Model::Generator.asset_instance.save!
           model.persisted?.should be_true
 
           id = model.id.not_nil!
-          path = base.gsub(/:asset_id/, asset.id) + id
+          path = base + id
 
           result = curl(method: "DELETE", path: path, headers: authorization_header)
           result.status_code.should eq 200

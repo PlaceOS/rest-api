@@ -25,7 +25,7 @@ RUN adduser \
 # Add trusted CAs for communicating with external services
 RUN apk update && \
     apk add --no-cache \
-    ca-certificates \
+        ca-certificates \
     && \
     update-ca-certificates
 
@@ -44,20 +44,20 @@ RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_COMMIT=$PLACE_COMMIT \
     PLACE_VERSION=$PLACE_VERSION \
     crystal build \
-    --release \
-    --error-trace \
-    -o /app/rest-api \
-    /app/src/app.cr
+        --release \
+        --error-trace \
+        -o /app/rest-api \
+        /app/src/app.cr
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
 RUN for binary in "/app/rest-api" "/bin/ping" "/bin/ping6"; do \
-    ldd "$binary" | \
-    tr -s '[:blank:]' '\n' | \
-    grep '^/' | \
-    xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'; \
-    done
+        ldd "$binary" | \
+        tr -s '[:blank:]' '\n' | \
+        grep '^/' | \
+        xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'; \
+        done
 
 # Build a minimal docker image
 FROM scratch

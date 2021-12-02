@@ -42,6 +42,7 @@ def clear_tables
     Promise.all(
       {% for t in {
                     PlaceOS::Model::Asset,
+                    PlaceOS::Model::AssetInstance,
                     PlaceOS::Model::ControlSystem,
                     PlaceOS::Model::Driver,
                     PlaceOS::Model::Module,
