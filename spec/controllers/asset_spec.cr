@@ -1,15 +1,14 @@
 require "../helper"
 
 module PlaceOS::Api
-  describe Assets, focus: true do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+  describe Assets do
+    _, authorization_header = authentication
     base = Assets::NAMESPACE[0]
 
     with_server do
       test_404(base, model_name: Model::Asset.table_name, headers: authorization_header)
 
-      pending "index", tags: "search" do
+      describe "index", tags: "search" do
         test_base_index(klass: Model::Asset, controller_klass: Assets)
       end
 
@@ -57,28 +56,28 @@ module PlaceOS::Api
         updated.destroy
       end
 
-      # describe "show" do
-      #   it "includes asset_instances with truthy `instances`" do
-      #     asset = Model::Generator.asset.save!
-      #     asset_instance = Model::Generator.asset_instance(asset).save!
-      #     asset_instance_id = asset_instance.id.as(String)
+      describe "show" do
+        it "includes asset_instances with truthy `instances`" do
+          asset = Model::Generator.asset.save!
+          asset_instance = Model::Generator.asset_instance(asset).save!
+          asset_instance_id = asset_instance.id.as(String)
 
-      #     params = HTTP::Params{"instances" => "true"}
-      #     path = "#{base}#{asset.id}?#{params}"
+          params = HTTP::Params{"instances" => "true"}
+          path = "#{base}#{asset.id}?#{params}"
 
-      #     result = curl(
-      #       method: "GET",
-      #       path: path,
-      #       headers: authorization_header.merge({"Content-Type" => "application/json"}),
-      #     )
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
 
-      #     response = JSON.parse(result.body)
-      #     response["asset_instances"].as_a?.try &.first?.try &.["id"].to_s.should eq asset_instance_id
-      #   end
-      # end
+          response = JSON.parse(result.body)
+          response["asset_instances"].as_a?.try &.first?.try &.["id"].to_s.should eq asset_instance_id
+        end
+      end
     end
 
-    pending "scopes" do
+    describe "scopes" do
       test_controller_scope(Assets)
       test_update_write_scope(Assets)
     end

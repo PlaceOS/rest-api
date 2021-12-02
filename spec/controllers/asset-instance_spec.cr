@@ -7,49 +7,19 @@ module PlaceOS::Api
 
     with_server do
       test_404(
-        base.gsub(/:zone_id/, "zone-#{Random.rand(9999)}"),
+        base.gsub(/:asset_id/, "asset-#{Random.rand(9999)}"),
         model_name: Model::AssetInstance.table_name,
         headers: authorization_header,
       )
 
-      describe "index", tags: "search" do
-        pending "as_of query" do
-          zone = Model::Generator.zone.save!
-          path = base.gsub(/:zone_id/, zone.id)
-          inst1 = Model::Generator.asset_instance
-          Timecop.freeze(2.days.ago) do
-            inst1.save!
-          end
-          inst1.persisted?.should be_true
-
-          inst2 = Model::Generator.asset_instance
-
-          inst2.persisted?.should be_true
-
-          refresh_elastic(Model::AssetInstance.table_name)
-
-          params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
-          path = "#{path}?#{params}"
-          correct_response = until_expected("GET", path, authorization_header) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            contains_correct = results.any?(inst1.id)
-            contains_incorrect = results.any?(inst2.id)
-
-            !results.empty? && contains_correct && !contains_incorrect
-          end
-
-          correct_response.should be_true
-        end
-      end
-
       describe "CRUD operations", tags: "crud" do
         it "create" do
-          zone = Model::Generator.zone.save!
+          asset = Model::Generator.asset.save!
           asset_instance = Model::Generator.asset_instance
-          asset_instance.zone = zone
+          asset_instance.asset = asset
           body = asset_instance.to_json
 
-          path = base.gsub(/:zone_id/, zone.id)
+          path = base.gsub(/:asset_id/, asset.id)
           result = curl(
             method: "POST",
             path: path,
@@ -62,17 +32,32 @@ module PlaceOS::Api
           Model::AssetInstance.find(JSON.parse(body)["id"].as_s).try &.destroy
         end
 
-        pending "show" do
+        it "show" do
+          asset = Model::Generator.asset.save!
+          asset_instance = Model::Generator.asset_instance
+          asset_instance.asset = asset
+          asset_instance.save!
+
+          path = base.gsub(/:asset_id/, asset.id) + asset_instance.id.not_nil!
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          fetched = Model::AssetInstance.from_trusted_json(result.body)
+          fetched.id.should eq asset_instance.id
         end
 
         it "update" do
           asset_instance = Model::Generator.asset_instance
-          zone = Model::Generator.zone.save!
-          asset_instance.zone = zone
+          asset = Model::Generator.asset.save!
+          asset_instance.asset = asset
           asset_instance.save!
 
           id = asset_instance.id.not_nil!
-          path = base.gsub(/:zone_id/, zone.id) + id
+          path = base.gsub(/:asset_id/, asset.id) + id
 
           result = curl(
             method: "PATCH",
@@ -91,14 +76,14 @@ module PlaceOS::Api
 
         it "destroy" do
           model = PlaceOS::Model::Generator.asset_instance
-          zone = Model::Generator.zone.save!
-          model.zone = zone
+          asset = Model::Generator.asset.save!
+          model.asset = asset
           model.save!
 
           model.persisted?.should be_true
 
           id = model.id.not_nil!
-          path = base.gsub(/:zone_id/, zone.id) + id
+          path = base.gsub(/:asset_id/, asset.id) + id
 
           result = curl(method: "DELETE", path: path, headers: authorization_header)
           result.status_code.should eq 200
