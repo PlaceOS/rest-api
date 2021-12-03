@@ -17,6 +17,14 @@ module PlaceOS::Api
 
     getter current_instance : Model::AssetInstance { find_asset_inst }
 
+    def index
+      elastic = Model::AssetInstance.elastic
+      query = elastic.query(params)
+      query.sort(NAME_SORT_ASC)
+
+      render json: paginate_results(elastic, query)
+    end
+
     def show
       render json: current_instance
     end

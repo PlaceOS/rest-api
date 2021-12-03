@@ -23,7 +23,6 @@ module PlaceOS::Api
 
     def index
       elastic = Model::Asset.elastic
-      puts "params are: #{params}"
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
 
