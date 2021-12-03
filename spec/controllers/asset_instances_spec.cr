@@ -13,7 +13,7 @@ module PlaceOS::Api
       )
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::AssetInstance, controller_klass: Assets)
+        test_base_index(klass: Model::AssetInstance, controller_klass: AssetInstances)
       end
 
       describe "CRUD operations", tags: "crud" do
