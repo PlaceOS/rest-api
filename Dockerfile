@@ -57,7 +57,7 @@ RUN for binary in "/app/rest-api" "/bin/ping" "/bin/ping6"; do \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
         xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'; \
-        done
+      done
 
 # Build a minimal docker image
 FROM scratch

@@ -12,6 +12,10 @@ module PlaceOS::Api
         headers: authorization_header,
       )
 
+      describe "index", tags: "search" do
+        test_base_index(klass: Model::AssetInstance, controller_klass: Assets)
+      end
+
       describe "CRUD operations", tags: "crud" do
         it "create" do
           asset_instance = Model::Generator.asset_instance.save!
