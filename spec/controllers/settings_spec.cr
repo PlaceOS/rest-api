@@ -41,8 +41,69 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        pending "searchs on keys"
-        pending "returns settings for a set of parent ids"
+        pending "searchs on keys", focus: true do
+        sys = Model::Generator.control_system.save!
+        settings = [
+          Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys),
+          Model::Generator.settings(encryption_level: Encryption::Level::Admin, control_system: sys),
+          Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys),
+        ]
+        clear, admin, never_displayed = settings.map(&.save!)
+        refresh_elastic(Model::Settings.table_name)
+
+
+        params = HTTP::Params.encode({"q" => Encryption::Level::NeverDisplay.to_json})
+        path = "#{base.rstrip('/')}?#{params}"
+
+
+        result = curl(
+          method: "GET",
+          path: path,
+          headers: authorization_header
+        )
+
+        end
+
+        it "returns settings for a set of parent ids" do
+          sys = Model::Generator.control_system.save!
+          settings = [
+            Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys),
+            Model::Generator.settings(encryption_level: Encryption::Level::Admin, control_system: sys),
+            Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys),
+          ]
+          clear, admin, never_displayed = settings.map(&.save!)
+
+          sys2 = Model::Generator.control_system.save!
+          settings = [
+            Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys2),
+            Model::Generator.settings(encryption_level: Encryption::Level::Admin, control_system: sys2),
+            Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys2),
+          ]
+          clear, admin, never_displayed = settings.map(&.save!)
+          refresh_elastic(Model::Settings.table_name)
+
+          result = curl(
+            method: "GET",
+            path: File.join(base, "?parent_id=#{sys.id},#{sys2.id}"),
+            headers: authorization_header
+          )
+
+          result.status_code.should eq 200
+
+          returned_settings = Array(JSON::Any).from_json(result.body).map { |m|
+            Model::Settings.from_trusted_json(m.to_json)
+        }
+
+        # sys1_never_displayed, sys2_never_displayed = returned_settings[0..1]
+        # (sys1_never_displayed.is_encrypted? && sys2_never_displayed.is_encrypted?).should be_true
+
+        # sys1_admin, sys2_admin = returned_settings[2..3]
+        # (sys1_never_displayed.is_encrypted? && sys2_never_displayed.is_encrypted?).should be_false
+
+        # sys1_clear, sys2_clear = returned_settings[4..5]
+        # (sys1_never_displayed.is_encrypted? && sys2_never_displayed.is_encrypted?).should be_false
+        end
+
         it "returns settings for parent id" do
           sys = Model::Generator.control_system.save!
           settings = [

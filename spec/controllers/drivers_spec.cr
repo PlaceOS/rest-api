@@ -4,9 +4,6 @@ module PlaceOS::Api
   describe Drivers do
     base = Drivers::NAMESPACE[0]
 
-    pending "GET /:id/compiled"
-    pending "POST /:id/recompile"
-
     with_server do
       describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
@@ -81,7 +78,68 @@ module PlaceOS::Api
             result.body.should contain "role must not change"
           end
         end
+
+        it "GET /:id/compiled" do
+          driver = Model::Generator.driver.save!
+    
+          response = curl(
+            method: "GET",
+            path:  "#{base}#{driver.id.not_nil!}/compiled",
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+    
+          response.success?.should be_true
+        end
+
+       
       end
+
+      pending "POST /:id/recompile" do
+        driver = Model::Generator.driver.save!
+        Model::Generator.module(driver: driver).save!
+        # refresh_elastic(Model::Driver.table_name)
+        # channel = Channel(Bool).new
+
+        response = curl(
+            method: "GET",
+            path:  "#{base}#{driver.id.not_nil!}/compiled",
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+    
+        response.success?.should be_true
+
+       
+
+        path = "#{base}#{driver.id.not_nil!}/recompile"
+        header = authorization_header.merge({"Content-Type" => "application/json"})
+        puts "=====434==535======"
+        # until_expected("POST", path, header) do |response|
+     
+        #   puts "=====434========"
+        
+        #   # returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+        #   # puts returned_ids
+        #   # curl(
+        #   #   method: "POST",
+        #   #   path: path,
+        #   #   headers: authorization_header.merge({"Content-Type" => "application/json"}),
+        #   # )
+        #   true
+        # end
+
+        result = curl(
+          method: "POST",
+          path: path,
+          headers: authorization_header.merge({"Content-Type" => "application/json"}),
+        )
+  
+     
+
+        # response.success?.should be_true
+        
+      end
+
+      
 
       describe "scopes" do
         before_each do

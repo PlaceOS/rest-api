@@ -8,6 +8,7 @@ module PlaceOS::Api
       test_404(base, model_name: Model::Broker.table_name, headers: authorization_header)
 
       pending "index", tags: "search" do
+        test_base_index(klass: Model::Broker, controller_klass: Brokers)
       end
 
       describe "CRUD operations", tags: "crud" do
