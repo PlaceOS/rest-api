@@ -2,8 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Triggers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Triggers::NAMESPACE[0]
 
     with_server do
