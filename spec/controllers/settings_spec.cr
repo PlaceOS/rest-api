@@ -41,7 +41,7 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        pending "searchs on keys", focus: true do
+        pending "searchs on keys" do
         sys = Model::Generator.control_system.save!
         settings = [
           Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys),
@@ -94,14 +94,16 @@ module PlaceOS::Api
             Model::Settings.from_trusted_json(m.to_json)
         }
 
-        # sys1_never_displayed, sys2_never_displayed = returned_settings[0..1]
-        # (sys1_never_displayed.is_encrypted? && sys2_never_displayed.is_encrypted?).should be_true
+        returned_settings.size.should eq(6)
 
-        # sys1_admin, sys2_admin = returned_settings[2..3]
-        # (sys1_never_displayed.is_encrypted? && sys2_never_displayed.is_encrypted?).should be_false
+        sys1_never_displayed, sys2_never_displayed = returned_settings[0..1]
+        (sys1_never_displayed.encryption_level == Encryption::Level::NeverDisplay && sys2_never_displayed.encryption_level == Encryption::Level::NeverDisplay).should be_true
 
-        # sys1_clear, sys2_clear = returned_settings[4..5]
-        # (sys1_never_displayed.is_encrypted? && sys2_never_displayed.is_encrypted?).should be_false
+        sys1_admin, sys2_admin = returned_settings[2..3]
+        (sys1_admin.encryption_level == Encryption::Level::Admin && sys2_admin.encryption_level == Encryption::Level::Admin).should be_true
+
+        sys1_clear, sys2_clear = returned_settings[4..5]
+        (sys1_clear.encryption_level == Encryption::Level::None  && sys2_clear.encryption_level == Encryption::Level::None).should be_true
         end
 
         it "returns settings for parent id" do
