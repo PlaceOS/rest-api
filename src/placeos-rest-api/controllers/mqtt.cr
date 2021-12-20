@@ -89,8 +89,8 @@ module PlaceOS::Api
       Subscribe = 0x04
 
       # this is 0x11 on the go-auth side but that wouldn't work with flags properly
-      # it doesn't make much sense that MQTT would be checking deby access either
-      # to I think this is safe to do.
+      # it doesn't make much sense that MQTT would be checking deny access either
+      # so I think this is safe to do.
       Deny = 0x10
     end
 
