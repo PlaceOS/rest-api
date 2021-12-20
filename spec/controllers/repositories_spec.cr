@@ -2,8 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Repositories do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Repositories::NAMESPACE[0]
 
     with_server do

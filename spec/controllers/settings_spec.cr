@@ -2,6 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Settings do
+    _, authorization_header = authentication
     base = Api::Settings::NAMESPACE[0]
     with_server do
       test_404(base, model_name: Model::Settings.table_name, headers: authorization_header)

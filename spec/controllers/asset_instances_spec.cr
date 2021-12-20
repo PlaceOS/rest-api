@@ -3,6 +3,7 @@ require "timecop"
 
 module PlaceOS::Api
   describe AssetInstances do
+    _, authorization_header = authentication
     base = AssetInstances::NAMESPACE[0]
 
     with_server do

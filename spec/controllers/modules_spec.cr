@@ -12,8 +12,7 @@ end
 
 module PlaceOS::Api
   describe Modules do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Modules::NAMESPACE[0]
 
     with_server do

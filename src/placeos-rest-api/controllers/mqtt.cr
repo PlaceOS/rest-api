@@ -87,7 +87,11 @@ module PlaceOS::Api
       Read      = 0x01
       Write     = 0x02
       Subscribe = 0x04
-      Deny      = 0x11
+
+      # this is 0x11 on the go-auth side but that wouldn't work with flags properly
+      # it doesn't make much sense that MQTT would be checking deny access either
+      # so I think this is safe to do.
+      Deny = 0x10
     end
 
     # Evaluate the ACL permissions flags of the JWT

@@ -36,6 +36,7 @@ module PlaceOS::Api
   end
 
   describe Systems do
+    _, authorization_header = authentication
     base = Systems::NAMESPACE[0]
 
     with_server do

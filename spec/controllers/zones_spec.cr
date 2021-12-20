@@ -2,6 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Zones do
+    _authenticated_user, authorization_header = authentication
     base = Zones::NAMESPACE[0]
 
     with_server do
