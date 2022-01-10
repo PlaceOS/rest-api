@@ -82,17 +82,15 @@ module PlaceOS::Api
 
         it "GET /:id/compiled" do
           driver = Model::Generator.driver.save!
-    
+
           response = curl(
             method: "GET",
-            path:  "#{base}#{driver.id.not_nil!}/compiled",
+            path: "#{base}#{driver.id.not_nil!}/compiled",
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
-    
+
           response.success?.should be_true
         end
-
-       
       end
 
       pending "POST /:id/recompile" do
@@ -102,22 +100,20 @@ module PlaceOS::Api
         # channel = Channel(Bool).new
 
         response = curl(
-            method: "GET",
-            path:  "#{base}#{driver.id.not_nil!}/compiled",
-            headers: authorization_header.merge({"Content-Type" => "application/json"}),
-          )
-    
-        response.success?.should be_true
+          method: "GET",
+          path: "#{base}#{driver.id.not_nil!}/compiled",
+          headers: authorization_header.merge({"Content-Type" => "application/json"}),
+        )
 
-       
+        response.success?.should be_true
 
         path = "#{base}#{driver.id.not_nil!}/recompile"
         header = authorization_header.merge({"Content-Type" => "application/json"})
         puts "=====434==535======"
         # until_expected("POST", path, header) do |response|
-     
+
         #   puts "=====434========"
-        
+
         #   # returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
         #   # puts returned_ids
         #   # curl(
@@ -133,14 +129,9 @@ module PlaceOS::Api
           path: path,
           headers: authorization_header.merge({"Content-Type" => "application/json"}),
         )
-  
-     
 
         # response.success?.should be_true
-        
       end
-
-      
 
       describe "scopes" do
         before_each do
