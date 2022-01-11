@@ -98,6 +98,20 @@ paths:
                 $ref: '#/components/schemas/ApiKey'
       security:
       - bearerAuth: []
+    delete:
+      summary: Delete an api key
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
     patch:
       summary: Update an api key
       parameters:
@@ -120,6 +134,118 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiKey'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/brokers:
+    get:
+      summary: get all brokers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Broker'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a broker
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Broker'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Broker'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/brokers/{id}:
+    get:
+      summary: get current broker
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Broker'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a trigger
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Broker'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Broker'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a broker
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a broker
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Broker'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Broker'
       security:
       - bearerAuth: []
   /api/engine/v2/triggers:
@@ -661,10 +787,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 1391
+          example: Zone 2399
         description:
           type: string
-          example: This zone has space for 1495 people
+          example: This zone has space for 2113 people
     Metadata:
       required:
       - name
@@ -697,6 +823,14 @@ components:
         name:
           type: string
           example: Robert
+    Broker:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
     Trigger:
       required:
       - name
@@ -705,7 +839,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 4254
+          example: Trigger 1386
         description:
           type: string
           example: Trigger for zone 34
