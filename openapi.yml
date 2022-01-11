@@ -1015,6 +1015,494 @@ paths:
                 $ref: '#/components/schemas/Auth'
       security:
       - bearerAuth: []
+  /api/engine/v2/systems:
+    get:
+      summary: Query ControlSystem resources
+      parameters:
+      - name: bookable
+        in: query
+        description: filter by bookable
+        required: false
+        schema:
+          type: boolean
+      - name: capacity
+        in: query
+        description: filter by capacity
+        required: false
+        schema:
+          type: integer
+      - name: email
+        in: query
+        description: filter by email
+        required: false
+        schema:
+          type: string
+      - name: features
+        in: query
+        description: filter by features
+        required: false
+        schema:
+          type: string
+      - name: module_id
+        in: query
+        description: filter by module_id
+        required: false
+        schema:
+          type: string
+      - name: trigger_id
+        in: query
+        description: filter by trigger_id
+        required: false
+        schema:
+          type: string
+      - name: zone_id
+        in: query
+        description: filter by zone_id
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ControlSystem'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a control system
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControlSystem'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlSystem'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/control:
+    get:
+      summary: Websocket API
+      responses:
+        "200":
+          description: OK
+  /api/engine/v2/systems/with_emails:
+    get:
+      summary: Finds all the systems with the specified email address
+      parameters:
+      - name: in
+        in: query
+        description: emails seperated by ,
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ControlSystem'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}:
+    get:
+      summary: Renders a control system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: complete
+        in: query
+        description: render with all fields associated
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlSystem'
+        "403":
+          description: Forbidden
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a control system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: version
+        in: query
+        description: can only edit current control system
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControlSystem'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlSystem'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete the current control system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a control system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: version
+        in: query
+        description: can only edit current control system
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControlSystem'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlSystem'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/functions/{module_slug}:
+    get:
+      summary: Lists functions available on the driver, Filters higher privilege functions
+      parameters:
+      - name: module_slug
+        in: path
+        required: true
+        schema:
+          type: string
+        example: module_slug
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+        "404":
+          description: Not Found
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/metadata:
+    get:
+      summary: Return metadata for the system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: name
+        in: query
+        description: ""
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/module/{module_id}:
+    put:
+      summary: Adds the module from the system if it doesn't already exist
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: module_id
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlSystem'
+        "500":
+          description: Internal Server Error
+        "404":
+          description: Not Found
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Removes the module from the system and deletes it if not used elsewhere
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: module_id
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlSystem'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/settings:
+    get:
+      summary: Receive the collated settings for a system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Settings'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/start:
+    post:
+      summary: Start modules
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/stop:
+    post:
+      summary: Stop modules
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/types:
+    get:
+      summary: Look-up a module types in a system, returning a count of each type
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/zones:
+    get:
+      summary: Return all zones for this system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: sys_id
+        in: query
+        description: Can only get info on systems the user has access to
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Zone'
+        "403":
+          description: Forbidden
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/{module_slug}:
+    get:
+      summary: Returns the state of an associated module
+      parameters:
+      - name: module_slug
+        in: path
+        required: true
+        schema:
+          type: string
+        example: module_slug
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/{module_slug}/{key}:
+    get:
+      summary: Returns the state lookup for a given key on a module
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        example: key
+      - name: module_slug
+        in: path
+        required: true
+        schema:
+          type: string
+        example: module_slug
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/{module_slug}/{method}:
+    post:
+      summary: Runs a function in a system module
+      parameters:
+      - name: method
+        in: path
+        required: true
+        schema:
+          type: string
+        example: method
+      - name: module_slug
+        in: path
+        required: true
+        schema:
+          type: string
+        example: module_slug
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+        "500":
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
   /api/engine/v2/triggers:
     get:
       summary: get all triggers
@@ -1554,10 +2042,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 1179
+          example: Zone 905
         description:
           type: string
-          example: This zone has space for 2114 people
+          example: This zone has space for 1066 people
     Metadata:
       required:
       - name
@@ -1583,6 +2071,22 @@ components:
           type: string
           example: Robert
     ApiKey:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
+    ControlSystem:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
+    Settings:
       required:
       - name
       type: object
@@ -1638,7 +2142,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 3975
+          example: Trigger 3636
         description:
           type: string
           example: Trigger for zone 34

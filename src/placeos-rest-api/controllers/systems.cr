@@ -8,6 +8,9 @@ require "./modules"
 require "./settings"
 require "../websocket"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 # TODO: Remove after this PR is merged https://github.com/crystal-lang/crystal/pull/10922
 module Enumerable(T)
   def tally_by(& : T -> U) : Hash(U, Int32) forall U
@@ -21,6 +24,8 @@ end
 module PlaceOS::Api
   class Systems < Application
     include Utils::CoreHelper
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
 
     alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
@@ -75,6 +80,26 @@ module PlaceOS::Api
     end
 
     # Query ControlSystem resources
+    @[OpenAPI(
+      <<-YAML
+        summary: Query ControlSystem resources
+        parameters:
+          #{Schema.qp "bookable", "filter by bookable", type: "boolean"}
+          #{Schema.qp "capacity", "filter by capacity", type: "integer"}
+          #{Schema.qp "email", "filter by email", type: "string"}
+          #{Schema.qp "features", "filter by features", type: "string"}
+          #{Schema.qp "module_id", "filter by module_id", type: "string"}
+          #{Schema.qp "trigger_id", "filter by trigger_id", type: "string"}
+          #{Schema.qp "zone_id", "filter by zone_id", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array ControlSystem}
+      YAML
+    )]
     def index
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(params)
@@ -140,7 +165,19 @@ module PlaceOS::Api
     end
 
     # Finds all the systems with the specified email address
-    get "/with_emails", :find_by_email do
+    get("/with_emails", :find_by_email, annotations: @[OpenAPI(<<-YAML
+    summary: Finds all the systems with the specified email address
+    parameters:
+          #{Schema.qp "in", "emails seperated by ,", type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref_array ControlSystem}
+  YAML
+    )]) do
       emails = params["in"].split(',').map(&.strip).reject(&.empty?).uniq!
       systems = Model::ControlSystem.find_all(emails, index: :email).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
@@ -148,6 +185,20 @@ module PlaceOS::Api
     end
 
     # Renders a control system
+    @[OpenAPI(
+      <<-YAML
+        summary: Renders a control system
+        parameters:
+          #{Schema.qp "complete", "render with all fields associated", type: "boolean"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref ControlSystem}
+      YAML
+    )]
     def show
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
@@ -167,6 +218,24 @@ module PlaceOS::Api
     end
 
     # Updates a control system
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a control system
+        parameters:
+          #{Schema.qp "version", "can only edit current control system", type: "string"}
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref ControlSystem}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref ControlSystem}
+      YAML
+    )]
     def update
       args = UpdateParams.new(params)
 
@@ -189,10 +258,54 @@ module PlaceOS::Api
     # TODO: replace manual id with interpolated value from `id_param`
     put "/:sys_id", :update_alt { update }
 
+    put("/:sys_id", :update_alt, annotations: @[OpenAPI(<<-YAML
+        summary: Update a control system
+        parameters:
+          #{Schema.qp "version", "can only edit current control system", type: "string"}
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref ControlSystem}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref ControlSystem}
+      YAML
+    )]) { update }
+
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a control system
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref ControlSystem}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref ControlSystem}
+      YAML
+    )]
     def create
       save_and_respond Model::ControlSystem.from_json(self.body)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete the current control system
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_control_system.destroy
       head :ok
@@ -200,7 +313,21 @@ module PlaceOS::Api
 
     # Return all zones for this system
     #
-    get "/:sys_id/zones", :sys_zones do
+    get("/:sys_id/zones", :sys_zones, annotations: @[OpenAPI(<<-YAML
+    summary: Return all zones for this system
+    parameters:
+      #{Schema.qp "sys_id", "Can only get info on systems the user has access to", type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref_array Zone}
+      403:
+        description: Forbidden
+    YAML
+    )]) do
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         head :forbidden unless user_token.user.roles.includes?(params["sys_id"])
@@ -220,7 +347,19 @@ module PlaceOS::Api
 
     # Return metadata for the system
     #
-    get "/:sys_id/metadata", :metadata do
+    get("/:sys_id/metadata", :metadata, annotations: @[OpenAPI(<<-YAML
+    summary: Return metadata for the system
+    parameters:
+      #{Schema.qp "name", "", type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref Metadata}
+    YAML
+    )]) do
       parent_id = current_control_system.id.not_nil!
       name = params["name"]?.presence
       render json: Model::Metadata.build_metadata(parent_id, name)
@@ -228,13 +367,37 @@ module PlaceOS::Api
 
     # Receive the collated settings for a system
     #
-    get("/:sys_id/settings", :settings) do
+    get("/:sys_id/settings", :settings, annotations: @[OpenAPI(<<-YAML
+    summary: Receive the collated settings for a system
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref Settings}
+    YAML
+    )]) do
       render json: Api::Settings.collated_settings(current_user, current_control_system)
     end
 
     # Adds the module from the system if it doesn't already exist
     #
-    put("/:sys_id/module/:module_id", :add_module) do
+    put("/:sys_id/module/:module_id", :add_module, annotations: @[OpenAPI(<<-YAML
+    summary: Adds the module from the system if it doesn't already exist
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref ControlSystem}
+      500:
+        description: Internal Server Error
+      404:
+        description: Not Found
+    YAML
+    )]) do
       control_system_id = params["sys_id"]
       module_id = params["module_id"]
 
@@ -252,7 +415,17 @@ module PlaceOS::Api
 
     # Removes the module from the system and deletes it if not used elsewhere
     #
-    delete("/:sys_id/module/:module_id", :remove_module) do
+    delete("/:sys_id/module/:module_id", :remove_module, annotations: @[OpenAPI(<<-YAML
+    summary: Removes the module from the system and deletes it if not used elsewhere
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref ControlSystem}
+    YAML
+    )]) do
       module_id = params["module_id"]
 
       if current_control_system.modules.includes?(module_id)
@@ -268,7 +441,15 @@ module PlaceOS::Api
 
     # Start modules
     #
-    post("/:sys_id/start", :start) do
+    post("/:sys_id/start", :start, annotations: @[OpenAPI(<<-YAML
+    summary: Start modules
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       Systems.module_running_state(running: true, control_system: current_control_system)
 
       head :ok
@@ -276,7 +457,15 @@ module PlaceOS::Api
 
     # Stop modules
     #
-    post("/:sys_id/stop", :stop) do
+    post("/:sys_id/stop", :stop, annotations: @[OpenAPI(<<-YAML
+    summary: Stop modules
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       Systems.module_running_state(running: false, control_system: current_control_system)
 
       head :ok
@@ -298,7 +487,17 @@ module PlaceOS::Api
 
     # Runs a function in a system module
     #
-    post("/:sys_id/:module_slug/:method", :execute) do
+    post("/:sys_id/:module_slug/:method", :execute, annotations: @[OpenAPI(<<-YAML
+    summary: Runs a function in a system module
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+      500:
+        description: Internal Server Error
+    YAML
+    )]) do
       sys_id, module_slug, method = params["sys_id"], params["module_slug"], params["method"]
       module_name, index = RemoteDriver.get_parts(module_slug)
       args = Array(JSON::Any).from_json(self.body)
@@ -327,7 +526,15 @@ module PlaceOS::Api
 
     # Look-up a module types in a system, returning a count of each type
     #
-    get("/:sys_id/types", :types) do
+    get("/:sys_id/types", :types, annotations: @[OpenAPI(<<-YAML
+    summary: Look-up a module types in a system, returning a count of each type
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       types = Model::Module
         .in_control_system(current_control_system.id.as(String))
         .tally_by(&.resolved_name)
@@ -336,7 +543,15 @@ module PlaceOS::Api
 
     # Returns the state of an associated module
     #
-    get("/:sys_id/:module_slug", :state) do
+    get("/:sys_id/:module_slug", :state, annotations: @[OpenAPI(<<-YAML
+    summary: Returns the state of an associated module
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
@@ -345,7 +560,15 @@ module PlaceOS::Api
 
     # Returns the state lookup for a given key on a module
     #
-    get("/:sys_id/:module_slug/:key", :state_lookup) do
+    get("/:sys_id/:module_slug/:key", :state_lookup, annotations: @[OpenAPI(<<-YAML
+    summary: Returns the state lookup for a given key on a module
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       sys_id, key, module_slug = params["sys_id"], params["key"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
@@ -354,7 +577,17 @@ module PlaceOS::Api
 
     # Lists functions available on the driver
     # Filters higher privilege functions.
-    get("/:sys_id/functions/:module_slug", :functions) do
+    get("/:sys_id/functions/:module_slug", :functions, annotations: @[OpenAPI(<<-YAML
+    summary: Lists functions available on the driver, Filters higher privilege functions
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+      404:
+        description: Not Found
+    YAML
+    )]) do
       sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
       metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(
@@ -408,7 +641,13 @@ module PlaceOS::Api
     # Websocket API
     ###########################################################################
 
-    ws("/control", :control) do |ws|
+    ws("/control", :control, annotations: @[OpenAPI(<<-YAML
+    summary: Websocket API
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do |ws|
       Log.trace { "WebSocket API request" }
       fixed_device = params["fixed_device"]?.try(&.downcase) == "true"
       Log.context.set(fixed_device: fixed_device)
