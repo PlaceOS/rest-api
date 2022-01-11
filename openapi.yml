@@ -1,9 +1,166 @@
 ---
 openapi: 3.0.1
 info:
-  title: PlaceOS Rest-API 2
+  title: PlaceOS Rest-API
   version: 1.30.2
 paths:
+  /api/engine/v2/users:
+    get:
+      summary: get all users
+      parameters:
+      - name: authority_id
+        in: query
+        description: '....'
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a zone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/users/current:
+    get:
+      summary: Render the current user
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+      security:
+      - bearerAuth: []
+  /api/engine/v2/users/groups: {}
+  /api/engine/v2/users/{id}:
+    get:
+      summary: get users
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: authority_id
+        in: query
+        description: '....'
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/users/{id}/metadata:
+    get:
+      summary: Get the metadata of a user
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: name
+        in: query
+        description: The name of the metadata
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+      security:
+      - bearerAuth: []
   /api/engine/v2/zones:
     get:
       summary: get all zones
@@ -90,7 +247,7 @@ paths:
       security:
       - bearerAuth: []
     put:
-      summary: Update a zonee
+      summary: Update a zone
       parameters:
       - name: id
         in: path
@@ -179,6 +336,8 @@ paths:
           content:
             text/yaml:
               schema: {}
+      security:
+      - bearerAuth: []
   /api/engine/v2/zones/{id}/metadata:
     get:
       summary: Get the metadata of a zone
@@ -191,7 +350,7 @@ paths:
         example: id
       - name: name
         in: query
-        description: The name of the metadata?
+        description: The name of the metadata
         required: false
         schema:
           type: string
@@ -201,9 +360,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Zone'
+                $ref: '#/components/schemas/PlaceOS::Api::Metadata'
       security:
       - bearerAuth: []
   /api/engine/v2/zones/{id}/triggers:
@@ -237,10 +394,34 @@ components:
       properties:
         name:
           type: string
-          example: Zone 2934
+          example: Zone 2940
         description:
           type: string
-          example: This zone has space for 4760 people
+          example: This zone has space for 3852 people
+    Metadata:
+      required:
+      - name
+      - description
+      - details
+      type: object
+      properties:
+        name:
+          type: string
+          example: Orange Metadata
+        description:
+          type: string
+          example: Includes size of orange & more...
+        details:
+          type: object
+          additionalProperties: true
+    User:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
     Trigger:
       required:
       - name
@@ -249,10 +430,10 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 2031
+          example: Trigger 3118
         description:
           type: string
-          example: blah trigger
+          example: Trigger for zone 34
   responses: {}
   parameters: {}
   examples: {}

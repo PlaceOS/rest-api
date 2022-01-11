@@ -130,7 +130,7 @@ module PlaceOS::Api
 
     # TODO: replace manual id with interpolated value from `id_param`
     put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-    summary: Update a zonee
+    summary: Update a zone
     requestBody:
       required: true
       content:
@@ -191,7 +191,7 @@ module PlaceOS::Api
         description: OK
         content:
           #{Schema.ref Metadata}
-  YAML
+    YAML
     )]) do
       parent_id = current_zone.id.not_nil!
       name = params["name"]?.presence
@@ -231,9 +231,11 @@ module PlaceOS::Api
 
     post("/:id/exec/:module_slug/:method", :zone_execute, annotations: @[OpenAPI(<<-YAML
         summary: Execute a method on a module across all systems in a Zone
+        security:
+        - bearerAuth: []
         responses:
-        200:
-          description: OK
+          200:
+            description: OK
         YAML
     )]) do
       zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]

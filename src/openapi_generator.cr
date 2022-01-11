@@ -34,6 +34,15 @@ class Metadata
   property editors : Set(String)
 end
 
+class User
+  extend OpenAPI::Generator::Serializable
+
+  def initialize(@name); end
+
+  @[OpenAPI::Field(type: String, example: "Robert")]
+  property name : String
+end
+
 class Trigger
   extend OpenAPI::Generator::Serializable
 

@@ -1,11 +1,17 @@
 require "oauth2"
 require "CrystalEmail"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 require "./application"
 require "./metadata"
 
 module PlaceOS::Api
   class Users < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
+
     base "/api/engine/v2/users/"
 
     # Scopes
@@ -30,7 +36,18 @@ module PlaceOS::Api
     getter user : Model::User { find_user }
 
     # Render the current user
-    get("/current", :current) do
+    get("/current", :current, annotations: @[OpenAPI(<<-YAML
+    summary: Render the current user
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+      401:
+        description: OK
+    YAML
+    )]) do
+      # get("/current", :current) do
       render_json do |json|
         current_user.to_admin_json(json)
       end
@@ -39,68 +56,94 @@ module PlaceOS::Api
     end
 
     # Obtain a token to the current users SSO resource
-    post("/resource_token", :resource_token) do
-      expired = true
+    # post("/resource_token", :resource_token) do
 
-      if access_token = current_user.access_token.presence
-        if current_user.expires
-          expires_at = Time.unix(current_user.expires_at.not_nil!)
-          if 5.minutes.from_now < expires_at
-            render json: {
-              token:   access_token,
-              expires: expires_at.to_unix,
-            }
-          end
+    # post("/resource_token", :resource_token, annotations: @[OpenAPI(<<-YAML
+    # summary: Get a token to the current users SSO resource
+    # security:
+    # - bearerAuth: []
+    # responses:
+    #   200:
+    #     description: OK
+    #   404:
+    #     description: OK
+    # YAML
+    # )]) do
+    #   expired = true
 
-          # Allow for clock drift
-          expired = 15.seconds.from_now > expires_at
-        else
-          render json: {token: access_token}
-        end
-      end
+    #   if access_token = current_user.access_token.presence
+    #     if current_user.expires
+    #       expires_at = Time.unix(current_user.expires_at.not_nil!)
+    #       if 5.minutes.from_now < expires_at
+    #         render json: {
+    #           token:   access_token,
+    #           expires: expires_at.to_unix,
+    #         }
+    #       end
 
-      head :not_found unless current_user.refresh_token.presence
+    #       # Allow for clock drift
+    #       expired = 15.seconds.from_now > expires_at
+    #     else
+    #       render json: {token: access_token}
+    #     end
+    #   end
 
-      begin
-        internals = current_authority.not_nil!.internals
-        sso_strat_id = internals["oauth-strategy"].as_s # (i.e. oauth_strat-FNsaSj6bp-M)
-        render(:not_found, text: "no oauth configuration specified in authority") unless sso_strat_id.presence
+    #   head :not_found unless current_user.refresh_token.presence
 
-        sso_strat = ::PlaceOS::Model::OAuthAuthentication.find!(sso_strat_id)
-        client_id = sso_strat.client_id
-        client_secret = sso_strat.client_secret
-        token_uri = URI.parse(sso_strat.token_url)
-        token_host = token_uri.hostname.not_nil!
-        token_path = token_uri.request_target
+    #   begin
+    #     internals = current_authority.not_nil!.internals
+    #     sso_strat_id = internals["oauth-strategy"].as_s # (i.e. oauth_strat-FNsaSj6bp-M)
+    #     render(:not_found, text: "no oauth configuration specified in authority") unless sso_strat_id.presence
 
-        oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
-        token = oauth2_client.get_access_token_using_refresh_token(current_user.refresh_token, sso_strat.scope)
+    #     sso_strat = ::PlaceOS::Model::OAuthAuthentication.find!(sso_strat_id)
+    #     client_id = sso_strat.client_id
+    #     client_secret = sso_strat.client_secret
+    #     token_uri = URI.parse(sso_strat.token_url)
+    #     token_host = token_uri.hostname.not_nil!
+    #     token_path = token_uri.request_target
 
-        current_user.access_token = token.access_token
-        current_user.refresh_token = token.refresh_token if token.refresh_token
-        current_user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
-        current_user.save!
+    #     oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
+    #     token = oauth2_client.get_access_token_using_refresh_token(current_user.refresh_token, sso_strat.scope)
 
-        render json: {
-          token:   current_user.access_token,
-          expires: current_user.expires_at,
-        }
-      rescue error
-        Log.warn(exception: error) { "failed refresh access token" }
-        if !expired
-          render json: {
-            token:   current_user.access_token,
-            expires: current_user.expires_at,
-          }
-        else
-          raise error
-        end
-      end
-    end
+    #     current_user.access_token = token.access_token
+    #     current_user.refresh_token = token.refresh_token if token.refresh_token
+    #     current_user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
+    #     current_user.save!
+
+    #     render json: {
+    #       token:   current_user.access_token,
+    #       expires: current_user.expires_at,
+    #     }
+    #   rescue error
+    #     Log.warn(exception: error) { "failed refresh access token" }
+    #     if !expired
+    #       render json: {
+    #         token:   current_user.access_token,
+    #         expires: current_user.expires_at,
+    #       }
+    #     else
+    #       raise error
+    #     end
+    #   end
+    # end
 
     # CRUD
     ###############################################################################################
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all users
+        parameters:
+          #{Schema.qp "authority_id", "....", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array User}
+      YAML
+    )]
     def index
       elastic = Model::User.elastic
       query = elastic.query(params)
@@ -117,6 +160,18 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get users
+        parameters:
+          #{Schema.qp "authority_id", "....", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def show
       # We only want to provide limited "public" information
       render_json do |json|
@@ -124,6 +179,22 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a zone
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref User}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref User}
+      YAML
+    )]
     def create
       body = self.body.gets_to_end
       new_user = Model::User.from_json(body)
@@ -135,6 +206,22 @@ module PlaceOS::Api
       save_and_respond new_user
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a user
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref User}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref User}
+      YAML
+    )]
     def update
       # Allow additional attributes to be applied by admins
       # (the users themselves should not have access to these)
@@ -149,9 +236,35 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    # put "/:id", :update_alt { update }
+
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+    summary: Update a user
+    requestBody:
+      required: true
+      content:
+        #{Schema.ref User}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref User}
+  YAML
+    )]) { update }
 
     # Destroy user, revoke authentication.
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a user
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       user.destroy
       head :ok
@@ -161,7 +274,20 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    get "/:id/metadata", :metadata do
+    # get "/:id/metadata", :metadata do
+    get("/:id/metadata", :metadata, annotations: @[OpenAPI(<<-YAML
+    summary: Get the metadata of a user
+    parameters:
+      #{Schema.qp "name", "The name of the metadata", type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref Metadata}
+    YAML
+    )]) do
       parent_id = user.id.not_nil!
       name = params["name"]?.presence
       render json: Model::Metadata.build_metadata(parent_id, name)
@@ -171,7 +297,17 @@ module PlaceOS::Api
     # - `emails`: comma-seperated list of emails *required*
     # # Returns
     # - `[{id: "<user-id>", groups: ["<group>"]}]`
-    get("/groups", :groups) do
+    get("/groups", :groups, annotations: @[OpenAPI(<<-YAML
+    summary: Get list of groups of users based on email
+    parameters:
+      #{Schema.qp "emails", " comma-seperated list of emails", required: true, type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       emails_param = params["emails"]?.presence
       return render_error(HTTP::Status::BAD_REQUEST, "Missing `emails` param") if emails_param.nil?
 
