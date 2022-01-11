@@ -4,6 +4,141 @@ info:
   title: PlaceOS Rest-API
   version: 1.30.2
 paths:
+  /api/engine/v2/triggers:
+    get:
+      summary: get all triggers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trigger'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a trigger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trigger'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trigger'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/triggers/{id}:
+    get:
+      summary: get triggers
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: instances
+        in: query
+        description: should instances be returned
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a trigger
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trigger'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trigger'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a trigger
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a trigger
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trigger'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trigger'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/triggers/{id}/instances:
+    get:
+      summary: Get list of instances associated wtih given id of users based on email
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
   /api/engine/v2/users:
     get:
       summary: get all users
@@ -52,7 +187,21 @@ paths:
           description: Unauthorized
       security:
       - bearerAuth: []
-  /api/engine/v2/users/groups: {}
+  /api/engine/v2/users/groups:
+    get:
+      summary: Get list of groups of users based on email
+      parameters:
+      - name: emails
+        in: query
+        description: ' comma-seperated list of emails'
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
   /api/engine/v2/users/{id}:
     get:
       summary: get users
@@ -394,10 +543,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 2940
+          example: Zone 1538
         description:
           type: string
-          example: This zone has space for 3852 people
+          example: This zone has space for 192 people
     Metadata:
       required:
       - name
@@ -430,7 +579,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 3118
+          example: Trigger 1412
         description:
           type: string
           example: Trigger for zone 34

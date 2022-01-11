@@ -1,7 +1,12 @@
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class Triggers < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/triggers/"
 
     # Scopes
@@ -24,6 +29,18 @@ module PlaceOS::Api
 
     getter current_trigger : Model::Trigger { find_trigger }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all triggers
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array Trigger}
+      YAML
+    )]
     def index
       elastic = Model::Trigger.elastic
       query = elastic.query(params)
@@ -32,6 +49,18 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get triggers
+        parameters:
+          #{Schema.qp "instances", "should instances be returned", type: "boolean"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def show
       include_instances = params["instances"]? == "true"
       render json: !include_instances ? current_trigger : with_fields(current_trigger, {
@@ -39,25 +68,90 @@ module PlaceOS::Api
       })
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a trigger
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Trigger}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Trigger}
+      YAML
+    )]
     def update
       current_trigger.assign_attributes_from_json(self.body)
       save_and_respond(current_trigger)
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+      summary: Update a trigger
+      requestBody:
+        required: true
+        content:
+          #{Schema.ref Trigger}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+          content:
+            #{Schema.ref Trigger}
+      YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a trigger
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Trigger}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref Trigger}
+      YAML
+    )]
     def create
       save_and_respond Model::Trigger.from_json(self.body)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a trigger
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_trigger.destroy # expires the cache in after callback
       head :ok
     end
 
     # Get instances associated with
-    get "/:id/instances", :instances do
+
+    get("/:id/instances", :instances, annotations: @[OpenAPI(<<-YAML
+    summary: Get list of instances associated wtih given id of users based on email
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       instances = current_trigger.trigger_instances.to_a
 
       set_collection_headers(instances.size, Model::TriggerInstance.table_name)
