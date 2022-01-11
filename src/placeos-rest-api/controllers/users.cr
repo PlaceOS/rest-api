@@ -124,7 +124,7 @@ module PlaceOS::Api
       elastic = Model::User.elastic
       query = elastic.query(params)
 
-      query.must_not({"deleted" => [true]}) unless include_deleted
+      query.must_not({"deleted" => [true]}) unless include_deleted?
 
       if authority = authority_id
         query.filter({"authority_id" => [authority]})
