@@ -679,6 +679,342 @@ paths:
           description: Forbidden
       security:
       - bearerAuth: []
+  /api/engine/v2/ldap_auths:
+    get:
+      summary: get all Ldap auths
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a new Ldap auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/ldap_auths/{id}:
+    get:
+      summary: get current Ldap auths
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/oauth_auths:
+    get:
+      summary: get all OAuth auths
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a new OAuth auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/oauth_auths/{id}:
+    get:
+      summary: get current OAuth auths
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/saml_auths:
+    get:
+      summary: get all Saml auths
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a new Saml auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/saml_auths/{id}:
+    get:
+      summary: get current Saml auths
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update the current auth
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Auth'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
   /api/engine/v2/triggers:
     get:
       summary: get all triggers
@@ -1218,10 +1554,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 539
+          example: Zone 1179
         description:
           type: string
-          example: This zone has space for 3697 people
+          example: This zone has space for 2114 people
     Metadata:
       required:
       - name
@@ -1247,6 +1583,14 @@ components:
           type: string
           example: Robert
     ApiKey:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
+    Auth:
       required:
       - name
       type: object
@@ -1294,7 +1638,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 3
+          example: Trigger 3975
         description:
           type: string
           example: Trigger for zone 34
