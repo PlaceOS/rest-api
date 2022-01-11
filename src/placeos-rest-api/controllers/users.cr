@@ -40,6 +40,10 @@ module PlaceOS::Api
       params["authority_id"]?.presence || params["authority"]?.presence
     end
 
+    getter include_deleted : Bool do
+      params["include_deleted"]? == "true"
+    end
+
     ###############################################################################################
 
     getter user : Model::User { find_user }
@@ -120,7 +124,7 @@ module PlaceOS::Api
       elastic = Model::User.elastic
       query = elastic.query(params)
 
-      query.must_not({"deleted" => [true]})
+      query.must_not({"deleted" => [true]}) unless include_deleted
 
       if authority = authority_id
         query.filter({"authority_id" => [authority]})
@@ -169,7 +173,12 @@ module PlaceOS::Api
 
     # Destroy user, revoke authentication.
     def destroy
-      user.destroy
+      if current_authority.internals["soft_delete"] == true
+        user.deleted = true
+        user.save
+      else
+        user.destroy
+      end
       head :ok
     rescue e : Model::Error
       render_error(HTTP::Status::BAD_REQUEST, e.message)
