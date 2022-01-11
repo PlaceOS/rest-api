@@ -24,7 +24,7 @@ module PlaceOS::Api
       ###############################################################################################
 
       getter authority_id : String? do
-        params["authority_id"].presence || params["authority"]?.presence
+        params["authority_id"]?.presence || params["authority"]?.presence
       end
 
       ###############################################################################################
