@@ -40,8 +40,8 @@ module PlaceOS::Api
       params["authority_id"]?.presence || params["authority"]?.presence
     end
 
-    getter include_deleted : Bool do
-      params["include_deleted"]? == "true"
+    getter? include_deleted : Bool do
+      boolean_param("include_deleted")
     end
 
     ###############################################################################################
