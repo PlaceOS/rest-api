@@ -360,6 +360,325 @@ paths:
                 $ref: '#/components/schemas/Domain'
       security:
       - bearerAuth: []
+  /api/engine/v2/drivers:
+    get:
+      summary: get drivers
+      parameters:
+      - name: role
+        in: query
+        description: filter by role
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a driver
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Driver'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Driver'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/drivers/{id}:
+    get:
+      summary: get current driver
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: compilation_status
+        in: query
+        description: include compilation status in render
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a driver
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Driver'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Driver'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a driver
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a driver
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Driver'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Driver'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/drivers/{id}/compiled:
+    get:
+      summary: Check if the core responsible for the driver has finished compilation
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+        "503":
+          description: Service Unavailable
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/drivers/{id}/recompile:
+    post:
+      summary: Attempt to recompile driver with given ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+        "404":
+          description: Not Found
+        "408":
+          description: Request Timeout
+        "208":
+          description: Already Reported
+      security:
+      - bearerAuth: []
+  /api/engine/v2/edges:
+    get:
+      summary: get all edges
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Edge'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create an edge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Edge'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Edge'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/edges/control:
+    get:
+      summary: Validate the present of the id and check the secret before routing
+        to core
+      parameters:
+      - name: token
+        in: query
+        description: authenticated token
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+      security:
+      - bearerAuth: []
+  /api/engine/v2/edges/{id}:
+    get:
+      summary: get current edge
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Edge'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update an edge
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Edge'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Edge'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete an edge
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update an edge
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Edge'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Edge'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/edges/{id}/token:
+    get:
+      summary: Get the token associated with the given id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+        "403":
+          description: Forbidden
+      security:
+      - bearerAuth: []
   /api/engine/v2/triggers:
     get:
       summary: get all triggers
@@ -899,10 +1218,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 3008
+          example: Zone 539
         description:
           type: string
-          example: This zone has space for 3824 people
+          example: This zone has space for 3697 people
     Metadata:
       required:
       - name
@@ -935,6 +1254,22 @@ components:
         name:
           type: string
           example: Robert
+    Edge:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
+    Driver:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
     Domain:
       required:
       - name
@@ -959,7 +1294,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 3967
+          example: Trigger 3
         description:
           type: string
           example: Trigger for zone 34

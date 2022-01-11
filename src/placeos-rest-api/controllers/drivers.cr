@@ -1,7 +1,12 @@
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class Drivers < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/drivers/"
 
     # Scopes
@@ -23,6 +28,18 @@ module PlaceOS::Api
 
     getter current_driver : Model::Driver { find_driver }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get drivers
+        parameters:
+          #{Schema.qp "role", "filter by role", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def index
       # Pick off role from HTTP params, render error if present and invalid
       role = params["role"]?.try &.to_i?.try do |r|
@@ -45,6 +62,18 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current driver
+        parameters:
+          #{Schema.qp "compilation_status", "include compilation status in render", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def show
       include_compilation_status = !params.has_key?("compilation_status") || params["compilation_status"] != "false"
 
@@ -55,6 +84,22 @@ module PlaceOS::Api
       render json: result
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a driver
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Driver}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Driver}
+      YAML
+    )]
     def update
       current_driver.assign_attributes_from_json(self.body)
 
@@ -65,18 +110,70 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+    summary: Update a driver
+    requestBody:
+      required: true
+      content:
+        #{Schema.ref Driver}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref Driver}
+    YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a driver
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Driver}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref Driver}
+      YAML
+    )]
     def create
       save_and_respond(Model::Driver.from_json(self.body))
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a driver
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_driver.destroy
       head :ok
     end
 
-    post("/:id/recompile", :recompile) do
+    post("/:id/recompile", :recompile, annotations: @[OpenAPI(<<-YAML
+    summary: Attempt to recompile driver with given ID
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+      404:
+        description: Not Found
+      408:
+        description: Not Found
+    YAML
+    )]) do
       if current_driver.commit.starts_with?("RECOMPILE")
         head :already_reported
       else
@@ -131,7 +228,21 @@ module PlaceOS::Api
 
     # Check if the core responsible for the driver has finished compilation
     #
-    get("/:id/compiled", :compiled) do
+    get("/:id/compiled", :compiled, annotations: @[OpenAPI(<<-YAML
+    summary: Check if the core responsible for the driver has finished compilation
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+      404:
+        description: Not Found
+      500:
+        description: Internal Server Error
+      503:
+        description: Service Unavailable
+    YAML
+    )]) do
       if (repository = current_driver.repository).nil?
         Log.error { {repository_id: current_driver.repository_id, message: "failed to load driver's repository"} }
         head :internal_server_error

@@ -2,11 +2,16 @@ require "hound-dog"
 require "placeos-core-client"
 require "promise"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 require "./application"
 require "./systems"
 
 module PlaceOS::Api
   class Edges < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/edges/"
 
     # Scopes
@@ -34,7 +39,19 @@ module PlaceOS::Api
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
 
     # Validate the present of the id and check the secret before routing to core
-    ws("/control", :edge) do |socket|
+    ws("/control", :edge, annotations: @[OpenAPI(<<-YAML
+    summary: Validate the present of the id and check the secret before routing to core
+    parameters:
+          #{Schema.qp "token", "authenticated token", type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+      401:
+        description: Unauthorized
+    YAML
+    )]) do |socket|
       token = params["token"]?
 
       return render_error(HTTP::Status::BAD_REQUEST, "Missing 'token' param") if token.nil? || token.presence.nil?
@@ -48,11 +65,33 @@ module PlaceOS::Api
       Edges.connection_manager.add_edge(edge_id, socket)
     end
 
-    get("/:id/token", :token) do
+    get("/:id/token", :token, annotations: @[OpenAPI(<<-YAML
+    summary: Get the token associated with the given id
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+      403:
+        description: Forbidden
+    YAML
+    )]) do
       head :forbidden unless is_admin?
       render json: {token: current_edge.token(current_user)}
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all edges
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array Edge}
+      YAML
+    )]
     def index
       elastic = Model::Edge.elastic
       query = elastic.query(params)
@@ -60,22 +99,90 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current edge
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Edge}
+      YAML
+    )]
     def show
       render json: current_edge
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update an edge
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Edge}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Edge}
+      YAML
+    )]
     def update
       current_edge.assign_attributes_from_json(self.body)
       save_and_respond current_edge
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+    summary: Update an edge
+    requestBody:
+      required: true
+      content:
+        #{Schema.ref Edge}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref Edge}
+    YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create an edge
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Edge}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref Edge}
+      YAML
+    )]
     def create
       save_and_respond(Model::Edge.from_json(self.body))
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete an edge
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_edge.destroy
       head :ok

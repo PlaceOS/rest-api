@@ -52,6 +52,24 @@ class ApiKey
   property name : String
 end
 
+class Edge
+  extend OpenAPI::Generator::Serializable
+
+  def initialize(@name); end
+
+  @[OpenAPI::Field(type: String, example: "Robert")]
+  property name : String
+end
+
+class Driver
+  extend OpenAPI::Generator::Serializable
+
+  def initialize(@name); end
+
+  @[OpenAPI::Field(type: String, example: "Robert")]
+  property name : String
+end
+
 class Domain
   extend OpenAPI::Generator::Serializable
 
