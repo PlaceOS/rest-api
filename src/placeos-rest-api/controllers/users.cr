@@ -173,7 +173,7 @@ module PlaceOS::Api
 
     # Destroy user, revoke authentication.
     def destroy
-      if current_authority.internals["soft_delete"] == true
+      if current_authority.try &.internals["soft_delete"] == true
         user.deleted = true
         user.save
       else
