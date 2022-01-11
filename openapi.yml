@@ -248,6 +248,118 @@ paths:
                 $ref: '#/components/schemas/Broker'
       security:
       - bearerAuth: []
+  /api/engine/v2/domains:
+    get:
+      summary: get all domains
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Domain'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a domain
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Domain'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/domains/{id}:
+    get:
+      summary: get current domain
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a domain
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Domain'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a domain
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a domain
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Domain'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domain'
+      security:
+      - bearerAuth: []
   /api/engine/v2/triggers:
     get:
       summary: get all triggers
@@ -787,10 +899,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 2399
+          example: Zone 3008
         description:
           type: string
-          example: This zone has space for 2113 people
+          example: This zone has space for 3824 people
     Metadata:
       required:
       - name
@@ -823,6 +935,14 @@ components:
         name:
           type: string
           example: Robert
+    Domain:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
     Broker:
       required:
       - name
@@ -839,7 +959,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 1386
+          example: Trigger 3967
         description:
           type: string
           example: Trigger for zone 34

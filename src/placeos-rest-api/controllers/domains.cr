@@ -1,7 +1,12 @@
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class Domains < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/domains/"
 
     # Scopes
@@ -23,6 +28,18 @@ module PlaceOS::Api
 
     getter current_domain : Model::Authority { find_domain }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all domains
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array Domain}
+      YAML
+    )]
     def index
       elastic = Model::Authority.elastic
       query = elastic.query(params)
@@ -30,22 +47,90 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current domain
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Domain}
+      YAML
+    )]
     def show
       render json: current_domain
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a domain
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Domain}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Domain}
+      YAML
+    )]
     def update
       current_domain.assign_attributes_from_json(self.body)
       save_and_respond current_domain
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+      summary: Update a domain
+      requestBody:
+        required: true
+        content:
+          #{Schema.ref Domain}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+          content:
+            #{Schema.ref Domain}
+      YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a domain
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Domain}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref Domain}
+      YAML
+    )]
     def create
       save_and_respond(Model::Authority.from_json(self.body))
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a domain
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_domain.destroy
       head :ok
