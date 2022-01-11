@@ -4,6 +4,124 @@ info:
   title: PlaceOS Rest-API
   version: 1.30.2
 paths:
+  /api/engine/v2/api_keys:
+    get:
+      summary: get all api keys
+      parameters:
+      - name: authority_id
+        in: query
+        description: Filter by authority_id
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiKey'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create an api key
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKey'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/api_keys/inspect:
+    get:
+      summary: Get the user token
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/api_keys/{id}:
+    get:
+      summary: get current api key
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiKey'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update an api key
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKey'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update an api key
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKey'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+      security:
+      - bearerAuth: []
   /api/engine/v2/triggers:
     get:
       summary: get all triggers
@@ -543,10 +661,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 1538
+          example: Zone 1391
         description:
           type: string
-          example: This zone has space for 192 people
+          example: This zone has space for 1495 people
     Metadata:
       required:
       - name
@@ -571,6 +689,14 @@ components:
         name:
           type: string
           example: Robert
+    ApiKey:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
     Trigger:
       required:
       - name
@@ -579,7 +705,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 1412
+          example: Trigger 4254
         description:
           type: string
           example: Trigger for zone 34

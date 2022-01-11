@@ -1,7 +1,12 @@
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class ApiKeys < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/api_keys/"
 
     # Scopes
@@ -21,6 +26,20 @@ module PlaceOS::Api
 
     getter current_api_key : Model::ApiKey { find_api_key }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all api keys
+        parameters:
+          #{Schema.qp "authority_id", "Filter by authority_id", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array ApiKey}
+      YAML
+    )]
     def index
       elastic = Model::ApiKey.elastic
       query = elastic.query(params)
@@ -37,18 +56,76 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current api key
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array ApiKey}
+      YAML
+    )]
     def show
       render_json { |json| current_api_key.to_public_json(json) }
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update an api key
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref ApiKey}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref ApiKey}
+      YAML
+    )]
     def update
       current_api_key.assign_attributes_from_json(self.body)
       save_and_respond(current_api_key) { show }
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+    summary: Update an api key
+    requestBody:
+      required: true
+      content:
+        #{Schema.ref ApiKey}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref ApiKey}
+  YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create an api key
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref ApiKey}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref ApiKey}
+      YAML
+    )]
     def create
       save_and_respond(Model::ApiKey.from_json(self.body)) do |result|
         @current_api_key = result
@@ -56,12 +133,30 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete an api key
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_api_key.destroy
       head :ok
     end
 
-    get "/inspect", :inspect_key do
+    get("/inspect", :inspect_key, annotations: @[OpenAPI(<<-YAML
+    summary: Get the user token
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       render json: authorize!
     end
 
