@@ -1,7 +1,7 @@
 ---
 openapi: 3.0.1
 info:
-  title: PlaceOS Rest-API
+  title: PlaceOS Rest-API 2
   version: 1.30.2
 paths:
   /api/engine/v2/zones:
@@ -89,6 +89,30 @@ paths:
                 $ref: '#/components/schemas/Zone'
       security:
       - bearerAuth: []
+    put:
+      summary: Update a zonee
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+      security:
+      - bearerAuth: []
     delete:
       summary: Delete a zone
       parameters:
@@ -155,6 +179,54 @@ paths:
           content:
             text/yaml:
               schema: {}
+  /api/engine/v2/zones/{id}/metadata:
+    get:
+      summary: Get the metadata of a zone
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: name
+        in: query
+        description: The name of the metadata?
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Zone'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/zones/{id}/triggers:
+    get:
+      summary: get the triggers attached to current zone
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trigger'
+      security:
+      - bearerAuth: []
 components:
   schemas:
     Zone:
@@ -165,10 +237,22 @@ components:
       properties:
         name:
           type: string
-          example: Zone 1301
+          example: Zone 2934
         description:
           type: string
-          example: This zone has space for 137 people
+          example: This zone has space for 4760 people
+    Trigger:
+      required:
+      - name
+      - description
+      type: object
+      properties:
+        name:
+          type: string
+          example: Trigger 2031
+        description:
+          type: string
+          example: blah trigger
   responses: {}
   parameters: {}
   examples: {}

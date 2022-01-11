@@ -21,9 +21,31 @@ class Zone
   property tags : Set(String)
 end
 
-# Produces an OpenAPI::Schema reference.
-puts Zone.to_openapi_schema.to_yaml
+class Metadata
+  extend OpenAPI::Generator::Serializable
 
+  def initialize(@name, @description, @details, @editors); end
+
+  @[OpenAPI::Field(type: String, example: "Orange Metadata")]
+  property name : String
+  @[OpenAPI::Field(type: String, example: "Includes size of orange & more...")]
+  property description : String
+  property details : JSON::Any
+  property editors : Set(String)
+end
+
+class Trigger
+  extend OpenAPI::Generator::Serializable
+
+  def initialize(@name, @description); end
+
+  @[OpenAPI::Field(type: String, example: "Trigger #{Random.new.rand(5000)}")]
+  property name : String
+  @[OpenAPI::Field(type: String, example: "Trigger for zone 34")]
+  property description : String
+end
+
+# Produces an OpenAPI::Schema reference.
 macro finished
   OpenAPI::Generator::Helpers::ActionController.bootstrap
 
@@ -37,5 +59,4 @@ macro finished
       components: NamedTuple.new,
     }
   )
-
 end
