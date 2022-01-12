@@ -4,6 +4,16 @@ info:
   title: PlaceOS Rest-API
   version: 1.30.2
 paths:
+  /api/engine/v2:
+    get:
+      summary: Healthcheck
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
   /api/engine/v2/api_keys:
     get:
       summary: get all api keys
@@ -136,6 +146,16 @@ paths:
                 $ref: '#/components/schemas/ApiKey'
       security:
       - bearerAuth: []
+  /api/engine/v2/backfill:
+    post:
+      summary: Backfill RubberSoul
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
   /api/engine/v2/brokers:
     get:
       summary: get all brokers
@@ -246,6 +266,86 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Broker'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/cluster:
+    get:
+      summary: get all cluster details
+      parameters:
+      - name: include_status
+        in: query
+        description: return extended information in details
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JSON::Any'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/cluster/versions:
+    get:
+      summary: Version of loaded services
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+  /api/engine/v2/cluster/{id}:
+    get:
+      summary: Get a cluster
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: include_status
+        in: query
+        description: return extended information in details
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSON::Any'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a cluster
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: driver
+        in: query
+        description: terminate this driver
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JSON::Any'
       security:
       - bearerAuth: []
   /api/engine/v2/domains:
@@ -1489,6 +1589,16 @@ paths:
                 $ref: '#/components/schemas/Auth'
       security:
       - bearerAuth: []
+  /api/engine/v2/reindex:
+    post:
+      summary: Reindex RubberSoul
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
   /api/engine/v2/repositories:
     get:
       summary: get all repositories
@@ -1959,6 +2069,14 @@ paths:
                 $ref: '#/components/schemas/JsonSchema'
       security:
       - bearerAuth: []
+  /api/engine/v2/scopes:
+    get:
+      summary: Avaliable scopes
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
   /api/engine/v2/settings:
     get:
       summary: get all settings
@@ -2106,6 +2224,21 @@ paths:
           content:
             text/yaml:
               schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/signal:
+    post:
+      summary: Signal on channel?
+      parameters:
+      - name: channel
+        in: query
+        description: channel to signal on
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
       security:
       - bearerAuth: []
   /api/engine/v2/systems:
@@ -2860,7 +2993,7 @@ paths:
       - bearerAuth: []
   /api/engine/v2/triggers/{id}:
     get:
-      summary: get triggers
+      summary: get a trigger
       parameters:
       - name: id
         in: path
@@ -3134,6 +3267,124 @@ paths:
                 $ref: '#/components/schemas/PlaceOS::Api::Metadata'
       security:
       - bearerAuth: []
+  /api/engine/v2/version:
+    get:
+      summary: Version of application
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+  /api/engine/v2/webhook/{id}:
+    get:
+      summary: get a webhook trigger
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: instances
+        in: query
+        description: should instances be returned
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trigger'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/webhook/{id}/notify:
+    get:
+      summary: notify a trigger, get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    put:
+      summary: notify a trigger, put
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    post:
+      summary: notify a trigger, post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    delete:
+      summary: notify a trigger, delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    options:
+      summary: notify a trigger, options
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: notify a trigger, patch
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
   /api/engine/v2/zones:
     get:
       summary: get all zones
@@ -3367,10 +3618,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 2051
+          example: Zone 175
         description:
           type: string
-          example: This zone has space for 4759 people
+          example: This zone has space for 557 people
     Metadata:
       required:
       - name
@@ -3507,7 +3758,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 1027
+          example: Trigger 4152
         description:
           type: string
           example: Trigger for zone 34

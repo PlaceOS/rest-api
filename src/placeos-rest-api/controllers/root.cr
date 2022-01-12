@@ -6,11 +6,15 @@ require "rethinkdb-orm"
 require "rubber-soul/client"
 require "placeos-frontend-loader/client"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 require "placeos-models/version"
 require "uri"
 
 module PlaceOS::Api
   class Root < Application
+    include ::OpenAPI::Generator::Controller
     base "/api/engine/v2/"
 
     before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :scopes]
@@ -19,7 +23,17 @@ module PlaceOS::Api
     # Healthcheck
     ###############################################################################################
 
-    get "/", :root do
+    get("/", :root, annotations: @[OpenAPI(<<-YAML
+      summary: Healthcheck
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+        500:
+          description: Internal Server Error
+    YAML
+    )]) do
       head self.class.healthcheck? ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR
     end
 
@@ -66,18 +80,42 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    get "/version", :version do
+    get("/version", :version, annotations: @[OpenAPI(<<-YAML
+      summary: Version of application
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+    YAML
+    )]) do
       render json: Root.version
     end
 
-    get "/cluster/versions", :cluster_version do
+    get("/cluster/versions", :cluster_version, annotations: @[OpenAPI(<<-YAML
+    summary: Version of loaded services
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+  YAML
+    )]) do
       render json: Root.construct_versions
     end
 
     # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
     class_getter(scopes) { SCOPES }
 
-    get "/scopes", :scopes do
+    get("/scopes", :scopes, annotations: @[OpenAPI(<<-YAML
+      summary: Avaliable scopes
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+    YAML
+    )]) do
       render json: Root.scopes
     end
 
@@ -151,7 +189,17 @@ module PlaceOS::Api
     end
 
     # Can be used in a similar manner to a webhook for drivers
-    post "/signal", :signal do
+    post("/signal", :signal, annotations: @[OpenAPI(<<-YAML
+    summary: Signal on channel?
+    parameters:
+          #{Schema.qp "channel", "channel to signal on", type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+  YAML
+    )]) do
       args = SignalParams.new(params).validate!
       channel = args.channel
 
@@ -173,12 +221,32 @@ module PlaceOS::Api
       params["backfill"]?.presence.in?("1", "true")
     end
 
-    post "/reindex", :reindex do
+    post("/reindex", :reindex, annotations: @[OpenAPI(<<-YAML
+        summary: Reindex RubberSoul
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+          500:
+            description: Internal Server Error
+      YAML
+    )]) do
       success = RubberSoul::Client.client &.reindex(backfill: backfill?)
       head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
 
-    post "/backfill", :backfill do
+    post("/backfill", :backfill, annotations: @[OpenAPI(<<-YAML
+        summary: Backfill RubberSoul
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+          500:
+            description: Internal Server Error
+      YAML
+    )]) do
       success = RubberSoul::Client.client &.backfill
       head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end

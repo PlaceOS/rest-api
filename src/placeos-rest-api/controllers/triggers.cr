@@ -51,7 +51,7 @@ module PlaceOS::Api
 
     @[OpenAPI(
       <<-YAML
-        summary: get triggers
+        summary: get a trigger
         parameters:
           #{Schema.qp "instances", "should instances be returned", type: "boolean"}
         security:

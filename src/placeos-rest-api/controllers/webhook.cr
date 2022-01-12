@@ -1,7 +1,10 @@
 require "./application"
+require "openapi-generator"
 
 module PlaceOS::Api
   class Webhook < Application
+    include ::OpenAPI::Generator::Controller
+
     base "/api/engine/v2/webhook/"
 
     # Scopes
@@ -19,6 +22,20 @@ module PlaceOS::Api
     @trigger_instance : Model::TriggerInstance?
     @trigger : Model::Trigger?
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get a webhook trigger
+        parameters:
+          #{Schema.qp "instances", "should instances be returned", type: "boolean"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Trigger}
+      YAML
+    )]
     def show
       render json: current_trigger
     end
@@ -26,6 +43,18 @@ module PlaceOS::Api
     alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
     # Triggers the webhook
+    @[OpenAPI(
+      <<-YAML
+        summary: Triggers the webhook
+        parameters:
+          #{Schema.qp "exec", "", type: "boolean"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def notify(method_type : String) # ameba:disable Metrics/CyclomaticComplexity
       # Notify the trigger service
       # TODO: Triggers service should expose a versioned client
@@ -91,7 +120,15 @@ module PlaceOS::Api
     end
 
     {% for http_method in ActionController::Router::HTTP_METHODS.reject &.==("head") %}
-      {{http_method.id}} "/:id/notify" do
+      {{http_method.id}}("/:id/notify",:{{http_method.id}}, annotations: @[OpenAPI(<<-YAML
+      summary: notify a trigger, {{http_method.id}}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+      YAML
+    )]) do
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
         head :not_found

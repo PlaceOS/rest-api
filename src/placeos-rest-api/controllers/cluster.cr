@@ -1,10 +1,13 @@
 require "promise"
 require "./application"
 
+require "openapi-generator"
+
 require "placeos-core-client"
 
 module PlaceOS::Api
   class Cluster < Application
+    include ::OpenAPI::Generator::Controller
     base "/api/engine/v2/cluster/"
 
     # Scopes
@@ -20,6 +23,20 @@ module PlaceOS::Api
       attribute include_status : Bool = false
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all cluster details
+        parameters:
+          #{Schema.qp "include_status", "return extended information in details", type: "boolean"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array JSON::Any}
+      YAML
+    )]
     def index
       details = self.class.core_discovery.node_hash
       arguments = ClusterParams.new(params)
@@ -90,6 +107,20 @@ module PlaceOS::Api
         .to_set
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Get a cluster
+        parameters:
+          #{Schema.qp "include_status", "return extended information in details", type: "boolean"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref JSON::Any}
+      YAML
+    )]
     def show
       core_id = params["id"]
       args = ClusterParams.new(params)
@@ -182,6 +213,20 @@ module PlaceOS::Api
       }
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a cluster
+        parameters:
+          #{Schema.qp "driver", "terminate this driver", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array JSON::Any}
+      YAML
+    )]
     def destroy
       core_id = params["id"]
       driver = params["driver"]
