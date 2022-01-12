@@ -791,6 +791,455 @@ paths:
                 $ref: '#/components/schemas/Auth'
       security:
       - bearerAuth: []
+  /api/engine/v2/metadata/{id}:
+    get:
+      summary: Fetch metadata for a model
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: id
+        in: query
+        description: Parent ID of metadata
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        description: filter by name
+        required: false
+        schema:
+          type: string
+      responses:
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update metadata
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete metadata
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: id
+        in: query
+        description: Parent ID of metadata
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        description: filter by name
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update metadata
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+        required: true
+      responses:
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/metadata/{id}/children:
+    get:
+      summary: Fetch metadata for Zone children
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: include_parent
+        in: query
+        description: Includes the parent metadata by default via `include_parent`
+          param
+        required: false
+        schema:
+          type: boolean
+      - name: name
+        in: query
+        description: filter by name
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS::Api::Metadata'
+        "403":
+          description: Forbidden
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules:
+    get:
+      summary: Get modules
+      parameters:
+      - name: as_of
+        in: query
+        description: filter by as_of
+        required: false
+        schema:
+          type: integer
+      - name: control_system_id
+        in: query
+        description: query the database directly if present
+        required: false
+        schema:
+          type: string
+      - name: connected
+        in: query
+        description: filter by connected
+        required: false
+        schema:
+          type: boolean
+      - name: driver_id
+        in: query
+        description: filter by driver_id
+        required: false
+        schema:
+          type: string
+      - name: no_logic
+        in: query
+        description: filter by no_logic
+        required: false
+        schema:
+          type: boolean
+      - name: running
+        in: query
+        description: filter by running
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Module'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a module
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Module'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}:
+    get:
+      summary: Get module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: complete
+        in: query
+        description: return module with all possible fields
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Module'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Module'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}/exec/{method}:
+    post:
+      summary: Executes a command on a module
+      parameters:
+      - name: method
+        in: path
+        required: true
+        schema:
+          type: string
+        example: method
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+        "500":
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}/ping:
+    post:
+      summary: Pings module at provided ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "406":
+          description: Not Acceptable
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}/settings:
+    get:
+      summary: Receive the collated settings for a module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Settings'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}/start:
+    post:
+      summary: Starts a module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}/state:
+    get:
+      summary: Dumps the complete status state of the module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}/state/{key}:
+    get:
+      summary: Returns the value of the requested status variable
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        example: key
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/modules/{id}/stop:
+    post:
+      summary: Stops a module
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
   /api/engine/v2/oauth_auths:
     get:
       summary: get all OAuth auths
@@ -2042,10 +2491,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 905
+          example: Zone 1253
         description:
           type: string
-          example: This zone has space for 1066 people
+          example: This zone has space for 4860 people
     Metadata:
       required:
       - name
@@ -2071,6 +2520,14 @@ components:
           type: string
           example: Robert
     ApiKey:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
+    Module:
       required:
       - name
       type: object
@@ -2142,7 +2599,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 3636
+          example: Trigger 3667
         description:
           type: string
           example: Trigger for zone 34

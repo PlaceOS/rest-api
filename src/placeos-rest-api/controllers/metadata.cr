@@ -2,8 +2,13 @@ require "promise"
 
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class Metadata < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/metadata"
 
     # Scopes
@@ -29,6 +34,23 @@ module PlaceOS::Api
     # Fetch metadata for a model
     #
     # Filter for a specific metadata by name via `name` param
+    @[OpenAPI(
+      <<-YAML
+        summary: Fetch metadata for a model
+        parameters:
+          #{Schema.qp "id", "Parent ID of metadata", type: "string"}
+          #{Schema.qp "name", "filter by name", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          403:
+            description: Forbidden
+          200:
+            description: OK
+            content:
+              #{Schema.ref Metadata}
+      YAML
+    )]
     def show
       parent_id = params["id"]
       name = params["name"]?.presence
@@ -53,7 +75,20 @@ module PlaceOS::Api
     #
     # Filter for a specific metadata by name via `name` param.
     # Includes the parent metadata by default via `include_parent` param.
-    get "/:id/children", :children_metadata do
+    get("/:id/children", :children_metadata, annotations: @[OpenAPI(<<-YAML
+    summary: Fetch metadata for Zone children
+    parameters:
+    #{Schema.qp "include_parent", "Includes the parent metadata by default via `include_parent` param", type: "boolean"}
+    #{Schema.qp "name", "filter by name", type: "string"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+        content:
+          #{Schema.ref_array Metadata}
+    YAML
+    )]) do
       parent_id = params["id"]
       name = params["name"]?.presence
       include_parent = params.has_key?("include_parent") ? params["include_parent"].downcase == "true" : true
@@ -73,6 +108,26 @@ module PlaceOS::Api
     end
 
     # ameba:disable Metrics/CyclomaticComplexity
+    @[OpenAPI(
+      <<-YAML
+        summary: Update metadata
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Metadata}
+        security:
+        - bearerAuth: []
+        responses:
+          400:
+            description: Bad Request
+          403:
+            description: Forbidden
+          200:
+            description: OK
+            content:
+              #{Schema.ref Metadata}
+      YAML
+    )]
     def update
       parent_id = params["id"]
       metadata = Model::Metadata::Interface.from_json(self.body)
@@ -117,8 +172,41 @@ module PlaceOS::Api
       end
     end
 
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+    summary: Update metadata
+    requestBody:
+      required: true
+      content:
+        #{Schema.ref Metadata}
+    security:
+    - bearerAuth: []
+    responses:
+      400:
+        description: Bad Request
+      403:
+        description: Forbidden
+      200:
+        description: OK
+        content:
+          #{Schema.ref Metadata}
+    YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete metadata
+        parameters:
+          #{Schema.qp "id", "Parent ID of metadata", type: "string"}
+          #{Schema.qp "name", "filter by name", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+          400:
+            description: Bad Request
+      YAML
+    )]
     def destroy
       parent_id = params["id"]
       name = params["name"]?.presence
