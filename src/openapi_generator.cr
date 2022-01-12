@@ -97,6 +97,15 @@ class ControlSystem
   property name : String
 end
 
+class TriggerInstance
+  extend OpenAPI::Generator::Serializable
+
+  def initialize(@name); end
+
+  @[OpenAPI::Field(type: String, example: "Robert")]
+  property name : String
+end
+
 class Settings
   extend OpenAPI::Generator::Serializable
 

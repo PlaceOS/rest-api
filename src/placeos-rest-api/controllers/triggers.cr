@@ -59,6 +59,8 @@ module PlaceOS::Api
         responses:
           200:
             description: OK
+            content:
+              #{Schema.ref Trigger}
       YAML
     )]
     def show

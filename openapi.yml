@@ -2463,6 +2463,237 @@ paths:
           description: OK
       security:
       - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/triggers:
+    get:
+      summary: get all trigger instances in system
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: complete
+        in: query
+        description: The maximum numbers of zones to return
+        required: false
+        schema:
+          type: boolean
+      - name: important
+        in: query
+        description: Filter by importance
+        required: false
+        schema:
+          type: boolean
+      - name: triggered
+        in: query
+        description: Filter by triggered
+        required: false
+        schema:
+          type: boolean
+      - name: trigger_id
+        in: query
+        description: Filter by trigger ID
+        required: false
+        schema:
+          type: string
+      - name: as_of
+        in: query
+        description: occurred before a particular time
+        required: false
+        schema:
+          type: integer
+      - name: sys_id
+        in: query
+        description: Filter by system ID
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TriggerInstance'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a trigger instance
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerInstance'
+        required: true
+      responses:
+        "422":
+          description: Unprocessable Entity
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerInstance'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/triggers/{sys_id}:
+    put:
+      summary: Update a trigger instance
+      parameters:
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: enabled
+        in: query
+        description: ""
+        required: false
+        schema:
+          type: boolean
+      - name: important
+        in: query
+        description: ""
+        required: false
+        schema:
+          type: boolean
+      - name: exec_enabled
+        in: query
+        description: ""
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerInstance'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerInstance'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/systems/{sys_id}/triggers/{trig_id}:
+    get:
+      summary: get current trigger instance in system
+      parameters:
+      - name: trig_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: trig_id
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: complete
+        in: query
+        description: choose to render extra association fields
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerInstance'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a trigger instance
+      parameters:
+      - name: trig_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: trig_id
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a trigger instance
+      parameters:
+      - name: trig_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: trig_id
+      - name: sys_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: sys_id
+      - name: enabled
+        in: query
+        description: ""
+        required: false
+        schema:
+          type: boolean
+      - name: important
+        in: query
+        description: ""
+        required: false
+        schema:
+          type: boolean
+      - name: exec_enabled
+        in: query
+        description: ""
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerInstance'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerInstance'
+      security:
+      - bearerAuth: []
   /api/engine/v2/systems/{sys_id}/types:
     get:
       summary: Look-up a module types in a system, returning a count of each type
@@ -2647,8 +2878,9 @@ paths:
         "200":
           description: OK
           content:
-            text/yaml:
-              schema: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trigger'
       security:
       - bearerAuth: []
     put:
@@ -3135,10 +3367,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 3480
+          example: Zone 2051
         description:
           type: string
-          example: This zone has space for 268 people
+          example: This zone has space for 4759 people
     Metadata:
       required:
       - name
@@ -3211,6 +3443,14 @@ components:
         name:
           type: string
           example: Robert
+    TriggerInstance:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
     Settings:
       required:
       - name
@@ -3267,7 +3507,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 3326
+          example: Trigger 1027
         description:
           type: string
           example: Trigger for zone 34

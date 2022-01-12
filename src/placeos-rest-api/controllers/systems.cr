@@ -256,8 +256,6 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:sys_id", :update_alt { update }
-
     put("/:sys_id", :update_alt, annotations: @[OpenAPI(<<-YAML
         summary: Update a control system
         parameters:

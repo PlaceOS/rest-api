@@ -1,7 +1,12 @@
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class SystemTriggers < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/systems/:sys_id/triggers/"
     id_param :trig_id
 
@@ -35,6 +40,25 @@ module PlaceOS::Api
       attribute as_of : Int32? # Unix epoch
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all trigger instances in system
+        parameters:
+          #{Schema.qp "complete", "The maximum numbers of zones to return", type: "boolean"}
+          #{Schema.qp "important", "Filter by importance", type: "boolean"}
+          #{Schema.qp "triggered", "Filter by triggered", type: "boolean"}
+          #{Schema.qp "trigger_id", "Filter by trigger ID", type: "string"}
+          #{Schema.qp "as_of", "occurred before a particular time", type: "integer"}
+          #{Schema.qp "sys_id", "Filter by system ID", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array TriggerInstance}
+      YAML
+    )]
     def index
       elastic = Model::TriggerInstance.elastic
       query = elastic.query(params)
@@ -76,6 +100,20 @@ module PlaceOS::Api
       render json: trigger_instances
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current trigger instance in system
+        parameters:
+          #{Schema.qp "complete", "choose to render extra association fields", type: "boolean"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref TriggerInstance}
+      YAML
+    )]
     def show
       # Default to render extra association fields
       complete = params.has_key?("complete") ? params["complete"]? == "true" : true
@@ -88,6 +126,26 @@ module PlaceOS::Api
       attribute exec_enabled : Bool?
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a trigger instance
+        parameters:
+          #{Schema.qp "enabled", "", type: "boolean"}
+          #{Schema.qp "important", "", type: "boolean"}
+          #{Schema.qp "exec_enabled", "", type: "boolean"}
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref TriggerInstance}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref TriggerInstance}
+      YAML
+    )]
     def update
       args = UpdateParams.from_json(self.body)
 
@@ -99,8 +157,44 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:trig_id", :update_alt { update }
+    put("/:sys_id", :update_alt, annotations: @[OpenAPI(<<-YAML
+      summary: Update a trigger instance
+      parameters:
+        #{Schema.qp "enabled", "", type: "boolean"}
+        #{Schema.qp "important", "", type: "boolean"}
+        #{Schema.qp "exec_enabled", "", type: "boolean"}
+      requestBody:
+        required: true
+        content:
+          #{Schema.ref TriggerInstance}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+          content:
+            #{Schema.ref TriggerInstance}
+    YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a trigger instance
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref TriggerInstance}
+        security:
+        - bearerAuth: []
+        responses:
+          422:
+            description: Unprocessable Entity
+          201:
+            description: OK
+            content:
+              #{Schema.ref TriggerInstance}
+      YAML
+    )]
     def create
       model = Model::TriggerInstance.from_json(self.body)
 
@@ -111,6 +205,16 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a trigger instance
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_sys_trig.destroy # Expires the cache in after callback
       head :ok
