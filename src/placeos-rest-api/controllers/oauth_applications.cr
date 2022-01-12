@@ -1,7 +1,12 @@
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class OAuthApplications < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/oauth_apps/"
 
     # Scopes
@@ -21,6 +26,20 @@ module PlaceOS::Api
 
     getter current_app : Model::DoorkeeperApplication { find_app }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all applications
+        parameters:
+          #{Schema.qp "authority", "filter by owner id", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array DoorkeeperApplication}
+      YAML
+    )]
     def index
       elastic = Model::DoorkeeperApplication.elastic
       query = elastic.query(params)
@@ -36,22 +55,90 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current application
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref DoorkeeperApplication}
+      YAML
+    )]
     def show
       render json: current_app
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update an application
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref DoorkeeperApplication}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref DoorkeeperApplication}
+      YAML
+    )]
     def update
       current_app.assign_attributes_from_json(self.body)
       save_and_respond current_app
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+      summary: Update an application
+      requestBody:
+        required: true
+        content:
+          #{Schema.ref DoorkeeperApplication}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+          content:
+            #{Schema.ref DoorkeeperApplication}
+    YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create an application
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref DoorkeeperApplication}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref DoorkeeperApplication}
+      YAML
+    )]
     def create
       save_and_respond(Model::DoorkeeperApplication.from_json(self.body))
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete an application
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_app.destroy
       head :ok

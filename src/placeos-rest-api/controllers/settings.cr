@@ -1,7 +1,12 @@
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class Settings < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/settings/"
 
     # Scopes
@@ -23,6 +28,20 @@ module PlaceOS::Api
 
     getter current_settings : Model::Settings { find_settings }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all settings
+        parameters:
+          #{Schema.qp "parent_id", "filter by parent_id", type: "string"}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array Settings}
+      YAML
+    )]
     def index
       if params.has_key? "parent_id"
         parents = params["parent_id"].split(',')
@@ -41,10 +60,38 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current setting
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Settings}
+      YAML
+    )]
     def show
       render json: current_settings.decrypt_for!(current_user)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a setting
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Settings}
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Settings}
+      YAML
+    )]
     def update
       current_settings.assign_attributes_from_json(self.body)
 
@@ -52,13 +99,53 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+      summary: Update a setting
+      requestBody:
+        required: true
+        content:
+          #{Schema.ref Settings}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+          content:
+            #{Schema.ref Settings}
+    YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a setting
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Settings}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref Settings}
+      YAML
+    )]
     def create
       new_settings = Model::Settings.from_json(self.body)
       save_and_respond(new_settings, &.decrypt_for!(current_user))
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a setting
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_settings.destroy
       head :ok
@@ -66,7 +153,18 @@ module PlaceOS::Api
 
     # Returns history for a particular Setting
     #
-    get "/:id/history", :history do
+    get("/:id/history", :history, annotations: @[OpenAPI(<<-YAML
+    summary: Get list of instances associated wtih given id of users based on email
+    parameters:
+      #{Schema.qp "limit", "The maximum number of history entries to return", type: "integer"}
+      #{Schema.qp "offset", "Set offset", type: "integer"}
+    security:
+    - bearerAuth: []
+    responses:
+      200:
+        description: OK
+    YAML
+    )]) do
       offset = params["offset"]?.try(&.to_i) || 0
       limit = params["limit"]?.try(&.to_i) || 15
 

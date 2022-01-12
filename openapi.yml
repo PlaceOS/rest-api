@@ -1258,6 +1258,125 @@ paths:
           description: Internal Server Error
       security:
       - bearerAuth: []
+  /api/engine/v2/oauth_apps:
+    get:
+      summary: get all applications
+      parameters:
+      - name: authority
+        in: query
+        description: filter by owner id
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DoorkeeperApplication'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create an application
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoorkeeperApplication'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoorkeeperApplication'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/oauth_apps/{id}:
+    get:
+      summary: get current application
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoorkeeperApplication'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update an application
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoorkeeperApplication'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoorkeeperApplication'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete an application
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update an application
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoorkeeperApplication'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoorkeeperApplication'
+      security:
+      - bearerAuth: []
   /api/engine/v2/oauth_auths:
     get:
       summary: get all OAuth auths
@@ -1838,6 +1957,155 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JsonSchema'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/settings:
+    get:
+      summary: get all settings
+      parameters:
+      - name: parent_id
+        in: query
+        description: filter by parent_id
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS::Api::Settings'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a setting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Api::Settings'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Settings'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/settings/{id}:
+    get:
+      summary: get current setting
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Settings'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a setting
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Api::Settings'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Settings'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a setting
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a setting
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS::Api::Settings'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS::Api::Settings'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/settings/{id}/history:
+    get:
+      summary: Get list of instances associated wtih given id of users based on email
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: limit
+        in: query
+        description: The maximum number of history entries to return
+        required: false
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        description: Set offset
+        required: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
       security:
       - bearerAuth: []
   /api/engine/v2/systems:
@@ -2867,10 +3135,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 2373
+          example: Zone 3480
         description:
           type: string
-          example: This zone has space for 4330 people
+          example: This zone has space for 268 people
     Metadata:
       required:
       - name
@@ -2904,6 +3172,14 @@ components:
           type: string
           example: Robert
     ApiKey:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
+    DoorkeeperApplication:
       required:
       - name
       type: object
@@ -2991,7 +3267,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 1971
+          example: Trigger 3326
         description:
           type: string
           example: Trigger for zone 34
