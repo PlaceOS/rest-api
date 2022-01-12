@@ -2,8 +2,13 @@ require "placeos-frontend-loader/client"
 
 require "./application"
 
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
+
 module PlaceOS::Api
   class Repositories < Application
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/repositories/"
 
     # Scopes
@@ -32,6 +37,18 @@ module PlaceOS::Api
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all repositories
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref_array Repository}
+      YAML
+    )]
     def index
       elastic = Model::Repository.elastic
       query = elastic.query(params)
@@ -39,10 +56,40 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get current repository
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+            content:
+              #{Schema.ref Repository}
+      YAML
+    )]
     def show
       render json: current_repo
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a repository
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Repository}
+        security:
+        - bearerAuth: []
+        responses:
+          422:
+            description: Unprocessable Entity
+          200:
+            description: OK
+            content:
+              #{Schema.ref Repository}
+      YAML
+    )]
     def update
       current_repo.assign_attributes_from_json(self.body)
 
@@ -55,18 +102,72 @@ module PlaceOS::Api
     end
 
     # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
+    summary: Update a repository
+    requestBody:
+      required: true
+      content:
+        #{Schema.ref Repository}
+    security:
+    - bearerAuth: []
+    responses:
+      422:
+        description: Unprocessable Entity
+      200:
+        description: OK
+        content:
+          #{Schema.ref Repository}
+    YAML
+    )]) { update }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a repository
+        requestBody:
+          required: true
+          content:
+            #{Schema.ref Repository}
+        security:
+        - bearerAuth: []
+        responses:
+          201:
+            description: OK
+            content:
+              #{Schema.ref Repository}
+      YAML
+    )]
     def create
       save_and_respond(Model::Repository.from_json(self.body))
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a repository
+        security:
+        - bearerAuth: []
+        responses:
+          200:
+            description: OK
+      YAML
+    )]
     def destroy
       current_repo.destroy
       head :ok
     end
 
-    post "/:id/pull", :pull do
+    post("/:id/pull", :pull, annotations: @[OpenAPI(<<-YAML
+      summary: Pull repository at given id
+      security:
+      - bearerAuth: []
+      responses:
+        408:
+          description: Request Timeout
+        200:
+          description: OK
+        404:
+          description: Not Found
+      YAML
+    )]) do
       result = Repositories.pull_repository(current_repo)
       if result
         destroyed, commit_hash = result
@@ -127,11 +228,27 @@ module PlaceOS::Api
     # Determine loaded interfaces and their current commit
     #
     # Returns a hash of folder_name to commit
-    get "/interfaces", :loaded_interfaces do
+    get("/interfaces", :loaded_interfaces, annotations: @[OpenAPI(<<-YAML
+      summary: Returns a hash of folder_name to commit
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+      YAML
+    )]) do
       render json: PlaceOS::FrontendLoader::Client.client(&.loaded)
     end
 
-    get "/:id/drivers", :drivers do
+    get("/:id/drivers", :drivers, annotations: @[OpenAPI(<<-YAML
+      summary: Returns drivers in repository specified by the given id
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+      YAML
+    )]) do
       repository_folder = current_repo.folder_name
 
       # Request to core:
@@ -144,7 +261,18 @@ module PlaceOS::Api
       render json: drivers
     end
 
-    get "/:id/commits", :commits do
+    get("/:id/commits", :commits, annotations: @[OpenAPI(<<-YAML
+      summary: Returns a commits in repository specified by the given id
+      parameters:
+          #{Schema.qp "limit", "The maximum numbers of commits to return", type: "integer"}
+          #{Schema.qp "driver", "file_name of driver", type: "string"}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+      YAML
+    )]) do
       number_of_commits = params["limit"]?.try &.to_i
       file_name = params["driver"]?
 
@@ -174,7 +302,18 @@ module PlaceOS::Api
       end
     end
 
-    get "/:id/details", :details do
+    get("/:id/details", :details, annotations: @[OpenAPI(<<-YAML
+      summary: Returns a details of a commit of a driver in a repository specified by the given id
+      parameters:
+          #{Schema.qp "driver", "Name of driver", type: "string"}
+          #{Schema.qp "commit", "Name of commit", type: "string"}
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+      YAML
+    )]) do
       driver = params["driver"]
       commit = params["commit"]
 
@@ -190,7 +329,15 @@ module PlaceOS::Api
       render text: details
     end
 
-    get "/:id/branches", :branches do
+    get("/:id/branches", :branches, annotations: @[OpenAPI(<<-YAML
+      summary: Returns the branches of a repository specified by the given id
+      security:
+      - bearerAuth: []
+      responses:
+        200:
+          description: OK
+      YAML
+    )]) do
       branches = Api::Repositories.branches(
         repository: current_repo,
         request_id: request_id,

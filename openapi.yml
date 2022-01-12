@@ -1125,6 +1125,24 @@ paths:
           description: Internal Server Error
       security:
       - bearerAuth: []
+  /api/engine/v2/modules/{id}/load:
+    post:
+      summary: Loads system at provided ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
   /api/engine/v2/modules/{id}/ping:
     post:
       summary: Pings module at provided ID
@@ -1352,6 +1370,252 @@ paths:
                 $ref: '#/components/schemas/Auth'
       security:
       - bearerAuth: []
+  /api/engine/v2/repositories:
+    get:
+      summary: get all repositories
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Repository'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a repository
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Repository'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/repositories/interfaces:
+    get:
+      summary: Returns a hash of folder_name to commit
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/repositories/{id}:
+    get:
+      summary: get current repository
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a repository
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Repository'
+        required: true
+      responses:
+        "422":
+          description: Unprocessable Entity
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a repository
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a repository
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Repository'
+        required: true
+      responses:
+        "422":
+          description: Unprocessable Entity
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/repositories/{id}/branches:
+    get:
+      summary: Returns the branches of a repository specified by the given id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/repositories/{id}/commits:
+    get:
+      summary: Returns a commits in repository specified by the given id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: limit
+        in: query
+        description: The maximum numbers of commits to return
+        required: false
+        schema:
+          type: integer
+      - name: driver
+        in: query
+        description: file_name of driver
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/repositories/{id}/details:
+    get:
+      summary: Returns a details of a commit of a driver in a repository specified
+        by the given id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      - name: driver
+        in: query
+        description: Name of driver
+        required: false
+        schema:
+          type: string
+      - name: commit
+        in: query
+        description: Name of commit
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/repositories/{id}/drivers:
+    get:
+      summary: Returns drivers in repository specified by the given id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+      security:
+      - bearerAuth: []
+  /api/engine/v2/repositories/{id}/pull:
+    post:
+      summary: Pull repository at given id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "408":
+          description: Request Timeout
+        "200":
+          description: OK
+          content:
+            text/yaml:
+              schema: {}
+        "404":
+          description: Not Found
+      security:
+      - bearerAuth: []
   /api/engine/v2/saml_auths:
     get:
       summary: get all Saml auths
@@ -1462,6 +1726,118 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Auth'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/schema:
+    get:
+      summary: get all schema
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JsonSchema'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a schema
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonSchema'
+        required: true
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchema'
+      security:
+      - bearerAuth: []
+  /api/engine/v2/schema/{id}:
+    get:
+      summary: get current schema
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchema'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update a schema
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonSchema'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchema'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a schema
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      responses:
+        "200":
+          description: OK
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a schema
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonSchema'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonSchema'
       security:
       - bearerAuth: []
   /api/engine/v2/systems:
@@ -2491,10 +2867,10 @@ components:
       properties:
         name:
           type: string
-          example: Zone 1253
+          example: Zone 2373
         description:
           type: string
-          example: This zone has space for 4860 people
+          example: This zone has space for 4330 people
     Metadata:
       required:
       - name
@@ -2519,7 +2895,23 @@ components:
         name:
           type: string
           example: Robert
+    Repository:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
     ApiKey:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: Robert
+    JsonSchema:
       required:
       - name
       type: object
@@ -2599,7 +2991,7 @@ components:
       properties:
         name:
           type: string
-          example: Trigger 3667
+          example: Trigger 1971
         description:
           type: string
           example: Trigger for zone 34

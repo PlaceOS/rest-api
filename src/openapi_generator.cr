@@ -43,7 +43,25 @@ class User
   property name : String
 end
 
+class Repository
+  extend OpenAPI::Generator::Serializable
+
+  def initialize(@name); end
+
+  @[OpenAPI::Field(type: String, example: "Robert")]
+  property name : String
+end
+
 class ApiKey
+  extend OpenAPI::Generator::Serializable
+
+  def initialize(@name); end
+
+  @[OpenAPI::Field(type: String, example: "Robert")]
+  property name : String
+end
+
+class JsonSchema
   extend OpenAPI::Generator::Serializable
 
   def initialize(@name); end
