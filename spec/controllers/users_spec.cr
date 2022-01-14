@@ -1,5 +1,4 @@
 require "../helper"
-require "../scope_helper"
 
 module PlaceOS::Api
   describe Users do
@@ -46,7 +45,7 @@ module PlaceOS::Api
         end
 
         it "show via login_name" do
-          login = UUID.random.to_s
+          login = random_name
           model = Model::Generator.user
           model.login_name = login
           model.save!

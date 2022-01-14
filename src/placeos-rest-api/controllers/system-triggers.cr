@@ -116,7 +116,7 @@ module PlaceOS::Api
     )]
     def show
       # Default to render extra association fields
-      complete = params.has_key?("complete") ? params["complete"]? == "true" : true
+      complete = boolean_param("complete", default: true)
       render json: render_system_trigger(current_sys_trig, complete: complete)
     end
 

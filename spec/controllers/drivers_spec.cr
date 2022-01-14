@@ -1,8 +1,8 @@
 require "../helper"
-require "../scope_helper"
 
 module PlaceOS::Api
   describe Drivers do
+    _, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
     pending "GET /:id/compiled"
@@ -11,9 +11,10 @@ module PlaceOS::Api
     with_server do
       describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
+
         it "filters queries by driver role" do
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
-          service.name = UUID.random.to_s
+          service.name = random_name
           service.save!
 
           params = HTTP::Params.encode({
@@ -37,13 +38,18 @@ module PlaceOS::Api
       test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
+        before_each do
+          HttpMocks.etcd_range
+          HttpMocks.core_compiled
+        end
+
         test_crd(klass: Model::Driver, controller_klass: Drivers)
 
         describe "update" do
           it "if role is preserved" do
             driver = Model::Generator.driver.save!
             original_name = driver.name
-            driver.name = UUID.random.to_s
+            driver.name = random_name
 
             id = driver.id.as(String)
             path = base + id
@@ -79,6 +85,11 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
+        before_each do
+          HttpMocks.etcd_range
+          HttpMocks.core_compiled
+        end
+
         test_controller_scope(Drivers)
       end
     end

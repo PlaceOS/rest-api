@@ -1,5 +1,4 @@
 require "../helper"
-require "../scope_helper"
 require "http/web_socket"
 
 module PlaceOS::Api
@@ -37,6 +36,7 @@ module PlaceOS::Api
   end
 
   describe Systems do
+    _, authorization_header = authentication
     base = Systems::NAMESPACE[0]
 
     with_server do
@@ -460,7 +460,7 @@ module PlaceOS::Api
             cs.persisted?.should be_true
 
             original_name = cs.name
-            cs.name = UUID.random.to_s
+            cs.name = random_name
 
             id = cs.id.as(String)
 

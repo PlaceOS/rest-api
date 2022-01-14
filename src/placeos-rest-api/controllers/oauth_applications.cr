@@ -22,6 +22,13 @@ module PlaceOS::Api
     before_action :current_app, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter authority_id : String? do
+      params["authority_id"]?.presence || params["authority"]?.presence
+    end
+
     ###############################################################################################
 
     getter current_app : Model::DoorkeeperApplication { find_app }
@@ -45,10 +52,10 @@ module PlaceOS::Api
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
 
-      # filter by authority
-      if params.has_key? "authority"
+      # Filter by authority_id
+      if authority = authority_id
         query.must({
-          "owner_id" => [params["authority"]],
+          "owner_id" => [authority],
         })
       end
 

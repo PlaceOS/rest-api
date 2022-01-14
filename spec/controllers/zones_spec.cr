@@ -1,8 +1,8 @@
 require "../helper"
-require "../scope_helper"
 
 module PlaceOS::Api
   describe Zones do
+    _authenticated_user, authorization_header = authentication
     base = Zones::NAMESPACE[0]
 
     with_server do
@@ -17,7 +17,7 @@ module PlaceOS::Api
         it "update" do
           zone = Model::Generator.zone.save!
           original_name = zone.name
-          zone.name = UUID.random.to_s
+          zone.name = random_name
 
           id = zone.id.as(String)
           path = base + id

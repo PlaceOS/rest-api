@@ -1,5 +1,4 @@
 require "../helper"
-require "../scope_helper"
 require "timecop"
 
 module PlaceOS
@@ -13,8 +12,7 @@ end
 
 module PlaceOS::Api
   describe Modules do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Modules::NAMESPACE[0]
 
     with_server do
@@ -71,7 +69,7 @@ module PlaceOS::Api
 
       describe "index", tags: "search" do
         pending "queries by parent driver" do
-          name = UUID.random.to_s
+          name = random_name
 
           driver = Model::Generator.driver
           driver.name = name

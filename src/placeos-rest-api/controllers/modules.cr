@@ -32,6 +32,21 @@ module PlaceOS::Api
     before_action :current_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
     before_action :body, only: [:create, :execute, :update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter module_id : String do
+      params["id"]
+    end
+
+    getter method : String do
+      params["method"]
+    end
+
+    getter key : String do
+      params["key"]
+    end
+
     ###############################################################################################
 
     getter current_module : Model::Module { find_module }
@@ -180,7 +195,7 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      complete = params["complete"]? == "true"
+      complete = boolean_param("complete")
 
       response = !complete ? current_module : with_fields(current_module, {
         :driver => restrict_attributes(current_module.driver, only: DRIVER_ATTRIBUTES),
@@ -350,14 +365,13 @@ module PlaceOS::Api
       sys_id = current_module.control_system_id || ""
       args = Array(JSON::Any).from_json(self.body)
 
-      remote_driver = Driver::Proxy::RemoteDriver.new(
-        module_id: id,
+      result = Driver::Proxy::RemoteDriver.new(
+        module_id: module_id,
         sys_id: sys_id,
         module_name: current_module.name,
         discovery: self.class.core_discovery,
-      )
-
-      result = remote_driver.exec(
+        user_id: current_user.id,
+      ).exec(
         security: driver_clearance(user_token),
         function: method,
         args: args,
@@ -372,7 +386,7 @@ module PlaceOS::Api
       Log.error(exception: e) { {
         message:     "core execute request failed",
         sys_id:      sys_id,
-        module_id:   id,
+        module_id:   module_id,
         module_name: current_module.name,
         method:      method,
       } }
@@ -407,7 +421,7 @@ module PlaceOS::Api
           description: OK
       YAML
     )]) do
-      render json: self.class.module_state(current_module, params["key"])
+      render json: self.class.module_state(current_module, key)
     end
 
     post("/:id/ping", :ping, annotations: @[OpenAPI(<<-YAML
@@ -476,10 +490,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     protected def find_module
-      id = params["id"]
-      Log.context.set(module_id: id)
+      Log.context.set(module_id: module_id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Module.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Module.find!(module_id, runopts: {"read_mode" => "majority"})
     end
   end
 end

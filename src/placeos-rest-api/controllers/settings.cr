@@ -24,6 +24,21 @@ module PlaceOS::Api
     before_action :current_settings, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter parent_ids : Array(String)? do
+      params["parent_id"]?.presence.try &.split(',').reject(&.empty?).uniq!
+    end
+
+    getter offset : Int32 do
+      params["offset"]?.try(&.to_i) || 0
+    end
+
+    getter limit : Int32 do
+      params["limit"]?.try(&.to_i) || 15
+    end
+
     ###############################################################################################
 
     getter current_settings : Model::Settings { find_settings }
@@ -43,9 +58,7 @@ module PlaceOS::Api
       YAML
     )]
     def index
-      if params.has_key? "parent_id"
-        parents = params["parent_id"].split(',')
-
+      if parents = parent_ids
         # Directly search for model's settings
         parent_settings = Model::Settings.for_parent(parents)
         # Decrypt for the user

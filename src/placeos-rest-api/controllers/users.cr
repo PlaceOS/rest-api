@@ -31,6 +31,25 @@ module PlaceOS::Api
     before_action :ensure_json, only: [:update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter name : String? do
+      params["name"]?.presence
+    end
+
+    getter emails : Array(String)? do
+      params["emails"]?.presence.try &.split(',')
+    end
+
+    getter authority_id : String? do
+      params["authority_id"]?.presence || params["authority"]?.presence
+    end
+
+    getter? include_deleted : Bool do
+      boolean_param("include_deleted")
+    end
+
     ###############################################################################################
 
     getter user : Model::User { find_user }
@@ -148,10 +167,11 @@ module PlaceOS::Api
       elastic = Model::User.elastic
       query = elastic.query(params)
 
-      query.must_not({"deleted" => [true]})
+      query.must_not({"deleted" => [true]}) unless include_deleted?
 
-      authority_id = params["authority_id"]?
-      query.filter({"authority_id" => [authority_id]}) if authority_id
+      if authority = authority_id
+        query.filter({"authority_id" => [authority]})
+      end
 
       render_json do |json|
         json.array do
@@ -266,7 +286,12 @@ module PlaceOS::Api
       YAML
     )]
     def destroy
-      user.destroy
+      if current_authority.try &.internals["soft_delete"]? == true
+        user.deleted = true
+        user.save
+      else
+        user.destroy
+      end
       head :ok
     rescue e : Model::Error
       render_error(HTTP::Status::BAD_REQUEST, e.message)
@@ -289,7 +314,6 @@ module PlaceOS::Api
     YAML
     )]) do
       parent_id = user.id.not_nil!
-      name = params["name"]?.presence
       render json: Model::Metadata.build_metadata(parent_id, name)
     end
 
@@ -308,18 +332,15 @@ module PlaceOS::Api
         description: OK
     YAML
     )]) do
-      emails_param = params["emails"]?.presence
-      return render_error(HTTP::Status::BAD_REQUEST, "Missing `emails` param") if emails_param.nil?
-
-      emails = emails_param.split(',')
-      errors = self.class.validate_emails(emails)
-
-      return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, errors.join(", ")) unless errors.empty?
+      emails_param = required_param(emails)
+      unless (errors = self.class.validate_emails(emails_param)).empty?
+        return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, errors.join(", "))
+      end
 
       render_json do |json|
         json.array do
           Model::User
-            .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails)
+            .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails_param)
             .each &.to_group_json(json)
         end
       end

@@ -4,15 +4,22 @@ require "promise"
 require "random"
 require "rethinkdb-orm"
 require "simple_retry"
-require "webmock"
 
 # Helper methods for testing controllers (curl, with_server, context)
 require "../lib/action-controller/spec/curl_context"
+
 require "./spec_constants"
+require "./scope_helper"
+require "./http_mocks"
 
 Spec.before_suite do
   Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: :trace)
   clear_tables
+end
+
+Spec.before_each do
+  PlaceOS::Api::HttpMocks.reset
+  PlaceOS::Api::HttpMocks.etcd_range
 end
 
 Spec.after_suite { clear_tables }
@@ -34,6 +41,8 @@ def clear_tables
   {% begin %}
     Promise.all(
       {% for t in {
+                    PlaceOS::Model::Asset,
+                    PlaceOS::Model::AssetInstance,
                     PlaceOS::Model::ControlSystem,
                     PlaceOS::Model::Driver,
                     PlaceOS::Model::Module,
@@ -152,14 +161,18 @@ def until_expected(method, path, headers, timeout : Time::Span = 3.seconds, &blo
   !!success
 end
 
+def random_name
+  UUID.random.to_s.split('-').first
+end
+
 # Test search on name field
 macro test_base_index(klass, controller_klass)
   {% klass_name = klass.stringify.split("::").last.underscore %}
 
   it "queries #{ {{ klass_name }} }", tags: "search" do
-  _, authorization_header = authentication
-    name = UUID.random.to_s
+    _, authorization_header = authentication
     doc = PlaceOS::Model::Generator.{{ klass_name.id }}
+    name = random_name
     doc.name = name
     doc.save!
 

@@ -1,8 +1,8 @@
 require "../helper"
-require "../scope_helper"
 
 module PlaceOS::Api
   describe Brokers do
+    _, authorization_header = authentication
     base = Brokers::NAMESPACE[0]
 
     with_server do
@@ -17,7 +17,7 @@ module PlaceOS::Api
         it "update" do
           broker = Model::Generator.broker.save!
           original_name = broker.name
-          broker.name = UUID.random.to_s
+          broker.name = random_name
 
           id = broker.id.as(String)
           path = base + id

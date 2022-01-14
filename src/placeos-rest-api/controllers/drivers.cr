@@ -42,6 +42,7 @@ module PlaceOS::Api
     )]
     def index
       # Pick off role from HTTP params, render error if present and invalid
+      # TODO: This is an example of a need to improve validation model of params.
       role = params["role"]?.try &.to_i?.try do |r|
         parsed = Model::Driver::Role.from_value?(r)
         return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Invalid `role`") if parsed.nil?
@@ -75,7 +76,7 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      include_compilation_status = !params.has_key?("compilation_status") || params["compilation_status"] != "false"
+      include_compilation_status = boolean_param("compilation_status", default: true)
 
       result = !include_compilation_status ? current_driver : with_fields(current_driver, {
         :compilation_status => Api::Drivers.compilation_status(current_driver, request_id),
@@ -269,7 +270,7 @@ module PlaceOS::Api
     def self.driver_compiled?(driver : Model::Driver, repository : Model::Repository, request_id : String, key : String? = nil) : Bool
       Api::Systems.core_for(key.presence || driver.file_name, request_id) do |core_client|
         core_client.driver_compiled?(
-          file_name: URI.encode(driver.file_name),
+          file_name: URI.encode_path(driver.file_name),
           repository: repository.folder_name,
           commit: driver.commit,
           tag: driver.id.as(String),

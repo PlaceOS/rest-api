@@ -2,6 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Metadata do
+    _authenticated_user, authorization_header = authentication
     base = Metadata::NAMESPACE[0]
 
     with_server do

@@ -1,10 +1,8 @@
 require "../helper"
-require "../scope_helper"
 
 module PlaceOS::Api
   describe Repositories do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Repositories::NAMESPACE[0]
 
     with_server do
@@ -20,7 +18,7 @@ module PlaceOS::Api
         it "update" do
           repository = Model::Generator.repository.save!
           original_name = repository.name
-          repository.name = UUID.random.to_s
+          repository.name = random_name
 
           id = repository.id.as(String)
           path = base + id

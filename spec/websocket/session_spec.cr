@@ -52,7 +52,7 @@ module PlaceOS::Api::WebSocket
             # Check for successful bind response
             updates.first.type.should eq Session::Response::Type::Success
             # Check all responses correct metadata
-            updates.all? { |v| v.meta == expected_meta }.should be_true
+            updates.all? { |v| v.metadata == expected_meta }.should be_true
             # Check all messages received
             updates.size.should eq 3 # Check for status variable updates
             updates[1..2].compact_map(&.value.try &.to_i).should eq [1, 2]
@@ -83,7 +83,7 @@ module PlaceOS::Api::WebSocket
           # Check all messages received
           updates.size.should eq 2
           # Check all responses correct metadata
-          updates.all? { |v| v.meta == expected_meta }.should be_true
+          updates.all? { |v| v.metadata == expected_meta }.should be_true
           # Check for successful bind response
           updates.shift.type.should eq Session::Response::Type::Success
           # Check for successful unbind response
@@ -98,7 +98,7 @@ module PlaceOS::Api::WebSocket
       describe Session::Response do
         it "scrubs invalid UTF-8 chars from the error message" do
           Session::Response.new(
-            type: Session::Response::Type::Success,
+            type: Session::Response::Type::Error,
             id: 1234_i64,
             message: String.new(Bytes[0xc3, 0x28]),
           ).to_json.should contain(Char::REPLACEMENT)

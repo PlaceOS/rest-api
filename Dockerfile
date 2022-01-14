@@ -1,4 +1,4 @@
-ARG CRYSTAL_VERSION=1.1.1
+ARG CRYSTAL_VERSION=1.2.1
 FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine as build
 WORKDIR /app
 
@@ -12,7 +12,7 @@ ARG IMAGE_UID="10001"
 ENV UID=$IMAGE_UID
 ENV USER=appuser
 
-# See https://stackoverflow.com/a/55757473/12429735RUN
+# See https://stackoverflow.com/a/55757473/12429735
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -25,7 +25,7 @@ RUN adduser \
 # Add trusted CAs for communicating with external services
 RUN apk update && \
     apk add --no-cache \
-      ca-certificates \
+        ca-certificates \
     && \
     update-ca-certificates
 
@@ -57,7 +57,7 @@ RUN for binary in "/app/rest-api" "/bin/ping" "/bin/ping6"; do \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
         xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'; \
-    done
+      done
 
 # Build a minimal docker image
 FROM scratch

@@ -3,7 +3,7 @@ require "../utilities/core_discovery"
 
 require "rethinkdb"
 require "rethinkdb-orm"
-require "rubber-soul/client"
+require "search-ingest/client"
 require "placeos-frontend-loader/client"
 
 require "openapi-generator"
@@ -17,7 +17,15 @@ module PlaceOS::Api
     include ::OpenAPI::Generator::Controller
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version, :scopes]
+    before_action :check_admin, except: [
+      :cluster_version,
+      :healthz,
+      :root,
+      :scopes,
+      :signal,
+      :version,
+    ]
+
     before_action :can_write_guest, only: [:signal]
 
     # Healthcheck
@@ -104,6 +112,10 @@ module PlaceOS::Api
       render json: Root.construct_versions
     end
 
+    get "/cluster/versions", :cluster_version do
+      render json: Root.construct_versions
+    end
+
     # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
     class_getter(scopes) { SCOPES }
 
@@ -119,6 +131,8 @@ module PlaceOS::Api
       render json: Root.scopes
     end
 
+    ###############################################################################################
+
     class_getter version : PlaceOS::Model::Version do
       PlaceOS::Model::Version.new(
         service: APP_NAME,
@@ -128,7 +142,7 @@ module PlaceOS::Api
       )
     end
 
-    SERVICES = %w(core dispatch frontend_loader rest_api rubber_soul triggers source)
+    SERVICES = %w(core dispatch frontend_loader rest_api search_ingest source triggers)
 
     def self.construct_versions : Array(PlaceOS::Model::Version)
       version_channel = Channel(PlaceOS::Model::Version?).new
@@ -157,8 +171,8 @@ module PlaceOS::Api
       FrontendLoader::Client.client(&.version)
     end
 
-    protected def self.rubber_soul_version : PlaceOS::Model::Version
-      RubberSoul::Client.client(&.version)
+    protected def self.search_ingest_version : PlaceOS::Model::Version
+      SearchIngest::Client.client(&.version)
     end
 
     protected def self.core_version : PlaceOS::Model::Version
@@ -218,7 +232,7 @@ module PlaceOS::Api
     end
 
     getter? backfill : Bool do
-      params["backfill"]?.presence.in?("1", "true")
+      boolean_param("backfill")
     end
 
     post("/reindex", :reindex, annotations: @[OpenAPI(<<-YAML

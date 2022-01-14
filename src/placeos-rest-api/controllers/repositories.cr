@@ -27,9 +27,26 @@ module PlaceOS::Api
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
 
+    # Params
+    ###############################################################################################
+
+    getter limit : Int32? do
+      params["limit"]?.try &.to_i?
+    end
+
+    getter driver : String? do
+      params["driver"]?.presence
+    end
+
+    getter commit : String do
+      params["commit"]
+    end
+
     ###############################################################################################
 
     getter current_repo : Model::Repository { find_repo }
+
+    ###############################################################################################
 
     private def drivers_only
       unless current_repo.repo_type.driver?
@@ -276,14 +293,12 @@ module PlaceOS::Api
       number_of_commits = params["limit"]?.try &.to_i
       file_name = params["driver"]?
 
-      commits = Api::Repositories.commits(
+      render json: Api::Repositories.commits(
         repository: current_repo,
         request_id: request_id,
-        number_of_commits: number_of_commits,
-        file_name: file_name,
+        number_of_commits: limit,
+        file_name: driver,
       )
-
-      render json: commits
     end
 
     def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
@@ -314,14 +329,14 @@ module PlaceOS::Api
           description: OK
       YAML
     )]) do
-      driver = params["driver"]
+      driver_filename = required_param(driver)
       commit = params["commit"]
 
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
       # Returns: https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
-      details = Api::Systems.core_for(driver, request_id) do |core_client|
-        core_client.driver_details(driver, commit, current_repo.folder_name)
+      details = Api::Systems.core_for(driver_filename, request_id) do |core_client|
+        core_client.driver_details(driver_filename, commit, current_repo.folder_name)
       end
 
       # The raw JSON string is returned

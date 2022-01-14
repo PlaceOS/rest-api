@@ -66,7 +66,7 @@ module PlaceOS::Api
       )
 
       # Execute the requested method
-      if params["exec"]? == "true"
+      if boolean_param("exec")
         exec_params = ExecParams.new(params).validate!
 
         if current_trigger_instance.exec_enabled
@@ -86,7 +86,8 @@ module PlaceOS::Api
             security: RemoteDriver::Clearance::Support,
             function: exec_params.method,
             args: args,
-            request_id: request_id
+            request_id: request_id,
+            user_id: "webhook #{current_trigger_instance.id}"
           )
 
           # We expect that the method being called is aware of its role as a trigger

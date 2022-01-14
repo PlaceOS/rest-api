@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.30.2
+version: 1.32.0
 crystal: ">= 1.1.1"
 
 targets:
@@ -66,10 +66,10 @@ dependencies:
     github: placeos/models
     version: ~> 5.8
 
-  # A familiar abstraction over native Fibers
+  # An abstraction over Fibers
   promise:
     github: spider-gazelle/promise
-    version: ~> 2.2
+    version: ~> 3.0
 
   # Sentry integration
   raven:
@@ -86,10 +86,10 @@ dependencies:
     github: spider-gazelle/rethinkdb-orm
     version: ~> 5
 
-  # Client for RubberSoul RethinkDB Elasticsearch indexer
-  rubber-soul:
-    github: placeos/rubber-soul
-    version: ~> 1.19
+  # Client for Search Ingest RethinkDB Elasticsearch indexer
+  search-ingest:
+    github: placeos/search-ingest
+    version: ~> 2.0
 
   # Scheduling
   tasker:
@@ -110,6 +110,10 @@ development_dependencies:
   ameba:
     github: crystal-ameba/ameba
     version: ">= 0.14"
+
+  crystal-kcov:
+    github: Vici37/crystal-kcov
+    branch: master
 
   # Mock data generation
   faker:

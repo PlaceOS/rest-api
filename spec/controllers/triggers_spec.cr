@@ -1,10 +1,8 @@
 require "../helper"
-require "../scope_helper"
 
 module PlaceOS::Api
   describe Triggers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Triggers::NAMESPACE[0]
 
     with_server do
@@ -39,7 +37,7 @@ module PlaceOS::Api
           trigger = Model::Generator.trigger.save!
           original_name = trigger.name
 
-          trigger.name = UUID.random.to_s
+          trigger.name = random_name
 
           id = trigger.id.as(String)
           path = base + id
