@@ -1,0 +1,39 @@
+name: TEST - OpenAPI
+
+
+on:
+  push:
+    branches: [ feat/open-api ]
+  pull_request:
+    branches: [ feat/open-api ]
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repo
+        uses: actions/checkout@v2
+      - name: Checkout part env repo
+        uses: actions/checkout@v2
+        with:
+          repository: place-labs/partner-environment
+          path: main
+      - name: Spin up PlaceOS
+        working-directory: ./main
+        run: ./placeos start --verbose
+        env:
+          PLACE_EMAIL: support@place.tech
+          PLACE_PASSWORD: development
+      - name: Set Auth Token
+        run: |
+            token=$(  curl --location --request POST "https://localhost:8443/auth/oauth/token?grant_type=password&username=support@place.tech&password=development&client_id=b52e653071c45353dbff4e8f47d51cdf" -k | jq -r '.access_token')
+            
+            echo "ORG=$token" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - run: npm install
+      - run: npm install dredd@14.0.0 --global
+      - run: dredd
