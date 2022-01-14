@@ -21,7 +21,7 @@ class Zone
   property tags : Set(String)
 end
 
-class Metadata
+class Open_Metadata
   extend OpenAPI::Generator::Serializable
 
   def initialize(@name, @description, @details, @editors); end
@@ -106,7 +106,7 @@ class TriggerInstance
   property name : String
 end
 
-class Settings
+class Open_Settings
   extend OpenAPI::Generator::Serializable
 
   def initialize(@name); end
@@ -133,7 +133,7 @@ class Edge
   property name : String
 end
 
-class Driver
+class Open_Driver
   extend OpenAPI::Generator::Serializable
 
   def initialize(@name); end
@@ -185,4 +185,5 @@ macro finished
       components: NamedTuple.new,
     }
   )
+  
 end

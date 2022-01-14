@@ -278,7 +278,7 @@ module PlaceOS::Api
         200:
           description: OK
           content:
-                #{Schema.ref Settings}
+                #{Schema.ref Open_Settings}
       YAML
     )]) do
       render json: Api::Settings.collated_settings(current_user, current_module)

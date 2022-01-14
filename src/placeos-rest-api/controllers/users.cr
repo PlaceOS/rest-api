@@ -285,7 +285,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Metadata}
+          #{Schema.ref Open_Metadata}
     YAML
     )]) do
       parent_id = user.id.not_nil!
@@ -300,7 +300,7 @@ module PlaceOS::Api
     get("/groups", :groups, annotations: @[OpenAPI(<<-YAML
     summary: Get list of groups of users based on email
     parameters:
-      #{Schema.qp "emails", " comma-seperated list of emails", required: true, type: "string"}
+      #{Schema.qp "emails", " comma-seperated list of emails", type: "string"}
     security:
     - bearerAuth: []
     responses:

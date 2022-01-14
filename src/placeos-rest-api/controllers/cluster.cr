@@ -33,8 +33,6 @@ module PlaceOS::Api
         responses:
           200:
             description: OK
-            content:
-              #{Schema.ref_array JSON::Any}
       YAML
     )]
     def index
@@ -117,8 +115,6 @@ module PlaceOS::Api
         responses:
           200:
             description: OK
-            content:
-              #{Schema.ref JSON::Any}
       YAML
     )]
     def show
@@ -223,8 +219,6 @@ module PlaceOS::Api
         responses:
           200:
             description: OK
-            content:
-              #{Schema.ref_array JSON::Any}
       YAML
     )]
     def destroy

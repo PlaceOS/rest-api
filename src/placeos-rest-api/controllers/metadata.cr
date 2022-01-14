@@ -48,7 +48,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Metadata}
+              #{Schema.ref Open_Metadata}
       YAML
     )]
     def show
@@ -86,7 +86,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref_array Metadata}
+          #{Schema.ref_array Open_Metadata}
     YAML
     )]) do
       parent_id = params["id"]
@@ -114,7 +114,7 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Metadata}
+            #{Schema.ref Open_Metadata}
         security:
         - bearerAuth: []
         responses:
@@ -125,7 +125,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Metadata}
+              #{Schema.ref Open_Metadata}
       YAML
     )]
     def update
@@ -177,7 +177,7 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref Metadata}
+        #{Schema.ref Open_Metadata}
     security:
     - bearerAuth: []
     responses:
@@ -188,7 +188,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Metadata}
+          #{Schema.ref Open_Metadata}
     YAML
     )]) { update }
 

@@ -190,7 +190,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Metadata}
+          #{Schema.ref Open_Metadata}
     YAML
     )]) do
       parent_id = current_zone.id.not_nil!
