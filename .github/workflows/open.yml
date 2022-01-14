@@ -1,6 +1,5 @@
 name: TEST - OpenAPI
 
-
 on:
   push:
     branches: [ feat/open-api ]
