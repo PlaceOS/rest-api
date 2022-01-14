@@ -14,6 +14,12 @@ paths:
             description: Internal Server Error
         security:
         - bearerAuth: []
+  /api/engine/v2/triggers:
+    get:
+      summary: get all triggers
+      responses:
+        "200":
+          description: OK
   /api/engine/v2/zones:
     get:
       summary: get all zones
