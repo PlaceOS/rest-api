@@ -60,7 +60,7 @@ module PlaceOS::Api
           result.status_code.should eq 200
 
           Array(JSON::Any).from_json(result.body).map { |m|
-            Model::Settings.from_trusted_json(m.to_json)
+            Model::Settings.from_json(m.to_json)
           }.first.keys.should eq(["secret_key"])
         end
 
