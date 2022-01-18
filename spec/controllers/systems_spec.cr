@@ -362,17 +362,58 @@ module PlaceOS::Api
         end
       end
 
+      # TODO: add core to testing
       pending "GET /:sys_id/functions/:module_slug" do
+        cs = Model::Generator.control_system.save!
+
+        driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
+        mod = Model::Generator.module(driver: driver).save!
+        module_id = mod.id.as(String)
+
+        cs.add_module(module_id)
+        cs.save!
+
+        module_slug = cs.modules.first
+
+        path = base + "#{cs.id}/functions/#{module_slug}"
+
+        result = curl(
+          method: "GET",
+          path: path,
+          headers: authorization_header,
+        )
+
+        puts result.inspect
       end
 
+      # TODO: add core to testing
       pending "GET /:sys_id/:module_slug/:key" do
         it "fetches the state for `key` in module defined by `module_slug`" do
         end
       end
 
+      # TODO: add core to testing
       pending "GET /:sys_id/:module_slug" do
-        it "fetches the state of a module defined by `module_slug`" do
-        end
+        cs = Model::Generator.control_system.save!
+
+        driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
+        mod = Model::Generator.module(driver: driver).save!
+        module_id = mod.id.as(String)
+
+        cs.add_module(module_id)
+        cs.save!
+
+        module_slug = cs.modules.first
+
+        path = base + "#{cs.id}/functions/#{module_slug}"
+
+        result = curl(
+          method: "GET",
+          path: path,
+          headers: authorization_header,
+        )
+
+        puts result.inspect
       end
 
       describe "POST /:sys_id/start" do

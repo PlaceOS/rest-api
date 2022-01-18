@@ -42,17 +42,13 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        pending "searchs on keys" do
-          sys = Model::Generator.control_system.save!
-          settings = [
-            Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys),
-            Model::Generator.settings(encryption_level: Encryption::Level::Admin, control_system: sys),
-            Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys),
-          ]
-          clear, admin, never_displayed = settings.map(&.save!)
+        it "searches on keys" do
+          unencrypted = %({"secret_key": "secret1234"})
+          settings = Model::Generator.settings(settings_string: unencrypted).save!
+
           refresh_elastic(Model::Settings.table_name)
 
-          params = HTTP::Params.encode({"q" => Encryption::Level::NeverDisplay.to_json})
+          params = HTTP::Params.encode({"q" => settings.keys.first})
           path = "#{base.rstrip('/')}?#{params}"
 
           result = curl(
@@ -60,6 +56,12 @@ module PlaceOS::Api
             path: path,
             headers: authorization_header
           )
+
+          result.status_code.should eq 200
+
+          Array(JSON::Any).from_json(result.body).map { |m|
+            Model::Settings.from_trusted_json(m.to_json)
+          }.first.keys.should eq(["secret_key"])
         end
 
         it "returns settings for a set of parent ids" do
