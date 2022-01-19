@@ -68,7 +68,7 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        pending "queries by parent driver" do
+        it "queries by parent driver" do
           name = random_name
 
           driver = Model::Generator.driver
@@ -144,7 +144,7 @@ module PlaceOS::Api
           found.should be_true
         end
 
-        pending "connected query" do
+        it "connected query" do
           mod = Model::Generator.module
           mod.ignore_connected = false
           mod.connected = true
