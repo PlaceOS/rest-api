@@ -90,7 +90,7 @@ module PlaceOS::Api::WebSocket
           updates.shift.type.should eq Session::Response::Type::Success
         end
 
-        # TODO: add core to testing
+        # TODO: awaiting addition of `core` to test environment
         pending "exec"
         pending "debug"
 

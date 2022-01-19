@@ -93,7 +93,7 @@ module PlaceOS::Api
         end
       end
 
-      # TODO: add core to testing
+      # TODO: awaiting addition of `core` to test environment
       pending "POST /:id/recompile" do
         driver = Model::Generator.driver.save!
         Model::Generator.module(driver: driver).save!

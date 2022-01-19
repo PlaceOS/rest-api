@@ -30,7 +30,6 @@ module PlaceOS::Api
             MQTT.mqtt_acl_status(MQTT::MqttAcl::Read, user_jwt).should eq HTTP::Status::OK
           end
 
-           
           it "allows #{MQTT::MqttAcl::Write} access for support and above" do
             scope = [PlaceOS::Model::UserJWT::Scope.new("mqtt", :write)]
             authenticated_user, _scoped_authorization_header = authentication(scope: scope)
@@ -42,7 +41,6 @@ module PlaceOS::Api
             authenticated_user, _ = authentication(sys_admin: false, support: false, scope: scope)
             user_jwt = PlaceOS::Model::Generator.jwt(authenticated_user, scope)
             MQTT.mqtt_acl_status(MQTT::MqttAcl::Write, user_jwt).should eq HTTP::Status::FORBIDDEN
-
           end
         end
       end

@@ -362,7 +362,7 @@ module PlaceOS::Api
         end
       end
 
-      # TODO: add core to testing
+      # TODO: awaiting addition of `core` to test environment
       pending "GET /:sys_id/functions/:module_slug" do
         cs = Model::Generator.control_system.save!
 
@@ -386,13 +386,13 @@ module PlaceOS::Api
         puts result.inspect
       end
 
-      # TODO: add core to testing
+      # TODO: awaiting addition of `core` to test environment
       pending "GET /:sys_id/:module_slug/:key" do
         it "fetches the state for `key` in module defined by `module_slug`" do
         end
       end
 
-      # TODO: add core to testing
+      # TODO: awaiting addition of `core` to test environment
       pending "GET /:sys_id/:module_slug" do
         cs = Model::Generator.control_system.save!
 
