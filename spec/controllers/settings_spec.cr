@@ -65,21 +65,16 @@ module PlaceOS::Api
         end
 
         it "returns settings for a set of parent ids" do
-          sys = Model::Generator.control_system.save!
-          settings = [
-            Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys),
-            Model::Generator.settings(encryption_level: Encryption::Level::Admin, control_system: sys),
-            Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys),
-          ]
-          clear, admin, never_displayed = settings.map(&.save!)
+          systems = Array.new(2) { Model::Generator.control_system.save! }
 
-          sys2 = Model::Generator.control_system.save!
-          settings = [
-            Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys2),
-            Model::Generator.settings(encryption_level: Encryption::Level::Admin, control_system: sys2),
-            Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys2),
-          ]
-          clear, admin, never_displayed = settings.map(&.save!)
+          systems.map do |system|
+            {Encryption::Level::None, Encryption::Level::Admin, Encryption::Level::NeverDisplay}.map do |level|
+              Model::Generator.settings(encryption_level: level, control_system: system).save!
+            end
+          end
+
+          sys, sys2 = systems
+
           refresh_elastic(Model::Settings.table_name)
 
           result = curl(
