@@ -102,13 +102,17 @@ module PlaceOS::Api
       channel = Channel(Model::Driver?).new(1)
 
       # Wait until the commit hash is not head with a timeout of 20 seconds
-      found_driver = begin
+      begin
         spawn do
           update_event = changefeed.find do |event|
             driver_update = event.value
             driver_update.destroyed? || !driver_update.commit.starts_with? "RECOMPILE"
           end
-          channel.send(update_event.try &.value)
+
+          begin
+            channel.send(update_event.try &.value)
+          rescue Channel::ClosedError
+          end
         end
 
         select
@@ -126,8 +130,6 @@ module PlaceOS::Api
         # Terminate the changefeed
         changefeed.stop
       end
-
-      found_driver
     end
 
     # Check if the core responsible for the driver has finished compilation
