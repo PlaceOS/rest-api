@@ -107,8 +107,7 @@ module PlaceOS::Api
         response.success?.should be_true
 
         path = "#{base}#{driver.id.not_nil!}/recompile"
-        header = authorization_header.merge({"Content-Type" => "application/json"})
-        result = curl(
+        _result = curl(
           method: "POST",
           path: path,
           headers: authorization_header.merge({"Content-Type" => "application/json"}),

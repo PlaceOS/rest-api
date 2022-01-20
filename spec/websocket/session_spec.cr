@@ -98,7 +98,7 @@ module PlaceOS::Api::WebSocket
           status_name = "nugget"
 
           id = rand(10).to_i64
-          results = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
+          updates, _, _ = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
             request = {
               id:          id,
               system_id:   control_system.id.as(String),
@@ -110,8 +110,6 @@ module PlaceOS::Api::WebSocket
             sleep 0.1
           end
 
-          updates, control_system, mod = results
-          expected_meta = {sys: control_system.id, mod: mod.custom_name, index: 1, name: status_name}
           # Check all messages received
           updates.size.should eq 1
           # Check for successful ignore response
