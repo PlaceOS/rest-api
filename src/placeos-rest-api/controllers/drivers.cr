@@ -97,8 +97,8 @@ module PlaceOS::Api
       # Set the repository commit hash to head
       driver.update_fields(commit: "RECOMPILE-#{driver.commit}")
 
-      # Wait until the commit hash is not head with a timeout of 20 seconds
-      Utils::Changefeeds.await_model_change(driver, timeout: 20.seconds) do |update|
+      # Wait until the commit hash is not head with a timeout of 90 seconds
+      return Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
         update.destroyed? || !update.commit.starts_with? "RECOMPILE"
       end
     end

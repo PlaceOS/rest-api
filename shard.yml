@@ -101,6 +101,10 @@ dependencies:
     github: spider-gazelle/secrets-env
     version: ~> 1
 
+  clustering:
+    github: place-labs/clustering
+    version: ~> 3.0
+
 development_dependencies:
   # Linter
   ameba:

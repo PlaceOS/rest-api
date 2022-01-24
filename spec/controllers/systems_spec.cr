@@ -403,6 +403,20 @@ module PlaceOS::Api
         cs.add_module(module_id)
         cs.save!
 
+        Utils::Changefeeds.await_model_change(driver, timeout: 20.seconds) do |update|
+          update.destroyed? || !update.commit.starts_with? "RECOMPILE"
+        end
+
+        response = curl(
+          method: "GET",
+          path: "#{base}#{driver.id.not_nil!}/compiled",
+          headers: authorization_header.merge({"Content-Type" => "application/json"}),
+        )
+
+        puts "=============="
+        puts response.inspect
+        puts "=============="
+
         module_slug = cs.modules.first
 
         path = base + "#{cs.id}/functions/#{module_slug}"
