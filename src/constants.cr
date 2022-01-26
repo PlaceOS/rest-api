@@ -22,4 +22,23 @@ module PlaceOS::Api
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
 
   PROD = ENV["SG_ENV"]?.try(&.downcase) == "production"
+
+  # CHANGELOG
+  #################################################################################################
+
+  CHANGELOG_URI = "https://raw.githubusercontent.com/PlaceOS/PlaceOS/nightly/CHANGELOG.md"
+
+  PLATFORM_VERSION = {{ env("PLACE_VERSION") || "DEV" }}
+
+  private BUILD_CHANGELOG = {{ !PLATFORM_VERSION.downcase.starts_with?("dev") }}
+
+  PLATFORM_CHANGELOG = fetch_platform_changelog(BUILD_CHANGELOG)
+
+  macro fetch_platform_changelog(build)
+    {% if build %}
+      {{ run("curl -L #{CHANGELOG_URI}") }}
+    {% else %}
+      "CHANGELOG is not generated for development builds"
+    {% end %}
+  end
 end
