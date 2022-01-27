@@ -36,7 +36,7 @@ module PlaceOS::Api
 
   macro fetch_platform_changelog(build)
     {% if build %}
-      {{ run("curl -L #{CHANGELOG_URI}") }}
+      {{ system("curl --location #{CHANGELOG_URI}").stringify }}
     {% else %}
       "CHANGELOG is not generated for development builds"
     {% end %}
