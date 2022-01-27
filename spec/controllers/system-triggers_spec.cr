@@ -14,35 +14,37 @@ module PlaceOS::Api
       )
 
       describe "index", tags: "search" do
-        it "as_of query" do
-          sys = Model::Generator.control_system.save!
-          path = base.gsub(/:sys_id/, sys.id)
+        context "query parameter" do
+          it "as_of" do
+            sys = Model::Generator.control_system.save!
+            path = base.gsub(/:sys_id/, sys.id)
 
-          inst1 = Model::Generator.trigger_instance
-          inst1.control_system = sys
-          Timecop.freeze(2.days.ago) do
-            inst1.save!
+            inst1 = Model::Generator.trigger_instance
+            inst1.control_system = sys
+            Timecop.freeze(2.days.ago) do
+              inst1.save!
+            end
+            inst1.persisted?.should be_true
+
+            inst2 = Model::Generator.trigger_instance
+            inst2.control_system = sys
+            inst2.save!
+            inst2.persisted?.should be_true
+
+            refresh_elastic(Model::TriggerInstance.table_name)
+
+            params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
+            path = "#{path}?#{params}"
+            correct_response = until_expected("GET", path, authorization_header) do |response|
+              results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              contains_correct = results.any?(inst1.id)
+              contains_incorrect = results.any?(inst2.id)
+
+              !results.empty? && contains_correct && !contains_incorrect
+            end
+
+            correct_response.should be_true
           end
-          inst1.persisted?.should be_true
-
-          inst2 = Model::Generator.trigger_instance
-          inst2.control_system = sys
-          inst2.save!
-          inst2.persisted?.should be_true
-
-          refresh_elastic(Model::TriggerInstance.table_name)
-
-          params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
-          path = "#{path}?#{params}"
-          correct_response = until_expected("GET", path, authorization_header) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            contains_correct = results.any?(inst1.id)
-            contains_incorrect = results.any?(inst2.id)
-
-            !results.empty? && contains_correct && !contains_incorrect
-          end
-
-          correct_response.should be_true
         end
       end
 
