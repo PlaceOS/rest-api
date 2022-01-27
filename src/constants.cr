@@ -31,7 +31,7 @@ module PlaceOS::Api
   PLATFORM_VERSION = {{ (env("PLACE_VERSION") || "DEV").lchop(PLACE_TAG_PREFIX) }}
 
   private PLACE_TAG_PREFIX = "placeos-"
-  private BUILD_CHANGELOG = {{ !PLATFORM_VERSION.downcase.starts_with?("dev") }}
+  private BUILD_CHANGELOG  = {{ !PLATFORM_VERSION.downcase.starts_with?("dev") }}
 
   PLATFORM_CHANGELOG = fetch_platform_changelog(BUILD_CHANGELOG)
 
