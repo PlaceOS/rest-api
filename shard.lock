@@ -29,10 +29,6 @@ shards:
     git: https://github.com/spider-gazelle/bindata.git
     version: 1.9.1
 
-  clustering:
-    git: https://github.com/place-labs/clustering.git
-    version: 3.1.1
-
   connect-proxy:
     git: https://github.com/spider-gazelle/connect-proxy.git
     version: 1.4.1

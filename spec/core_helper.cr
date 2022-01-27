@@ -6,23 +6,10 @@ def random_id
   UUID.random.to_s.split('-').first
 end
 
-def set_temporary_working_directory(fresh : Bool = false, path : String? = nil) : String
-  temp_dir = "#{Dir.tempdir}/core-spec-#{random_id}"
-  temp_dir = Path[path].expand.to_s if path
-  PlaceOS::Compiler.binary_dir = "#{temp_dir}/bin"
-  PlaceOS::Compiler.repository_dir = "#{temp_dir}/repositories"
-
-  Dir.mkdir_p(File.join(PlaceOS::Compiler.binary_dir, "drivers"))
-  Dir.mkdir_p(PlaceOS::Compiler.repository_dir)
-
-  temp_dir
-end
-
-def setup_system
+def setup_system(repository_folder_name = "private-drivers")
   # Repository metadata
   repository_uri = "https://github.com/placeos/private-drivers"
   repository_name = "Private Drivers"
-  repository_folder_name = "private-drivers"
 
   # Driver metadata
   driver_file_name = "drivers/place/private_helper.cr"

@@ -1,8 +1,6 @@
 require "../helper"
 require "../core_helper"
 
-# require "placeos-compiler"
-
 module PlaceOS::Api
   describe Drivers do
     _, authorization_header = authentication
