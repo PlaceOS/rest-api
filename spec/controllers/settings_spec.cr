@@ -135,7 +135,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "history" do
+      describe "/:id/history" do
         it "returns history for a master setting" do
           sys = Model::Generator.control_system.save!
 

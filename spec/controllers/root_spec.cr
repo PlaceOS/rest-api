@@ -6,37 +6,56 @@ module PlaceOS::Api
       _authenticated_user, authorization_header = authentication
       base = Api::Root::NAMESPACE[0]
 
-      it "responds to health checks" do
-        result = curl("GET", base, headers: authorization_header)
-        result.status_code.should eq 200
+      describe "/" do
+        it "responds to health checks" do
+          result = curl("GET", base, headers: authorization_header)
+          result.status_code.should eq 200
+        end
       end
 
-      it "renders version" do
-        result = curl("GET", File.join(base, "version"), headers: authorization_header)
-        result.status_code.should eq 200
-        response = PlaceOS::Model::Version.from_json(result.body)
-
-        response.service.should eq APP_NAME
-        response.version.should eq VERSION
-        response.build_time.should eq BUILD_TIME
-        response.commit.should eq BUILD_COMMIT
+      describe "/scopes" do
+        it "gets scope names" do
+          result = curl("GET", File.join(base, "scopes"), headers: authorization_header)
+          scopes = Array(String).from_json(result.body)
+          scopes.size.should eq(Root.scopes.size)
+        end
       end
 
-      it "gets scope names" do
-        result = curl("GET", File.join(base, "scopes"), headers: authorization_header)
-        scopes = Array(String).from_json(result.body)
-        scopes.size.should eq(Root.scopes.size)
+      describe "/cluster/versions" do
+        it "constructs service versions" do
+          HttpMocks.service_version
+
+          versions = Root.construct_versions
+          versions.size.should eq(Root::SERVICES.size)
+          versions.map(&.service.gsub('-', '_')).sort!.should eq Root::SERVICES.sort
+        end
       end
 
-      it "constructs service versions" do
-        HttpMocks.service_version
+      describe "/version" do
+        it "renders version" do
+          result = curl("GET", File.join(base, "version"), headers: authorization_header)
+          result.status_code.should eq 200
+          response = PlaceOS::Model::Version.from_json(result.body)
 
-        versions = Root.construct_versions
-        versions.size.should eq(Root::SERVICES.size)
-        versions.map(&.service.gsub('-', '_')).sort!.should eq Root::SERVICES.sort
+          response.service.should eq APP_NAME
+          response.version.should eq VERSION
+          response.build_time.should eq BUILD_TIME
+          response.commit.should eq BUILD_COMMIT
+        end
       end
 
-      describe "signal" do
+      describe "/platform" do
+        it "renders platform information" do
+          result = curl("GET", File.join(base, "platform"), headers: authorization_header)
+          result.status_code.should eq 200
+          response = PlaceOS::Api::Root::PlatformInfo.from_json(result.body)
+
+          response.version.should eq PLATFORM_VERSION
+          response.changelog.should eq PLATFORM_CHANGELOG
+        end
+      end
+
+      describe "/signal" do
         it "writes an arbitrary payload to a redis subscription" do
           subscription_channel = "test"
           channel = Channel(String).new
@@ -67,7 +86,7 @@ module PlaceOS::Api
           result.status_code.should eq 400
         end
 
-        context "guests" do
+        context "guest users" do
           _, guest_header = authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::Scope::GUEST])
 
           it "prevented access to non-guest channels " do
