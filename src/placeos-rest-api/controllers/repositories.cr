@@ -6,6 +6,10 @@ module PlaceOS::Api
   class Repositories < Application
     base "/api/engine/v2/repositories/"
 
+    class_property in_progress : Bool = false
+
+    getter in_progress : Bool { self.class.in_progress }
+
     # Scopes
     ###############################################################################################
 
@@ -84,16 +88,22 @@ module PlaceOS::Api
     end
 
     post "/:id/pull", :pull do
-      result = Repositories.pull_repository(current_repo)
-      if result
-        destroyed, commit_hash = result
-        if destroyed
-          head :not_found
-        else
-          render json: {commit_hash: commit_hash}
-        end
+      Repositories.pull_repository(current_repo)
+      head :ok
+    end
+
+    get "/:id/pull/status ", :pull_status do
+      if in_progress
+        render json: {status: "in progress"}
       else
-        return render_error(HTTP::Status::REQUEST_TIMEOUT, "Pull timed out")
+        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+          pulled_repos = frontends_client.loaded
+          if pulled_repos.has_key?(current_repo.folder_name)
+            render json: {status: "completed"}
+          else
+            render json: {status: "failed"}
+          end
+        end
       end
     end
 
@@ -105,8 +115,11 @@ module PlaceOS::Api
       repository.pull!
 
       found_repo = Utils::Changefeeds.await_model_change(repository, 3.minutes) do |updated|
+        in_progress = true
         updated.destroyed? || !updated.should_pull?
       end
+
+      in_progress = false
 
       unless found_repo.nil?
         new_commit = found_repo.commit_hash
