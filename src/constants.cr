@@ -28,7 +28,7 @@ module PlaceOS::Api
 
   CHANGELOG_URI = "https://raw.githubusercontent.com/PlaceOS/PlaceOS/nightly/CHANGELOG.md"
 
-  PLATFORM_VERSION = {{ (env("PLACE_VERSION") || "DEV").lchop(PLACE_TAG_PREFIX) }}
+  PLATFORM_VERSION = {{ (env("PLACE_VERSION") || "DEV").tr(PLACE_TAG_PREFIX, "") }}
 
   private PLACE_TAG_PREFIX = "placeos-"
   private BUILD_CHANGELOG  = {{ !PLATFORM_VERSION.downcase.starts_with?("dev") }}
@@ -37,7 +37,7 @@ module PlaceOS::Api
 
   macro fetch_platform_changelog(build)
     {% if build %}
-      {{ system("curl --location #{CHANGELOG_URI}").stringify }}
+      {{ system("curl --silent --location #{CHANGELOG_URI}").stringify }}
     {% else %}
       "CHANGELOG is not generated for development builds"
     {% end %}

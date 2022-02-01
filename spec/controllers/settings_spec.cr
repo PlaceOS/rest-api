@@ -91,14 +91,11 @@ module PlaceOS::Api
 
           returned_settings.size.should eq(6)
 
-          sys1_never_displayed, sys2_never_displayed = returned_settings[0..1]
-          (sys1_never_displayed.encryption_level == Encryption::Level::NeverDisplay && sys2_never_displayed.encryption_level == Encryption::Level::NeverDisplay).should be_true
+          never_displayed_settings, admin_settings, no_encryption_settings = returned_settings.in_groups_of(2).map(&.compact)
 
-          sys1_admin, sys2_admin = returned_settings[2..3]
-          (sys1_admin.encryption_level == Encryption::Level::Admin && sys2_admin.encryption_level == Encryption::Level::Admin).should be_true
-
-          sys1_clear, sys2_clear = returned_settings[4..5]
-          (sys1_clear.encryption_level == Encryption::Level::None && sys2_clear.encryption_level == Encryption::Level::None).should be_true
+          never_displayed_settings.all?(&.encryption_level.never_display?).should be_true
+          admin_settings.all?(&.encryption_level.admin?).should be_true
+          no_encryption_settings.all?(&.encryption_level.none?).should be_true
         end
 
         it "returns settings for parent id" do
