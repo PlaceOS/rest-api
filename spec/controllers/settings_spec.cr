@@ -46,6 +46,8 @@ module PlaceOS::Api
           unencrypted = %({"secret_key": "secret1234"})
           settings = Model::Generator.settings(settings_string: unencrypted).save!
 
+          sleep 20.milliseconds
+
           refresh_elastic(Model::Settings.table_name)
 
           params = HTTP::Params.encode({"q" => settings.keys.first})
@@ -59,9 +61,9 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          Array(JSON::Any).from_json(result.body).map { |m|
-            Model::Settings.from_json(m.to_json)
-          }.first.keys.should eq(["secret_key"])
+          settings = Array(Model::Settings).from_json(result.body)
+          settings.should_not be_empty
+          settings.first.keys.should contain("secret_key")
         end
 
         it "returns settings for a set of parent ids" do
@@ -85,9 +87,7 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          returned_settings = Array(JSON::Any).from_json(result.body).map { |m|
-            Model::Settings.from_trusted_json(m.to_json)
-          }
+          returned_settings = Array(Model::Settings).from_json(result.body)
 
           returned_settings.size.should eq(6)
 
@@ -116,9 +116,10 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          returned_settings = Array(JSON::Any).from_json(result.body).map { |m|
-            Model::Settings.from_trusted_json(m.to_json)
-          }.sort_by!(&.encryption_level)
+          returned_settings = Array(JSON::Any)
+            .from_json(result.body)
+            .map { |j| Model::Settings.from_trusted_json(j.to_json) }
+            .sort_by!(&.encryption_level)
 
           returned_clear, returned_admin, returned_never_displayed = returned_settings
 
