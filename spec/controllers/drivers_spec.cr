@@ -37,8 +37,8 @@ module PlaceOS::Api
 
       describe "CRUD operations", tags: "crud" do
         before_each do
-          HttpMocks.etcd_range
           HttpMocks.core_compiled
+          HttpMocks.reset
         end
 
         test_crd(klass: Model::Driver, controller_klass: Drivers)
@@ -82,7 +82,11 @@ module PlaceOS::Api
         end
 
         it "GET /:id/compiled" do
-          driver = Model::Generator.driver.save!
+          driver, _, _, _ = setup_system
+          sleep 0.4
+          Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
+            update.destroyed? || !update.commit.starts_with? "RECOMPILE"
+          end
 
           response = curl(
             method: "GET",
@@ -91,27 +95,29 @@ module PlaceOS::Api
           )
 
           response.success?.should be_true
+          clear_tables
         end
-      end
 
-      it "POST /:id/recompile" do
-        driver, _, _, _ = setup_system
+        it "POST /:id/recompile" do
+          driver, _, _, _ = setup_system
 
-        response = curl(
-          method: "POST",
-          path: "#{base}#{driver.id.not_nil!}/recompile",
-          headers: authorization_header.merge({"Content-Type" => "application/json"}),
-        )
+          response = curl(
+            method: "POST",
+            path: "#{base}#{driver.id.not_nil!}/recompile",
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
 
-        response.success?.should be_true
-        updated = Model::Driver.from_trusted_json(response.body)
-        updated.commit.starts_with?("RECOMPILE").should be_false
+          response.success?.should be_true
+          updated = Model::Driver.from_trusted_json(response.body)
+          updated.commit.starts_with?("RECOMPILE").should be_false
+          clear_tables
+        end
       end
 
       describe "scopes" do
         before_each do
-          HttpMocks.etcd_range
           HttpMocks.core_compiled
+          # HttpMocks.reset
         end
 
         test_controller_scope(Drivers)

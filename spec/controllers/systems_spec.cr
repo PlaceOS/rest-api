@@ -393,7 +393,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "needs core" do
+      describe "with core" do
         driver, _, mod, cs = setup_system
 
         # "fetches the state for `key` in module defined by `module_slug`
@@ -444,6 +444,7 @@ module PlaceOS::Api
           state = Hash(String, String).from_json(response.body)
           state["nugget"].should eq("1")
         end
+        clear_tables
       end
 
       describe "POST /:sys_id/start" do

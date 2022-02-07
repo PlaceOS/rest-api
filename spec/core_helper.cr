@@ -21,7 +21,7 @@ def setup_system(repository_folder_name = "private-drivers")
   repository = PlaceOS::Model::Generator.repository(type: PlaceOS::Model::Repository::Type::Driver)
   repository.uri = repository_uri
   repository.name = repository_name
-  repository.folder_name = repository_folder_name
+  repository.folder_name = repository_folder_name + random_id
   repository.save!
 
   driver = PlaceOS::Model::Driver.new(

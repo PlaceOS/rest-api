@@ -92,92 +92,53 @@ module PlaceOS::Api::WebSocket
           updates.shift.type.should eq Session::Response::Type::Success
         end
 
-        WebMock.wrap do
-          it "exec", focus: true do
-            WebMock.reset
-            WebMock.allow_net_connect = true
+        it "exec" do
+          WebMock.stub(:any, /^http:\/\/core:3000\/api\/core\/v1\/command\//).to_return(body: %({"__exec__":"function2"}))
 
-            WebMock.stub(:post, "http://etcd:2379/v3/kv/range")
-              .with(
-                body: "{\"key\":\"c2VydmljZS9jb3JlLw==\",\"range_end\":\"c2VydmljZS9jb3JlMA==\"}",
-                headers: {"Content-Type" => "application/json"}
-              )
-              .to_return(
-                body: {
-                  count: "1",
-                  kvs:   [{
-                    key:   "c2VydmljZS9jb3JlLw==",
-                    value: Base64.strict_encode("http://core:3000"),
-                  }],
-                }.to_json
-              )
-            WebMock.stub(:any, /^http:\/\/core:3000\/api\/core\/v1\/command\//).to_return(body: %({"__exec__":"function2"}))
+          id = rand(10).to_i64
 
-            id = rand(10).to_i64
+          status_name = "function2"
 
-            status_name = "function2"
-
-            id = rand(10).to_i64
-            updates, _, _ = test_websocket_exec(base, authorization_header) do |ws, control_system, mod|
-              request = {
-                id:          id,
-                system_id:   control_system.id.as(String),
-                module_name: mod.resolved_name,
-                name:        status_name,
-                command:     Session::Request::Command::Exec,
-              }
-              ws.send Session::Request.new(**request).to_json
-              sleep 0.1
-            end
-
-            # Check for successful exec response
-
-            puts "===================="
-            puts updates.first.inspect
-            puts "===================="
-            updates.first.type.should eq Session::Response::Type::Success
-            updates.first.value.should eq(%({"__exec__":"function2"}))
+          id = rand(10).to_i64
+          updates, _, _ = test_websocket_exec(base, authorization_header) do |ws, control_system, mod|
+            request = {
+              id:          id,
+              system_id:   control_system.id.as(String),
+              module_name: mod.resolved_name,
+              name:        status_name,
+              command:     Session::Request::Command::Exec,
+            }
+            ws.send Session::Request.new(**request).to_json
+            sleep 0.1
           end
+
+          # Check for successful exec response
+
+          updates.first.type.should eq Session::Response::Type::Success
+          updates.first.value.should eq(%({"__exec__":"function2"}))
+          clear_tables
         end
 
-        WebMock.wrap do
-          it "debug", focus: true do
-            WebMock.reset
-            WebMock.allow_net_connect = true
-            WebMock.stub(:post, "http://etcd:2379/v3/kv/range")
-              .with(
-                body: "{\"key\":\"c2VydmljZS9jb3JlLw==\",\"range_end\":\"c2VydmljZS9jb3JlMA==\"}",
-                headers: {"Content-Type" => "application/json"}
-              )
-              .to_return(
-                body: {
-                  count: "1",
-                  kvs:   [{
-                    key:   "c2VydmljZS9jb3JlLw==",
-                    value: Base64.strict_encode("http://core:3000"),
-                  }],
-                }.to_json
-              )
-            status_name = "nugget"
+        it "debug" do
+          status_name = "nugget"
 
-            id = rand(10).to_i64
-            updates, _, _ = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
-              request = {
-                id:          id,
-                system_id:   control_system.id.as(String),
-                module_name: mod.resolved_name,
-                name:        status_name,
-                command:     Session::Request::Command::Debug,
-              }
-              ws.send Session::Request.new(**request).to_json
-              sleep 0.1
-            end
-
-            # Check all messages received
-            updates.size.should eq 1
-            # Check for successful debug response
-            updates.shift.type.should eq Session::Response::Type::Success
+          id = rand(10).to_i64
+          updates, _, _ = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
+            request = {
+              id:          id,
+              system_id:   control_system.id.as(String),
+              module_name: mod.resolved_name,
+              name:        status_name,
+              command:     Session::Request::Command::Debug,
+            }
+            ws.send Session::Request.new(**request).to_json
+            sleep 0.1
           end
+
+          # Check all messages received
+          updates.size.should eq 1
+          # Check for successful debug response
+          updates.shift.type.should eq Session::Response::Type::Success
         end
 
         it "ignore" do
@@ -293,7 +254,7 @@ def test_websocket_exec(base, authorization_header)
   module_slug = mod.id.as(String)
 
   sys_lookup = PlaceOS::Driver::RedisStorage.new(control_system.id.as(String), "system")
-  lookup_key = "#{module_slug}/1"
+  lookup_key = "#{mod.custom_name}/1"
   sys_lookup[lookup_key] = module_slug
 
   PlaceOS::Driver::RedisStorage.with_redis do |redis|
@@ -319,6 +280,8 @@ def test_websocket_exec(base, authorization_header)
   # Clean up.
   control_system.destroy
   mod.destroy
+
+  sys_lookup.clear
 
   {updates, control_system, mod}
 end
