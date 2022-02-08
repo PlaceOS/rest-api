@@ -42,7 +42,7 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        it "searches on keys" do
+        pending "searches on keys" do
           unencrypted = %({"secret_key": "secret1234"})
           settings = Model::Generator.settings(settings_string: unencrypted).save!
 
