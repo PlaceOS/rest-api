@@ -1,10 +1,7 @@
-name: Build Dev Image
-
-on:
-  push:
-
+name: Build Development Image
+on: push
 jobs:
   build:
-    uses: PlaceOS/.github/.github/workflows/build-dev-img.yml@feat/central-build-dev-img
+    uses: PlaceOS/.github/.github/workflows/build-dev-image.yml@feat/central-build-dev-img
     secrets:
       GHCR_PAT: ${{ secrets.GHCR_PAT }}
