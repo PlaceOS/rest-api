@@ -1,41 +1,70 @@
 # PlaceOS REST API
 
-[![Build Dev Image](https://github.com/PlaceOS/rest-api/actions/workflows/build-dev-image.yml/badge.svg)](https://github.com/PlaceOS/rest-api/actions/workflows/build-dev-image.yml)
+[![Build](https://github.com/PlaceOS/rest-api/actions/workflows/build.yml/badge.svg)](https://github.com/PlaceOS/rest-api/actions/workflows/build.yml)
 [![CI](https://github.com/PlaceOS/rest-api/actions/workflows/ci.yml/badge.svg)](https://github.com/PlaceOS/rest-api/actions/workflows/ci.yml)
 
 ## Testing
 
+Given you have the following dependencies...
+
+- [docker](https://www.docker.com/)
+- [docker-compose](https://github.com/docker/compose)
+
+It is simple to develop the service with docker.
+
 ### With Docker
 
-- `$ ./test` (tear down the docker-compose environment)
-- `$ ./test --watch` (only run tests on changes to `src` and `spec` folders)
-- `$ docker-compose down` when you are done!
+- Run specs, tearing down the `docker-compose` environment upon completion.
+
+```shell-session
+$ ./test
+```
+
+- Run specs on changes to Crystal files within the `src` and `spec` folders.
+
+```shell-session
+$ ./test --watch
+```
 
 ### Without Docker
 
-- `crystal spec` to run tests
+- To run tests
 
-**Dependencies**
+```shell-session
+$ crystal spec
+```
 
-- Elasticsearch `~> v7.2`
+**NOTE:** The following dependencies are required...
+
+- Elasticsearch `~> v7.6`
 - RethinkDB `~> v2.4`
 - Etcd `~> v3.3`
 - Redis `~> v5`
 
-**Dependencies**
-
-- [docker](https://www.docker.com/)
-- [docker-compose](https://github.com/docker/compose)
-- [git](https://git-scm.com/)
-
 ## Compiling
 
-`crystal build ./src/rest-api.cr`
+```shell-session
+$ shards build
+```
 
 ### Deploying
 
-Once compiled you are left with a binary `./rest-api`
+Once compiled you are left with a binary: `bin/rest-api`.
 
-- for help `./rest-api --help`
-- viewing routes `./rest-api --routes`
-- run on a different port or host `./rest-api -b 0.0.0.0 -p 80`
+- For help
+
+```shell-session
+$ ./bin/rest-api --help
+```
+
+- Viewing routes
+
+```shell-session
+$ ./bin/rest-api --routes
+```
+
+- Run on a different port or host
+
+```shell-session
+$ ./bin/rest-api -b 0.0.0.0 -p 80
+```
