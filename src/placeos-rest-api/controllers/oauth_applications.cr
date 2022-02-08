@@ -71,7 +71,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref DoorkeeperApplication}
+              #{Schema.ref Model::DoorkeeperApplication}
       YAML
     )]
     def show
@@ -84,14 +84,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref DoorkeeperApplication}
+            #{Schema.ref Model::DoorkeeperApplication}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref DoorkeeperApplication}
+              #{Schema.ref Model::DoorkeeperApplication}
       YAML
     )]
     def update
@@ -105,14 +105,14 @@ module PlaceOS::Api
       requestBody:
         required: true
         content:
-          #{Schema.ref DoorkeeperApplication}
+          #{Schema.ref Model::DoorkeeperApplication}
       security:
       - bearerAuth: []
       responses:
         200:
           description: OK
           content:
-            #{Schema.ref DoorkeeperApplication}
+            #{Schema.ref Model::DoorkeeperApplication}
     YAML
     )]) { update }
 
@@ -122,14 +122,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref DoorkeeperApplication}
+            #{Schema.ref Model::DoorkeeperApplication}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref DoorkeeperApplication}
+              #{Schema.ref Model::DoorkeeperApplication}
       YAML
     )]
     def create

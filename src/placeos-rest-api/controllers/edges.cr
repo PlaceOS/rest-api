@@ -118,7 +118,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Edge}
+              #{Schema.ref Model::Edge}
       YAML
     )]
     def show
@@ -131,14 +131,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Edge}
+            #{Schema.ref Model::Edge}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref Edge}
+              #{Schema.ref Model::Edge}
       YAML
     )]
     def update
@@ -152,14 +152,14 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref Edge}
+        #{Schema.ref Model::Edge}
     security:
     - bearerAuth: []
     responses:
       200:
         description: OK
         content:
-          #{Schema.ref Edge}
+          #{Schema.ref Model::Edge}
     YAML
     )]) { update }
 
@@ -169,14 +169,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Edge}
+            #{Schema.ref Model::Edge}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref Edge}
+              #{Schema.ref Model::Edge}
       YAML
     )]
     def create

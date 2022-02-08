@@ -190,7 +190,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Module}
+              #{Schema.ref Model::Module}
       YAML
     )]
     def show
@@ -209,14 +209,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Module}
+            #{Schema.ref Model::Module}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref Module}
+              #{Schema.ref Model::Module}
       YAML
     )]
     def update
@@ -236,14 +236,14 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref Module}
+        #{Schema.ref Model::Module}
     security:
     - bearerAuth: []
     responses:
       200:
         description: OK
         content:
-          #{Schema.ref Module}
+          #{Schema.ref Model::Module}
     YAML
     )]) { update }
 
@@ -253,14 +253,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Module}
+            #{Schema.ref Model::Module}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref Module}
+              #{Schema.ref Model::Module}
       YAML
     )]
     def create
@@ -292,7 +292,7 @@ module PlaceOS::Api
         200:
           description: OK
           content:
-                #{Schema.ref Open_Settings}
+                #{Schema.ref Model::Open_Settings}
       YAML
     )]) do
       render json: Api::Settings.collated_settings(current_user, current_module)

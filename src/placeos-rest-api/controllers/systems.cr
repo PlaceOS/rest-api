@@ -226,7 +226,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref ControlSystem}
+              #{Schema.ref Model::ControlSystem}
       YAML
     )]
     def show
@@ -251,14 +251,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref ControlSystem}
+            #{Schema.ref Model::ControlSystem}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref ControlSystem}
+              #{Schema.ref Model::ControlSystem}
       YAML
     )]
     def update
@@ -282,14 +282,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref ControlSystem}
+            #{Schema.ref Model::ControlSystem}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref ControlSystem}
+              #{Schema.ref Model::ControlSystem}
       YAML
     )]) { update }
 
@@ -299,14 +299,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref ControlSystem}
+            #{Schema.ref Model::ControlSystem}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref ControlSystem}
+              #{Schema.ref Model::ControlSystem}
       YAML
     )]
     def create
@@ -374,7 +374,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Open_Metadata}
+          #{Schema.ref Model::Open_Metadata}
     YAML
     )]) do
       parent_id = current_control_system.id.not_nil!
@@ -391,7 +391,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Open_Settings}
+          #{Schema.ref Model::Open_Settings}
     YAML
     )]) do
       render json: Api::Settings.collated_settings(current_user, current_control_system)
@@ -407,7 +407,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref ControlSystem}
+          #{Schema.ref Model::ControlSystem}
       500:
         description: Internal Server Error
       404:
@@ -439,7 +439,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref ControlSystem}
+          #{Schema.ref Model::ControlSystem}
     YAML
     )]) do
       module_id = params["module_id"]

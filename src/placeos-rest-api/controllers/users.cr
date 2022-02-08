@@ -205,14 +205,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref User}
+            #{Schema.ref Model::User}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref User}
+              #{Schema.ref Model::User}
       YAML
     )]
     def create
@@ -232,14 +232,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref User}
+            #{Schema.ref Model::User}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref User}
+              #{Schema.ref Model::User}
       YAML
     )]
     def update
@@ -263,14 +263,14 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref User}
+        #{Schema.ref Model::User}
     security:
     - bearerAuth: []
     responses:
       200:
         description: OK
         content:
-          #{Schema.ref User}
+          #{Schema.ref Model::User}
   YAML
     )]) { update }
 
@@ -310,7 +310,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Open_Metadata}
+          #{Schema.ref Model::Open_Metadata}
     YAML
     )]) do
       parent_id = user.id.not_nil!

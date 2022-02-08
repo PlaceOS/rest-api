@@ -56,7 +56,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Domain}
+              #{Schema.ref Model::Domain}
       YAML
     )]
     def show
@@ -69,14 +69,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Domain}
+            #{Schema.ref Model::Domain}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref Domain}
+              #{Schema.ref Model::Domain}
       YAML
     )]
     def update
@@ -90,14 +90,14 @@ module PlaceOS::Api
       requestBody:
         required: true
         content:
-          #{Schema.ref Domain}
+          #{Schema.ref Model::Domain}
       security:
       - bearerAuth: []
       responses:
         200:
           description: OK
           content:
-            #{Schema.ref Domain}
+            #{Schema.ref Model::Domain}
       YAML
     )]) { update }
 
@@ -107,14 +107,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Domain}
+            #{Schema.ref Model::Domain}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref Domain}
+              #{Schema.ref Model::Domain}
       YAML
     )]
     def create

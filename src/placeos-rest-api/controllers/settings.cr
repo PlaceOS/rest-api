@@ -82,7 +82,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Open_Settings}
+              #{Schema.ref Model::Open_Settings}
       YAML
     )]
     def show
@@ -95,14 +95,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Open_Settings}
+            #{Schema.ref Model::Open_Settings}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref Open_Settings}
+              #{Schema.ref Model::Open_Settings}
       YAML
     )]
     def update
@@ -117,14 +117,14 @@ module PlaceOS::Api
       requestBody:
         required: true
         content:
-          #{Schema.ref Open_Settings}
+          #{Schema.ref Model::Open_Settings}
       security:
       - bearerAuth: []
       responses:
         200:
           description: OK
           content:
-            #{Schema.ref Open_Settings}
+            #{Schema.ref Model::Open_Settings}
     YAML
     )]) { update }
 
@@ -134,14 +134,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Open_Settings}
+            #{Schema.ref Model::Open_Settings}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref Open_Settings}
+              #{Schema.ref Model::Open_Settings}
       YAML
     )]
     def create

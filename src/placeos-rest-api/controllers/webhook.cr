@@ -33,7 +33,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Trigger}
+              #{Schema.ref Model::Trigger}
       YAML
     )]
     def show

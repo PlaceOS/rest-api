@@ -48,7 +48,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref JsonSchema}
+              #{Schema.ref Model::JsonSchema}
       YAML
     )]
     def show
@@ -61,14 +61,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref JsonSchema}
+            #{Schema.ref Model::JsonSchema}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref JsonSchema}
+              #{Schema.ref Model::JsonSchema}
       YAML
     )]
     def update
@@ -82,14 +82,14 @@ module PlaceOS::Api
       requestBody:
         required: true
         content:
-          #{Schema.ref JsonSchema}
+          #{Schema.ref Model::JsonSchema}
       security:
       - bearerAuth: []
       responses:
         200:
           description: OK
           content:
-            #{Schema.ref JsonSchema}
+            #{Schema.ref Model::JsonSchema}
     YAML
     )]) { update }
 
@@ -99,14 +99,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref JsonSchema}
+            #{Schema.ref Model::JsonSchema}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref JsonSchema}
+              #{Schema.ref Model::JsonSchema}
       YAML
     )]
     def create

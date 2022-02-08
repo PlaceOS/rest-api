@@ -30,17 +30,19 @@ module PlaceOS::Api
     # Params
     ###############################################################################################
 
-    getter parent_id : String do
-      params["id"]
-    end
+    {% begin %}
+      {% for form in {"", "?", "!"} %}
+        macro param_getter{{ form.id }}(definition, description)
+          getter{{ form.id }} \{{ definition.id }} do
+            param(\{{ definition.id }}, \{{ description }})
+          end
+        end
+      {% end %}
+    {% end %}
 
-    getter name : String? do
-      params["name"]?.presence
-    end
-
-    getter? include_parent : Bool do
-      boolean_param("include_parent", default: true)
-    end
+    param_getter?(include_parent : Bool = true, "Include the parent metadata, by key of `parent_id`")
+    param_getter(parent_id : String)
+    param_getter(name : String?)
 
     ###############################################################################################
 
@@ -64,7 +66,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Open_Metadata}
+              #{Schema.ref Model::Open_Metadata}
       YAML
     )]
     def show
@@ -127,7 +129,7 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Open_Metadata}
+            #{Schema.ref Model::Open_Metadata}
         security:
         - bearerAuth: []
         responses:
@@ -138,7 +140,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Open_Metadata}
+              #{Schema.ref Model::Open_Metadata}
       YAML
     )]
     def update
@@ -189,7 +191,7 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref Open_Metadata}
+        #{Schema.ref Model::Open_Metadata}
     security:
     - bearerAuth: []
     responses:
@@ -200,7 +202,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Open_Metadata}
+          #{Schema.ref Model::Open_Metadata}
     YAML
     )]) { update }
 

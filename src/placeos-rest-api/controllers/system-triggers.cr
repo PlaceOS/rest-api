@@ -111,7 +111,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref TriggerInstance}
+              #{Schema.ref Model::TriggerInstance}
       YAML
     )]
     def show
@@ -136,14 +136,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref TriggerInstance}
+            #{Schema.ref Model::TriggerInstance}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref TriggerInstance}
+              #{Schema.ref Model::TriggerInstance}
       YAML
     )]
     def update
@@ -166,14 +166,14 @@ module PlaceOS::Api
       requestBody:
         required: true
         content:
-          #{Schema.ref TriggerInstance}
+          #{Schema.ref Model::TriggerInstance}
       security:
       - bearerAuth: []
       responses:
         200:
           description: OK
           content:
-            #{Schema.ref TriggerInstance}
+            #{Schema.ref Model::TriggerInstance}
     YAML
     )]) { update }
 
@@ -183,7 +183,7 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref TriggerInstance}
+            #{Schema.ref Model::TriggerInstance}
         security:
         - bearerAuth: []
         responses:
@@ -192,7 +192,7 @@ module PlaceOS::Api
           201:
             description: OK
             content:
-              #{Schema.ref TriggerInstance}
+              #{Schema.ref Model::TriggerInstance}
       YAML
     )]
     def create

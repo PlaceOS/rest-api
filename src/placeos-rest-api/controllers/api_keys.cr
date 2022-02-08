@@ -44,7 +44,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array ApiKey}
+              #{Schema.ref_array Model::ApiKey}
       YAML
     )]
     def index
@@ -73,7 +73,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array ApiKey}
+              #{Schema.ref_array Model::ApiKey}
       YAML
     )]
     def show
@@ -86,14 +86,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref ApiKey}
+            #{Schema.ref Model::ApiKey}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref ApiKey}
+              #{Schema.ref Model::ApiKey}
       YAML
     )]
     def update
@@ -107,14 +107,14 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref ApiKey}
+        #{Schema.ref Model::Model::ApiKey}
     security:
     - bearerAuth: []
     responses:
       200:
         description: OK
         content:
-          #{Schema.ref ApiKey}
+          #{Schema.ref Model::Model::ApiKey}
   YAML
     )]) { update }
 
@@ -124,14 +124,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref ApiKey}
+            #{Schema.ref Model::ApiKey}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref ApiKey}
+              #{Schema.ref Model::ApiKey}
       YAML
     )]
     def create
