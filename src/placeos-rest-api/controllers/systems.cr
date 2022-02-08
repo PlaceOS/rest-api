@@ -1,4 +1,6 @@
 require "hound-dog"
+require "openapi-generator"
+require "openapi-generator/helpers/action-controller"
 
 require "placeos-core-client"
 require "placeos-driver/proxy/system"
@@ -7,19 +9,6 @@ require "./application"
 require "./modules"
 require "./settings"
 require "../websocket"
-
-require "openapi-generator"
-require "openapi-generator/helpers/action-controller"
-
-# TODO: Remove after this PR is merged https://github.com/crystal-lang/crystal/pull/10922
-module Enumerable(T)
-  def tally_by(& : T -> U) : Hash(U, Int32) forall U
-    each_with_object(Hash(U, Int32).new) do |item, hash|
-      count = hash[value = yield item]?
-      hash[value] = count ? count + 1 : 1
-    end
-  end
-end
 
 module PlaceOS::Api
   class Systems < Application

@@ -33,6 +33,7 @@ module PlaceOS::Api
       describe "CRUD operations", tags: "crud" do
         test_crd(klass: Model::Asset, controller_klass: Assets)
       end
+
       it "update" do
         asset = Model::Generator.asset.save!
         original_name = asset.name

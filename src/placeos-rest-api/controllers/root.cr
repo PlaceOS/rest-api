@@ -86,6 +86,24 @@ module PlaceOS::Api
         .first?
     end
 
+    # Platform Information
+    ###############################################################################################
+
+    record(
+      PlatformInfo,
+      version : String = PLATFORM_VERSION,
+      changelog : String = PLATFORM_CHANGELOG,
+    ) do
+      include JSON::Serializable
+    end
+
+    get "/platform", :platform_info do
+      render json: Root.platform_info
+    end
+
+    class_getter platform_info : PlatformInfo = PlatformInfo.new
+
+    # Versions
     ###############################################################################################
 
     get("/version", :version, annotations: @[OpenAPI(<<-YAML
@@ -109,10 +127,6 @@ module PlaceOS::Api
         description: OK
   YAML
     )]) do
-      render json: Root.construct_versions
-    end
-
-    get "/cluster/versions", :cluster_version do
       render json: Root.construct_versions
     end
 

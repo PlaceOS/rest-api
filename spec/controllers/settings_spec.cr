@@ -42,8 +42,62 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        pending "searchs on keys"
-        pending "returns settings for a set of parent ids"
+        it "searches on keys" do
+          unencrypted = %({"secret_key": "secret1234"})
+          settings = Model::Generator.settings(settings_string: unencrypted).save!
+
+          sleep 20.milliseconds
+
+          refresh_elastic(Model::Settings.table_name)
+
+          params = HTTP::Params.encode({"q" => settings.keys.first})
+          path = "#{base.rstrip('/')}?#{params}"
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header
+          )
+
+          result.status_code.should eq 200
+
+          settings = Array(Model::Settings).from_json(result.body)
+          settings.should_not be_empty
+          settings.first.keys.should contain("secret_key")
+        end
+
+        it "returns settings for a set of parent ids" do
+          systems = Array.new(2) { Model::Generator.control_system.save! }
+
+          systems.map do |system|
+            {Encryption::Level::None, Encryption::Level::Admin, Encryption::Level::NeverDisplay}.map do |level|
+              Model::Generator.settings(encryption_level: level, control_system: system).save!
+            end
+          end
+
+          sys, sys2 = systems
+
+          refresh_elastic(Model::Settings.table_name)
+
+          result = curl(
+            method: "GET",
+            path: File.join(base, "?parent_id=#{sys.id},#{sys2.id}"),
+            headers: authorization_header
+          )
+
+          result.status_code.should eq 200
+
+          returned_settings = Array(Model::Settings).from_json(result.body)
+
+          returned_settings.size.should eq(6)
+
+          never_displayed_settings, admin_settings, no_encryption_settings = returned_settings.in_groups_of(2).map(&.compact)
+
+          never_displayed_settings.all?(&.encryption_level.never_display?).should be_true
+          admin_settings.all?(&.encryption_level.admin?).should be_true
+          no_encryption_settings.all?(&.encryption_level.none?).should be_true
+        end
+
         it "returns settings for parent id" do
           sys = Model::Generator.control_system.save!
           settings = [
@@ -62,9 +116,10 @@ module PlaceOS::Api
 
           result.status_code.should eq 200
 
-          returned_settings = Array(JSON::Any).from_json(result.body).map { |m|
-            Model::Settings.from_trusted_json(m.to_json)
-          }.sort_by!(&.encryption_level)
+          returned_settings = Array(JSON::Any)
+            .from_json(result.body)
+            .map { |j| Model::Settings.from_trusted_json(j.to_json) }
+            .sort_by!(&.encryption_level)
 
           returned_clear, returned_admin, returned_never_displayed = returned_settings
 
@@ -78,7 +133,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "history" do
+      describe "/:id/history" do
         it "returns history for a master setting" do
           sys = Model::Generator.control_system.save!
 

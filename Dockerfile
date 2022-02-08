@@ -26,6 +26,7 @@ RUN adduser \
 RUN apk update && \
     apk add --no-cache \
         ca-certificates \
+        curl \
     && \
     update-ca-certificates
 

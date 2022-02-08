@@ -5,9 +5,6 @@ module PlaceOS::Api
     _, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
-    pending "GET /:id/compiled"
-    pending "POST /:id/recompile"
-
     with_server do
       describe "index", tags: "search" do
         test_base_index(klass: Model::Driver, controller_klass: Drivers)
@@ -82,6 +79,39 @@ module PlaceOS::Api
             result.body.should contain "role must not change"
           end
         end
+
+        it "GET /:id/compiled" do
+          driver = Model::Generator.driver.save!
+
+          response = curl(
+            method: "GET",
+            path: "#{base}#{driver.id.not_nil!}/compiled",
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+
+          response.success?.should be_true
+        end
+      end
+
+      # TODO: awaiting addition of `core` to test environment
+      pending "POST /:id/recompile" do
+        driver = Model::Generator.driver.save!
+        Model::Generator.module(driver: driver).save!
+
+        response = curl(
+          method: "GET",
+          path: "#{base}#{driver.id.not_nil!}/compiled",
+          headers: authorization_header.merge({"Content-Type" => "application/json"}),
+        )
+
+        response.success?.should be_true
+
+        path = "#{base}#{driver.id.not_nil!}/recompile"
+        _result = curl(
+          method: "POST",
+          path: path,
+          headers: authorization_header.merge({"Content-Type" => "application/json"}),
+        )
       end
 
       describe "scopes" do

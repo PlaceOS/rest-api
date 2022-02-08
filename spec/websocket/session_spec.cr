@@ -90,9 +90,31 @@ module PlaceOS::Api::WebSocket
           updates.shift.type.should eq Session::Response::Type::Success
         end
 
+        # TODO: awaiting addition of `core` to test environment
         pending "exec"
         pending "debug"
-        pending "ignore"
+
+        it "ignore" do
+          status_name = "nugget"
+
+          id = rand(10).to_i64
+          updates, _, _ = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
+            request = {
+              id:          id,
+              system_id:   control_system.id.as(String),
+              module_name: mod.resolved_name,
+              name:        status_name,
+              command:     Session::Request::Command::Ignore,
+            }
+            ws.send Session::Request.new(**request).to_json
+            sleep 0.1
+          end
+
+          # Check all messages received
+          updates.size.should eq 1
+          # Check for successful ignore response
+          updates.shift.type.should eq Session::Response::Type::Success
+        end
       end
 
       describe Session::Response do

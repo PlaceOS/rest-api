@@ -77,6 +77,7 @@ module PlaceOS::Api
         end
       end
     end
+
     describe "scopes" do
       test_controller_scope(Triggers)
       test_update_write_scope(Triggers)

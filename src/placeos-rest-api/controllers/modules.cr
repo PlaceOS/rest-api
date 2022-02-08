@@ -137,8 +137,7 @@ module PlaceOS::Api
           query.must_not({"role" => [Model::Driver::Role::Logic.to_i]})
         end
 
-        # NOTE: parent queries appear to fail as of `placeos-1.2109.1`
-        # query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
+        query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
 
         search_results = paginate_results(elastic, query)
 
