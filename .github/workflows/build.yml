@@ -2,6 +2,6 @@ name: Build
 on: push
 jobs:
   build:
-    uses: PlaceOS/.github/.github/workflows/build-dev-image.yml@feat/central-build-dev-img
+    uses: PlaceOS/.github/.github/workflows/build-dev-image.yml@main
     secrets:
       GHCR_PAT: ${{ secrets.GHCR_PAT }}
