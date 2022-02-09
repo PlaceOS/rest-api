@@ -37,7 +37,6 @@ module PlaceOS::Api
 
       describe "CRUD operations", tags: "crud" do
         before_each do
-          HttpMocks.core_compiled
           HttpMocks.reset
         end
 
@@ -83,9 +82,8 @@ module PlaceOS::Api
 
         it "GET /:id/compiled" do
           driver, _, _, _ = setup_system
-          sleep 0.4
           Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
-            update.destroyed? || !update.commit.starts_with? "RECOMPILE"
+            update.destroyed? || !update.recompile_commit?
           end
 
           response = curl(
@@ -117,7 +115,6 @@ module PlaceOS::Api
       describe "scopes" do
         before_each do
           HttpMocks.core_compiled
-          # HttpMocks.reset
         end
 
         test_controller_scope(Drivers)

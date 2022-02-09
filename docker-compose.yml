@@ -15,9 +15,6 @@ x-etcd-client-env: &etcd-client-env
   ETCD_HOST: ${ETCD_HOST:-etcd}
   ETCD_PORT: ${ETCD_PORT:-2379}
 
-x-core-client-env: &core-client-env
-  CORE_HOST: ${CORE_HOST:-core}
-  CORE_PORT: ${CORE_PORT:-3000}
 
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -114,6 +111,5 @@ services:
       <<: *etcd-client-env
       <<: *redis-client-env
       <<: *rethinkdb-client-env
-      <<: *core-client-env
       # Environment
       <<: *deployment-env

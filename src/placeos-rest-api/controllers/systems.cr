@@ -456,12 +456,6 @@ module PlaceOS::Api
       end
     end
 
-    def self.core_for2(module_id : String, request_id : String? = nil, & : Core::Client -> V) forall V
-      Core::Client.client(uri: URI.parse("http://core:3000"), request_id: request_id) do |client|
-        yield client
-      end
-    end
-
     protected def find_system
       Log.context.set(control_system_id: control_system_id)
       # Find will raise a 404 (not found) if there is an error

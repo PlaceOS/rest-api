@@ -12,9 +12,6 @@ module PlaceOS::Api
   ETCD_HOST = ENV["ETCD_HOST"]? || "localhost"
   ETCD_PORT = (ENV["ETCD_PORT"]? || "2379").to_i
 
-  CORE_HOST = ENV["CORE_HOST"]? || "core"
-  CORE_PORT = (ENV["CORE_PORT"]? || "3000").to_i
-
   PLACE_DISPATCH_HOST = ENV["PLACE_DISPATCH_HOST"]? || "dispatch"
   PLACE_DISPATCH_PORT = (ENV["PLACE_DISPATCH_PORT"]? || "3000").to_i
 
