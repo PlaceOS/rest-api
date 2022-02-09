@@ -46,99 +46,101 @@ module PlaceOS::Api
       describe "index", tags: "search" do
         test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
-        it "filters systems by zones" do
-          Model::ControlSystem.clear
+        context "query parameter" do
+          it "zone_id filters systems by zones" do
+            Model::ControlSystem.clear
 
-          num_systems = 5
+            num_systems = 5
 
-          zone = Model::Generator.zone.save!
-          zone_id = zone.id.as(String)
+            zone = Model::Generator.zone.save!
+            zone_id = zone.id.as(String)
 
-          systems = Array.new(size: num_systems) do
-            Model::Generator.control_system
-          end
+            systems = Array.new(size: num_systems) do
+              Model::Generator.control_system
+            end
 
-          # Add the zone to a subset of systems
-          expected_systems = systems.shuffle[0..2]
-          expected_systems.each do |sys|
-            sys.zones = [zone_id]
-          end
-          systems.each &.save!
+            # Add the zone to a subset of systems
+            expected_systems = systems.shuffle[0..2]
+            expected_systems.each do |sys|
+              sys.zones = [zone_id]
+            end
+            systems.each &.save!
 
-          expected_ids = expected_systems.compact_map(&.id)
-          total_ids = expected_ids.size
+            expected_ids = expected_systems.compact_map(&.id)
+            total_ids = expected_ids.size
 
-          params = HTTP::Params.encode({"zone_id" => zone_id})
-          path = "#{base}?#{params}"
+            params = HTTP::Params.encode({"zone_id" => zone_id})
+            path = "#{base}?#{params}"
 
-          refresh_elastic(Model::ControlSystem.table_name)
-          found = until_expected("GET", path, authorization_header) do |response|
-            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            (returned_ids | expected_ids).size == total_ids
-          end
-
-          found.should be_true
-        end
-
-        it "filters systems by email" do
-          Model::ControlSystem.clear
-          num_systems = 5
-
-          systems = Array.new(size: num_systems) do
-            Model::Generator.control_system
-          end
-
-          # Add the zone to a subset of systems
-          expected_systems = systems.shuffle[0..2]
-          systems.each &.save!
-
-          expected_emails = expected_systems.compact_map(&.email)
-          expected_ids = expected_systems.compact_map(&.id)
-
-          total_ids = expected_ids.size
-          params = HTTP::Params.encode({"email" => expected_emails.join(',')})
-          path = "#{base}?#{params}"
-
-          found = until_expected("GET", path, authorization_header) do |response|
             refresh_elastic(Model::ControlSystem.table_name)
-            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            (returned_ids | expected_ids).size == total_ids
+            found = until_expected("GET", path, authorization_header) do |response|
+              returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              (returned_ids | expected_ids).size == total_ids
+            end
+
+            found.should be_true
           end
 
-          found.should be_true
-        end
+          it "email filters systems by email" do
+            Model::ControlSystem.clear
+            num_systems = 5
 
-        it "filters systems by modules" do
-          Model::ControlSystem.clear
-          num_systems = 5
+            systems = Array.new(size: num_systems) do
+              Model::Generator.control_system
+            end
 
-          mod = Model::Generator.module.save!
-          module_id = mod.id.as(String)
+            # Add the zone to a subset of systems
+            expected_systems = systems.shuffle[0..2]
+            systems.each &.save!
 
-          systems = Array.new(size: num_systems) do
-            Model::Generator.control_system
+            expected_emails = expected_systems.compact_map(&.email)
+            expected_ids = expected_systems.compact_map(&.id)
+
+            total_ids = expected_ids.size
+            params = HTTP::Params.encode({"email" => expected_emails.join(',')})
+            path = "#{base}?#{params}"
+
+            found = until_expected("GET", path, authorization_header) do |response|
+              refresh_elastic(Model::ControlSystem.table_name)
+              returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              (returned_ids | expected_ids).size == total_ids
+            end
+
+            found.should be_true
           end
 
-          # Add the zone to a subset of systems
-          expected_systems = systems.shuffle[0..2]
-          expected_systems.each do |sys|
-            sys.modules = [module_id]
+          it "module_id filters systems by modules" do
+            Model::ControlSystem.clear
+            num_systems = 5
+
+            mod = Model::Generator.module.save!
+            module_id = mod.id.as(String)
+
+            systems = Array.new(size: num_systems) do
+              Model::Generator.control_system
+            end
+
+            # Add the zone to a subset of systems
+            expected_systems = systems.shuffle[0..2]
+            expected_systems.each do |sys|
+              sys.modules = [module_id]
+            end
+            systems.each &.save!
+
+            expected_ids = expected_systems.compact_map(&.id)
+            total_ids = expected_ids.size
+
+            params = HTTP::Params.encode({"module_id" => module_id})
+            path = "#{base}?#{params}"
+
+            found = until_expected("GET", path, authorization_header) do |response|
+              refresh_elastic(Model::ControlSystem.table_name)
+              returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              (returned_ids | expected_ids).size == total_ids
+            end
+
+            found.should be_true
           end
-          systems.each &.save!
-
-          expected_ids = expected_systems.compact_map(&.id)
-          total_ids = expected_ids.size
-
-          params = HTTP::Params.encode({"module_id" => module_id})
-          path = "#{base}?#{params}"
-
-          found = until_expected("GET", path, authorization_header) do |response|
-            refresh_elastic(Model::ControlSystem.table_name)
-            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            (returned_ids | expected_ids).size == total_ids
-          end
-
-          found.should be_true
         end
       end
 
