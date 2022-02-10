@@ -79,7 +79,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array Zone}
+              #{Schema.ref_array Model::Zone}
       YAML
     )]
     def index
@@ -217,7 +217,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Model::Open_Metadata}
+          #{Schema.ref OpenApiMetadata}
     YAML
     )]) do
       parent_id = current_zone.id.not_nil!
@@ -240,7 +240,7 @@ module PlaceOS::Api
         200:
           description: OK
           content:
-            #{Schema.ref_array Trigger}
+            #{Schema.ref_array Model::Trigger}
       YAML
     )]) do
       triggers = current_zone.trigger_data

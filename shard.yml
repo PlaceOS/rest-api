@@ -64,7 +64,7 @@ dependencies:
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 6.0
+    version: ~> 6.3
 
   # An abstraction over Fibers
   promise:
@@ -103,7 +103,7 @@ dependencies:
 
   openapi-generator:
     github: place-labs/openapi-generator
-    branch: perf/action-controller
+    branch: master
 
 development_dependencies:
   # Linter

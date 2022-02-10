@@ -17,9 +17,19 @@ module PlaceOS::Api
 
     getter current_asset : Model::Asset { find_asset }
 
+    # Params
+    ###############################################################################################
+
+    getter asset_id : String do
+      params["id"]
+    end
+
     getter parent_id : String? do
       params["parent_id"]?.presence || params["parent"]?.presence
     end
+
+    # Routes
+    ###############################################################################################
 
     def index
       elastic = Model::Asset.elastic
@@ -68,10 +78,9 @@ module PlaceOS::Api
     ###########################################################################
 
     protected def find_asset
-      id = params["id"]
-      Log.context.set(asset_id: id)
+      Log.context.set(asset_id: asset_id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Asset.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Asset.find!(asset_id, runopts: {"read_mode" => "majority"})
     end
   end
 end

@@ -44,7 +44,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array DoorkeeperApplication}
+              #{Schema.ref_array Model::DoorkeeperApplication}
       YAML
     )]
     def index

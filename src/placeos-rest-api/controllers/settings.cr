@@ -54,7 +54,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array Open_Settings}
+              #{Schema.ref_array Model::Open_Settings}
       YAML
     )]
     def index

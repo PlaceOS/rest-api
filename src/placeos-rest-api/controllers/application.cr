@@ -1,5 +1,5 @@
-require "./application"
 require "action-controller"
+require "openapi-generator/helpers/action-controller"
 require "placeos-models"
 require "uuid"
 
@@ -10,6 +10,17 @@ module PlaceOS::Api
   private abstract class Application < ActionController::Base
     macro inherited
       Log = ::PlaceOS::Api::Log.for(self)
+
+      include ::OpenAPI::Generator::Controller
+      include ::OpenAPI::Generator::Helpers::ActionController
+
+      {% for form in {"", "?", "!"} %}
+        macro param_getter{{ form.id }}(definition, description)
+          getter{{ form.id }} \{{ definition.id }} do
+            param(\{{ definition.id }}, \{{ description }})
+          end
+        end
+      {% end %}
     end
 
     # Helpers for controller responses

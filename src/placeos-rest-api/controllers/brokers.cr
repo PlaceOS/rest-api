@@ -7,8 +7,6 @@ require "openapi-generator/helpers/action-controller"
 
 module PlaceOS::Api
   class Brokers < Application
-    include ::OpenAPI::Generator::Controller
-    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/brokers/"
 
     # Scopes
@@ -35,11 +33,6 @@ module PlaceOS::Api
         summary: get all brokers
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Broker}
       YAML
     )]
     def index
@@ -55,11 +48,6 @@ module PlaceOS::Api
         summary: get current broker
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Broker}
       YAML
     )]
     def show
@@ -69,17 +57,8 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Update a broker
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Broker}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Broker}
       YAML
     )]
     def update
@@ -89,34 +68,16 @@ module PlaceOS::Api
     # TODO: replace manual id with interpolated value from `id_param`
     put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
       summary: Update a trigger
-      requestBody:
-        required: true
-        content:
-          #{Schema.ref Model::Broker}
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
-          content:
-            #{Schema.ref Model::Broker}
       YAML
     )]) { update }
 
     @[OpenAPI(
       <<-YAML
         summary: Create a broker
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Broker}
         security:
         - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Broker}
       YAML
     )]
     def create
@@ -128,9 +89,6 @@ module PlaceOS::Api
         summary: Delete a broker
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy

@@ -30,7 +30,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array JsonSchema}
+              #{Schema.ref_array Model::JsonSchema}
       YAML
     )]
     def index

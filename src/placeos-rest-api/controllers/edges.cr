@@ -99,7 +99,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array Edge}
+              #{Schema.ref_array Model::Edge}
       YAML
     )]
     def index

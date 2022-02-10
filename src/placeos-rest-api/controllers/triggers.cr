@@ -38,7 +38,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array Trigger}
+              #{Schema.ref_array Model::Trigger}
       YAML
     )]
     def index

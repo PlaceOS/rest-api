@@ -56,7 +56,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array TriggerInstance}
+              #{Schema.ref_array Model::TriggerInstance}
       YAML
     )]
     def index

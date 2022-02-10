@@ -78,7 +78,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array Module}
+              #{Schema.ref_array Model::Module}
       YAML
     )]
     def index
@@ -360,7 +360,6 @@ module PlaceOS::Api
           description: Internal Server Error
       YAML
     )]) do
-      id, method = params["id"], params["method"]
       sys_id = current_module.control_system_id || ""
       args = Array(JSON::Any).from_json(self.body)
 
@@ -458,7 +457,6 @@ module PlaceOS::Api
           description: OK
       YAML
     )]) do
-      module_id = params["id"]
       render json: Api::Systems.core_for(module_id, request_id, &.load(module_id))
     end
 

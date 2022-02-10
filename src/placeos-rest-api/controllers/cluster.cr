@@ -1,13 +1,8 @@
 require "placeos-core-client"
 require "promise"
 
-require "openapi-generator"
-
-require "placeos-core-client"
-
 module PlaceOS::Api
   class Cluster < Application
-    include ::OpenAPI::Generator::Controller
     base "/api/engine/v2/cluster/"
 
     # Scopes

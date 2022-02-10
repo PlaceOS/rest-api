@@ -6,9 +6,9 @@ require "openapi-generator/helpers/action-controller"
 module PlaceOS::Api
   AUTH_TYPES = {"Ldap", "Saml", "OAuth"}
   {% for auth_type in AUTH_TYPES %}
+    {% auth_model = "Model::#{auth_type.id}Authentication".id %}
+
     class {{auth_type.id}}Authentications < Application
-      include ::OpenAPI::Generator::Controller
-      include ::OpenAPI::Generator::Helpers::ActionController
       base "/api/engine/v2/{{auth_type.downcase.id}}_auths/"
 
       # Scopes
@@ -34,22 +34,17 @@ module PlaceOS::Api
 
       ###############################################################################################
 
-      getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
+      getter current_auth : {{ auth_model }} { find_auth }
 
       @[OpenAPI(
       <<-YAML
         summary: get all {{auth_type.id}} auths
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::Auth}
       YAML
     )]
       def index
-        elastic = Model::{{auth_type.id}}Authentication.elastic
+        elastic = {{ auth_model }}.elastic
         query = elastic.query(params)
 
         if authority = authority_id
@@ -67,11 +62,6 @@ module PlaceOS::Api
         summary: get current {{auth_type.id}} auths
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Auth}
       YAML
     )]
       def show
@@ -84,14 +74,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Model::Auth}
+            #{Schema.ref {{ auth_model }}}
         security:
         - bearerAuth: []
         responses:
           200:
             description: OK
             content:
-              #{Schema.ref Model::Auth}
+              #{Schema.ref {{ auth_model }}}
       YAML
     )]
       def update
@@ -102,38 +92,20 @@ module PlaceOS::Api
       # TODO: replace manual id with interpolated value from `id_param`
       put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
         summary: Update the current auth
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Auth}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Auth}
         YAML
     )]) { update }
 
     @[OpenAPI(
       <<-YAML
         summary: Create a new {{auth_type.id}} auth
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Auth}
         security:
         - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Auth}
       YAML
     )]
       def create
-        save_and_respond(Model::{{auth_type.id}}Authentication.from_json(self.body))
+        save_and_respond({{ auth_model }}.from_json(self.body))
       end
 
       @[OpenAPI(
@@ -141,9 +113,6 @@ module PlaceOS::Api
         summary: Delete a the current auth
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
       def destroy
@@ -158,7 +127,7 @@ module PlaceOS::Api
         id = params["id"]
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
-        Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
+        {{ auth_model }}.find!(id, runopts: {"read_mode" => "majority"})
       end
     end
   {% end %}

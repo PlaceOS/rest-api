@@ -905,7 +905,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Open_Metadata'
+                $ref: '#/components/schemas/OpenApiMetadata'
       security:
       - bearerAuth: []
     put:
@@ -921,7 +921,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Open_Metadata'
+              $ref: '#/components/schemas/OpenApiMetadata'
         required: true
       responses:
         "400":
@@ -933,7 +933,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Open_Metadata'
+                $ref: '#/components/schemas/OpenApiMetadata'
       security:
       - bearerAuth: []
     delete:
@@ -977,7 +977,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Open_Metadata'
+              $ref: '#/components/schemas/OpenApiMetadata'
         required: true
       responses:
         "400":
@@ -989,7 +989,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Open_Metadata'
+                $ref: '#/components/schemas/OpenApiMetadata'
       security:
       - bearerAuth: []
   /api/engine/v2/metadata/{id}/children:
@@ -1023,7 +1023,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Open_Metadata'
+                  $ref: '#/components/schemas/OpenApiMetadata'
         "403":
           description: Forbidden
       security:
@@ -2475,7 +2475,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Open_Metadata'
+                $ref: '#/components/schemas/OpenApiMetadata'
       security:
       - bearerAuth: []
   /api/engine/v2/systems/{sys_id}/module/{module_id}:
@@ -3248,7 +3248,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Open_Metadata'
+                $ref: '#/components/schemas/OpenApiMetadata'
       security:
       - bearerAuth: []
   /api/engine/v2/version:
@@ -3568,7 +3568,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Open_Metadata'
+                $ref: '#/components/schemas/OpenApiMetadata'
       security:
       - bearerAuth: []
   /api/engine/v2/zones/{id}/triggers:
@@ -3606,7 +3606,7 @@ components:
         description:
           type: string
           example: This zone has space for 517 people
-    Open_Metadata:
+    OpenApiMetadata:
       required:
       - name
       - description

@@ -88,17 +88,8 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Update a driver
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Open_Driver}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Open_Driver}
       YAML
     )]
     def update

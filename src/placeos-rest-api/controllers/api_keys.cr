@@ -1,12 +1,7 @@
 require "./application"
 
-require "openapi-generator"
-require "openapi-generator/helpers/action-controller"
-
 module PlaceOS::Api
   class ApiKeys < Application
-    include ::OpenAPI::Generator::Controller
-    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/api_keys/"
 
     # Scopes
@@ -25,9 +20,7 @@ module PlaceOS::Api
     # Params
     ###############################################################################################
 
-    getter authority_id : String? do
-      params["authority_id"]?.presence
-    end
+    param_getter(authority_id : String?, "ID of domain API key is assigned to")
 
     ###############################################################################################
 
@@ -35,16 +28,7 @@ module PlaceOS::Api
 
     @[OpenAPI(
       <<-YAML
-        summary: get all api keys
-        parameters:
-          #{Schema.qp "authority_id", "Filter by authority_id", type: "string"}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::ApiKey}
+        summary: Get all API keys
       YAML
     )]
     def index
@@ -69,11 +53,6 @@ module PlaceOS::Api
         summary: get current api key
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::ApiKey}
       YAML
     )]
     def show
@@ -83,17 +62,8 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Update an api key
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::ApiKey}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::ApiKey}
       YAML
     )]
     def update
@@ -104,34 +74,16 @@ module PlaceOS::Api
     # TODO: replace manual id with interpolated value from `id_param`
     put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
     summary: Update an api key
-    requestBody:
-      required: true
-      content:
-        #{Schema.ref Model::Model::ApiKey}
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
-        content:
-          #{Schema.ref Model::Model::ApiKey}
   YAML
     )]) { update }
 
     @[OpenAPI(
       <<-YAML
         summary: Create an api key
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::ApiKey}
         security:
         - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::ApiKey}
       YAML
     )]
     def create
@@ -146,9 +98,6 @@ module PlaceOS::Api
         summary: Delete an api key
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy
@@ -160,9 +109,6 @@ module PlaceOS::Api
     summary: Get the user token
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
     YAML
     )]) do
       render json: authorize!

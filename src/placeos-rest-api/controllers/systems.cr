@@ -127,7 +127,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array ControlSystem}
+              #{Schema.ref_array Model::ControlSystem}
       YAML
     )]
     def index
@@ -205,7 +205,7 @@ module PlaceOS::Api
         200:
           description: OK
           content:
-            #{Schema.ref_array ControlSystem}
+            #{Schema.ref_array Model::ControlSystem}
     YAML
     )]) do
       emails = required_param(in)
@@ -340,7 +340,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref_array Zone}
+          #{Schema.ref_array Model::Zone}
       403:
         description: Forbidden
     YAML
@@ -374,7 +374,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Model::Open_Metadata}
+          #{Schema.ref OpenApiMetadata}
     YAML
     )]) do
       parent_id = current_control_system.id.not_nil!
@@ -414,9 +414,6 @@ module PlaceOS::Api
         description: Not Found
     YAML
     )]) do
-      control_system_id = params["sys_id"]
-      module_id = params["module_id"]
-
       head :not_found unless Model::Module.exists?(module_id)
 
       module_present = current_control_system.modules.includes?(module_id) || Model::ControlSystem.add_module(control_system_id, module_id)
@@ -442,8 +439,6 @@ module PlaceOS::Api
           #{Schema.ref Model::ControlSystem}
     YAML
     )]) do
-      module_id = params["module_id"]
-
       if current_control_system.modules.includes?(module_id)
         current_control_system.remove_module(module_id)
         current_control_system.save!
@@ -514,7 +509,6 @@ module PlaceOS::Api
         description: Internal Server Error
     YAML
     )]) do
-      sys_id, module_slug, method = params["sys_id"], params["module_slug"], params["method"]
       module_name, index = RemoteDriver.get_parts(module_slug)
       Log.context.set(module_name: module_name, index: index, method: method)
 
@@ -568,7 +562,6 @@ module PlaceOS::Api
         description: OK
     YAML
     )]) do
-      sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
       render json: self.class.module_state(control_system_id, module_name, index)
@@ -585,7 +578,6 @@ module PlaceOS::Api
         description: OK
     YAML
     )]) do
-      sys_id, key, module_slug = params["sys_id"], params["key"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
 
       render json: self.class.module_state(control_system_id, module_name, index, key)
@@ -604,7 +596,6 @@ module PlaceOS::Api
         description: Not Found
     YAML
     )]) do
-      sys_id, module_slug = params["sys_id"], params["module_slug"]
       module_name, index = RemoteDriver.get_parts(module_slug)
       metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(
         system_id: control_system_id,

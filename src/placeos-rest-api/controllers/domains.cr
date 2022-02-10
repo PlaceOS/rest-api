@@ -5,8 +5,6 @@ require "openapi-generator/helpers/action-controller"
 
 module PlaceOS::Api
   class Domains < Application
-    include ::OpenAPI::Generator::Controller
-    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/domains/"
 
     # Scopes
@@ -33,11 +31,6 @@ module PlaceOS::Api
         summary: get all domains
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Domain}
       YAML
     )]
     def index
@@ -52,11 +45,6 @@ module PlaceOS::Api
         summary: get current domain
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Domain}
       YAML
     )]
     def show
@@ -66,17 +54,8 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Update a domain
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Domain}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Domain}
       YAML
     )]
     def update
@@ -87,34 +66,16 @@ module PlaceOS::Api
     # TODO: replace manual id with interpolated value from `id_param`
     put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
       summary: Update a domain
-      requestBody:
-        required: true
-        content:
-          #{Schema.ref Model::Domain}
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
-          content:
-            #{Schema.ref Model::Domain}
       YAML
     )]) { update }
 
     @[OpenAPI(
       <<-YAML
         summary: Create a domain
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Domain}
         security:
         - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Domain}
       YAML
     )]
     def create
@@ -126,9 +87,6 @@ module PlaceOS::Api
         summary: Delete a domain
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy

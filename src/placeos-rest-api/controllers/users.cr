@@ -160,7 +160,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array User}
+              #{Schema.ref_array Model::User}
       YAML
     )]
     def index
@@ -310,7 +310,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Model::Open_Metadata}
+          #{Schema.ref OpenApiMetadata}
     YAML
     )]) do
       parent_id = user.id.not_nil!

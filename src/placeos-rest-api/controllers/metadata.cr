@@ -7,8 +7,6 @@ require "openapi-generator/helpers/action-controller"
 
 module PlaceOS::Api
   class Metadata < Application
-    include ::OpenAPI::Generator::Controller
-    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/metadata"
 
     # Scopes
@@ -30,19 +28,13 @@ module PlaceOS::Api
     # Params
     ###############################################################################################
 
-    {% begin %}
-      {% for form in {"", "?", "!"} %}
-        macro param_getter{{ form.id }}(definition, description)
-          getter{{ form.id }} \{{ definition.id }} do
-            param(\{{ definition.id }}, \{{ description }})
-          end
-        end
-      {% end %}
-    {% end %}
-
     param_getter?(include_parent : Bool = true, "Include the parent metadata, by key of `parent_id`")
-    param_getter(parent_id : String)
-    param_getter(name : String?)
+
+    getter parent_id : String do
+      param(id : String)
+    end
+
+    param_getter(name : String?, "Filters by `name` key")
 
     ###############################################################################################
 
@@ -66,7 +58,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Model::Open_Metadata}
+              #{Schema.ref OpenApiMetadata}
       YAML
     )]
     def show
@@ -101,13 +93,9 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref_array Open_Metadata}
+          #{Schema.ref_array OpenApiMetadata}
     YAML
     )]) do
-      parent_id = params["id"]
-      name = params["name"]?.presence
-      include_parent = params.has_key?("include_parent") ? params["include_parent"].downcase == "true" : true
-
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         head :forbidden unless name && guest_ids.includes?(parent_id)
@@ -115,21 +103,20 @@ module PlaceOS::Api
 
       render_json do |json|
         json.array do
-          current_zone.children.all.each do |zone|
-            Children.new(zone, name).to_json(json) if include_parent? || zone.id != parent_id
+          current_zone.children.all.each do |child_zone|
+            Children.new(child_zone, name).to_json(json) if include_parent? || child_zone.id != parent_id
           end
         end
       end
     end
 
-    # ameba:disable Metrics/CyclomaticComplexity
     @[OpenAPI(
       <<-YAML
         summary: Update metadata
         requestBody:
           required: true
           content:
-            #{Schema.ref Model::Open_Metadata}
+            #{Schema.ref OpenApiMetadata}
         security:
         - bearerAuth: []
         responses:
@@ -140,9 +127,10 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref Model::Open_Metadata}
+              #{Schema.ref OpenApiMetadata}
       YAML
     )]
+    # ameba:disable Metrics/CyclomaticComplexity
     def update
       metadata = Model::Metadata::Interface.from_json(self.body)
 
@@ -151,10 +139,13 @@ module PlaceOS::Api
 
       meta = Model::Metadata.for(parent_id, metadata.name).first?
 
-      if meta
-        # Check if the current user has access
-        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id || (meta.editors & Set.new(user_token.user.roles)).size > 0
+      # When creating, a new metadata, must be at least a support user
+      # When updating, the user must contain a role within the metadata's editor roles
+      unless is_support? || parent_id == user_token.id || (meta && (meta.editors & Set.new(user_token.user.roles)).size > 0)
+        raise Error::Forbidden.new
+      end
 
+      if meta
         # only support+ users can edit the editors list
         editors = metadata.editors
         meta.editors = editors if editors && is_support?
@@ -163,9 +154,6 @@ module PlaceOS::Api
         meta.description = metadata.description
         meta.details = metadata.details
       else
-        # When creating a new metadata, must be at least a support user
-        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
-
         # TODO: Check that the parent exists
         # Create new Metadata
         meta = Model::Metadata.new(
@@ -191,7 +179,7 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref Model::Open_Metadata}
+        #{Schema.ref OpenApiMetadata}
     security:
     - bearerAuth: []
     responses:
@@ -202,16 +190,13 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Model::Open_Metadata}
+          #{Schema.ref OpenApiMetadata}
     YAML
     )]) { update }
 
     @[OpenAPI(
       <<-YAML
         summary: Delete metadata
-        parameters:
-          #{Schema.qp "id", "Parent ID of metadata", type: "string"}
-          #{Schema.qp "name", "filter by name", type: "string"}
         security:
         - bearerAuth: []
         responses:

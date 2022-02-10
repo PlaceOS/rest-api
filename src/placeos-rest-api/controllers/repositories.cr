@@ -30,6 +30,10 @@ module PlaceOS::Api
     # Params
     ###############################################################################################
 
+    getter repository_id : String do
+      params["id"]
+    end
+
     getter limit : Int32? do
       params["limit"]?.try &.to_i?
     end
@@ -63,7 +67,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref_array Repository}
+              #{Schema.ref_array Model::Repository}
       YAML
     )]
     def index
@@ -265,9 +269,6 @@ module PlaceOS::Api
           description: OK
       YAML
     )]) do
-      number_of_commits = params["limit"]?.try &.to_i
-      file_name = params["driver"]?
-
       render json: Api::Repositories.commits(
         repository: current_repo,
         request_id: request_id,
@@ -364,10 +365,9 @@ module PlaceOS::Api
     ###########################################################################
 
     protected def find_repo
-      id = params["id"]
-      Log.context.set(repository_id: id)
+      Log.context.set(repository_id: repository_id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Repository.find!(repository_id, runopts: {"read_mode" => "majority"})
     end
   end
 end
