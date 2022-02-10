@@ -15,23 +15,21 @@ module PlaceOS::Api::Logging
   log_level = Api.production? ? ::Log::Severity::Info : ::Log::Severity::Debug
   namespaces = ["action-controller.*", "place_os.*"]
 
-  ::Log.setup do |config|
-    config.bind "*", :warn, log_backend
+  builder = ::Log.builder
+  builder.bind("*", :warn, log_backend)
+  namespaces.each do |namespace|
+    builder.bind(namespace, log_level, log_backend)
 
-    namespaces.each do |namespace|
-      config.bind namespace, log_level, log_backend
-
-      # Bind raven's backend
-      config.bind namespace, :info, standard_sentry
-      config.bind namespace, :warn, comprehensive_sentry
-    end
-
-    # Extra verbose coordination logging
-    if ENV["PLACE_VERBOSE_CLUSTERING"]?.presence
-      config.bind "hound_dog.*", ::Log::Severity::Trace, log_backend
-      config.bind "clustering.*", ::Log::Severity::Trace, log_backend
-    end
+    # Bind raven's backend
+    builder.bind namespace, :info, standard_sentry
+    builder.bind namespace, :warn, comprehensive_sentry
   end
+
+  ::Log.setup_from_env(
+    default_level: log_level,
+    builder: builder,
+    backend: log_backend
+  )
 
   # Configure Sentry
   Raven.configure &.async=(true)
