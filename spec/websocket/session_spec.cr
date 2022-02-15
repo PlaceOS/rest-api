@@ -116,7 +116,6 @@ module PlaceOS::Api::WebSocket
 
           updates.first.type.should eq Session::Response::Type::Success
           updates.first.value.should eq(%({"__exec__":"function2"}))
-          clear_tables
         end
 
         it "debug" do

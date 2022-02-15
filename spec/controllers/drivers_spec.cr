@@ -81,7 +81,7 @@ module PlaceOS::Api
         end
 
         it "GET /:id/compiled" do
-          driver, _, _, _ = setup_system
+          driver = get_driver
           Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
             update.destroyed? || !update.recompile_commit?
           end
@@ -93,11 +93,10 @@ module PlaceOS::Api
           )
 
           response.success?.should be_true
-          clear_tables
         end
 
         it "POST /:id/recompile" do
-          driver, _, _, _ = setup_system
+          driver = get_driver
 
           response = curl(
             method: "POST",
@@ -108,7 +107,6 @@ module PlaceOS::Api
           response.success?.should be_true
           updated = Model::Driver.from_trusted_json(response.body)
           updated.commit.starts_with?("RECOMPILE").should be_false
-          clear_tables
         end
       end
 

@@ -396,7 +396,7 @@ module PlaceOS::Api
       end
 
       describe "with core" do
-        _, _, mod, cs = setup_system
+        mod, cs = get_sys
 
         # "fetches the state for `key` in module defined by `module_slug`
         it "GET /:sys_id/:module_slug/:key" do
@@ -446,7 +446,6 @@ module PlaceOS::Api
           state = Hash(String, String).from_json(response.body)
           state["nugget"].should eq("1")
         end
-        clear_tables
       end
 
       describe "POST /:sys_id/start" do

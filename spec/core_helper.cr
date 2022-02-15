@@ -6,6 +6,23 @@ def random_id
   UUID.random.to_s.split('-').first
 end
 
+def get_driver
+  driver = PlaceOS::Model::Driver.where(name: "spec_helper").first?
+  driver, _, _ = setup_system if driver.nil?
+  driver
+end
+
+def get_sys
+  driver = PlaceOS::Model::Driver.where(name: "spec_helper").first?
+  if driver.nil?
+    _, _, mod, cs = setup_system
+  else
+    mod = PlaceOS::Model::Module.where(name: driver.module_name).first
+    cs = PlaceOS::Model::ControlSystem.where(id: mod.control_system_id).first
+  end
+  {mod, cs}
+end
+
 def setup_system(repository_folder_name = "private-drivers")
   # Repository metadata
   repository_uri = "https://github.com/placeos/private-drivers"
