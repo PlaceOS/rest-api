@@ -6,25 +6,6 @@ module PlaceOS::Api::HttpMocks
     WebMock.allow_net_connect = true
   end
 
-  # Mock etcd response for core nodes request.
-  # The primary request for core discovery.
-  def self.etcd_range
-    WebMock.stub(:post, "http://etcd:2379/v3/kv/range")
-      .with(
-        body: "{\"key\":\"c2VydmljZS9jb3JlLw==\",\"range_end\":\"c2VydmljZS9jb3JlMA==\"}",
-        headers: {"Content-Type" => "application/json"}
-      )
-      .to_return(
-        body: {
-          count: "1",
-          kvs:   [{
-            key:   "c2VydmljZS9jb3JlLw==",
-            value: Base64.strict_encode("http://127.0.0.1:9001"),
-          }],
-        }.to_json
-      )
-  end
-
   def self.core_compiled
     WebMock
       .stub(:get, /\/api\/core\/v1\/drivers\/.*\/compiled/)

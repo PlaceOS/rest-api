@@ -15,6 +15,7 @@ x-etcd-client-env: &etcd-client-env
   ETCD_HOST: ${ETCD_HOST:-etcd}
   ETCD_PORT: ${ETCD_PORT:-2379}
 
+
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
@@ -43,6 +44,7 @@ services:
       - redis
       - rethink
       - search-ingest
+      - core
     environment:
       # Environment
       GITHUB_ACTION: ${GITHUB_ACTION:-}
@@ -88,5 +90,26 @@ services:
       # Service Hosts
       <<: *rethinkdb-client-env
       <<: *elastic-client-env
+      # Environment
+      <<: *deployment-env
+
+  core: # Module coordinator
+    image: placeos/core:${PLACE_CORE_TAG:-nightly}
+    restart: always
+    hostname: core
+    depends_on:
+      - etcd
+      - redis
+      - rethink
+    ulimits:
+      nofile: 40000
+      core:
+        soft: 0
+        hard: 0
+    environment:
+      # Service Hosts
+      <<: *etcd-client-env
+      <<: *redis-client-env
+      <<: *rethinkdb-client-env
       # Environment
       <<: *deployment-env

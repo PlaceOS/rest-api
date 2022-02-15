@@ -1,4 +1,5 @@
 require "../helper"
+require "../core_helper"
 
 module PlaceOS::Api
   describe Drivers do
@@ -36,8 +37,7 @@ module PlaceOS::Api
 
       describe "CRUD operations", tags: "crud" do
         before_each do
-          HttpMocks.etcd_range
-          HttpMocks.core_compiled
+          HttpMocks.reset
         end
 
         test_crd(klass: Model::Driver, controller_klass: Drivers)
@@ -81,7 +81,10 @@ module PlaceOS::Api
         end
 
         it "GET /:id/compiled" do
-          driver = Model::Generator.driver.save!
+          driver = get_driver
+          Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
+            update.destroyed? || !update.recompile_commit?
+          end
 
           response = curl(
             method: "GET",
@@ -91,32 +94,24 @@ module PlaceOS::Api
 
           response.success?.should be_true
         end
-      end
 
-      # TODO: awaiting addition of `core` to test environment
-      pending "POST /:id/recompile" do
-        driver = Model::Generator.driver.save!
-        Model::Generator.module(driver: driver).save!
+        it "POST /:id/recompile" do
+          driver = get_driver
 
-        response = curl(
-          method: "GET",
-          path: "#{base}#{driver.id.not_nil!}/compiled",
-          headers: authorization_header.merge({"Content-Type" => "application/json"}),
-        )
+          response = curl(
+            method: "POST",
+            path: "#{base}#{driver.id.not_nil!}/recompile",
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
 
-        response.success?.should be_true
-
-        path = "#{base}#{driver.id.not_nil!}/recompile"
-        _result = curl(
-          method: "POST",
-          path: path,
-          headers: authorization_header.merge({"Content-Type" => "application/json"}),
-        )
+          response.success?.should be_true
+          updated = Model::Driver.from_trusted_json(response.body)
+          updated.commit.starts_with?("RECOMPILE").should be_false
+        end
       end
 
       describe "scopes" do
         before_each do
-          HttpMocks.etcd_range
           HttpMocks.core_compiled
         end
 
