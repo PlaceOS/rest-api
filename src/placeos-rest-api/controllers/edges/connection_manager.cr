@@ -1,5 +1,4 @@
 require "hound-dog"
-require "placeos-core-client"
 
 module PlaceOS::Api
   ###########################################################################

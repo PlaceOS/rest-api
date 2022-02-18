@@ -10,11 +10,15 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
+    generate_scope_check(Model::Edge::CONTROL_SCOPE)
+
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :show, :edge]
     before_action :check_support, only: [:index, :show]
+
+    before_action :can_write_edge_control, only: [:edge_control]
 
     # Callbacks
     ###############################################################################################
@@ -22,15 +26,7 @@ module PlaceOS::Api
     before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt, :token]
     before_action :body, only: [:create, :update, :update_alt]
 
-    skip_action :authorize!, only: [:edge]
     skip_action :set_user_id, only: [:edge]
-
-    # Params
-    ###############################################################################################
-
-    getter token : String? do
-      params["token"]?.presence
-    end
 
     ###############################################################################################
 
@@ -39,12 +35,10 @@ module PlaceOS::Api
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
 
     # Validate the present of the id and check the secret before routing to core
-    ws("/control", :edge) do |socket|
-      authentication_token = required_param(token)
+    ws("/control", :edge_control) do |socket|
+      edge_id = Model::Edge.jwt_edge_id?(user_token)
 
-      edge_id = Model::Edge.validate_token?(authentication_token)
-
-      if edge_id.nil?
+      if edge_id.nil? || !Model::Edge.exists?(edge_id)
         head status: :unauthorized
       else
         Log.info { {edge_id: edge_id, message: "new edge connection"} }
@@ -54,7 +48,7 @@ module PlaceOS::Api
 
     get("/:id/token", :token) do
       head :forbidden unless is_admin?
-      render json: {token: current_edge.token(current_user)}
+      render json: {token: current_edge.x_api_key}
     end
 
     def index

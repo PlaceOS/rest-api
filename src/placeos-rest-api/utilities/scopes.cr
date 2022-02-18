@@ -41,11 +41,14 @@ module PlaceOS::Api
       {% verbatim do %}
         macro generate_scope_check(*scopes)
           {% for scope in scopes %}
-            protected def can_write_{{ scope.id }}
+            {% if scope.is_a? Path %}
+              {% scope = scope.resolve %}
+            {% end %}
+            protected def can_write_{{ scope.gsub(/-/, "_").id }}
               can_scopes_access!([{{ROUTE_RESOURCE}}, {{ scope }}], Access::Write)
             end
 
-            protected def can_read_{{ scope.id }}
+            protected def can_read_{{ scope.gsub(/-/, "_").id }}
               can_scopes_access!([{{ROUTE_RESOURCE}}, {{ scope }}], Access::Read)
             end
           {% end %}

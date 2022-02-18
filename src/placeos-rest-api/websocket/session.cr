@@ -81,7 +81,7 @@ module PlaceOS::Api::WebSocket
       args = [] of JSON::Any if args.nil?
       Log.debug { {message: "exec", args: args.to_json} }
 
-      response = Driver::Proxy::RemoteDriver.new(
+      response, _status_code = Driver::Proxy::RemoteDriver.new(
         sys_id: system_id,
         module_name: module_name,
         index: index,
