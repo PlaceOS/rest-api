@@ -198,7 +198,7 @@ module PlaceOS::Api::Specs
     end
   end
 
-  macro test_crd(klass, controller_klass)
+  macro test_create(klass, controller_klass)
     {% klass_name = klass.stringify.split("::").last.underscore %}
     base = {{ controller_klass }}::NAMESPACE[0]
 
@@ -213,11 +213,14 @@ module PlaceOS::Api::Specs
       )
 
       result.status_code.should eq 201
-      body = result.body.as(String)
-
       response_model = {{ klass.id }}.from_trusted_json(result.body)
       response_model.destroy
     end
+  end
+
+  macro test_show(klass, controller_klass)
+    {% klass_name = klass.stringify.split("::").last.underscore %}
+    base = {{ controller_klass }}::NAMESPACE[0]
 
     it "show" do
       _, authorization_header = authentication
@@ -236,6 +239,11 @@ module PlaceOS::Api::Specs
 
       model.destroy
     end
+  end
+
+  macro test_destroy(klass, controller_klass)
+    {% klass_name = klass.stringify.split("::").last.underscore %}
+    base = {{ controller_klass }}::NAMESPACE[0]
 
     it "destroy" do
       _, authorization_header = authentication
@@ -251,6 +259,12 @@ module PlaceOS::Api::Specs
       result.status_code.should eq 200
       {{ klass.id }}.find(id).should be_nil
     end
+  end
+
+  macro test_crd(klass, controller_klass)
+    Specs.test_create({{ klass }}, {{ controller_klass }})
+    Specs.test_show({{ klass }}, {{ controller_klass }})
+    Specs.test_destroy({{ klass }}, {{ controller_klass }})
   end
 
   macro test_controller_scope(klass)
@@ -339,7 +353,6 @@ module PlaceOS::Api::Specs
         result = create_route({{ base }}, body, scoped_authorization_header)
         result.success?.should be_true
 
-        body = result.body.as(String)
         response_model = Model::{{ model_name.id }}.from_trusted_json(result.body)
         response_model.destroy
       end
