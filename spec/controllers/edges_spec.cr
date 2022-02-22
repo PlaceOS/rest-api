@@ -1,7 +1,7 @@
 require "../helper"
 
 module PlaceOS::Api
-  describe Edges, focus: true do
+  describe Edges do
     _authenticated_user, authorization_header = authentication
     base = Edges::NAMESPACE[0]
 
@@ -13,25 +13,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        it "create" do
-          name = random_name
-
-          result = curl(
-            method: "POST",
-            path: base,
-            body: {name: name}.to_json,
-            headers: authorization_header.merge({"Content-Type" => "application/json"}),
-          )
-
-          result.status_code.should eq 201
-
-          response_model = Model::Edge.from_trusted_json(result.body)
-          response_model.name.should eq(name)
-          response_model.destroy
-        end
-
-        Specs.test_show(Model::Edge, Edges)
-        Specs.test_destroy(Model::Edge, Edges)
+        Specs.test_crd(Model::Edge, Edges)
       end
 
       describe "scopes" do
