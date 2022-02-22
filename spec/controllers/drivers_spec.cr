@@ -8,7 +8,7 @@ module PlaceOS::Api
 
     with_server do
       describe "index", tags: "search" do
-        test_base_index(klass: Model::Driver, controller_klass: Drivers)
+        Specs.test_base_index(klass: Model::Driver, controller_klass: Drivers)
 
         it "filters queries by driver role" do
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
@@ -33,14 +33,14 @@ module PlaceOS::Api
         end
       end
 
-      test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
         before_each do
           HttpMocks.reset
         end
 
-        test_crd(klass: Model::Driver, controller_klass: Drivers)
+        Specs.test_crd(klass: Model::Driver, controller_klass: Drivers)
 
         describe "update" do
           it "if role is preserved" do
@@ -115,7 +115,7 @@ module PlaceOS::Api
           HttpMocks.core_compiled
         end
 
-        test_controller_scope(Drivers)
+        Specs.test_controller_scope(Drivers)
       end
     end
   end

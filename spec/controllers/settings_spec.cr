@@ -5,7 +5,7 @@ module PlaceOS::Api
     _, authorization_header = authentication
     base = Api::Settings::NAMESPACE[0]
     with_server do
-      test_404(base, model_name: Model::Settings.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Settings.table_name, headers: authorization_header)
 
       describe "support user" do
         context "access" do
@@ -172,7 +172,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::Settings, controller_klass: Settings)
+        Specs.test_crd(klass: Model::Settings, controller_klass: Settings)
         it "update" do
           settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
           original_settings = settings.settings_string
@@ -197,7 +197,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_controller_scope(Settings)
+        Specs.test_controller_scope(Settings)
 
         it "checks scope on update" do
           _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Write)])

@@ -41,10 +41,10 @@ module PlaceOS::Api
     base = Systems::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::ControlSystem.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::ControlSystem.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
+        Specs.test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
         context "query parameter" do
           it "zone_id filters systems by zones" do
@@ -525,7 +525,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::ControlSystem, controller_klass: Systems)
+        Specs.test_crd(klass: Model::ControlSystem, controller_klass: Systems)
 
         describe "update" do
           it "if version is valid" do
@@ -596,7 +596,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_controller_scope(Systems)
+        Specs.test_controller_scope(Systems)
         it "should not allow start" do
           _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
 

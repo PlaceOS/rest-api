@@ -6,14 +6,14 @@ module PlaceOS::Api
     base = Zones::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Zone.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Zone.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::Zone, controller_klass: Zones)
+        Specs.test_base_index(klass: Model::Zone, controller_klass: Zones)
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::Zone, controller_klass: Zones)
+        Specs.test_crd(klass: Model::Zone, controller_klass: Zones)
         it "update" do
           zone = Model::Generator.zone.save!
           original_name = zone.name
@@ -60,8 +60,8 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_controller_scope(Zones)
-        test_update_write_scope(Zones)
+        Specs.test_controller_scope(Zones)
+        Specs.test_update_write_scope(Zones)
       end
     end
   end

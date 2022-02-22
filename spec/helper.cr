@@ -28,7 +28,6 @@ require "../src/config"
 
 # Generators for Engine models
 require "placeos-models/spec/generator"
-
 require "spec"
 
 # Configure DB
@@ -113,16 +112,6 @@ def generate_auth_user(sys_admin, support, scopes)
   end
 end
 
-# Check application responds with 404 when model not present
-def test_404(base, model_name, headers)
-  it "404s if #{model_name} isn't present in database", tags: "search" do
-    id = "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
-    path = base + id
-    result = curl("GET", path: path, headers: headers)
-    result.status_code.should eq 404
-  end
-end
-
 def until_expected(method, path, headers, timeout : Time::Span = 3.seconds, &block : HTTP::Client::Response -> Bool)
   channel = Channel(Bool).new
   spawn do
@@ -164,91 +153,244 @@ def random_name
   UUID.random.to_s.split('-').first
 end
 
-# Test search on name field
-macro test_base_index(klass, controller_klass)
-  {% klass_name = klass.stringify.split("::").last.underscore %}
-
-  it "queries #{ {{ klass_name }} }", tags: "search" do
-    _, authorization_header = authentication
-    doc = PlaceOS::Model::Generator.{{ klass_name.id }}
-    name = random_name
-    doc.name = name
-    doc.save!
-
-    refresh_elastic({{klass}}.table_name)
-
-    doc.persisted?.should be_true
-    params = HTTP::Params.encode({"q" => name})
-    path = "#{{{controller_klass}}::NAMESPACE[0].rstrip('/')}?#{params}"
-    header = authorization_header
-
-    found = until_expected("GET", path, header) do |response|
-      Array(Hash(String, JSON::Any))
-        .from_json(response.body)
-        .map(&.["id"].as_s)
-        .any?(doc.id)
-    end
-    found.should be_true
-  end
-end
-
 def refresh_elastic(index : String? = nil)
   path = "/_refresh"
   path = "/#{index}" + path unless index.nil?
   Neuroplastic::Client.new.perform_request("POST", path)
 end
 
-macro test_crd(klass, controller_klass)
-  {% klass_name = klass.stringify.split("::").last.underscore %}
-  base = {{ controller_klass }}::NAMESPACE[0]
-
-  it "create" do
-    _, authorization_header = authentication
-    body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
-    result = curl(
-      method: "POST",
-      path: base,
-      body: body,
-      headers: authorization_header.merge({"Content-Type" => "application/json"}),
-    )
-
-    result.status_code.should eq 201
-    body = result.body.as(String)
-
-    response_model = {{ klass.id }}.from_trusted_json(result.body)
-    response_model.destroy
+module PlaceOS::Api::Specs
+  # Check application responds with 404 when model not present
+  def self.test_404(base, model_name, headers)
+    it "404s if #{model_name} isn't present in database", tags: "search" do
+      id = "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
+      path = base + id
+      result = curl("GET", path: path, headers: headers)
+      result.status_code.should eq 404
+    end
   end
 
-  it "show" do
-    _, authorization_header = authentication
-    model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
-    model.persisted?.should be_true
-    id = model.id.as(String)
-    result = curl(
-      method: "GET",
-      path: base + id,
-      headers: authorization_header,
-    )
+  # Test search on name field
+  macro test_base_index(klass, controller_klass)
+    {% klass_name = klass.stringify.split("::").last.underscore %}
 
-    result.status_code.should eq 200
-    response_model = {{ klass.id }}.from_trusted_json(result.body)
-    response_model.id.should eq id
+    it "queries #{ {{ klass_name }} }", tags: "search" do
+      _, authorization_header = authentication
+      doc = PlaceOS::Model::Generator.{{ klass_name.id }}
+      name = random_name
+      doc.name = name
+      doc.save!
 
-    model.destroy
+      refresh_elastic({{klass}}.table_name)
+
+      doc.persisted?.should be_true
+      params = HTTP::Params.encode({"q" => name})
+      path = "#{{{controller_klass}}::NAMESPACE[0].rstrip('/')}?#{params}"
+      header = authorization_header
+
+      found = until_expected("GET", path, header) do |response|
+        Array(Hash(String, JSON::Any))
+          .from_json(response.body)
+          .map(&.["id"].as_s)
+          .any?(doc.id)
+      end
+      found.should be_true
+    end
   end
 
-  it "destroy" do
-    _, authorization_header = authentication
-    model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
-    model.persisted?.should be_true
-    id = model.id.as(String)
-    result = curl(
-      method: "DELETE",
-      path: base + id,
-      headers: authorization_header,
-    )
+  macro test_crd(klass, controller_klass)
+    {% klass_name = klass.stringify.split("::").last.underscore %}
+    base = {{ controller_klass }}::NAMESPACE[0]
 
-    result.status_code.should eq 200
-    {{ klass.id }}.find(id).should be_nil
+    it "create" do
+      _, authorization_header = authentication
+      body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
+      result = curl(
+        method: "POST",
+        path: base,
+        body: body,
+        headers: authorization_header.merge({"Content-Type" => "application/json"}),
+      )
+
+      result.status_code.should eq 201
+      body = result.body.as(String)
+
+      response_model = {{ klass.id }}.from_trusted_json(result.body)
+      response_model.destroy
+    end
+
+    it "show" do
+      _, authorization_header = authentication
+      model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
+      model.persisted?.should be_true
+      id = model.id.as(String)
+      result = curl(
+        method: "GET",
+        path: base + id,
+        headers: authorization_header,
+      )
+
+      result.status_code.should eq 200
+      response_model = {{ klass.id }}.from_trusted_json(result.body)
+      response_model.id.should eq id
+
+      model.destroy
+    end
+
+    it "destroy" do
+      _, authorization_header = authentication
+      model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
+      model.persisted?.should be_true
+      id = model.id.as(String)
+      result = curl(
+        method: "DELETE",
+        path: base + id,
+        headers: authorization_header,
+      )
+
+      result.status_code.should eq 200
+      {{ klass.id }}.find(id).should be_nil
+    end
+  end
+
+  macro test_controller_scope(klass)
+    {% base = klass.resolve.constant(:NAMESPACE).first %}
+
+    {% if klass.stringify == "Repositories" %}
+      {% model_name = "Repository" %}
+      {% model_gen = "repository" %}
+    {% elsif klass.stringify == "Systems" %}
+      {% model_name = "ControlSystem" %}
+      {% model_gen = "control_system" %}
+    {% elsif klass.stringify == "Settings" %}
+      {% model_name = "Settings" %}
+      {% model_gen = "settings" %}
+    {% else %}
+      {% model_name = klass.stringify.gsub(/[s]$/, " ").strip %}
+      {% model_gen = model_name.underscore %}
+    {% end %}
+
+    {% scope_name = klass.stringify.underscore %}
+
+    context "read" do
+      it "allows access to show" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
+
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = show_route({{ base }}, id, scoped_authorization_header)
+        result.status_code.should eq 200
+        response_model = Model::{{ model_name.id }}.from_trusted_json(result.body)
+        response_model.id.should eq id
+        model.destroy
+      end
+
+      it "allows access to index" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
+
+        result = index_route({{ base }}, scoped_authorization_header)
+        result.success?.should be_true
+      end
+
+      it "should not allow access to create" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
+
+        body = PlaceOS::Model::Generator.{{ model_gen.id }}.to_json
+        result = create_route({{ base }}, body, scoped_authorization_header)
+        result.status_code.should eq 403
+      end
+
+      it "should not allow access to delete" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :read)])
+
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = delete_route({{ base }}, id, scoped_authorization_header)
+        result.status_code.should eq 403
+        Model::{{ model_name.id }}.find(id).should_not be_nil
+      end
+    end
+
+    context "write" do
+      it "should not allow access to show" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
+
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = show_route({{ base }}, id, scoped_authorization_header)
+        result.status_code.should eq 403
+        model.destroy
+      end
+
+      it "should not allow access to index" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
+
+        result = index_route({{ base }}, scoped_authorization_header)
+        result.status_code.should eq 403
+      end
+
+      it "should allow access to create" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
+
+        body = PlaceOS::Model::Generator.{{ model_gen.id }}.to_json
+        result = create_route({{ base }}, body, scoped_authorization_header)
+        result.success?.should be_true
+
+        body = result.body.as(String)
+        response_model = Model::{{ model_name.id }}.from_trusted_json(result.body)
+        response_model.destroy
+      end
+
+      it "should allow access to delete" do
+        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
+        model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = delete_route({{ base }}, id, scoped_authorization_header)
+        result.success?.should be_true
+        Model::{{ model_name.id }}.find(id).should be_nil
+      end
+    end
+  end
+
+  macro test_update_write_scope(klass)
+    {% base = klass.resolve.constant(:NAMESPACE).first %}
+
+    {% if klass.stringify == "Repositories" %}
+      {% model_name = "Repository" %}
+      {% model_gen = "repository" %}
+    {% else %}
+      {% model_name = klass.stringify.gsub(/[s]$/, " ").strip %}
+      {% model_gen = model_name.underscore %}
+    {% end %}
+
+    {% scope_name = klass.stringify.underscore %}
+
+    it "checks scope on update" do
+    _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          model = Model::Generator.{{ model_gen.id }}.save!
+          original_name = model.name
+          model.name = random_name
+
+          id = model.id.as(String)
+          path = base + id
+          result = update_route(path, model, scoped_authorization_header)
+
+          result.success?.should be_true
+          updated = Model::{{ model_name.id }}.from_trusted_json(result.body)
+
+          updated.id.should eq model.id
+          updated.name.should_not eq original_name
+          updated.destroy
+
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, model, scoped_authorization_header)
+
+          result.success?.should be_false
+          result.status_code.should eq 403
+    end
   end
 end

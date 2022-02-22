@@ -7,14 +7,14 @@ module PlaceOS::Api
     base = AssetInstances::NAMESPACE[0]
 
     with_server do
-      test_404(
+      Specs.test_404(
         base,
         model_name: Model::AssetInstance.table_name,
         headers: authorization_header,
       )
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::AssetInstance, controller_klass: AssetInstances)
+        Specs.test_base_index(klass: Model::AssetInstance, controller_klass: AssetInstances)
       end
 
       describe "CRUD operations", tags: "crud" do

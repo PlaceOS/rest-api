@@ -71,7 +71,12 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::Edge.from_json(self.body))
+      create_body = Model::Edge::CreateBody.from_json(self.body)
+      save_and_respond(Model::Edge.for_user(
+        user: current_user,
+        name: create_body.name,
+        description: create_body.description,
+      ))
     end
 
     def destroy

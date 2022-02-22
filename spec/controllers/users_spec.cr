@@ -6,7 +6,7 @@ module PlaceOS::Api
     base = Users::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::User.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::User.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
         it "show" do
@@ -151,7 +151,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_controller_scope(Users)
+        Specs.test_controller_scope(Users)
       end
     end
   end
