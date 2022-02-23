@@ -154,7 +154,7 @@ module PlaceOS::Api
             index: index
           )
 
-          output = remote_driver.exec(
+          output, _status_code = remote_driver.exec(
             security: driver_clearance(user_token),
             function: method,
             args: args,

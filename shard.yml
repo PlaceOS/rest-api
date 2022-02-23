@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.32.0
+version: 1.30.2
 crystal: ">= 1.1.1"
 
 targets:
@@ -50,7 +50,7 @@ dependencies:
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ~> 5.1
+    version: ~> 6.1
 
   # For frontends client
   placeos-frontend-loader:
@@ -64,7 +64,7 @@ dependencies:
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 6.0
+    version: ~> 6.4
 
   # An abstraction over Fibers
   promise:

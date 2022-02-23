@@ -7,18 +7,18 @@ module PlaceOS::Api
     base = ApiKeys::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::ApiKey.table_name, headers: scoped_authorization_header)
+      Specs.test_404(base, model_name: Model::ApiKey.table_name, headers: scoped_authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(Model::ApiKey, ApiKeys)
+        Specs.test_base_index(Model::ApiKey, ApiKeys)
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(Model::ApiKey, ApiKeys)
+        Specs.test_crd(Model::ApiKey, ApiKeys)
       end
 
       describe "scopes" do
-        test_controller_scope(ApiKeys)
+        Specs.test_controller_scope(ApiKeys)
       end
     end
   end

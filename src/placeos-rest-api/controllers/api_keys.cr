@@ -60,9 +60,8 @@ module PlaceOS::Api
     put "/:id", :update_alt { update }
 
     def create
-      save_and_respond(Model::ApiKey.from_json(self.body)) do |result|
-        @current_api_key = result
-        render_json(status: :created) { |json| current_api_key.to_public_json(json) }
+      save_and_respond(Model::ApiKey.from_json(self.body)) do |key|
+        render_json(status: :created) { |json| key.to_public_json(json) }
       end
     end
 

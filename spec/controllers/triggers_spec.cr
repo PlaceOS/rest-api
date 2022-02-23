@@ -6,10 +6,10 @@ module PlaceOS::Api
     base = Triggers::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Trigger.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Trigger.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::Trigger, controller_klass: Triggers)
+        Specs.test_base_index(klass: Model::Trigger, controller_klass: Triggers)
       end
 
       describe "/:id/instances" do
@@ -32,7 +32,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::Trigger, controller_klass: Triggers)
+        Specs.test_crd(klass: Model::Trigger, controller_klass: Triggers)
         it "update" do
           trigger = Model::Generator.trigger.save!
           original_name = trigger.name
@@ -79,8 +79,8 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      test_controller_scope(Triggers)
-      test_update_write_scope(Triggers)
+      Specs.test_controller_scope(Triggers)
+      Specs.test_update_write_scope(Triggers)
     end
   end
 end

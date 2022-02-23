@@ -7,7 +7,7 @@ module PlaceOS::Api
     base = SystemTriggers::NAMESPACE[0]
 
     with_server do
-      test_404(
+      Specs.test_404(
         base.gsub(/:sys_id/, "sys-#{Random.rand(9999)}"),
         model_name: Model::TriggerInstance.table_name,
         headers: authorization_header,

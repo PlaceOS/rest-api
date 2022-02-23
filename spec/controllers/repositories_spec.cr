@@ -6,14 +6,14 @@ module PlaceOS::Api
     base = Repositories::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Repository.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Repository.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(Model::Repository, Repositories)
+        Specs.test_base_index(Model::Repository, Repositories)
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(Model::Repository, Repositories)
+        Specs.test_crd(Model::Repository, Repositories)
 
         it "update" do
           repository = Model::Generator.repository.save!
@@ -100,8 +100,8 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_controller_scope(Repositories)
-        test_update_write_scope(Repositories)
+        Specs.test_controller_scope(Repositories)
+        Specs.test_update_write_scope(Repositories)
       end
     end
   end

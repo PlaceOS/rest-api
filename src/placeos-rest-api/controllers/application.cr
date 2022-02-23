@@ -168,6 +168,12 @@ module PlaceOS::Api
       head :not_found
     end
 
+    # 422 if resource fails validation
+    rescue_from RethinkORM::Error::DocumentInvalid do |error|
+      Log.debug { error.message }
+      return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, error.message)
+    end
+
     # 400 if params fails validation before mutation
     rescue_from Error::InvalidParams do |error|
       model_errors = error.params.errors.map(&.to_s)
