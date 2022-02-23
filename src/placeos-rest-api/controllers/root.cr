@@ -7,6 +7,7 @@ require "search-ingest/client"
 require "placeos-frontend-loader/client"
 
 require "placeos-models/version"
+require "path"
 require "uri"
 
 module PlaceOS::Api
@@ -193,7 +194,10 @@ module PlaceOS::Api
                   ""
                 end
 
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{channel}", payload)
+      path = Path["placeos/"].join(channel).to_s
+      Log.info { "signalling #{path} with #{payload.size} bytes" }
+
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
       head :ok
     end
 
