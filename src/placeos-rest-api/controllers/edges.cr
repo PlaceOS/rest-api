@@ -15,7 +15,7 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
-    before_action :check_admin, except: [:index, :show, :edge]
+    before_action :check_admin, except: [:index, :show, :edge_control]
     before_action :check_support, only: [:index, :show]
 
     before_action :can_write_edge_control, only: [:edge_control]
@@ -26,7 +26,7 @@ module PlaceOS::Api
     before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt, :token]
     before_action :body, only: [:create, :update, :update_alt]
 
-    skip_action :set_user_id, only: [:edge]
+    skip_action :set_user_id, only: [:edge_control]
 
     ###############################################################################################
 
@@ -72,8 +72,9 @@ module PlaceOS::Api
 
     def create
       create_body = Model::Edge::CreateBody.from_json(self.body)
+      user = Model::User.find!(create_body.user_id)
       save_and_respond(Model::Edge.for_user(
-        user: current_user,
+        user: user,
         name: create_body.name,
         description: create_body.description,
       ))

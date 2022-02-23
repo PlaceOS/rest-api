@@ -147,7 +147,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.1.2
+    version: 6.2.0
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -159,7 +159,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 6.6.1
+    version: 6.6.2
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
