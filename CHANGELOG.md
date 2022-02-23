@@ -1,10 +1,27 @@
-## Unreleased
+## v (2022-02-23)
+
+### Refactor
+
+- **edge**: ApiKey for edge token (#235)
+- param getters (#210)
+- `rubber-soul` -> `search-ingest` (#211)
+- **api**: unify boolean param handling (#209)
+- websocket api (#203)
+- **spec**: use module class_getter for auth header (#205)
+
+### Feat
+
+- **root**: add additional logging to signal requests (#234)
+- **controllers:root**: add `/platform` to render platform metadata (#228)
+- **users controller**: add support for user model soft delete (#224)
+- **assets**: add controller & spec (#222)
+- add helper methods for authenticating MQTT websocket access (#219)
+- **api**: forward `user_id` for module executes (#217)
+- **cluster api**: timeout requests for process details (#208)
+- **users**: look up with authority (#206)
 
 ### Fix
 
-- update models
-- **edges**: custom spec for create
-- **api**: rescue invalid model errors
 - **settings**: return models in same order as previously (#229)
 - swallow channel errors in single document changefeeds (#227)
 - **authentications controller**: authority_id param is optional
@@ -14,26 +31,6 @@
 - update scopes path
 - **root**: forward status from rubber-soul (#202)
 - **session**: scrub invalid UTF-8 chars from driver responses (#201)
-
-### Refactor
-
-- **spec**: scope spec generators under PlaceOS::Api::Specs
-- **edge**: ApiKey for edge token
-- param getters (#210)
-- `rubber-soul` -> `search-ingest` (#211)
-- **api**: unify boolean param handling (#209)
-- websocket api (#203)
-- **spec**: use module class_getter for auth header (#205)
-
-### Feat
-
-- **controllers:root**: add `/platform` to render platform metadata (#228)
-- **users controller**: add support for user model soft delete (#224)
-- **assets**: add controller & spec (#222)
-- add helper methods for authenticating MQTT websocket access (#219)
-- **api**: forward `user_id` for module executes (#217)
-- **cluster api**: timeout requests for process details (#208)
-- **users**: look up with authority (#206)
 
 ## v1.30.2 (2021-10-14)
 
