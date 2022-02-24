@@ -16,7 +16,7 @@ on:
 
 jobs:
   test:
-    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@refactor/extract-cr-version
+    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@main
 
   crystal-style:
     uses: PlaceOS/.github/.github/workflows/crystal-style.yml@main
