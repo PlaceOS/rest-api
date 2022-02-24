@@ -1,6 +1,6 @@
 # Contributing
 
-[PlaceOS](https://place.technology/) adheres to the [Contributor Covenent Code of Conduct](./CODE_OF_CONDUCT.md)
+[PlaceOS](https://place.technology/) adheres to the [Contributor Covenent Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Making Changes
 
@@ -35,7 +35,7 @@ $ ./test
 
 - Run specs on changes to Crystal files within the `src` and `spec` folders.
 
-``shell-session
+```shell-session
 $ ./test --watch
 ```
 
