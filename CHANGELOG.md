@@ -1,58 +1,58 @@
-## Unreleased
+## v1.31.0 (2022-02-24)
 
 ### Refactor
 
-- **edge**: ApiKey for edge token (#235)
-- param getters (#210)
-- `rubber-soul` -> `search-ingest` (#211)
-- **api**: unify boolean param handling (#209)
-- websocket api (#203)
-- **spec**: use module class_getter for auth header (#205)
+- **edge**: ApiKey for edge token ([#235](https://github.com/PlaceOS/rest-api/pull/235))
+- param getters ([#210](https://github.com/PlaceOS/rest-api/pull/210))
+- `rubber-soul` -> `search-ingest` ([#211](https://github.com/PlaceOS/rest-api/pull/211))
+- **api**: unify boolean param handling ([#209](https://github.com/PlaceOS/rest-api/pull/209))
+- websocket api ([#203](https://github.com/PlaceOS/rest-api/pull/203))
+- **spec**: use module class_getter for auth header ([#205](https://github.com/PlaceOS/rest-api/pull/205))
 
 ### Feat
 
-- **root**: add additional logging to signal requests (#234)
-- **controllers:root**: add `/platform` to render platform metadata (#228)
-- **users controller**: add support for user model soft delete (#224)
-- **assets**: add controller & spec (#222)
-- add helper methods for authenticating MQTT websocket access (#219)
-- **api**: forward `user_id` for module executes (#217)
-- **cluster api**: timeout requests for process details (#208)
-- **users**: look up with authority (#206)
+- **root**: add additional logging to signal requests ([#234](https://github.com/PlaceOS/rest-api/pull/234))
+- **controllers:root**: add `/platform` to render platform metadata ([#228](https://github.com/PlaceOS/rest-api/pull/228))
+- **users controller**: add support for user model soft delete ([#224](https://github.com/PlaceOS/rest-api/pull/224))
+- **assets**: add controller & spec ([#222](https://github.com/PlaceOS/rest-api/pull/222))
+- add helper methods for authenticating MQTT websocket access ([#219](https://github.com/PlaceOS/rest-api/pull/219))
+- **api**: forward `user_id` for module executes ([#217](https://github.com/PlaceOS/rest-api/pull/217))
+- **cluster api**: timeout requests for process details ([#208](https://github.com/PlaceOS/rest-api/pull/208))
+- **users**: look up with authority ([#206](https://github.com/PlaceOS/rest-api/pull/206))
 
 ### Fix
 
-- **settings**: return models in same order as previously (#229)
-- swallow channel errors in single document changefeeds (#227)
+- **settings**: return models in same order as previously ([#229](https://github.com/PlaceOS/rest-api/pull/229))
+- swallow channel errors in single document changefeeds ([#227](https://github.com/PlaceOS/rest-api/pull/227))
 - **authentications controller**: authority_id param is optional
-- **mqtt controller**: deny flag is also a read flag (#223)
-- root service mocks (#215)
-- session debug failures (#207)
+- **mqtt controller**: deny flag is also a read flag ([#223](https://github.com/PlaceOS/rest-api/pull/223))
+- root service mocks ([#215](https://github.com/PlaceOS/rest-api/pull/215))
+- session debug failures ([#207](https://github.com/PlaceOS/rest-api/pull/207))
 - update scopes path
-- **root**: forward status from rubber-soul (#202)
-- **session**: scrub invalid UTF-8 chars from driver responses (#201)
+- **root**: forward status from rubber-soul ([#202](https://github.com/PlaceOS/rest-api/pull/202))
+- **session**: scrub invalid UTF-8 chars from driver responses ([#201](https://github.com/PlaceOS/rest-api/pull/201))
 
 ## v1.30.2 (2021-10-14)
 
 ### Refactor
 
-- session writes (#200)
-- use new dispatch endpoint (#196)
+- session writes ([#200](https://github.com/PlaceOS/rest-api/pull/200))
+- use new dispatch endpoint ([#196](https://github.com/PlaceOS/rest-api/pull/196))
 
 ### Feat
 
-- **utilities current user**: x-api-key needs param support (#197)
+- **utilities current user**: x-api-key needs param support ([#197](https://github.com/PlaceOS/rest-api/pull/197))
 
 ## v1.30.1 (2021-10-08)
 
 ### Refactor
 
-- **user**: use new Email struct (#194)
+- **user**: use new Email struct ([#194](https://github.com/PlaceOS/rest-api/pull/194))
 
 ### Fix
 
-- **session**: args is optional (#195)
-- **responders**: callback skipped on model creation (#193)
+- **session**: args is optional ([#195](https://github.com/PlaceOS/rest-api/pull/195))
+- **responders**: callback skipped on model creation ([#193](https://github.com/PlaceOS/rest-api/pull/193))
 - **api/modules**: remove parent index query
 - **api:cluster**: improve error handling when requesting core status
 
@@ -60,20 +60,20 @@
 
 ### Feat
 
-- add Granular OAuth Scopes (#169)
-- metadata endpoints on entites (#167)
+- add Granular OAuth Scopes ([#169](https://github.com/PlaceOS/rest-api/pull/169))
+- metadata endpoints on entites ([#167](https://github.com/PlaceOS/rest-api/pull/167))
 - log context for failed version queries
 - user lookup via secondary indices
-- **api-keys**: provide a method for inspecting the keys JWT (#155)
-- add api key CRUD methods (#154)
+- **api-keys**: provide a method for inspecting the keys JWT ([#155](https://github.com/PlaceOS/rest-api/pull/155))
+- add api key CRUD methods ([#154](https://github.com/PlaceOS/rest-api/pull/154))
 - **versions**: add source version to cluster
 
 ### Fix
 
 - **shard.override.yml**: use correct rethinkdb override
-- **api:repositories**: account for branches in commit listing (#181)
-- **users**: user ids don't always start_with table_name (#172)
-- **api/repositories**: pull on each pull request (#148)
+- **api:repositories**: account for branches in commit listing ([#181](https://github.com/PlaceOS/rest-api/pull/181))
+- **users**: user ids don't always start_with table_name ([#172](https://github.com/PlaceOS/rest-api/pull/172))
+- **api/repositories**: pull on each pull request ([#148](https://github.com/PlaceOS/rest-api/pull/148))
 - **session**: shrink caches, sync access
 
 ### Perf
@@ -224,7 +224,7 @@
 
 ### Fix
 
-- docker compose test (#69)
+- docker compose test ([#69](https://github.com/PlaceOS/rest-api/pull/69))
 
 ## v1.17.11 (2020-10-21)
 
@@ -263,7 +263,7 @@
 
 ### Feat
 
-- allow guest access to zone details (#59)
+- allow guest access to zone details ([#59](https://github.com/PlaceOS/rest-api/pull/59))
 - **exec error**: respond with JSON
 - **exec error**: return failure details
 
