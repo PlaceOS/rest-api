@@ -1,8 +1,15 @@
 name: CI
-on: push
+on:
+  push:
+    paths:
+      - *.cr
+      - shard.*
+      - docker-compose.yml
+      - Dockerfile
+
 jobs:
   test:
-    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@main
+    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@refactor/extract-cr-version
 
   crystal-style:
     uses: PlaceOS/.github/.github/workflows/crystal-style.yml@main
