@@ -1,5 +1,19 @@
 name: CI
-on: push
+on:
+  pull_request:
+    paths:
+      # Crystal code and dependencies
+      - "*.cr"
+      - "shard.*"
+      # Test harness
+      - "docker-compose.yml"
+      - "Dockerfile"
+      - "test"
+
+  push:
+    branches:
+      - master
+
 jobs:
   test:
     uses: PlaceOS/.github/.github/workflows/containerised-test.yml@refactor/extract-cr-version
