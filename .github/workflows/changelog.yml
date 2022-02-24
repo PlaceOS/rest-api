@@ -7,4 +7,4 @@ on:
 
 jobs:
   generate:
-    uses: PlaceOS/.github/.github/workflows/changelog.yml@feat/changelogs
+    uses: PlaceOS/.github/.github/workflows/changelog.yml@main

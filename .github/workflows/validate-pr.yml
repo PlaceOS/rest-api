@@ -3,4 +3,4 @@ on: pull_request
 
 jobs:
   title:
-    uses: PlaceOS/.github/.github/workflows/validate-pr-title.yml@feat/changelogs
+    uses: PlaceOS/.github/.github/workflows/validate-pr-title.yml@main
