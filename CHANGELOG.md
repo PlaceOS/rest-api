@@ -1,3 +1,9 @@
+## v1.32.0 (2022-02-24)
+
+### Feat
+
+- **logging**: change severity via `LOG_LEVEL` environment variable ([#237](https://github.com/PlaceOS/rest-api/pull/237))
+
 ## v1.31.1 (2022-02-24)
 
 ### Fix
