@@ -15,11 +15,11 @@ module PlaceOS::Api
     base "/api/engine/v2/"
 
     before_action :check_admin, except: [
-      :cluster_version,
-      :healthz,
       :root,
       :scopes,
       :signal,
+      :platform_info,
+      :cluster_version,
       :version,
     ]
 
