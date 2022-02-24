@@ -1,11 +1,18 @@
 name: CI
 on:
-  push:
+  pull_request:
     paths:
-      - *.cr
-      - shard.*
-      - docker-compose.yml
-      - Dockerfile
+      # Crystal code and dependencies
+      - "*.cr"
+      - "shard.*"
+      # Test harness
+      - "docker-compose.yml"
+      - "Dockerfile"
+      - "test"
+
+  push:
+    branches:
+      - master
 
 jobs:
   test:
