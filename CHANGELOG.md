@@ -1,4 +1,17 @@
-## Unreleased
+## v1.31.1 (2022-02-24)
+
+### Fix
+
+- **root**: expose `/platform` ([#236](https://github.com/PlaceOS/rest-api/pull/236))
+- **settings**: return models in same order as previously ([#229](https://github.com/PlaceOS/rest-api/pull/229))
+- swallow channel errors in single document changefeeds ([#227](https://github.com/PlaceOS/rest-api/pull/227))
+- **authentications controller**: authority_id param is optional
+- **mqtt controller**: deny flag is also a read flag ([#223](https://github.com/PlaceOS/rest-api/pull/223))
+- root service mocks ([#215](https://github.com/PlaceOS/rest-api/pull/215))
+- session debug failures ([#207](https://github.com/PlaceOS/rest-api/pull/207))
+- update scopes path
+- **root**: forward status from rubber-soul ([#202](https://github.com/PlaceOS/rest-api/pull/202))
+- **session**: scrub invalid UTF-8 chars from driver responses ([#201](https://github.com/PlaceOS/rest-api/pull/201))
 
 ### Refactor
 
@@ -19,18 +32,6 @@
 - **api**: forward `user_id` for module executes ([#217](https://github.com/PlaceOS/rest-api/pull/217))
 - **cluster api**: timeout requests for process details ([#208](https://github.com/PlaceOS/rest-api/pull/208))
 - **users**: look up with authority ([#206](https://github.com/PlaceOS/rest-api/pull/206))
-
-### Fix
-
-- **settings**: return models in same order as previously ([#229](https://github.com/PlaceOS/rest-api/pull/229))
-- swallow channel errors in single document changefeeds ([#227](https://github.com/PlaceOS/rest-api/pull/227))
-- **authentications controller**: authority_id param is optional
-- **mqtt controller**: deny flag is also a read flag ([#223](https://github.com/PlaceOS/rest-api/pull/223))
-- root service mocks ([#215](https://github.com/PlaceOS/rest-api/pull/215))
-- session debug failures ([#207](https://github.com/PlaceOS/rest-api/pull/207))
-- update scopes path
-- **root**: forward status from rubber-soul ([#202](https://github.com/PlaceOS/rest-api/pull/202))
-- **session**: scrub invalid UTF-8 chars from driver responses ([#201](https://github.com/PlaceOS/rest-api/pull/201))
 
 ## v1.30.2 (2021-10-14)
 
