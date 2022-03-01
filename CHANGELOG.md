@@ -1,3 +1,9 @@
+## v1.33.0 (2022-03-01)
+
+### Feat
+
+- influx query proxy route on `/api/v2/query` ([#238](https://github.com/PlaceOS/rest-api/pull/238))
+
 ## v1.32.0 (2022-02-24)
 
 ### Feat
