@@ -23,7 +23,7 @@ module PlaceOS::Api
     end
 
     getter flux_client : HTTP::Client do
-      api_key = INFLUX_API_KEY || raise("no Influx API key configured")
+      api_key = INFLUX_API_KEY || raise("no INFLUX_API_KEY configured")
       org = INFLUX_ORG
       connection = HTTP::Client.new URI.parse(INFLUX_HOST || raise("no Influx hostname configured"))
       connection.before_request do |req|
