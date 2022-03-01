@@ -20,6 +20,9 @@ module PlaceOS::Api
     # Helpers for defining scope checks on controller actions
     include Utils::Scopes
 
+    # For want of route templating, this module exists
+    include Utils::PutRedirect
+
     # Core service discovery
     class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
 

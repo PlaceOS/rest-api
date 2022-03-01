@@ -125,7 +125,7 @@ module PlaceOS::Api
       end
     end
 
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def destroy
       if (metadata_name = name).nil?

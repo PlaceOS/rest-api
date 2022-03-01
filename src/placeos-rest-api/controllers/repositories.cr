@@ -71,8 +71,7 @@ module PlaceOS::Api
       save_and_respond current_repo
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       save_and_respond(Model::Repository.from_json(self.body))
