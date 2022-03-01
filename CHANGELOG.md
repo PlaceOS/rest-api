@@ -1,3 +1,9 @@
+## v1.33.1 (2022-03-01)
+
+### Fix
+
+- **flux**: add support for influx query authentication tokens
+
 ## v1.33.0 (2022-03-01)
 
 ### Feat
