@@ -25,7 +25,7 @@ module PlaceOS::Api
     getter flux_client : HTTP::Client do
       api_key = ENV["INFLUX_API_KEY"]
       org = ENV["INFLUX_ORG"]? || "placeos"
-      connection = HTTP::Client.new ENV["INFLUX_HOST"]
+      connection = HTTP::Client.new URI.parse(ENV["INFLUX_HOST"])
       connection.before_request do |req|
         req.headers["Authorization"] = "Token #{api_key}"
         req.path = "/api/v2#{req.path}"
