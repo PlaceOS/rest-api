@@ -25,7 +25,7 @@ module PlaceOS::Api
     getter flux_client : HTTP::Client do
       api_key = INFLUX_API_KEY || raise("no INFLUX_API_KEY configured")
       org = INFLUX_ORG
-      connection = HTTP::Client.new URI.parse(INFLUX_HOST || raise("no Influx hostname configured"))
+      connection = HTTP::Client.new URI.parse(INFLUX_HOST || raise("no INFLUX_HOST configured"))
       connection.before_request do |req|
         req.headers["Authorization"] = "Token #{api_key}"
         req.path = "/api/v2#{req.path}"
