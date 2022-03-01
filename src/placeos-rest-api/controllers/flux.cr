@@ -2,7 +2,6 @@ require "./application"
 
 module PlaceOS::Api
   class Flux < Application
-
     # use influxdb path for any existing influx clients
     base "/api/v2"
 
