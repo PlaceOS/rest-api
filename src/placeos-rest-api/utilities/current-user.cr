@@ -101,7 +101,7 @@ module PlaceOS::Api
     # - "bearer_token" param
     protected def acquire_token : String?
       if (token = request.headers["Authorization"]?)
-        token = token.lchop("Bearer ").rstrip
+        token = token.lchop("Bearer ").lchop("Token ").rstrip
         token unless token.empty?
       elsif (token = params["bearer_token"]?)
         token.strip
