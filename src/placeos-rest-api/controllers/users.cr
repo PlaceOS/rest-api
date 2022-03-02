@@ -168,8 +168,7 @@ module PlaceOS::Api
       save_and_respond user
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     # Destroy user, revoke authentication.
     def destroy

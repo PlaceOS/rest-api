@@ -206,8 +206,7 @@ module PlaceOS::Api
       save_and_respond(current_control_system)
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:sys_id", :update_alt { update }
+    put_redirect
 
     def create
       save_and_respond Model::ControlSystem.from_json(self.body)
