@@ -1,4 +1,8 @@
-## Unreleased
+## v1.33.3 (2022-03-02)
+
+### Fix
+
+- **systems execute**: fix response using driver status codes ([#240](https://github.com/PlaceOS/rest-api/pull/240))
 
 ## v1.33.2 (2022-03-02)
 
