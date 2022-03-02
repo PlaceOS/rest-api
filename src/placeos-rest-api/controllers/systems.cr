@@ -332,7 +332,8 @@ module PlaceOS::Api
         request_id: request_id,
       )
       response.headers["Content-Type"] = "application/json"
-      render text: ret_val
+      # ret_val == {response, status_code}
+      render text: ret_val[0], status: ret_val[1]
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     end
