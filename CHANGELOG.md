@@ -1,4 +1,8 @@
-## Unreleased
+## v1.33.2 (2022-03-02)
+
+### Refactor
+
+- **api**: `put_redirect` to prevent manual  update redirect ([#239](https://github.com/PlaceOS/rest-api/pull/239))
 
 ## v1.33.1 (2022-03-01)
 
