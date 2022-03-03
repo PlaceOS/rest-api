@@ -153,7 +153,7 @@ module PlaceOS::Api
             index: index
           )
 
-          output, _status_code = remote_driver.exec(
+          output, status_code = remote_driver.exec(
             security: driver_clearance(user_token),
             function: method,
             args: args,
@@ -161,7 +161,7 @@ module PlaceOS::Api
             user_id: current_user.id,
           )
 
-          Log.debug { {message: "module exec success", method: method, output: output} }
+          Log.debug { {message: "module exec success", method: method, status_code: status_code, output: output} }
 
           {system_id, ExecStatus::Success}
         rescue e : Driver::Proxy::RemoteDriver::Error
