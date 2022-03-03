@@ -1,3 +1,9 @@
+## v1.33.4 (2022-03-03)
+
+### Fix
+
+- **controllers/modules**: extract status from exec response ([#242](https://github.com/PlaceOS/rest-api/pull/242))
+
 ## v1.33.3 (2022-03-02)
 
 ### Fix
