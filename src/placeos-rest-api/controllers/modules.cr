@@ -228,7 +228,7 @@ module PlaceOS::Api
       sys_id = current_module.control_system_id || ""
       args = Array(JSON::Any).from_json(self.body)
 
-      result = Driver::Proxy::RemoteDriver.new(
+      result, status_code = Driver::Proxy::RemoteDriver.new(
         module_id: module_id,
         sys_id: sys_id,
         module_name: current_module.name,
@@ -242,7 +242,7 @@ module PlaceOS::Api
       )
 
       response.content_type = "application/json"
-      render text: result
+      render text: result, status: status_code
     rescue e : Driver::Proxy::RemoteDriver::Error
       handle_execute_error(e)
     rescue e
