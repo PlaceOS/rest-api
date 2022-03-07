@@ -310,7 +310,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref OpenApiMetadata}
+          #{Schema.ref Model::Metadata}
     YAML
     )]) do
       parent_id = user.id.not_nil!

@@ -5,14 +5,9 @@ require "./application"
 require "./drivers"
 require "./settings"
 
-require "openapi-generator"
-require "openapi-generator/helpers/action-controller"
-
 module PlaceOS::Api
   class Modules < Application
     include Utils::CoreHelper
-    include ::OpenAPI::Generator::Controller
-    include ::OpenAPI::Generator::Helpers::ActionController
 
     base "/api/engine/v2/modules/"
 
@@ -62,25 +57,6 @@ module PlaceOS::Api
 
     DRIVER_ATTRIBUTES = %w(name description)
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Get modules
-        parameters:
-          #{Schema.qp "as_of", "filter by as_of", type: "integer"}
-          #{Schema.qp "control_system_id", "query the database directly if present", type: "string"}
-          #{Schema.qp "connected", "filter by connected", type: "boolean"}
-          #{Schema.qp "driver_id", "filter by driver_id", type: "string"}
-          #{Schema.qp "no_logic", "filter by no_logic", type: "boolean"}
-          #{Schema.qp "running", "filter by running", type: "boolean"}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::Module}
-      YAML
-    )]
     def index
       args = IndexParams.new(params)
 
@@ -179,20 +155,6 @@ module PlaceOS::Api
       end
     end
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Get module
-        parameters:
-          #{Schema.qp "complete", "return module with all possible fields", type: "boolean"}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Module}
-      YAML
-    )]
     def show
       complete = boolean_param("complete")
 
@@ -203,22 +165,6 @@ module PlaceOS::Api
       render json: response
     end
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Update a module
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Module}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Module}
-      YAML
-    )]
     def update
       current_module.assign_attributes_from_json(self.body)
 
@@ -230,53 +176,12 @@ module PlaceOS::Api
       end
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-    summary: Update a module
-    requestBody:
-      required: true
-      content:
-        #{Schema.ref Model::Module}
-    security:
-    - bearerAuth: []
-    responses:
-      200:
-        description: OK
-        content:
-          #{Schema.ref Model::Module}
-    YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a module
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Module}
-        security:
-        - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Module}
-      YAML
-    )]
     def create
       save_and_respond(Model::Module.from_json(self.body))
     end
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Delete a module
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-      YAML
-    )]
     def destroy
       current_module.destroy
       head :ok
@@ -284,32 +189,12 @@ module PlaceOS::Api
 
     # Receive the collated settings for a module
     #
-    get("/:id/settings", :settings, annotations: @[OpenAPI(<<-YAML
-      summary: Receive the collated settings for a module
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-          content:
-                #{Schema.ref Model::Open_Settings}
-      YAML
-    )]) do
+    get("/:id/settings", :settings) do
       render json: Api::Settings.collated_settings(current_user, current_module)
     end
 
     # Starts a module
-    post("/:id/start", :start, annotations: @[OpenAPI(<<-YAML
-      summary: Starts a module
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-        500:
-          description: Internal Server Error
-      YAML
-    )]) do
+    post("/:id/start", :start) do
       head :ok if current_module.running == true
 
       current_module.update_fields(running: true)
@@ -324,17 +209,7 @@ module PlaceOS::Api
     end
 
     # Stops a module
-    post("/:id/stop", :stop, annotations: @[OpenAPI(<<-YAML
-      summary: Stops a module
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-        500:
-          description: Internal Server Error
-      YAML
-    )]) do
+    post("/:id/stop", :stop) do
       head :ok unless current_module.running
 
       current_module.update_fields(running: false)
@@ -349,21 +224,11 @@ module PlaceOS::Api
     end
 
     # Executes a command on a module
-    post("/:id/exec/:method", :execute, annotations: @[OpenAPI(<<-YAML
-      summary: Executes a command on a module
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-        500:
-          description: Internal Server Error
-      YAML
-    )]) do
+    post("/:id/exec/:method", :execute) do
       sys_id = current_module.control_system_id || ""
       args = Array(JSON::Any).from_json(self.body)
 
-      result = Driver::Proxy::RemoteDriver.new(
+      result, status_code = Driver::Proxy::RemoteDriver.new(
         module_id: module_id,
         sys_id: sys_id,
         module_name: current_module.name,
@@ -377,7 +242,7 @@ module PlaceOS::Api
       )
 
       response.content_type = "application/json"
-      render text: result
+      render text: result, status: status_code
     rescue e : Driver::Proxy::RemoteDriver::Error
       handle_execute_error(e)
     rescue e
@@ -397,42 +262,16 @@ module PlaceOS::Api
     end
 
     # Dumps the complete status state of the module
-    get("/:id/state", :state, annotations: @[OpenAPI(<<-YAML
-      summary: Dumps the complete status state of the module
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-      YAML
-    )]) do
+    get("/:id/state", :state) do
       render json: self.class.module_state(current_module)
     end
 
     # Returns the value of the requested status variable
-    get("/:id/state/:key", :state_lookup, annotations: @[OpenAPI(<<-YAML
-      summary: Returns the value of the requested status variable
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-      YAML
-    )]) do
+    get("/:id/state/:key", :state_lookup) do
       render json: self.class.module_state(current_module, key)
     end
 
-    post("/:id/ping", :ping, annotations: @[OpenAPI(<<-YAML
-      summary: Pings module at provided ID
-      security:
-      - bearerAuth: []
-      responses:
-        406:
-          description: Not Acceptable
-        200:
-          description: OK
-      YAML
-    )]) do
+    post("/:id/ping", :ping) do
       if current_module.role.logic?
         Log.debug { {controller: "Modules", action: "ping", module_id: current_module.id, role: current_module.role.to_s} }
         head :not_acceptable
@@ -448,15 +287,7 @@ module PlaceOS::Api
       end
     end
 
-    post("/:id/load", :load, annotations: @[OpenAPI(<<-YAML
-      summary: Loads system at provided ID
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-      YAML
-    )]) do
+    post("/:id/load", :load) do
       render json: Api::Systems.core_for(module_id, request_id, &.load(module_id))
     end
 

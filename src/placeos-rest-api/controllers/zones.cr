@@ -1,17 +1,10 @@
 require "promise"
-require "action-controller"
-require "openapi-generator"
-require "openapi-generator/providers/action-controller"
-require "openapi-generator/helpers/action-controller"
-require "placeos-log-backend"
 
 require "./application"
 
 module PlaceOS::Api
   class Zones < Application
     include Utils::CoreHelper
-    include ::OpenAPI::Generator::Controller
-    include ::OpenAPI::Generator::Helpers::ActionController
 
     base "/api/engine/v2/zones/"
 
@@ -65,23 +58,6 @@ module PlaceOS::Api
 
     getter current_zone : Model::Zone { find_zone }
 
-    @[OpenAPI(
-      <<-YAML
-        summary: get all zones
-        parameters:
-          #{Schema.qp "limit", "The maximum numbers of zones to return", type: "integer"}
-          #{Schema.qp "parent", "Limit results to the children of this parent zone", type: "string"}
-          #{Schema.qp "tags", "return zones with the specified tags", type: "string"}
-          #{Schema.qp "q", "Search query term", type: "string"}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::Zone}
-      YAML
-    )]
     def index
       elastic = Model::Zone.elastic
       query = elastic.query(params)
@@ -108,21 +84,6 @@ module PlaceOS::Api
       render json: paginate_results(elastic, query)
     end
 
-    # BREAKING CHANGE: param key `data` used to attempt to retrieve a setting from the zone
-    @[OpenAPI(
-      <<-YAML
-        summary: get a zone
-        parameters:
-          #{Schema.qp name: "complete", description: "Include trigger data in response", required: false, type: "string"}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Zone}
-      YAML
-    )]
     def show
       if complete?
         # Include trigger data in response
@@ -134,92 +95,23 @@ module PlaceOS::Api
       end
     end
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Update a zone
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Zone}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Zone}
-      YAML
-    )]
     def update
       current_zone.assign_attributes_from_json(self.body)
       save_and_respond current_zone
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-    summary: Update a zone
-    requestBody:
-      required: true
-      content:
-        #{Schema.ref Model::Zone}
-    security:
-    - bearerAuth: []
-    responses:
-      200:
-        description: OK
-        content:
-          #{Schema.ref Model::Zone}
-  YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a zone
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Zone}
-        security:
-        - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Zone}
-      YAML
-    )]
     def create
       save_and_respond Model::Zone.from_json(self.body)
     end
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Delete a zone
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-      YAML
-    )]
     def destroy
       current_zone.destroy
       head :ok
     end
 
-    get("/:id/metadata", :metadata, annotations: @[OpenAPI(<<-YAML
-    summary: Get the metadata of a zone
-    parameters:
-      #{Schema.qp "name", "The name of the metadata", type: "string"}
-    security:
-    - bearerAuth: []
-    responses:
-      200:
-        description: OK
-        content:
-          #{Schema.ref OpenApiMetadata}
-    YAML
-    )]) do
+    get "/:id/metadata", :metadata do
       parent_id = current_zone.id.not_nil!
       render json: Model::Metadata.build_metadata(parent_id, name)
     end
@@ -232,17 +124,7 @@ module PlaceOS::Api
 
     # Return triggers attached to current zone
     #
-    get("/:id/triggers", :trigger_instances, annotations: @[OpenAPI(<<-YAML
-      summary: get the triggers attached to current zone
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-          content:
-            #{Schema.ref_array Model::Trigger}
-      YAML
-    )]) do
+    get "/:id/triggers", :trigger_instances do
       triggers = current_zone.trigger_data
       set_collection_headers(triggers.size, Model::Trigger.table_name)
       render json: triggers
@@ -255,16 +137,8 @@ module PlaceOS::Api
       module_missing : Array(String) = [] of String
     ) { include JSON::Serializable }
 
-    post("/:id/exec/:module_slug/:method", :zone_execute, annotations: @[OpenAPI(<<-YAML
-        summary: Execute a method on a module across all systems in a Zone
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-        YAML
-    )]) do
-      zone_id, module_slug, method = params["id"], params["module_slug"], params["method"]
+    # Execute a method on a module across all systems in a Zone
+    post "/:id/exec/:module_slug/:method", :zone_execute do
       args = Array(JSON::Any).from_json(self.body)
 
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
@@ -279,7 +153,7 @@ module PlaceOS::Api
             index: index
           )
 
-          output = remote_driver.exec(
+          output, status_code = remote_driver.exec(
             security: driver_clearance(user_token),
             function: method,
             args: args,
@@ -287,7 +161,7 @@ module PlaceOS::Api
             user_id: current_user.id,
           )
 
-          Log.debug { {message: "module exec success", method: method, output: output} }
+          Log.debug { {message: "module exec success", method: method, status_code: status_code, output: output} }
 
           {system_id, ExecStatus::Success}
         rescue e : Driver::Proxy::RemoteDriver::Error

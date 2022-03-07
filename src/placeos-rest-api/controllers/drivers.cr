@@ -107,14 +107,14 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref Model::Open_Driver}
+        #{Schema.ref Model::Driver}
     security:
     - bearerAuth: []
     responses:
       200:
         description: OK
         content:
-          #{Schema.ref Model::Open_Driver}
+          #{Schema.ref Model::Driver}
     YAML
     )]) { update }
 
@@ -124,14 +124,14 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref Model::Open_Driver}
+            #{Schema.ref Model::Driver}
         security:
         - bearerAuth: []
         responses:
           201:
             description: OK
             content:
-              #{Schema.ref Model::Open_Driver}
+              #{Schema.ref Model::Driver}
       YAML
     )]
     def create

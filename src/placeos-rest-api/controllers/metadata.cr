@@ -58,7 +58,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref OpenApiMetadata}
+              #{Schema.ref Model::Metadata}
       YAML
     )]
     def show
@@ -93,7 +93,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref_array OpenApiMetadata}
+          #{Schema.ref_array Model::Metadata}
     YAML
     )]) do
       # Guest JWTs include the control system id that they have access to
@@ -116,7 +116,7 @@ module PlaceOS::Api
         requestBody:
           required: true
           content:
-            #{Schema.ref OpenApiMetadata}
+            #{Schema.ref Model::Metadata}
         security:
         - bearerAuth: []
         responses:
@@ -127,7 +127,7 @@ module PlaceOS::Api
           200:
             description: OK
             content:
-              #{Schema.ref OpenApiMetadata}
+              #{Schema.ref Model::Metadata}
       YAML
     )]
     # ameba:disable Metrics/CyclomaticComplexity
@@ -179,7 +179,7 @@ module PlaceOS::Api
     requestBody:
       required: true
       content:
-        #{Schema.ref OpenApiMetadata}
+        #{Schema.ref Model::Metadata}
     security:
     - bearerAuth: []
     responses:
@@ -190,7 +190,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref OpenApiMetadata}
+          #{Schema.ref Model::Metadata}
     YAML
     )]) { update }
 

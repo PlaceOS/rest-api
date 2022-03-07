@@ -374,7 +374,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref OpenApiMetadata}
+          #{Schema.ref Model::Metadata}
     YAML
     )]) do
       parent_id = current_control_system.id.not_nil!
@@ -391,7 +391,7 @@ module PlaceOS::Api
       200:
         description: OK
         content:
-          #{Schema.ref Model::Open_Settings}
+          #{Schema.ref Model::Settings}
     YAML
     )]) do
       render json: Api::Settings.collated_settings(current_user, current_control_system)
