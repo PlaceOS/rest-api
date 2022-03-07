@@ -1,6 +1,27 @@
 name: CI
-on: push
+on:
+  push:
+    paths-ignore:
+      - "*.md"
+  #  branches:
+  #    - master
+  #
+  # pull_request:
+  #   paths:
+  #     # Crystal code and dependencies
+  #     - "*.cr"
+  #     - "shard.*"
+  #     # Test harness
+  #     - "docker-compose.yml"
+  #     - "Dockerfile"
+  #     - "test"
+
 jobs:
+  test:
+    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@main
+    with:
+      todo_issues: true
+
   crystal-style:
     uses: PlaceOS/.github/.github/workflows/crystal-style.yml@main
 

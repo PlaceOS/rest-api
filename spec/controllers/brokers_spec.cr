@@ -6,14 +6,14 @@ module PlaceOS::Api
     base = Brokers::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Broker.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Broker.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::Broker, controller_klass: Brokers)
+        Specs.test_base_index(klass: Model::Broker, controller_klass: Brokers)
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(Model::Broker, Brokers)
+        Specs.test_crd(Model::Broker, Brokers)
 
         it "update" do
           broker = Model::Generator.broker.save!
@@ -38,8 +38,8 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_update_write_scope(Brokers)
-        test_controller_scope(Brokers)
+        Specs.test_update_write_scope(Brokers)
+        Specs.test_controller_scope(Brokers)
       end
     end
   end

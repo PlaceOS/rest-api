@@ -16,10 +16,10 @@ module PlaceOS::Api
     base = Modules::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Module.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Module.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::Module, controller_klass: Modules)
+        Specs.test_crd(klass: Model::Module, controller_klass: Modules)
 
         it "update preserves logic module connection status" do
           driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
@@ -318,7 +318,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_controller_scope(Modules)
+        Specs.test_controller_scope(Modules)
 
         it "checks scope on update" do
           _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])

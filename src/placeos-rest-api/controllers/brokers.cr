@@ -65,21 +65,8 @@ module PlaceOS::Api
       save_and_respond current_broker.assign_attributes_from_json(self.body)
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-      summary: Update a trigger
-      security:
-      - bearerAuth: []
-      YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a broker
-        security:
-        - bearerAuth: []
-      YAML
-    )]
     def create
       save_and_respond(Model::Broker.from_json(self.body))
     end

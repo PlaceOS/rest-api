@@ -101,39 +101,8 @@ module PlaceOS::Api
       save_and_respond current_driver
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-    summary: Update a driver
-    requestBody:
-      required: true
-      content:
-        #{Schema.ref Model::Driver}
-    security:
-    - bearerAuth: []
-    responses:
-      200:
-        description: OK
-        content:
-          #{Schema.ref Model::Driver}
-    YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a driver
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Driver}
-        security:
-        - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Driver}
-      YAML
-    )]
     def create
       save_and_respond(Model::Driver.from_json(self.body))
     end
@@ -185,9 +154,10 @@ module PlaceOS::Api
       # Set the repository commit hash to head
       driver.update_fields(commit: "RECOMPILE-#{driver.commit}")
 
-      # Wait until the commit hash is not head with a timeout of 20 seconds
-      Utils::Changefeeds.await_model_change(driver, timeout: 20.seconds) do |update|
-        update.destroyed? || !update.commit.starts_with? "RECOMPILE"
+      # Wait until the commit hash is not head with a timeout of 90 seconds
+      # ameba:disable Style/RedundantReturn
+      return Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
+        update.destroyed? || !update.recompile_commit?
       end
     end
 

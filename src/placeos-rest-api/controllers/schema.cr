@@ -55,26 +55,7 @@
 #       render json: current_schema
 #     end
 
-#     @[OpenAPI(
-#       <<-YAML
-#         summary: Update a schema
-#         requestBody:
-#           required: true
-#           content:
-#             #{Schema.ref Model::JsonSchema}
-#         security:
-#         - bearerAuth: []
-#         responses:
-#           200:
-#             description: OK
-#             content:
-#               #{Schema.ref Model::JsonSchema}
-#       YAML
-#     )]
-#     def update
-#       current_schema.assign_attributes_from_json(self.body)
-#       save_and_respond(current_schema)
-#     end
+put_redirect
 
 #     # TODO: replace manual id with interpolated value from `id_param`
 #     put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML

@@ -18,6 +18,10 @@ module PlaceOS::Api
   PLACE_SOURCE_HOST = ENV["PLACE_SOURCE_HOST"]? || "127.0.0.1"
   PLACE_SOURCE_PORT = (ENV["PLACE_SOURCE_PORT"]? || 3000).to_i
 
+  INFLUX_API_KEY = ENV["INFLUX_API_KEY"]?
+  INFLUX_HOST    = ENV["INFLUX_HOST"]?
+  INFLUX_ORG     = ENV["INFLUX_ORG"]? || "placeos"
+
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
 

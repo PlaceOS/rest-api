@@ -1,4 +1,6 @@
 require "../helper"
+require "../core_helper"
+require "webmock"
 
 require "placeos-driver/storage"
 
@@ -90,9 +92,53 @@ module PlaceOS::Api::WebSocket
           updates.shift.type.should eq Session::Response::Type::Success
         end
 
-        # TODO: awaiting addition of `core` to test environment
-        pending "exec"
-        pending "debug"
+        it "exec" do
+          WebMock.stub(:any, /^http:\/\/core:3000\/api\/core\/v1\/command\//).to_return(body: %({"__exec__":"function2"}))
+
+          id = rand(10).to_i64
+
+          status_name = "function2"
+
+          id = rand(10).to_i64
+          updates, _, _ = test_websocket_exec(base, authorization_header) do |ws, control_system, mod|
+            request = {
+              id:          id,
+              system_id:   control_system.id.as(String),
+              module_name: mod.resolved_name,
+              name:        status_name,
+              command:     Session::Request::Command::Exec,
+            }
+            ws.send Session::Request.new(**request).to_json
+            sleep 0.1
+          end
+
+          # Check for successful exec response
+
+          updates.first.type.should eq Session::Response::Type::Success
+          updates.first.value.should eq(%({"__exec__":"function2"}))
+        end
+
+        it "debug" do
+          status_name = "nugget"
+
+          id = rand(10).to_i64
+          updates, _, _ = test_websocket_api(base, authorization_header) do |ws, control_system, mod|
+            request = {
+              id:          id,
+              system_id:   control_system.id.as(String),
+              module_name: mod.resolved_name,
+              name:        status_name,
+              command:     Session::Request::Command::Debug,
+            }
+            ws.send Session::Request.new(**request).to_json
+            sleep 0.1
+          end
+
+          # Check all messages received
+          updates.size.should eq 1
+          # Check for successful debug response
+          updates.shift.type.should eq Session::Response::Type::Success
+        end
 
         it "ignore" do
           status_name = "nugget"
@@ -196,6 +242,45 @@ def test_websocket_api(base, authorization_header)
   # Clean up.
   control_system.destroy
   mod.destroy
+
+  {updates, control_system, mod}
+end
+
+def test_websocket_exec(base, authorization_header)
+  control_system = PlaceOS::Model::Generator.control_system.save!
+  mod = PlaceOS::Model::Generator.module(control_system: control_system).save!
+
+  module_slug = mod.id.as(String)
+
+  sys_lookup = PlaceOS::Driver::RedisStorage.new(control_system.id.as(String), "system")
+  lookup_key = "#{mod.custom_name}/1"
+  sys_lookup[lookup_key] = module_slug
+
+  PlaceOS::Driver::RedisStorage.with_redis do |redis|
+    meta = PlaceOS::Driver::DriverModel::Metadata.new({
+      "nugget"    => {} of String => JSON::Any,
+      "function2" => {"arg1" => JSON.parse(%({"type":"integer"}))},
+      "function3" => {"arg1" => JSON.parse(%({"type":"integer"})), "arg2" => JSON.parse(%({"type":"integer","default":200}))},
+    }, ["Functoids"])
+
+    redis.set("interface/#{module_slug}", meta.to_json)
+  end
+
+  updates = [] of PlaceOS::Api::WebSocket::Session::Response
+
+  on_message = ->(message : String) {
+    updates << PlaceOS::Api::WebSocket::Session::Response.from_json message
+  }
+
+  bind(base, authorization_header, on_message) do |ws|
+    yield ({ws, control_system, mod})
+  end
+
+  # Clean up.
+  control_system.destroy
+  mod.destroy
+
+  sys_lookup.clear
 
   {updates, control_system, mod}
 end

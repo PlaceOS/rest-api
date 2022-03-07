@@ -255,24 +255,7 @@ module PlaceOS::Api
       save_and_respond user
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    # put "/:id", :update_alt { update }
-
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-    summary: Update a user
-    requestBody:
-      required: true
-      content:
-        #{Schema.ref Model::User}
-    security:
-    - bearerAuth: []
-    responses:
-      200:
-        description: OK
-        content:
-          #{Schema.ref Model::User}
-  YAML
-    )]) { update }
+    put_redirect
 
     # Destroy user, revoke authentication.
     @[OpenAPI(

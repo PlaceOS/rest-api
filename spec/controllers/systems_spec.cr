@@ -1,4 +1,5 @@
 require "../helper"
+require "../core_helper"
 require "http/web_socket"
 
 module PlaceOS::Api
@@ -40,10 +41,10 @@ module PlaceOS::Api
     base = Systems::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::ControlSystem.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::ControlSystem.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
+        Specs.test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
         context "query parameter" do
           it "zone_id filters systems by zones" do
@@ -325,6 +326,36 @@ module PlaceOS::Api
         end
       end
 
+      it "GET /:sys_id/functions/:module_slug" do
+        cs = PlaceOS::Model::Generator.control_system.save!
+        mod = PlaceOS::Model::Generator.module(control_system: cs).save!
+        module_slug = mod.id.as(String)
+
+        sys_lookup = PlaceOS::Driver::RedisStorage.new(cs.id.as(String), "system")
+        lookup_key = "#{module_slug}/1"
+        sys_lookup[lookup_key] = module_slug
+
+        PlaceOS::Driver::RedisStorage.with_redis do |redis|
+          meta = PlaceOS::Driver::DriverModel::Metadata.new({
+            "function1" => {} of String => JSON::Any,
+            "function2" => {"arg1" => JSON.parse(%({"type":"integer"}))},
+            "function3" => {"arg1" => JSON.parse(%({"type":"integer"})), "arg2" => JSON.parse(%({"type":"integer","default":200}))},
+          }, ["Functoids"])
+
+          redis.set("interface/#{module_slug}", meta.to_json)
+        end
+
+        path = base + "#{cs.id}/functions/#{module_slug}"
+
+        result = curl(
+          method: "GET",
+          path: path,
+          headers: authorization_header,
+        )
+
+        result.body.includes?("function1").should be_true
+      end
+
       describe "GET /:sys_id/types" do
         it "returns types of modules in a system" do
           expected = {
@@ -364,58 +395,57 @@ module PlaceOS::Api
         end
       end
 
-      # TODO: awaiting addition of `core` to test environment
-      pending "GET /:sys_id/functions/:module_slug" do
-        cs = Model::Generator.control_system.save!
+      describe "with core" do
+        mod, cs = get_sys
 
-        driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
-        mod = Model::Generator.module(driver: driver).save!
-        module_id = mod.id.as(String)
+        # "fetches the state for `key` in module defined by `module_slug`
+        it "GET /:sys_id/:module_slug/:key" do
+          module_slug = cs.modules.first
 
-        cs.add_module(module_id)
-        cs.save!
+          # Create a storage proxy
+          driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
 
-        module_slug = cs.modules.first
+          status_name = "orange"
+          driver_proxy[status_name] = 1
 
-        path = base + "#{cs.id}/functions/#{module_slug}"
+          sys_lookup = PlaceOS::Driver::RedisStorage.new(cs.id.as(String), "system")
+          lookup_key = "#{module_slug}/1"
+          sys_lookup[lookup_key] = mod.id.as(String)
 
-        result = curl(
-          method: "GET",
-          path: path,
-          headers: authorization_header,
-        )
+          path = base + "#{cs.id}/#{module_slug}/orange"
 
-        puts result.inspect
-      end
-
-      # TODO: awaiting addition of `core` to test environment
-      pending "GET /:sys_id/:module_slug/:key" do
-        it "fetches the state for `key` in module defined by `module_slug`" do
+          response = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+          String.from_json(response.body).should eq("1")
         end
-      end
 
-      # TODO: awaiting addition of `core` to test environment
-      pending "GET /:sys_id/:module_slug" do
-        cs = Model::Generator.control_system.save!
+        it "GET /:sys_id/:module_slug" do
+          module_slug = cs.modules.first
 
-        driver = Model::Generator.driver(role: Model::Driver::Role::SSH).save!
-        mod = Model::Generator.module(driver: driver).save!
-        module_id = mod.id.as(String)
+          # Create a storage proxy
+          driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
 
-        cs.add_module(module_id)
-        cs.save!
+          status_name = "nugget"
+          driver_proxy[status_name] = 1
 
-        module_slug = cs.modules.first
+          sys_lookup = PlaceOS::Driver::RedisStorage.new(cs.id.as(String), "system")
+          lookup_key = "#{module_slug}/1"
+          sys_lookup[lookup_key] = mod.id.as(String)
 
-        path = base + "#{cs.id}/functions/#{module_slug}"
+          path = base + "#{cs.id}/#{module_slug}"
 
-        result = curl(
-          method: "GET",
-          path: path,
-          headers: authorization_header,
-        )
+          response = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
 
-        puts result.inspect
+          state = Hash(String, String).from_json(response.body)
+          state["nugget"].should eq("1")
+        end
       end
 
       describe "POST /:sys_id/start" do
@@ -495,7 +525,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::ControlSystem, controller_klass: Systems)
+        Specs.test_crd(klass: Model::ControlSystem, controller_klass: Systems)
 
         describe "update" do
           it "if version is valid" do
@@ -566,7 +596,7 @@ module PlaceOS::Api
       end
 
       describe "scopes" do
-        test_controller_scope(Systems)
+        Specs.test_controller_scope(Systems)
         it "should not allow start" do
           _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
 

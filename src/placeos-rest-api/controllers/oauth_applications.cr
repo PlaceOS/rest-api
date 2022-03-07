@@ -99,39 +99,8 @@ module PlaceOS::Api
       save_and_respond current_app
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-      summary: Update an application
-      requestBody:
-        required: true
-        content:
-          #{Schema.ref Model::DoorkeeperApplication}
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-          content:
-            #{Schema.ref Model::DoorkeeperApplication}
-    YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create an application
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::DoorkeeperApplication}
-        security:
-        - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::DoorkeeperApplication}
-      YAML
-    )]
     def create
       save_and_respond(Model::DoorkeeperApplication.from_json(self.body))
     end

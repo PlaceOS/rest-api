@@ -63,21 +63,8 @@ module PlaceOS::Api
       save_and_respond current_domain
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-      summary: Update a domain
-      security:
-      - bearerAuth: []
-      YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a domain
-        security:
-        - bearerAuth: []
-      YAML
-    )]
     def create
       save_and_respond(Model::Authority.from_json(self.body))
     end

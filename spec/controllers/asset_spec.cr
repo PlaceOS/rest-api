@@ -6,10 +6,10 @@ module PlaceOS::Api
     base = Assets::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Asset.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Asset.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(klass: Model::Asset, controller_klass: Assets)
+        Specs.test_base_index(klass: Model::Asset, controller_klass: Assets)
       end
 
       describe "/:id/instances" do
@@ -31,7 +31,7 @@ module PlaceOS::Api
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::Asset, controller_klass: Assets)
+        Specs.test_crd(klass: Model::Asset, controller_klass: Assets)
       end
 
       it "update" do
@@ -79,8 +79,8 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      test_controller_scope(Assets)
-      test_update_write_scope(Assets)
+      Specs.test_controller_scope(Assets)
+      Specs.test_update_write_scope(Assets)
     end
   end
 end

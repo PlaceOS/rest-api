@@ -174,38 +174,8 @@ module PlaceOS::Api
       end
     end
 
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-    summary: Update metadata
-    requestBody:
-      required: true
-      content:
-        #{Schema.ref Model::Metadata}
-    security:
-    - bearerAuth: []
-    responses:
-      400:
-        description: Bad Request
-      403:
-        description: Forbidden
-      200:
-        description: OK
-        content:
-          #{Schema.ref Model::Metadata}
-    YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Delete metadata
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-          400:
-            description: Bad Request
-      YAML
-    )]
     def destroy
       if (metadata_name = name).nil?
         head :bad_request

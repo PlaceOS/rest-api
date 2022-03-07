@@ -32,6 +32,9 @@ module PlaceOS::Api
     # Helpers for defining scope checks on controller actions
     include Utils::Scopes
 
+    # For want of route templating, this module exists
+    include Utils::PutRedirect
+
     # Core service discovery
     class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
 
@@ -178,6 +181,12 @@ module PlaceOS::Api
     rescue_from RethinkORM::Error::DocumentNotFound do |error|
       Log.debug { error.message }
       head :not_found
+    end
+
+    # 422 if resource fails validation
+    rescue_from RethinkORM::Error::DocumentInvalid do |error|
+      Log.debug { error.message }
+      return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, error.message)
     end
 
     # 400 if params fails validation before mutation

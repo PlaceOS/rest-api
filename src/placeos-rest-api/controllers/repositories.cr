@@ -122,41 +122,8 @@ module PlaceOS::Api
       save_and_respond current_repo
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-    summary: Update a repository
-    requestBody:
-      required: true
-      content:
-        #{Schema.ref Model::Repository}
-    security:
-    - bearerAuth: []
-    responses:
-      422:
-        description: Unprocessable Entity
-      200:
-        description: OK
-        content:
-          #{Schema.ref Model::Repository}
-    YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a repository
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Repository}
-        security:
-        - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Repository}
-      YAML
-    )]
     def create
       save_and_respond(Model::Repository.from_json(self.body))
     end

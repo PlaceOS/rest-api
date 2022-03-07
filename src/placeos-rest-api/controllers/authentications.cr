@@ -89,21 +89,8 @@ module PlaceOS::Api
         save_and_respond current_auth
       end
 
-      # TODO: replace manual id with interpolated value from `id_param`
-      put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-        summary: Update the current auth
-        security:
-        - bearerAuth: []
-        YAML
-    )]) { update }
+      put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a new {{auth_type.id}} auth
-        security:
-        - bearerAuth: []
-      YAML
-    )]
       def create
         save_and_respond({{ auth_model }}.from_json(self.body))
       end

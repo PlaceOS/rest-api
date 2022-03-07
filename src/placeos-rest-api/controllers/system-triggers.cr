@@ -156,26 +156,7 @@ module PlaceOS::Api
       save_and_respond(current_sys_trig)
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:sys_id", :update_alt, annotations: @[OpenAPI(<<-YAML
-      summary: Update a trigger instance
-      parameters:
-        #{Schema.qp "enabled", "", type: "boolean"}
-        #{Schema.qp "important", "", type: "boolean"}
-        #{Schema.qp "exec_enabled", "", type: "boolean"}
-      requestBody:
-        required: true
-        content:
-          #{Schema.ref Model::TriggerInstance}
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-          content:
-            #{Schema.ref Model::TriggerInstance}
-    YAML
-    )]) { update }
+    put_redirect
 
     @[OpenAPI(
       <<-YAML

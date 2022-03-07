@@ -111,39 +111,8 @@ module PlaceOS::Api
       save_and_respond(current_settings, &.decrypt_for!(current_user))
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:id", :update_alt, annotations: @[OpenAPI(<<-YAML
-      summary: Update a setting
-      requestBody:
-        required: true
-        content:
-          #{Schema.ref Model::Settings}
-      security:
-      - bearerAuth: []
-      responses:
-        200:
-          description: OK
-          content:
-            #{Schema.ref Model::Settings}
-    YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a setting
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Settings}
-        security:
-        - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::Settings}
-      YAML
-    )]
     def create
       new_settings = Model::Settings.from_json(self.body)
       save_and_respond(new_settings, &.decrypt_for!(current_user))

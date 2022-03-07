@@ -274,41 +274,8 @@ module PlaceOS::Api
       save_and_respond(current_control_system)
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put("/:sys_id", :update_alt, annotations: @[OpenAPI(<<-YAML
-        summary: Update a control system
-        parameters:
-          #{Schema.qp "version", "can only edit current control system", type: "string"}
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::ControlSystem}
-        security:
-        - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::ControlSystem}
-      YAML
-    )]) { update }
+    put_redirect
 
-    @[OpenAPI(
-      <<-YAML
-        summary: Create a control system
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::ControlSystem}
-        security:
-        - bearerAuth: []
-        responses:
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::ControlSystem}
-      YAML
-    )]
     def create
       save_and_respond Model::ControlSystem.from_json(self.body)
     end
@@ -522,14 +489,14 @@ module PlaceOS::Api
         user_id: current_user.id,
       )
 
-      ret_val = remote_driver.exec(
+      response_text, status_code = remote_driver.exec(
         security: driver_clearance(user_token),
         function: method,
         args: args,
         request_id: request_id,
       )
       response.headers["Content-Type"] = "application/json"
-      render text: ret_val
+      render text: response_text, status: status_code
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     end

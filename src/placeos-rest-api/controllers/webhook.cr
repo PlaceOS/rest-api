@@ -82,7 +82,7 @@ module PlaceOS::Api
 
           args = {method_type, header_data, body_data}
 
-          exec_response = driver.exec(
+          exec_response, _status_code = driver.exec(
             security: RemoteDriver::Clearance::Support,
             function: exec_params.method,
             args: args,
