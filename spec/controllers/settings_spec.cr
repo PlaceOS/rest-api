@@ -42,16 +42,22 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        it "searches on keys" do
+        it "searches on keys", focus: true do
           unencrypted = %({"secret_key": "secret1234"})
           settings = Model::Generator.settings(settings_string: unencrypted).save!
 
-          sleep 20.milliseconds
+          sleep 60.milliseconds
 
           refresh_elastic(Model::Settings.table_name)
 
           params = HTTP::Params.encode({"q" => settings.keys.first})
           path = "#{base.rstrip('/')}?#{params}"
+
+          puts "\n=============="
+          puts settings.inspect
+          puts "=============="
+          puts params.inspect
+          puts "=============="
 
           result = curl(
             method: "GET",
