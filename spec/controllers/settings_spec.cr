@@ -55,7 +55,7 @@ module PlaceOS::Api
 
           refresh_elastic(Model::Settings.table_name)
 
-          params = HTTP::Params.encode({"q" => settings.keys.first})
+          params = HTTP::Params.encode({"q" => "secret"})
           path = "#{base.rstrip('/')}?#{params}"
 
           # puts "\n=============="
@@ -69,10 +69,6 @@ module PlaceOS::Api
             path: path,
             headers: authorization_header
           )
-
-          # puts "\n=============="
-          # puts result.inspect
-          # puts "=============="
 
           result.status_code.should eq 200
 
