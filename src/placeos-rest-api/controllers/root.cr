@@ -3,18 +3,27 @@ require "../utilities/core_discovery"
 
 require "rethinkdb"
 require "rethinkdb-orm"
-require "rubber-soul/client"
-require "placeos-frontends/client"
+require "search-ingest/client"
+require "placeos-frontend-loader/client"
 
 require "placeos-models/version"
+require "path"
 require "uri"
 
 module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
 
-    before_action :check_admin, except: [:root, :healthz, :version, :signal, :cluster_version]
-    skip_action :check_oauth_scope, only: :signal
+    before_action :check_admin, except: [
+      :root,
+      :scopes,
+      :signal,
+      :platform_info,
+      :cluster_version,
+      :version,
+    ]
+
+    before_action :can_write_guest, only: [:signal]
 
     # Healthcheck
     ###############################################################################################
@@ -64,6 +73,24 @@ module PlaceOS::Api
         .first?
     end
 
+    # Platform Information
+    ###############################################################################################
+
+    record(
+      PlatformInfo,
+      version : String = PLATFORM_VERSION,
+      changelog : String = PLATFORM_CHANGELOG,
+    ) do
+      include JSON::Serializable
+    end
+
+    get "/platform", :platform_info do
+      render json: Root.platform_info
+    end
+
+    class_getter platform_info : PlatformInfo = PlatformInfo.new
+
+    # Versions
     ###############################################################################################
 
     get "/version", :version do
@@ -74,6 +101,15 @@ module PlaceOS::Api
       render json: Root.construct_versions
     end
 
+    # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
+    class_getter(scopes) { SCOPES }
+
+    get "/scopes", :scopes do
+      render json: Root.scopes
+    end
+
+    ###############################################################################################
+
     class_getter version : PlaceOS::Model::Version do
       PlaceOS::Model::Version.new(
         service: APP_NAME,
@@ -83,7 +119,7 @@ module PlaceOS::Api
       )
     end
 
-    SERVICES = %w(core dispatch frontends rest_api rubber_soul triggers source)
+    SERVICES = %w(core dispatch frontend_loader rest_api search_ingest source triggers)
 
     def self.construct_versions : Array(PlaceOS::Model::Version)
       version_channel = Channel(PlaceOS::Model::Version?).new
@@ -108,12 +144,12 @@ module PlaceOS::Api
 
     class_getter rest_api_version : PlaceOS::Model::Version = Root.version
 
-    protected def self.frontends_version : PlaceOS::Model::Version
-      Frontends::Client.client(&.version)
+    protected def self.frontend_loader_version : PlaceOS::Model::Version
+      FrontendLoader::Client.client(&.version)
     end
 
-    protected def self.rubber_soul_version : PlaceOS::Model::Version
-      RubberSoul::Client.client(&.version)
+    protected def self.search_ingest_version : PlaceOS::Model::Version
+      SearchIngest::Client.client(&.version)
     end
 
     protected def self.core_version : PlaceOS::Model::Version
@@ -129,7 +165,7 @@ module PlaceOS::Api
 
     protected def self.dispatch_version : PlaceOS::Model::Version
       uri = URI.new(host: PLACE_DISPATCH_HOST, port: PLACE_DISPATCH_PORT, scheme: "http")
-      response = HTTP::Client.get "#{uri}/api/server/version"
+      response = HTTP::Client.get "#{uri}/api/dispatch/v1/version"
       PlaceOS::Model::Version.from_json(response.body)
     end
 
@@ -158,18 +194,25 @@ module PlaceOS::Api
                   ""
                 end
 
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{channel}", payload)
+      path = Path["placeos/"].join(channel).to_s
+      Log.info { "signalling #{path} with #{payload.size} bytes" }
+
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
       head :ok
+    end
+
+    getter? backfill : Bool do
+      boolean_param("backfill")
     end
 
     post "/reindex", :reindex do
-      RubberSoul::Client.client &.reindex(backfill: params["backfill"]? == "true")
-      head :ok
+      success = SearchIngest::Client.client &.reindex(backfill: backfill?)
+      head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
 
     post "/backfill", :backfill do
-      RubberSoul::Client.client &.backfill
-      head :ok
+      success = SearchIngest::Client.client &.backfill
+      head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
   end
 end

@@ -4,9 +4,27 @@ module PlaceOS::Api
   class OAuthApplications < Application
     base "/api/engine/v2/oauth_apps/"
 
+    # Scopes
+    ###############################################################################################
+
     before_action :check_admin
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
+    # Callbacks
+    ###############################################################################################
+
     before_action :current_app, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
+
+    # Params
+    ###############################################################################################
+
+    getter authority_id : String? do
+      params["authority_id"]?.presence || params["authority"]?.presence
+    end
+
+    ###############################################################################################
 
     getter current_app : Model::DoorkeeperApplication { find_app }
 
@@ -15,10 +33,10 @@ module PlaceOS::Api
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
 
-      # filter by authority
-      if params.has_key? "authority"
+      # Filter by authority_id
+      if authority = authority_id
         query.must({
-          "owner_id" => [params["authority"]],
+          "owner_id" => [authority],
         })
       end
 
@@ -34,8 +52,7 @@ module PlaceOS::Api
       save_and_respond current_app
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       save_and_respond(Model::DoorkeeperApplication.from_json(self.body))

@@ -2,18 +2,27 @@ require "./application"
 
 module PlaceOS::Api
   class SystemTriggers < Application
-    include Utils::CurrentUser
-
     base "/api/engine/v2/systems/:sys_id/triggers/"
     id_param :trig_id
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, only: [:create, :update, :update_alt, :destroy]
     before_action :check_support, only: [:index, :show]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :ensure_json, only: [:create, :update, :update_alt]
     before_action :current_system, only: [:show, :update, :update_alt, :destroy]
     before_action :current_sys_trig, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
+
+    ###############################################################################################
 
     getter current_sys_trig : Model::TriggerInstance { find_sys_trig }
     getter current_system : Model::ControlSystem { find_system }
@@ -69,7 +78,7 @@ module PlaceOS::Api
 
     def show
       # Default to render extra association fields
-      complete = params.has_key?("complete") ? params["complete"]? == "true" : true
+      complete = boolean_param("complete", default: true)
       render json: render_system_trigger(current_sys_trig, complete: complete)
     end
 
@@ -89,8 +98,7 @@ module PlaceOS::Api
       save_and_respond(current_sys_trig)
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:trig_id", :update_alt { update }
+    put_redirect
 
     def create
       model = Model::TriggerInstance.from_json(self.body)

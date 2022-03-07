@@ -1,34 +1,29 @@
 name: CI
-on: push
-jobs:
-  style:
-    runs-on: ubuntu-latest
-    container:
-      image: crystallang/crystal
-    steps:
-      - uses: actions/checkout@v2
-      - name: Format
-        run: crystal tool format --check
-      - name: Lint
-        uses: crystal-ameba/github-action@v0.2.12
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+on:
+  push:
+    paths-ignore:
+      - "*.md"
+  #  branches:
+  #    - master
+  #
+  # pull_request:
+  #   paths:
+  #     # Crystal code and dependencies
+  #     - "*.cr"
+  #     - "shard.*"
+  #     # Test harness
+  #     - "docker-compose.yml"
+  #     - "Dockerfile"
+  #     - "test"
 
+jobs:
   test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        stable: [true]
-        crystal:
-          - 1.0.0
-          - 1.1.1
-        include:
-          - crystal: nightly
-            stable: false
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run docker-compose test environment
-        run: ./test
-        env:
-          CRYSTAL_VERSION: ${{ matrix.crystal }}
+    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@main
+    with:
+      todo_issues: true
+
+  crystal-style:
+    uses: PlaceOS/.github/.github/workflows/crystal-style.yml@main
+
+  dockerfile-style:
+    uses: PlaceOS/.github/.github/workflows/dockerfile-style.yml@main

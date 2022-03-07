@@ -4,16 +4,28 @@ module PlaceOS::Api
   class Drivers < Application
     base "/api/engine/v2/drivers/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
+    # Callbacks
+    ###############################################################################################
+
     before_action :current_driver, only: [:show, :update, :update_alt, :destroy, :recompile]
     before_action :body, only: [:create, :update, :update_alt]
+
+    ###############################################################################################
 
     getter current_driver : Model::Driver { find_driver }
 
     def index
       # Pick off role from HTTP params, render error if present and invalid
+      # TODO: This is an example of a need to improve validation model of params.
       role = params["role"]?.try &.to_i?.try do |r|
         parsed = Model::Driver::Role.from_value?(r)
         return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Invalid `role`") if parsed.nil?
@@ -35,7 +47,7 @@ module PlaceOS::Api
     end
 
     def show
-      include_compilation_status = !params.has_key?("compilation_status") || params["compilation_status"] != "false"
+      include_compilation_status = boolean_param("compilation_status", default: true)
 
       result = !include_compilation_status ? current_driver : with_fields(current_driver, {
         :compilation_status => Api::Drivers.driver_compiled?(current_driver, request_id),
@@ -53,8 +65,7 @@ module PlaceOS::Api
       save_and_respond current_driver
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       save_and_respond(Model::Driver.from_json(self.body))
@@ -85,9 +96,10 @@ module PlaceOS::Api
       # Set the repository commit hash to head
       driver.update_fields(commit: "RECOMPILE-#{driver.commit}")
 
-      # Initiate changefeed on the document's commit
-      find_change(driver) do |driver_update|
-        driver_update.destroyed? || !driver_update.commit.starts_with? "RECOMPILE"
+      # Wait until the commit hash is not head with a timeout of 90 seconds
+      # ameba:disable Style/RedundantReturn
+      return Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
+        update.destroyed? || !update.recompile_commit?
       end
     end
 

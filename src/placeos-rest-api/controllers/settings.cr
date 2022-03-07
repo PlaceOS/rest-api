@@ -4,18 +4,44 @@ module PlaceOS::Api
   class Settings < Application
     base "/api/engine/v2/settings/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :current_settings, only: [:show, :update, :update_alt, :destroy]
     before_action :body, only: [:create, :update, :update_alt]
 
+    # Params
+    ###############################################################################################
+
+    getter parent_ids : Array(String)? do
+      params["parent_id"]?.presence.try &.split(',').reject(&.empty?).uniq!
+    end
+
+    getter offset : Int32 do
+      params["offset"]?.try(&.to_i) || 0
+    end
+
+    getter limit : Int32 do
+      params["limit"]?.try(&.to_i) || 15
+    end
+
+    ###############################################################################################
+
     getter current_settings : Model::Settings { find_settings }
 
-    def index
-      if params.has_key? "parent_id"
-        parents = params["parent_id"].split(',')
+    ###############################################################################################
 
+    def index
+      if parents = parent_ids
         # Directly search for model's settings
         parent_settings = Model::Settings.for_parent(parents)
         # Decrypt for the user
@@ -40,8 +66,7 @@ module PlaceOS::Api
       save_and_respond(current_settings, &.decrypt_for!(current_user))
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       new_settings = Model::Settings.from_json(self.body)
@@ -56,9 +81,6 @@ module PlaceOS::Api
     # Returns history for a particular Setting
     #
     get "/:id/history", :history do
-      offset = params["offset"]?.try(&.to_i) || 0
-      limit = params["limit"]?.try(&.to_i) || 15
-
       history = current_settings.history(offset: offset, limit: limit)
 
       # Privilege respecting decrypted settings history

@@ -1,17 +1,16 @@
-require "./helper"
+require "../helper"
 require "timecop"
 
 module PlaceOS::Api
   describe Modules do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Modules::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Module.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Module.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::Module, controller_klass: Modules)
+        Specs.test_crd(klass: Model::Module, controller_klass: Modules)
 
         it "update preserves logic module connection status" do
           driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
@@ -61,7 +60,7 @@ module PlaceOS::Api
 
       describe "index", tags: "search" do
         it "queries by parent driver" do
-          name = UUID.random.to_s
+          name = random_name
 
           driver = Model::Generator.driver
           driver.name = name
@@ -110,73 +109,75 @@ module PlaceOS::Api
           found.should be_true
         end
 
-        it "as_of query" do
-          mod1 = Model::Generator.module
-          mod1.connected = true
-          Timecop.freeze(2.days.ago) do
-            mod1.save!
-          end
-          mod1.persisted?.should be_true
+        context "query parameter" do
+          it "as_of" do
+            mod1 = Model::Generator.module
+            mod1.connected = true
+            Timecop.freeze(2.days.ago) do
+              mod1.save!
+            end
+            mod1.persisted?.should be_true
 
-          mod2 = Model::Generator.module
-          mod2.connected = true
-          mod2.save!
-          mod2.persisted?.should be_true
+            mod2 = Model::Generator.module
+            mod2.connected = true
+            mod2.save!
+            mod2.persisted?.should be_true
 
-          params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
-          path = "#{base}?#{params}"
+            params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
+            path = "#{base}?#{params}"
 
-          found = until_expected("GET", path, authorization_header) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            contains_correct = results.any?(mod1.id)
-            contains_incorrect = results.any?(mod2.id)
-            !results.empty? && contains_correct && !contains_incorrect
-          end
+            found = until_expected("GET", path, authorization_header) do |response|
+              results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              contains_correct = results.any?(mod1.id)
+              contains_incorrect = results.any?(mod2.id)
+              !results.empty? && contains_correct && !contains_incorrect
+            end
 
-          found.should be_true
-        end
-
-        pending "connected query" do
-          mod = Model::Generator.module
-          mod.ignore_connected = false
-          mod.connected = true
-          mod.save!
-          mod.persisted?.should be_true
-
-          params = HTTP::Params.encode({"connected" => "true"})
-          path = "#{base}?#{params}"
-
-          found = until_expected("GET", path, authorization_header) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body)
-
-            all_connected = results.all? { |r| r["connected"].as_bool == true }
-            contains_created = results.any? { |r| r["id"].as_s == mod.id }
-
-            !results.empty? && all_connected && contains_created
+            found.should be_true
           end
 
-          found.should be_true
-        end
+          it "connected" do
+            mod = Model::Generator.module
+            mod.ignore_connected = false
+            mod.connected = true
+            mod.save!
+            mod.persisted?.should be_true
 
-        it "no logic query" do
-          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
-          mod = Model::Generator.module(driver: driver)
-          mod.role = Model::Driver::Role::Service
-          mod.save!
+            params = HTTP::Params.encode({"connected" => "true"})
+            path = "#{base}?#{params}"
 
-          params = HTTP::Params.encode({"no_logic" => "true"})
-          path = "#{base}?#{params}"
+            found = until_expected("GET", path, authorization_header) do |response|
+              results = Array(Hash(String, JSON::Any)).from_json(response.body)
 
-          found = until_expected("GET", path, authorization_header) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body)
+              all_connected = results.all? { |r| r["connected"].as_bool == true }
+              contains_created = results.any? { |r| r["id"].as_s == mod.id }
 
-            no_logic = results.all? { |r| r["role"].as_i != Model::Driver::Role::Logic.to_i }
-            contains_created = results.any? { |r| r["id"].as_s == mod.id }
+              !results.empty? && all_connected && contains_created
+            end
 
-            !results.empty? && no_logic && contains_created
+            found.should be_true
           end
 
-          found.should be_true
+          it "no_logic" do
+            driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+            mod = Model::Generator.module(driver: driver)
+            mod.role = Model::Driver::Role::Service
+            mod.save!
+
+            params = HTTP::Params.encode({"no_logic" => "true"})
+            path = "#{base}?#{params}"
+
+            found = until_expected("GET", path, authorization_header) do |response|
+              results = Array(Hash(String, JSON::Any)).from_json(response.body)
+
+              no_logic = results.all? { |r| r["role"].as_i != Model::Driver::Role::Logic.to_i }
+              contains_created = results.any? { |r| r["id"].as_s == mod.id }
+
+              !results.empty? && no_logic && contains_created
+            end
+
+            found.should be_true
+          end
         end
       end
     end
@@ -272,7 +273,7 @@ module PlaceOS::Api
       end
     end
 
-    describe "ping" do
+    describe "/:id/ping" do
       it "fails for logic module" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
         mod = Model::Generator.module(driver: driver).save!
@@ -305,6 +306,35 @@ module PlaceOS::Api
         body = JSON.parse(result.body)
         result.success?.should be_true
         body["pingable"].should be_true
+      end
+
+      describe "scopes" do
+        Specs.test_controller_scope(Modules)
+
+        it "checks scope on update" do
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+          driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+          mod = Model::Generator.module(driver: driver).save!
+
+          connected = mod.connected
+          mod.connected = !connected
+
+          id = mod.id.as(String)
+          path = base + id
+
+          result = update_route(path, mod, scoped_authorization_header)
+
+          result.status_code.should eq 200
+          updated = Model::Module.from_trusted_json(result.body)
+          updated.id.should eq mod.id
+          updated.connected.should eq !connected
+
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+          result = update_route(path, mod, scoped_authorization_header)
+
+          result.success?.should be_false
+          result.status_code.should eq 403
+        end
       end
     end
   end

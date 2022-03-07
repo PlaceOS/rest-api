@@ -1,17 +1,18 @@
-require "./helper"
+require "../helper"
+require "../core_helper"
 
 module PlaceOS::Api
   describe Drivers do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
     with_server do
       describe "index", tags: "search" do
-        test_base_index(klass: Model::Driver, controller_klass: Drivers)
+        Specs.test_base_index(klass: Model::Driver, controller_klass: Drivers)
+
         it "filters queries by driver role" do
           service = Model::Generator.driver(role: Model::Driver::Role::Service)
-          service.name = UUID.random.to_s
+          service.name = random_name
           service.save!
 
           params = HTTP::Params.encode({
@@ -32,16 +33,20 @@ module PlaceOS::Api
         end
       end
 
-      test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Driver.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(klass: Model::Driver, controller_klass: Drivers)
+        before_each do
+          HttpMocks.reset
+        end
+
+        Specs.test_crd(klass: Model::Driver, controller_klass: Drivers)
 
         describe "update" do
           it "if role is preserved" do
             driver = Model::Generator.driver.save!
             original_name = driver.name
-            driver.name = UUID.random.to_s
+            driver.name = random_name
 
             id = driver.id.as(String)
             path = base + id
@@ -74,6 +79,43 @@ module PlaceOS::Api
             result.body.should contain "role must not change"
           end
         end
+
+        it "GET /:id/compiled" do
+          driver = get_driver
+          Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
+            update.destroyed? || !update.recompile_commit?
+          end
+
+          response = curl(
+            method: "GET",
+            path: "#{base}#{driver.id.not_nil!}/compiled",
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+
+          response.success?.should be_true
+        end
+
+        it "POST /:id/recompile" do
+          driver = get_driver
+
+          response = curl(
+            method: "POST",
+            path: "#{base}#{driver.id.not_nil!}/recompile",
+            headers: authorization_header.merge({"Content-Type" => "application/json"}),
+          )
+
+          response.success?.should be_true
+          updated = Model::Driver.from_trusted_json(response.body)
+          updated.commit.starts_with?("RECOMPILE").should be_false
+        end
+      end
+
+      describe "scopes" do
+        before_each do
+          HttpMocks.core_compiled
+        end
+
+        Specs.test_controller_scope(Drivers)
       end
     end
   end

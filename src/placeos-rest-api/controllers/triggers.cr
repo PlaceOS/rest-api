@@ -4,12 +4,23 @@ module PlaceOS::Api
   class Triggers < Application
     base "/api/engine/v2/triggers/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :current_trigger, only: [:show, :update, :update_alt, :destroy]
     before_action :ensure_json, only: [:create, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
+
+    ###############################################################################################
 
     getter current_trigger : Model::Trigger { find_trigger }
 
@@ -22,7 +33,7 @@ module PlaceOS::Api
     end
 
     def show
-      include_instances = params["instances"]? == "true"
+      include_instances = boolean_param("instances")
       render json: !include_instances ? current_trigger : with_fields(current_trigger, {
         :trigger_instances => current_trigger.trigger_instances.to_a,
       })
@@ -33,8 +44,7 @@ module PlaceOS::Api
       save_and_respond(current_trigger)
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       save_and_respond Model::Trigger.from_json(self.body)

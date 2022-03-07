@@ -30,4 +30,28 @@ module PlaceOS::Api
   PLACE_BUILD_URI = URI.parse("http://#{BUILD_HOST}:#{BUILD_PORT}")
 
   PLACE_TRIGGERS_URI = URI.parse(ENV["PLACEOS_TRIGGERS_URI"]?.presence || ENV["TRIGGERS_URI"]?.presence || "http://triggers:3000")
+
+  INFLUX_API_KEY = ENV["INFLUX_API_KEY"]?
+  INFLUX_HOST    = ENV["INFLUX_HOST"]?
+  INFLUX_ORG     = ENV["INFLUX_ORG"]? || "placeos"
+
+  # CHANGELOG
+  #################################################################################################
+
+  CHANGELOG_URI = "https://raw.githubusercontent.com/PlaceOS/PlaceOS/nightly/CHANGELOG.md"
+
+  PLATFORM_VERSION = {{ (env("PLACE_VERSION") || "DEV").tr(PLACE_TAG_PREFIX, "") }}
+
+  private PLACE_TAG_PREFIX = "placeos-"
+  private BUILD_CHANGELOG  = {{ !PLATFORM_VERSION.downcase.starts_with?("dev") }}
+
+  PLATFORM_CHANGELOG = fetch_platform_changelog(BUILD_CHANGELOG)
+
+  macro fetch_platform_changelog(build)
+    {% if build %}
+      {{ system("curl --silent --location #{CHANGELOG_URI}").stringify }}
+    {% else %}
+      "CHANGELOG is not generated for development builds"
+    {% end %}
+  end
 end

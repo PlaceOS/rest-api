@@ -1,5 +1,5 @@
 require "placeos-build/client"
-require "placeos-frontends/client"
+require "placeos-frontend-loader/client"
 
 require "./application"
 
@@ -7,14 +7,42 @@ module PlaceOS::Api
   class Repositories < Application
     base "/api/engine/v2/repositories/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show, :branches, :commits]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt] # brances, commits?
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :current_repository, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
 
+    # Params
+    ###############################################################################################
+
+    getter limit : Int32? do
+      params["limit"]?.try &.to_i?
+    end
+
+    getter driver : String? do
+      params["driver"]?.presence
+    end
+
+    getter commit : String do
+      params["commit"]
+    end
+
+    ###############################################################################################
+
     getter current_repository : Model::Repository { find_repo }
+
+    ###############################################################################################
 
     private def drivers_only
       unless current_repository.repo_type.driver?
@@ -44,8 +72,7 @@ module PlaceOS::Api
       save_and_respond current_repository
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       save_and_respond(Model::Repository.from_json(self.body))
@@ -77,8 +104,8 @@ module PlaceOS::Api
       # Trigger a pull event
       repository.pull!
 
-      found_repo = find_change(repository) do |repo|
-        repo.destroyed? || !repo.should_pull?
+      found_repo = Utils::Changefeeds.await_model_change(repository, 3.minutes) do |updated|
+        updated.destroyed? || !updated.should_pull?
       end
 
       unless found_repo.nil?
@@ -93,7 +120,7 @@ module PlaceOS::Api
     #
     # Returns a hash of folder_name to commit
     get "/interfaces", :loaded_interfaces do
-      render json: PlaceOS::Frontends::Client.client(&.loaded)
+      render json: PlaceOS::FrontendLoader::Client.client(&.loaded)
     end
 
     get "/:id/drivers", :drivers do
@@ -110,48 +137,36 @@ module PlaceOS::Api
     end
 
     get "/:id/commits", :commits do
-      limit = params["limit"]?.try &.to_i
-      file_name = params["driver"]?
-
-      commits = Api::Repositories.commits(
-        repository: current_repository,
+      render json: Api::Repositories.commits(
+        repository: current_repo,
         request_id: request_id,
-        limit: limit,
-        file_name: file_name,
+        number_of_commits: limit,
+        file_name: driver,
       )
-
-      render json: commits
     end
 
-    def self.commits(repository : Model::Repository, request_id : String, file_name : String? = nil, branch : String? = nil, limit : Int32? = nil) : Array(String)
-      limit = 50 if limit.nil?
-      branch = "master" if branch.nil?
-
+    def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
+      number_of_commits = 50 if number_of_commits.nil?
       case repository.repo_type
       in .driver?
-        Build::Client.client do |client|
-          args = {url: repository.uri, request_id: request_id, count: limit, branch: branch, username: repository.username, password: repository.password}
-          if file_name
-            client.file_commits(**args.merge({file: file_name}))
-          else
-            client.repository_commits(**args)
-          end
-        end.map(&.commit)
+        # Dial the core responsible for the driver
+        Api::Systems.core_for(repository.folder_name, request_id) do |core_client|
+          core_client.driver(file_name || ".", repository.folder_name, repository.branch, number_of_commits)
+        end
       in .interface?
         # Dial the frontends service
-        Frontends::Client.client(request_id: request_id) do |frontends_client|
-          frontends_client.commits(repository.folder_name, limit)
-        end.map(&.[:commit])
+        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+          frontends_client.commits(repository.folder_name, repository.branch, number_of_commits)
+        end
       end
     end
 
     get "/:id/details", :details do
-      driver = params["driver"]
-      commit = params["commit"]
+      driver_filename = required_param(driver)
 
       info = Build::Client.client do |client|
         client.metadata(
-          file: driver,
+          file: driver_filename,
           url: current_repository.uri,
           commit: commit,
           username: current_repository.username,
@@ -176,7 +191,7 @@ module PlaceOS::Api
       case repository.repo_type
       in .interface?
         # Dial the frontends service
-        Frontends::Client.client(request_id: request_id) do |frontends_client|
+        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
           frontends_client.branches(repository.folder_name)
         end
       in .driver?

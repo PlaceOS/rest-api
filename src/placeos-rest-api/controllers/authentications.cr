@@ -6,9 +6,28 @@ module PlaceOS::Api
     class {{auth_type.id}}Authentications < Application
       base "/api/engine/v2/{{auth_type.downcase.id}}_auths/"
 
+      # Scopes
+      ###############################################################################################
+
+      before_action :can_read, only: [:index, :show]
+      before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
       before_action :check_admin
+
+      # Callbacks
+      ###############################################################################################
+
       before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
       before_action :body, only: [:create, :update, :update_alt]
+
+      # Params
+      ###############################################################################################
+
+      getter authority_id : String? do
+        params["authority_id"]?.presence || params["authority"]?.presence
+      end
+
+      ###############################################################################################
 
       getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
 
@@ -16,7 +35,7 @@ module PlaceOS::Api
         elastic = Model::{{auth_type.id}}Authentication.elastic
         query = elastic.query(params)
 
-        if authority = params["authority"]?
+        if authority = authority_id
           query.filter({
             "authority_id" => [authority],
           })
@@ -35,8 +54,7 @@ module PlaceOS::Api
         save_and_respond current_auth
       end
 
-      # TODO: replace manual id with interpolated value from `id_param`
-      put "/:id", :update_alt { update }
+      put_redirect
 
       def create
         save_and_respond(Model::{{auth_type.id}}Authentication.from_json(self.body))

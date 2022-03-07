@@ -1,84 +1,36 @@
-# FIXME: Hack to allow resolution of PlaceOS::Driver class/module
-class PlaceOS::Driver; end
-
 require "hound-dog"
-require "log"
 require "mutex"
 require "placeos-driver/proxy/remote_driver"
 require "tasker"
 
-require "./error"
-require "./utilities/params"
+require "../error"
+require "../utilities/params"
 
-module PlaceOS
-  class Api::Session
+module PlaceOS::Api::WebSocket
+  class Session
     Log = ::Log.for(self)
 
-    # Stores sessions until their websocket closes
-    class Manager
-      Log = ::Log.for(self)
-
-      private getter session_lock : Mutex = Mutex.new
-      private getter sessions : Array(Session) { [] of Session }
-      private getter discovery : HoundDog::Discovery
-
-      private getter session_cleanup_period : Time::Span = 1.hours
-
-      @session_cleaner : Tasker::Task?
-
-      def initialize(@discovery : HoundDog::Discovery)
-        spawn(name: "cleanup_sessions", same_thread: true) do
-          cleanup_sessions
-        end
-      end
-
-      # Creates the session and handles the cleanup
-      #
-      def create_session(ws, request_id, user)
-        Log.trace { {request_id: request_id, frame: "OPEN"} }
-        session = Session.new(
-          ws: ws,
-          request_id: request_id,
-          user: user,
-          discovery: discovery,
-        )
-
-        session_lock.synchronize { sessions << session }
-
-        ws.on_close do |_|
-          Log.trace { {request_id: request_id, frame: "CLOSE"} }
-          session.cleanup
-          session_lock.synchronize { sessions.delete(session) }
-        end
-      end
-
-      # Periodically shrink the sessions array
-      protected def cleanup_sessions
-        @session_cleaner = Tasker.instance.every(session_cleanup_period) do
-          Log.trace { "shrinking sessions array" }
-          # NOTE: As crystal arrays do not shrink, we create a new one periodically
-          session_lock.synchronize { @sessions = sessions.dup }
-        end
-      end
-    end
-
     # Class level subscriptions to modules
-    # class_getter subscriptions : ::Proxy::Subscriptions { ::Proxy::Subscriptions.new }
     class_getter subscriptions : Driver::Proxy::Subscriptions = Driver::Proxy::Subscriptions.new
 
     # Local subscriptions
     private getter bindings = {} of String => Driver::Subscriptions::Subscription
 
     # Caching
-    # Background task to clear module metadata caches
     private getter cache_lock = Mutex.new
     private getter cache_timeout : Time::Span = 10.minutes
 
-    @metadata_cache = {} of String => Driver::DriverModel::Metadata
-    @module_id_cache = {} of String => String
-    @cache_cleaner : Tasker::Task?
+    # Background task to clear module metadata caches
+    private getter cache_cleaner : Tasker::Task?
 
-    getter ws : HTTP::WebSocket
+    private getter metadata_cache = {} of String => Driver::DriverModel::Metadata
+    private getter module_id_cache = {} of String => String
+
+    private getter write_channel = Channel(String).new
+
+    private getter ws : HTTP::WebSocket
+
+    private getter user : Model::UserJWT
 
     def initialize(
       @ws : HTTP::WebSocket,
@@ -87,133 +39,33 @@ module PlaceOS
       @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
     )
       # Register event handlers
-      @ws.on_message do |message|
+      ws.on_message do |message|
         Log.trace { {frame: "TEXT", text: message} }
         spawn(same_thread: true) do
           on_message(message)
         end
       end
 
-      @ws.on_ping do
+      ws.on_ping do
         Log.trace { {frame: "PING"} }
-        @ws.pong
+        ws.pong
       end
 
-      @security_level = if @user.is_admin?
+      @security_level = if user.is_admin?
                           Driver::Proxy::RemoteDriver::Clearance::Admin
-                        elsif @user.is_support?
+                        elsif user.is_support?
                           Driver::Proxy::RemoteDriver::Clearance::Support
                         else
                           Driver::Proxy::RemoteDriver::Clearance::User
                         end
 
+      # Perform writes
+      spawn(name: "socket_writes_#{request_id}", same_thread: true) { run_writes }
       # Begin clearing cache
-      spawn(name: "cache_cleaner", same_thread: true) { cache_plumbing }
+      spawn(name: "cache_cleaner_#{request_id}", same_thread: true) { cache_plumbing }
     end
 
-    # Websocket API Messages
-    ##############################################################################
-
-    private abstract struct Base
-      include JSON::Serializable
-    end
-
-    # A websocket API request
-    struct Request < Base
-      include JSON::Serializable::Strict
-
-      # Commands available over websocket API
-      enum Command
-        Exec
-        Bind
-        Unbind
-        Debug
-        Ignore
-      end
-
-      def initialize(
-        @id,
-        @system_id,
-        @module_name,
-        @command,
-        @name,
-        @index = 1,
-        @args = nil
-      )
-      end
-
-      getter id : Int64
-
-      # Module location metadata
-      @[JSON::Field(key: "sys")]
-      getter system_id : String
-
-      @[JSON::Field(key: "mod")]
-      getter module_name : String
-
-      getter index : Int32 = 1
-
-      # Command
-      @[JSON::Field(key: "cmd")]
-      getter command : Command
-
-      # Function name
-      getter name : String
-
-      # Function arguments
-      @[JSON::Field(emit_null: true)]
-      getter args : Array(JSON::Any)?
-    end
-
-    alias ErrorCode = Driver::Proxy::RemoteDriver::ErrorCode
-
-    # Websocket API Response
-    struct Response < Base
-      getter id : Int64
-      getter type : Type
-
-      getter error_code : Int32?
-
-      @[JSON::Field(key: "msg")]
-      getter message : String?
-
-      getter value : String?
-      getter meta : Metadata?
-
-      @[JSON::Field(key: "mod")]
-      getter module_id : String?
-
-      getter level : ::Log::Severity?
-
-      alias Metadata = NamedTuple(
-        sys: String,
-        mod: String,
-        index: Int32,
-        name: String,
-      )
-
-      def initialize(
-        @id : Int64,
-        @type,
-        @error_code = nil,
-        @message = nil,
-        @value = nil,
-        @module_id = nil,
-        @level = nil,
-        @meta = nil
-      )
-      end
-
-      # Response type
-      enum Type
-        Success
-        Notify
-        Error
-        Debug
-      end
-    end
-
-    # Websocket API Handlers
+    # WebSocket API Handlers
     ##############################################################################
 
     # Grab core url for the module and dial an exec request
@@ -224,30 +76,35 @@ module PlaceOS
       module_name : String,
       index : Int32,
       name : String,
-      args : Array(JSON::Any)
+      args : Array(JSON::Any)?
     )
+      args = [] of JSON::Any if args.nil?
       Log.debug { {message: "exec", args: args.to_json} }
 
-      driver = Driver::Proxy::RemoteDriver.new(
+      response, _status_code = Driver::Proxy::RemoteDriver.new(
         sys_id: system_id,
         module_name: module_name,
         index: index,
-        discovery: @discovery
+        discovery: @discovery,
+        user_id: user.id,
+      ).exec(
+        security: @security_level,
+        function: name,
+        args: args,
+        request_id: @request_id
       )
-
-      response = driver.exec(@security_level, name, args, request_id: @request_id)
 
       respond(Response.new(
         id: request_id,
-        type: Response::Type::Success,
-        meta: {
+        type: :success,
+        metadata: {
           sys:   system_id,
           mod:   module_name,
           index: index,
           name:  name,
         },
-        value: "%{}",
-      ), response)
+        value: response,
+      ))
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
@@ -255,7 +112,7 @@ module PlaceOS
         message: "failed to execute request",
         error:   e.message,
       } }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to execute request"))
+      respond(error_response(request_id, :unexpected_failure, "failed to execute request"))
     end
 
     # Bind a websocket to a module subscription
@@ -275,7 +132,7 @@ module PlaceOS
         end
       rescue error
         Log.warn(exception: error) { "websocket binding could not find system" }
-        respond(error_response(request_id, ErrorCode::ModuleNotFound, "could not find module: sys=#{system_id} mod=#{module_name}"))
+        respond(error_response(request_id, :module_not_found, "could not find module: sys=#{system_id} mod=#{module_name}"))
         return
       end
 
@@ -286,8 +143,8 @@ module PlaceOS
       # Could use a promise
       response = Response.new(
         id: request_id,
-        type: Response::Type::Success,
-        meta: {
+        type: :success,
+        metadata: {
           sys:   system_id,
           mod:   module_name,
           index: index,
@@ -300,7 +157,7 @@ module PlaceOS
         message: "failed to bind",
         error:   e.message,
       } }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to bind"))
+      respond(error_response(request_id, :unexpected_failure, "failed to bind"))
     end
 
     # Unbind a websocket from a module subscription
@@ -317,7 +174,7 @@ module PlaceOS
       subscription = delete_binding(system_id, module_name, index, name)
       self.class.subscriptions.unsubscribe(subscription) if subscription
 
-      respond(Response.new(id: request_id, type: Response::Type::Success))
+      respond(Response.new(id: request_id, type: :success))
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
@@ -325,7 +182,7 @@ module PlaceOS
         message: "failed to unbind",
         error:   e.message,
       } }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to unbind"))
+      respond(error_response(request_id, :unexpected_failure, "failed to unbind"))
     end
 
     private getter debug_sessions = {} of {String, String, Int32} => HTTP::WebSocket
@@ -348,7 +205,8 @@ module PlaceOS
           module_id: module_name,
           sys_id: system_id,
           module_name: module_name,
-          discovery: @discovery
+          discovery: @discovery,
+          user_id: user.id,
         )
 
         ws = driver.debug
@@ -360,11 +218,11 @@ module PlaceOS
             respond(
               Response.new(
                 id: request_id,
+                type: :debug,
                 module_id: module_name,
-                type: Response::Type::Debug,
                 level: level,
                 message: message,
-                meta: {
+                metadata: {
                   sys:   system_id,
                   mod:   module_name,
                   index: index,
@@ -382,10 +240,10 @@ module PlaceOS
         Log.trace { "reusing existing debug socket" }
       end
 
-      respond(Response.new(id: request_id, type: Response::Type::Success))
+      respond(Response.new(id: request_id, type: :success))
     rescue e
       Log.error(exception: e) { "failed to attach debugger" }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to attach debugger"))
+      respond(error_response(request_id, :unexpected_failure, "failed to attach debugger"))
     end
 
     # Detach websocket from module debug output
@@ -400,10 +258,10 @@ module PlaceOS
       socket = debug_sessions.delete({system_id, module_name, index})
       # Close the socket if it was present
       socket.try(&.close)
-      respond(Response.new(id: request_id, type: Response::Type::Success))
+      respond(Response.new(id: request_id, type: :success))
     rescue e
       Log.error(exception: e) { "failed to detach debugger" }
-      respond(error_response(request_id, ErrorCode::UnexpectedFailure, "failed to detach debugger"))
+      respond(error_response(request_id, :unexpected_failure, "failed to detach debugger"))
     end
 
     ##############################################################################
@@ -415,13 +273,13 @@ module PlaceOS
     def metadata?(system_id, module_name, index) : Driver::DriverModel::Metadata?
       key = Session.cache_key(system_id, module_name, index)
       # Try for value in the cache
-      cached = cache_lock.synchronize { @metadata_cache[key]? }
+      cached = cache_lock.synchronize { metadata_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
       if (module_id = module_id?(system_id, module_name, index))
         Driver::Proxy::System.driver_metadata?(module_id).tap do |meta|
-          cache_lock.synchronize { @metadata_cache[key] = meta } if meta
+          cache_lock.synchronize { metadata_cache[key] = meta } if meta
         end
       end
     end
@@ -433,12 +291,12 @@ module PlaceOS
     def module_id?(system_id, module_name, index) : String?
       key = Session.cache_key(system_id, module_name, index)
       # Try for value in the cache
-      cached = cache_lock.synchronize { @module_id_cache[key]? }
+      cached = cache_lock.synchronize { module_id_cache[key]? }
       return cached if cached
 
       # Look up value, refresh cache if value found
       Driver::Proxy::System.module_id?(system_id, module_name, index).tap do |id|
-        cache_lock.synchronize { @module_id_cache[key] = id } if id
+        cache_lock.synchronize { module_id_cache[key] = id } if id
       end
     end
 
@@ -455,7 +313,7 @@ module PlaceOS
 
       if module_name.starts_with?("_") && !@user.is_support?
         Log.warn { "websocket binding attempted to access privileged module" }
-        respond error_response(request_id, ErrorCode::AccessDenied, "attempted to access protected module")
+        respond error_response(request_id, :access_denied, "attempted to access protected module")
         return false
       end
 
@@ -464,7 +322,7 @@ module PlaceOS
         trig = Model::TriggerInstance.find(name)
         unless trig.try(&.control_system_id) == system_id
           Log.warn { {message: "websocket binding attempted to access unknown trigger", trigger_instance_id: name} }
-          respond error_response(request_id, ErrorCode::ModuleNotFound, "no trigger instance #{name} in system #{system_id}")
+          respond error_response(request_id, :module_not_found, "no trigger instance #{name} in system #{system_id}")
           return false
         end
 
@@ -509,31 +367,34 @@ module PlaceOS
     # Parse an update from a subscription and pass to listener
     #
     def notify_update(value, request_id, system_id, module_name, index, status)
-      response = Response.new(
+      respond(Response.new(
         id: request_id,
-        type: Response::Type::Notify,
+        type: :notify,
         value: value,
-        meta: {
+        metadata: {
           sys:   system_id,
           mod:   module_name,
           index: index,
           name:  status,
-        },
-      )
-      respond(response)
+        }
+      ))
+    end
+
+    protected def write(data)
+      write_channel.send(data)
     end
 
     # Request handler
     #
     protected def on_message(data)
-      return @ws.send("pong") if data == "ping"
+      return write("pong") if data == "ping"
 
       # Execute the request
       request = parse_request(data)
-      __send__(request) if request
+      handle_request(request) if request
     rescue e
       Log.error(exception: e) { {message: "websocket request failed", data: data} }
-      response = error_response(request.try(&.id), ErrorCode::RequestFailed, e.message)
+      response = error_response(request.try(&.id), :request_failed, e.message)
       respond(response)
     end
 
@@ -541,7 +402,7 @@ module PlaceOS
     #
     def cleanup
       # Stop the cache cleaner
-      @cache_cleaner.try &.cancel
+      cache_cleaner.try &.cancel
 
       # Unbind all modules
       bindings.clear
@@ -579,20 +440,21 @@ module PlaceOS
     def parse_request(data) : Request?
       Request.from_json(data)
     rescue e
-      Log.warn { {message: "failed to parse", data: data} }
-      error_response(JSON.parse(data)["id"]?.try &.as_i64, ErrorCode::BadRequest, "bad request: #{e.message}")
-      return
+      id = (NamedTuple(id: Int64?).from_json(data) rescue nil).try &.[:id]
+      Log.warn { {message: "failed to parse", data: data, id: id} }
+      error_response(id, :bad_request, "bad request: #{e.message}")
+      nil
     end
 
     protected def error_response(
       request_id : Int64?,
-      error_code,
+      error_code : Response::ErrorCode?,
       message : String?
     )
-      Api::Session::Response.new(
+      Api::WebSocket::Session::Response.new(
         id: request_id || 0_i64,
-        type: Api::Session::Response::Type::Error,
-        error_code: error_code.to_i,
+        type: :error,
+        error_code: error_code,
         message: message || "",
       )
     end
@@ -609,21 +471,20 @@ module PlaceOS
       end
     end
 
-    protected def respond(response : Response, payload = nil)
-      return if @ws.closed?
-
-      if payload
-        # Avoids parsing and serialising when payload is already in JSON format
-        partial = response.to_json
-        @ws.send(partial.sub(%("%{}"), payload))
-      else
-        @ws.send(response.to_json)
+    private def run_writes
+      while data = write_channel.receive?
+        ws.send(data)
       end
+    end
+
+    protected def respond(response : Response)
+      return if ws.closed?
+      write(response.to_json)
     end
 
     # Delegate request to correct handler
     #
-    protected def __send__(request : Request)
+    protected def handle_request(request : Request)
       arguments = {
         request_id:  request.id,
         system_id:   request.system_id,
@@ -638,10 +499,11 @@ module PlaceOS
       in .unbind? then unbind(**arguments)
       in .debug?  then debug(**arguments)
       in .ignore? then ignore(**arguments)
-      in .exec?
-        args = request.args.as(Array(JSON::Any))
-        exec(**arguments.merge({args: args}))
+      in .exec?   then exec(**arguments, args: request.args)
       end
     end
   end
 end
+
+require "./session/request"
+require "./session/response"

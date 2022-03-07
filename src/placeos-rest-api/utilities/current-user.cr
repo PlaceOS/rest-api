@@ -7,16 +7,18 @@ require "placeos-models/api_key"
 
 module PlaceOS::Api
   # Helper to grab user and authority from a request
+
   module Utils::CurrentUser
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
+
     def authorize! : Model::UserJWT
       unless (token = @user_token).nil?
         return token
       end
 
       # check for X-API-Key use
-      if (token = request.headers["X-API-Key"]?)
+      if (token = request.headers["X-API-Key"]? || params["api-key"]? || cookies["api-key"]?.try(&.value))
         begin
           @user_token = user_token = Model::ApiKey.find_key!(token).build_jwt
           return user_token
@@ -99,7 +101,7 @@ module PlaceOS::Api
     # - "bearer_token" param
     protected def acquire_token : String?
       if (token = request.headers["Authorization"]?)
-        token = token.lchop("Bearer ").rstrip
+        token = token.lchop("Bearer ").lchop("Token ").rstrip
         token unless token.empty?
       elsif (token = params["bearer_token"]?)
         token.strip

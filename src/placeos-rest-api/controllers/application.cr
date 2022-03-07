@@ -17,11 +17,35 @@ module PlaceOS::Api
     # Helpers for determining picking off user from JWT, authorization
     include Utils::CurrentUser
 
+    # Helpers for defining scope checks on controller actions
+    include Utils::Scopes
+
+    # For want of route templating, this module exists
+    include Utils::PutRedirect
+
     # Core service discovery
     class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
 
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name.keyword" => {order: :asc}}
+
+    macro required_param(key)
+      if (%value = {{ key }}).nil?
+        return render_error(HTTP::Status::BAD_REQUEST, "Missing '{{ key }}' param")
+      else
+        %value
+      end
+    end
+
+    def boolean_param(key : String, default : Bool = false, allow_empty : Bool = false) : Bool
+      return true if allow_empty && params.has_key?(key) && params[key].nil?
+
+      case params[key]?.presence.try(&.downcase)
+      when .in?("1", "true")  then true
+      when .in?("0", "false") then false
+      else                         default
+      end
+    end
 
     def paginate_results(elastic, query, route = base_route)
       data = elastic.search(query)
@@ -54,13 +78,10 @@ module PlaceOS::Api
     before_action :set_request_id
 
     # All routes are authenticated, except root
-    before_action :authorize!, except: [:root]
-
-    # Check request scope
-    before_action :check_oauth_scope, except: [:root]
+    before_action :authorize!, except: [:root, :mqtt_user, :mqtt_access]
 
     # Simplifies determining user's requests in server-side logs
-    before_action :set_user_id, except: [:root]
+    before_action :set_user_id, except: [:root, :mqtt_user, :mqtt_access]
 
     # Set user_id from parsed JWT
     def set_user_id
@@ -180,6 +201,12 @@ module PlaceOS::Api
     rescue_from RethinkORM::Error::DocumentNotFound do |error|
       Log.debug { error.message }
       head :not_found
+    end
+
+    # 422 if resource fails validation
+    rescue_from RethinkORM::Error::DocumentInvalid do |error|
+      Log.debug { error.message }
+      return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, error.message)
     end
 
     # 400 if params fails validation before mutation

@@ -12,12 +12,13 @@ x-build-client-env: &build-client-env
   PLACEOS_BUILD_PORT: ${PLACEOS_BUILD_PORT:-3000}
 
 x-elastic-client-env: &elastic-client-env
-  ES_HOST: ${ELASTIC_HOST:-elastic}
-  ES_PORT: ${ELASTIC_PORT:-9200}
+  ELASTIC_HOST: ${ELASTIC_HOST:-elastic}
+  ELASTIC_PORT: ${ELASTIC_PORT:-9200}
 
 x-etcd-client-env: &etcd-client-env
   ETCD_HOST: ${ETCD_HOST:-etcd}
   ETCD_PORT: ${ETCD_PORT:-2379}
+
 
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -27,26 +28,28 @@ x-rethinkdb-client-env: &rethinkdb-client-env
   RETHINKDB_PORT: ${RETHINKDB_PORT:-28015}
   RETHINKDB_DB: ${RETHINKDB_DB:-place_development}
 
-x-rubber-soul-client-env: &rubber-soul-client-env
-  RUBBER_SOUL_URI: ${RUBBER_SOUL_URI:-http://rubber-soul:3000}
+x-search-ingest-client-env: &search-ingest-client-env
+  SEARCH_INGEST_URI: ${SEARCH_INGEST_URI:-http://search-ingest:3000}
 
 services:
   test: # Rest API
-    build:
-      context: ./
-      dockerfile: Dockerfile.test
-      args:
-        CRYSTAL_VERSION: ${CRYSTAL_VERSION:-1.1.1}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.2.1}
     volumes:
-      - ./spec:/app/spec
-      - ./src:/app/src
+      - ${PWD}/spec:/app/spec
+      - ${PWD}/src:/app/src
+      - ${PWD}/lib:/app/lib
+      - ${PWD}/shard.lock:/app/shard.lock
+      - ${PWD}/shard.override.yml:/app/shard.override.yml
+      - ${PWD}/shard.yml:/app/shard.yml
+      - ${PWD}/coverage:/app/coverage
     depends_on:
       - build
       - elastic
       - etcd
       - redis
       - rethink
-      - rubber-soul
+      - search-ingest
+      - core
     environment:
       # Environment
       GITHUB_ACTION: ${GITHUB_ACTION:-}
@@ -67,13 +70,13 @@ services:
       <<: *deployment-env
 
   elastic:
-    image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.6}
+    image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.9.1}
     restart: always
     environment:
       discovery.type: single-node
 
   etcd:
-    image: bitnami/etcd:${ETCD_VERSION:-3.3.13}
+    image: bitnami/etcd:${ETCD_VERSION:-3.5.1}
     restart: always
     hostname: etcd
     environment:
@@ -89,16 +92,38 @@ services:
     restart: always
     hostname: rethink
 
-  rubber-soul: # RethinkDB to Elasticsearch Service
-    image: placeos/rubber-soul:${PLACE_RUBBER_SOUL_TAG:-nightly}
+  search-ingest: # RethinkDB to Elasticsearch Service
+    image: placeos/search-ingest:nightly
     restart: always
-    hostname: rubber-soul
+    hostname: search-ingest
     depends_on:
       - elastic
       - rethink
     environment:
+      LOG_LEVEL: trace
       # Service Hosts
       <<: *rethinkdb-client-env
       <<: *elastic-client-env
+      # Environment
+      <<: *deployment-env
+
+  core: # Module coordinator
+    image: placeos/core:${PLACE_CORE_TAG:-nightly}
+    restart: always
+    hostname: core
+    depends_on:
+      - etcd
+      - redis
+      - rethink
+    ulimits:
+      nofile: 40000
+      core:
+        soft: 0
+        hard: 0
+    environment:
+      # Service Hosts
+      <<: *etcd-client-env
+      <<: *redis-client-env
+      <<: *rethinkdb-client-env
       # Environment
       <<: *deployment-env

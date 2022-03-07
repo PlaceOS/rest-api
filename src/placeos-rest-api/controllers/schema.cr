@@ -4,8 +4,15 @@ module PlaceOS::Api
   class Schema < Application
     base "/api/engine/v2/schema/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
+
+    ###############################################################################################
 
     getter current_schema : Model::JsonSchema { find_schema }
 
@@ -24,8 +31,7 @@ module PlaceOS::Api
       save_and_respond(current_schema)
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       schema = Model::JsonSchema.from_json(self.body)

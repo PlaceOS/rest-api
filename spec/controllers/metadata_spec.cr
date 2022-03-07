@@ -1,9 +1,9 @@
-require "./helper"
+require "../helper"
 
 module PlaceOS::Api
   describe Metadata do
+    _authenticated_user, authorization_header = authentication
     base = Metadata::NAMESPACE[0]
-    _, authorization_header = authentication
 
     with_server do
       describe "/metadata/:id/children/" do
@@ -26,7 +26,7 @@ module PlaceOS::Api
 
           Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
             .from_json(result.body)
-            .tap { |m| m.size.should eq(3) }
+            .tap(&.size.should eq(3))
             .count(&.[:metadata].empty?.!)
             .should eq 3
 
@@ -203,6 +203,148 @@ module PlaceOS::Api
 
           metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
           metadata.size.should eq 1
+        end
+      end
+
+      describe "scopes" do
+        context "read" do
+          scope_name = "metadata"
+
+          it "allows access to show" do
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+
+            parent = Model::Generator.zone.save!
+            parent_id = parent.id.as(String)
+
+            3.times do
+              child = Model::Generator.zone
+              child.parent_id = parent_id
+              child.save!
+              Model::Generator.metadata(parent: child.id).save!
+            end
+
+            result = curl(
+              method: "GET",
+              path: "#{base}/#{parent_id}/children",
+              headers: scoped_authorization_header,
+            )
+            result.status_code.should eq 200
+            Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+              .from_json(result.body)
+              .tap(&.size.should eq(3))
+              .count(&.[:metadata].empty?.!)
+              .should eq 3
+
+            parent.destroy
+          end
+
+          it "should not allow access to delete" do
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+
+            parent = Model::Generator.zone.save!
+            parent_id = parent.id.as(String)
+
+            3.times do
+              child = Model::Generator.zone
+              child.parent_id = parent_id
+              child.save!
+              Model::Generator.metadata(parent: child.id).save!
+            end
+
+            id = parent.id.as(String)
+
+            result = curl(
+              method: "DELETE",
+              path: "#{base}/#{id}",
+              headers: scoped_authorization_header,
+            )
+            result.status_code.should eq 403
+          end
+        end
+        context "write" do
+          scope_name = "metadata"
+
+          it "should allow access to update" do
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+
+            parent = Model::Generator.zone.save!
+            meta = Model::Metadata::Interface.new(
+              name: "test",
+              description: "",
+              details: JSON.parse(%({"hello":"world","bye":"friends"})),
+              parent_id: nil,
+              editors: Set(String).new,
+            )
+
+            parent_id = parent.id.as(String)
+            path = "#{base}/#{parent_id}"
+
+            result = curl(
+              method: "PUT",
+              path: path,
+              body: meta.to_json,
+              headers: scoped_authorization_header.merge({"Content-Type" => "application/json"}),
+            )
+
+            new_metadata = Model::Metadata::Interface.from_json(result.body)
+            found = Model::Metadata.for(parent_id, meta.name).first
+            found.name.should eq new_metadata.name
+          end
+
+          it "should not allow access to show" do
+            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+
+            parent = Model::Generator.zone.save!
+            parent_id = parent.id.as(String)
+
+            3.times do
+              child = Model::Generator.zone
+              child.parent_id = parent_id
+              child.save!
+              Model::Generator.metadata(parent: child.id).save!
+            end
+
+            result = curl(
+              method: "GET",
+              path: "#{base}/#{parent_id}/children",
+              headers: scoped_authorization_header,
+            )
+            result.status_code.should eq 403
+          end
+        end
+
+        it "checks that guests can read metadata" do
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.as(String)
+          meta = Model::Generator.metadata(name: "special", parent: zone_id).save!
+
+          result = curl(
+            method: "GET",
+            path: "#{base}/#{zone_id}",
+            headers: scoped_authorization_header,
+          )
+
+          result.status_code.should eq 200
+          metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
+          metadata.size.should eq 1
+          metadata.values.first.parent_id.should eq zone_id
+          metadata.values.first.name.should eq meta.name
+        end
+
+        it "checks that guests cannot write metadata" do
+          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.as(String)
+
+          result = curl(
+            method: "POST",
+            path: "#{base}/#{zone_id}",
+            headers: scoped_authorization_header,
+          )
+          result.success?.should be_false
         end
       end
     end

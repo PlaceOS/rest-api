@@ -11,12 +11,38 @@ module PlaceOS::Api
 
     base "/api/engine/v2/modules/"
 
+    # Scopes
+    ###############################################################################################
+
+    before_action :can_read, only: [:index, :show]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]
+
+    # Callbacks
+    ###############################################################################################
 
     before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
     before_action :current_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
     before_action :body, only: [:create, :execute, :update, :update_alt]
+
+    # Params
+    ###############################################################################################
+
+    getter module_id : String do
+      params["id"]
+    end
+
+    getter method : String do
+      params["method"]
+    end
+
+    getter key : String do
+      params["key"]
+    end
+
+    ###############################################################################################
 
     getter current_module : Model::Module { find_module }
 
@@ -88,6 +114,7 @@ module PlaceOS::Api
         end
 
         query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
+
         search_results = paginate_results(elastic, query)
 
         # Include subset of association data with results
@@ -129,7 +156,7 @@ module PlaceOS::Api
     end
 
     def show
-      complete = params["complete"]? == "true"
+      complete = boolean_param("complete")
 
       response = !complete ? current_module : with_fields(current_module, {
         :driver => restrict_attributes(current_module.driver, only: DRIVER_ATTRIBUTES),
@@ -149,8 +176,7 @@ module PlaceOS::Api
       end
     end
 
-    # TODO: replace manual id with interpolated value from `id_param`
-    put "/:id", :update_alt { update }
+    put_redirect
 
     def create
       save_and_respond(Model::Module.from_json(self.body))
@@ -199,18 +225,16 @@ module PlaceOS::Api
 
     # Executes a command on a module
     post("/:id/exec/:method", :execute) do
-      id, method = params["id"], params["method"]
       sys_id = current_module.control_system_id || ""
       args = Array(JSON::Any).from_json(self.body)
 
-      remote_driver = Driver::Proxy::RemoteDriver.new(
-        module_id: id,
+      result, status_code = Driver::Proxy::RemoteDriver.new(
+        module_id: module_id,
         sys_id: sys_id,
         module_name: current_module.name,
         discovery: self.class.core_discovery,
-      )
-
-      result = remote_driver.exec(
+        user_id: current_user.id,
+      ).exec(
         security: driver_clearance(user_token),
         function: method,
         args: args,
@@ -218,14 +242,14 @@ module PlaceOS::Api
       )
 
       response.content_type = "application/json"
-      render text: result
+      render text: result, status: status_code
     rescue e : Driver::Proxy::RemoteDriver::Error
       handle_execute_error(e)
     rescue e
       Log.error(exception: e) { {
         message:     "core execute request failed",
         sys_id:      sys_id,
-        module_id:   id,
+        module_id:   module_id,
         module_name: current_module.name,
         method:      method,
       } }
@@ -244,7 +268,7 @@ module PlaceOS::Api
 
     # Returns the value of the requested status variable
     get("/:id/state/:key", :state_lookup) do
-      render json: self.class.module_state(current_module, params["key"])
+      render json: self.class.module_state(current_module, key)
     end
 
     post("/:id/ping", :ping) do
@@ -264,7 +288,6 @@ module PlaceOS::Api
     end
 
     post("/:id/load", :load) do
-      module_id = params["id"]
       render json: Api::Systems.core_for(module_id, request_id, &.load(module_id))
     end
 
@@ -290,10 +313,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     protected def find_module
-      id = params["id"]
-      Log.context.set(module_id: id)
+      Log.context.set(module_id: module_id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Module.find!(id, runopts: {"read_mode" => "majority"})
+      Model::Module.find!(module_id, runopts: {"read_mode" => "majority"})
     end
   end
 end

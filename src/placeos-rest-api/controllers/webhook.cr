@@ -4,10 +4,17 @@ module PlaceOS::Api
   class Webhook < Application
     base "/api/engine/v2/webhook/"
 
+    # Scopes
+    ###############################################################################################
+
+    # Callbacks
+    ###############################################################################################
+
     skip_action :authorize!, except: [:show]
     skip_action :set_user_id, except: [:show]
-    skip_action :check_oauth_scope, except: [:show]
     before_action :find_hook
+
+    ###############################################################################################
 
     @trigger_instance : Model::TriggerInstance?
     @trigger : Model::Trigger?
@@ -30,7 +37,7 @@ module PlaceOS::Api
       )
 
       # Execute the requested method
-      if params["exec"]? == "true"
+      if boolean_param("exec")
         exec_params = ExecParams.new(params).validate!
 
         if current_trigger_instance.exec_enabled
@@ -46,11 +53,12 @@ module PlaceOS::Api
 
           args = {method_type, header_data, body_data}
 
-          exec_response = driver.exec(
+          exec_response, _status_code = driver.exec(
             security: RemoteDriver::Clearance::Support,
             function: exec_params.method,
             args: args,
-            request_id: request_id
+            request_id: request_id,
+            user_id: "webhook #{current_trigger_instance.id}"
           )
 
           # We expect that the method being called is aware of its role as a trigger

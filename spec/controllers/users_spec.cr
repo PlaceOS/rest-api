@@ -1,4 +1,4 @@
-require "./helper"
+require "../helper"
 
 module PlaceOS::Api
   describe Users do
@@ -6,7 +6,7 @@ module PlaceOS::Api
     base = Users::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::User.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::User.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
         it "show" do
@@ -32,7 +32,7 @@ module PlaceOS::Api
           id = model.id.as(String)
           result = curl(
             method: "GET",
-            path: base + model.email,
+            path: base + model.email.to_s,
             headers: authorization_header,
           )
 
@@ -45,7 +45,7 @@ module PlaceOS::Api
         end
 
         it "show via login_name" do
-          login = UUID.random.to_s
+          login = random_name
           model = Model::Generator.user
           model.login_name = login
           model.save!
@@ -115,6 +115,7 @@ module PlaceOS::Api
 
       describe "/current" do
         it "renders the current user" do
+          authenticated_user, authorization_header = authentication
           result = curl(
             method: "GET",
             path: File.join(base, "/current"),
@@ -147,6 +148,10 @@ module PlaceOS::Api
           user.destroy
           meta.destroy
         end
+      end
+
+      describe "scopes" do
+        Specs.test_controller_scope(Users)
       end
     end
   end

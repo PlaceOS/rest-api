@@ -1,6 +1,6 @@
 name: placeos-rest-api
-version: 1.30.0
-crystal: ~> 1
+version: 1.33.4
+crystal: ">= 1.1.1"
 
 targets:
   rest-api:
@@ -48,19 +48,19 @@ dependencies:
     branch: main
 
   # For core client
-  placeos-core:
-    github: placeos/core
-    version: ">= 3.10.3"
+  placeos-core-client:
+    github: placeos/core-client
+    version: ~> 0.3
 
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ~> 5.1
+    version: ~> 6.1
 
   # For frontends client
-  placeos-frontends:
-    github: placeos/frontends
-    version: ~> 0.11
+  placeos-frontend-loader:
+    github: placeos/frontend-loader
+    version: ~> 1.3
 
   # Centrally defined logging configuration
   placeos-log-backend:
@@ -69,12 +69,12 @@ dependencies:
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 5.8
+    version: ~> 6.4
 
-  # A familiar abstraction over native Fibers
+  # An abstraction over Fibers
   promise:
     github: spider-gazelle/promise
-    version: ~> 2.2
+    version: ~> 3.0
 
   # Sentry integration
   raven:
@@ -91,10 +91,10 @@ dependencies:
     github: spider-gazelle/rethinkdb-orm
     version: ~> 5
 
-  # Client for RubberSoul RethinkDB Elasticsearch indexer
-  rubber-soul:
-    github: placeos/rubber-soul
-    version: ~> 1.19
+  # Client for Search Ingest RethinkDB Elasticsearch indexer
+  search-ingest:
+    github: placeos/search-ingest
+    version: ~> 2.0
 
   # Scheduling
   tasker:
@@ -111,6 +111,10 @@ development_dependencies:
   ameba:
     github: crystal-ameba/ameba
     version: ">= 0.14"
+
+  crystal-kcov:
+    github: Vici37/crystal-kcov
+    branch: master
 
   # Mock data generation
   faker:

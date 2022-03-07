@@ -1,25 +1,24 @@
-require "./helper"
+require "../helper"
 
 module PlaceOS::Api
   describe Repositories do
-    # ameba:disable Lint/UselessAssign
-    authenticated_user, authorization_header = authentication
+    _authenticated_user, authorization_header = authentication
     base = Repositories::NAMESPACE[0]
 
     with_server do
-      test_404(base, model_name: Model::Repository.table_name, headers: authorization_header)
+      Specs.test_404(base, model_name: Model::Repository.table_name, headers: authorization_header)
 
       describe "index", tags: "search" do
-        test_base_index(Model::Repository, Repositories)
+        Specs.test_base_index(Model::Repository, Repositories)
       end
 
       describe "CRUD operations", tags: "crud" do
-        test_crd(Model::Repository, Repositories)
+        Specs.test_crd(Model::Repository, Repositories)
 
         it "update" do
           repository = Model::Generator.repository.save!
           original_name = repository.name
-          repository.name = UUID.random.to_s
+          repository.name = random_name
 
           id = repository.id.as(String)
           path = base + id
@@ -138,6 +137,11 @@ module PlaceOS::Api
             Array(String).from_json(response.output).should_not be_empty
           end
         end
+      end
+
+      describe "scopes" do
+        Specs.test_controller_scope(Repositories)
+        Specs.test_update_write_scope(Repositories)
       end
     end
   end
