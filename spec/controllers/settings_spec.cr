@@ -44,7 +44,12 @@ module PlaceOS::Api
       describe "index", tags: "search" do
         it "searches on keys", focus: true do
           unencrypted = %({"secret_key": "secret1234"})
-          settings = Model::Generator.settings(settings_string: unencrypted).save!
+
+          driver, _, mod, control_system = setup_system
+
+          settings = Model::Generator.settings(settings_string: unencrypted, driver: driver,
+            mod: mod,
+            control_system: control_system).save!
 
           sleep 60.milliseconds
 
@@ -53,11 +58,11 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"q" => settings.keys.first})
           path = "#{base.rstrip('/')}?#{params}"
 
-          puts "\n=============="
-          puts settings.inspect
-          puts "=============="
-          puts params.inspect
-          puts "=============="
+          # puts "\n=============="
+          # puts settings.inspect
+          # puts "=============="
+          # puts params.inspect
+          # puts "=============="
 
           result = curl(
             method: "GET",
@@ -65,9 +70,9 @@ module PlaceOS::Api
             headers: authorization_header
           )
 
-          puts "\n=============="
-          puts result.inspect
-          puts "=============="
+          # puts "\n=============="
+          # puts result.inspect
+          # puts "=============="
 
           result.status_code.should eq 200
 

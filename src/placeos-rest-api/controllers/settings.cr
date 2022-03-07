@@ -51,7 +51,9 @@ module PlaceOS::Api
       else
         elastic = Model::Settings.elastic
         query = elastic.query(params)
-
+        puts "\n=============="
+        puts paginate_results(elastic, query)
+        puts "=============="
         render json: paginate_results(elastic, query)
       end
     end
