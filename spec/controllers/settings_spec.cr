@@ -46,7 +46,7 @@ module PlaceOS::Api
           unencrypted = %({"secret_key": "secret1234"})
           settings = Model::Generator.settings(settings_string: unencrypted).save!
 
-          sleep 1
+          sleep 1.seconds
           refresh_elastic(Model::Settings.table_name)
 
           params = HTTP::Params.encode({"q" => settings.keys.first})
