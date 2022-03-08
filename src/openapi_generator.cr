@@ -1,3 +1,5 @@
+class PlaceOS::Driver; end
+
 require "placeos-models"
 
 require "openapi-generator"
@@ -6,7 +8,7 @@ require "openapi-generator/providers/action-controller"
 require "openapi-generator/serializable"
 require "openapi-generator/serializable/adapters/active-model"
 
-require "./placeos-rest-api/controllers/*"
+require "./placeos-rest-api"
 
 # Produces an OpenAPI::Schema reference.
 macro finished
