@@ -2,7 +2,7 @@ require "../helper"
 require "../core_helper"
 
 module PlaceOS::Api
-  pending Drivers do
+  describe Drivers do
     _, authorization_header = authentication
     base = Drivers::NAMESPACE[0]
 
