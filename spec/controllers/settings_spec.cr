@@ -51,7 +51,7 @@ module PlaceOS::Api
             mod: mod,
             control_system: control_system).save!
 
-          sleep 60.milliseconds
+          sleep 1000.milliseconds
 
           refresh_elastic(Model::Settings.table_name)
 
