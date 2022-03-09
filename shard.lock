@@ -221,13 +221,13 @@ shards:
     git: https://github.com/place-labs/responsible.git
     version: 1.2.3
 
-  rethinkdb: # Overridden
+  rethinkdb:
     git: https://github.com/kingsleyh/crystal-rethinkdb.git
     version: 0.3.1
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
-    version: 6.0.0
+    version: 6.0.1
 
   retriable:
     git: https://github.com/sija/retriable.cr.git

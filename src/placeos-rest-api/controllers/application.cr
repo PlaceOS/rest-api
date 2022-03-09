@@ -131,7 +131,7 @@ module PlaceOS::Api
     end
 
     # 400 if unable to parse some JSON passed by a client
-    rescue_from JSON::MappingError do |error|
+    rescue_from JSON::SerializableError do |error|
       message = "Missing or extraneous properties in client JSON"
       Log.debug(exception: error) { message }
 

@@ -1,6 +1,3 @@
 dependencies:
   secrets-env:
     github: spider-gazelle/secrets-env
-  rethinkdb:
-    github: kingsleyh/crystal-rethinkdb
-    version: ~> 0.2
