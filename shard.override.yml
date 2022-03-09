@@ -1,9 +1,6 @@
 dependencies:
-  neuroplastic:
-    github: place-labs/neuroplastic
   secrets-env:
     github: spider-gazelle/secrets-env
   rethinkdb:
-    github: place-labs/crystal-rethinkdb
-    version: ~> 0.3
-    branch: fix/connection-retry
+    github: kingsleyh/crystal-rethinkdb
+    version: ~> 0.2
