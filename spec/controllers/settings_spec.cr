@@ -42,12 +42,11 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        pending "searches on keys" do
+        it "searches on keys" do
           unencrypted = %({"secret_key": "secret1234"})
           settings = Model::Generator.settings(settings_string: unencrypted).save!
 
-          sleep 20.milliseconds
-
+          sleep 1.seconds
           refresh_elastic(Model::Settings.table_name)
 
           params = HTTP::Params.encode({"q" => settings.keys.first})
