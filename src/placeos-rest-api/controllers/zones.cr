@@ -58,6 +58,13 @@ module PlaceOS::Api
 
     getter current_zone : Model::Zone { find_zone }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all zones
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def index
       elastic = Model::Zone.elastic
       query = elastic.query(params)
@@ -81,39 +88,75 @@ module PlaceOS::Api
         query.search_field "name"
       end
 
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::Zone)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get a zone
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def show
-      if complete?
-        # Include trigger data in response
+      complete = param(type : Bool?, description: "Include trigger data in response")
+      if complete
         render json: with_fields(current_zone, {
           :trigger_data => current_zone.trigger_data,
-        })
+        }), type: Model::Zone
       else
-        render json: current_zone
+        render json: current_zone, type: Model::Zone
       end
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a zone
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def update
-      current_zone.assign_attributes_from_json(self.body)
-      save_and_respond current_zone
+      updated_zone = current_zone.assign_attributes_from_json(body_raw Model::Zone)
+      render json: updated_zone, type: Model::Zone
     end
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a zone
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      save_and_respond Model::Zone.from_json(self.body)
+      zone = body_as Model::Zone, constructor: :from_json
+      render :created, json: zone, type: Model::Zone
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a zone
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def destroy
       current_zone.destroy
       head :ok
     end
 
-    get "/:id/metadata", :metadata do
+    get("/:id/metadata", :metadata, annotations: @[OpenAPI(<<-YAML
+    summary: Get the metadata of a zone
+    security:
+    - bearerAuth: []
+    YAML
+    )]) do
+      name = param(partner : String?, description: "The name of the metadata")
       parent_id = current_zone.id.not_nil!
-      render json: Model::Metadata.build_metadata(parent_id, name)
+      metadata = Model::Metadata.build_metadata(parent_id, name)
+      render json: metadata, type: Model::Metadata
     end
 
     private enum ExecStatus
@@ -124,10 +167,15 @@ module PlaceOS::Api
 
     # Return triggers attached to current zone
     #
-    get "/:id/triggers", :trigger_instances do
+    get("/:id/triggers", :trigger_instances, annotations: @[OpenAPI(<<-YAML
+    summary: get the triggers attached to current zone
+    security:
+    - bearerAuth: []
+    YAML
+    )]) do
       triggers = current_zone.trigger_data
       set_collection_headers(triggers.size, Model::Trigger.table_name)
-      render json: triggers
+      render json: triggers, type: Array(Model::Trigger)
     end
 
     record(
@@ -138,7 +186,12 @@ module PlaceOS::Api
     ) { include JSON::Serializable }
 
     # Execute a method on a module across all systems in a Zone
-    post "/:id/exec/:module_slug/:method", :zone_execute do
+    post("/:id/exec/:module_slug/:method", :zone_execute, annotations: @[OpenAPI(<<-YAML
+        summary: Execute a method on a module across all systems in a Zone
+        security:
+        - bearerAuth: []
+        YAML
+    )]) do
       args = Array(JSON::Any).from_json(self.body)
 
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)

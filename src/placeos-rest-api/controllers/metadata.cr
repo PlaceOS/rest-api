@@ -31,7 +31,7 @@ module PlaceOS::Api
     param_getter?(include_parent : Bool = true, "Include the parent metadata, by key of `parent_id`")
 
     getter parent_id : String do
-      param(id : String)
+      param(id : String, "Filters by `parent_id` key")
     end
 
     param_getter(name : String?, "Filters by `name` key")

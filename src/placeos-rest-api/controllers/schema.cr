@@ -38,7 +38,7 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      hello json: current_schema
+      render json: current_schema
     end
 
     def update
