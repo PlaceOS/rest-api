@@ -34,11 +34,6 @@ module PlaceOS::Api
         summary: get all triggers
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::Trigger}
       YAML
     )]
     def index
@@ -46,55 +41,47 @@ module PlaceOS::Api
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
 
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::Trigger)
     end
 
     @[OpenAPI(
       <<-YAML
         summary: get a trigger
-        parameters:
-          #{Schema.qp "instances", "should instances be returned", type: "boolean"}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Trigger}
       YAML
     )]
     def show
-      include_instances = boolean_param("instances")
+      include_instances = param(instances : Bool?, description: "Include instances data in response")
       render json: !include_instances ? current_trigger : with_fields(current_trigger, {
         :trigger_instances => current_trigger.trigger_instances.to_a,
-      })
+      }), type: Model::Trigger
     end
 
     @[OpenAPI(
       <<-YAML
         summary: Update a trigger
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Trigger}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Trigger}
       YAML
     )]
     def update
-      current_trigger.assign_attributes_from_json(self.body)
-      save_and_respond(current_trigger)
+      updated_trigger = current_trigger.assign_attributes_from_json(body_raw Model::Trigger)
+      render json: updated_trigger, type: Model::Trigger
     end
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a trigger
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      save_and_respond Model::Trigger.from_json(self.body)
+      trigger = body_as Model::Trigger, constructor: :from_json
+      render :created, json: trigger, type: Model::Trigger
     end
 
     @[OpenAPI(
@@ -102,9 +89,6 @@ module PlaceOS::Api
         summary: Delete a trigger
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy
@@ -118,16 +102,13 @@ module PlaceOS::Api
     summary: Get list of instances associated wtih given id of users based on email
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
     YAML
     )]) do
       instances = current_trigger.trigger_instances.to_a
 
       set_collection_headers(instances.size, Model::TriggerInstance.table_name)
 
-      render json: instances
+      render json: instances, type: Array(Model::TriggerInstance)
     end
 
     # Helpers
