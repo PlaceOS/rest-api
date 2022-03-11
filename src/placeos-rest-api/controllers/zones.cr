@@ -153,7 +153,7 @@ module PlaceOS::Api
     - bearerAuth: []
     YAML
     )]) do
-      name = param(partner : String?, description: "The name of the metadata")
+      name = param(name : String?, description: "The name of the metadata")
       parent_id = current_zone.id.not_nil!
       metadata = Model::Metadata.build_metadata(parent_id, name)
       render json: metadata, type: Model::Metadata
