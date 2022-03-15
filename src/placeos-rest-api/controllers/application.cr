@@ -49,6 +49,7 @@ module PlaceOS::Api
       end
     end
 
+    # TODO add open api annotation
     def boolean_param(key : String, default : Bool = false, allow_empty : Bool = false) : Bool
       return true if allow_empty && params.has_key?(key) && params[key].nil?
 

@@ -3,6 +3,9 @@ require "placeos-models"
 
 module PlaceOS::Api
   module Utils::Responders
+    include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
+
     # Write JSON to the response IO
     #
     macro render_json(status = :ok, &block)
@@ -18,7 +21,11 @@ module PlaceOS::Api
     #
     def render_error(status : HTTP::Status, message : String?, **additional)
       message = "API error" if message.nil?
-      render status: status, json: additional.merge({message: message})
+      # render status: status, json: additional.merge({message: message})
+      message = additional.merge({message: message})
+      respond_with status, description: "render error" do
+        json message
+      end
     end
 
     # Shortcut to save a record and render a response
@@ -31,7 +38,7 @@ module PlaceOS::Api
         result = yield result
       end
 
-      render(json: result, status: status) unless @render_called
+      render status, json: result, type: result.class unless @render_called
     end
 
     # :ditto:

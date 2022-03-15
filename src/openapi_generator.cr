@@ -1,4 +1,4 @@
-class PlaceOS::Driver; end
+# class PlaceOS::Driver; end
 
 require "placeos-models"
 

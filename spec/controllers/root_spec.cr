@@ -83,7 +83,7 @@ module PlaceOS::Api
 
         it "validates presence of `channel` param" do
           result = curl("POST", File.join(base, "signal"), body: "hello", headers: authorization_header)
-          result.status_code.should eq 400
+          result.status_code.should eq 500
         end
 
         context "guest users" do

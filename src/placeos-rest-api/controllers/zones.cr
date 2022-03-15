@@ -118,7 +118,7 @@ module PlaceOS::Api
     )]
     def update
       updated_zone = current_zone.assign_attributes_from_json(body_raw Model::Zone)
-      render json: updated_zone, type: Model::Zone
+      save_and_respond(updated_zone)
     end
 
     put_redirect
@@ -132,7 +132,7 @@ module PlaceOS::Api
     )]
     def create
       zone = body_as Model::Zone, constructor: :from_json
-      render :created, json: zone, type: Model::Zone
+      save_and_respond(zone)
     end
 
     @[OpenAPI(

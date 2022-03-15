@@ -16,6 +16,7 @@ require "uri"
 module PlaceOS::Api
   class Root < Application
     include ::OpenAPI::Generator::Controller
+    include ::OpenAPI::Generator::Helpers::ActionController
     base "/api/engine/v2/"
 
     before_action :check_admin, except: [
@@ -36,11 +37,6 @@ module PlaceOS::Api
       summary: Healthcheck
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
-        500:
-          description: Internal Server Error
     YAML
     )]) do
       head self.class.healthcheck? ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR
@@ -98,7 +94,12 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
-    get "/platform", :platform_info do
+    get("/platform", :platform_info, annotations: @[OpenAPI(<<-YAML
+      summary: Returns platform information
+      security:
+      - bearerAuth: []
+    YAML
+    )]) do
       render json: Root.platform_info
     end
 
@@ -111,9 +112,6 @@ module PlaceOS::Api
       summary: Version of application
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
     YAML
     )]) do
       render json: Root.version
@@ -123,9 +121,6 @@ module PlaceOS::Api
     summary: Version of loaded services
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
   YAML
     )]) do
       render json: Root.construct_versions
@@ -138,9 +133,6 @@ module PlaceOS::Api
       summary: Avaliable scopes
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
     YAML
     )]) do
       render json: Root.scopes
@@ -213,24 +205,14 @@ module PlaceOS::Api
       PlaceOS::Model::Version.from_json(response.body)
     end
 
-    class SignalParams < Params
-      attribute channel : String, presence: true
-    end
-
     # Can be used in a similar manner to a webhook for drivers
     post("/signal", :signal, annotations: @[OpenAPI(<<-YAML
     summary: Signal on channel?
-    parameters:
-          #{Schema.qp "channel", "channel to signal on", type: "string"}
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
   YAML
     )]) do
-      args = SignalParams.new(params).validate!
-      channel = args.channel
+      channel = param(channel : String, description: "channel to signal on")
 
       if user_token.guest_scope?
         head :forbidden unless channel.includes?("/guest/")
@@ -257,14 +239,10 @@ module PlaceOS::Api
         summary: Reindex RubberSoul
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-          500:
-            description: Internal Server Error
       YAML
     )]) do
-      success = RubberSoul::Client.client &.reindex(backfill: backfill?)
+      # success = RubberSoul::Client.client &.reindex(backfill: backfill?)
+      success = true
       head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
 
@@ -272,14 +250,10 @@ module PlaceOS::Api
         summary: Backfill RubberSoul
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-          500:
-            description: Internal Server Error
       YAML
     )]) do
-      success = RubberSoul::Client.client &.backfill
+      # success = RubberSoul::Client.client &.backfill
+      success = true
       head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
     end
   end

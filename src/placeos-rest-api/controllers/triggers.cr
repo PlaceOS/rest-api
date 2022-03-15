@@ -67,7 +67,7 @@ module PlaceOS::Api
     )]
     def update
       updated_trigger = current_trigger.assign_attributes_from_json(body_raw Model::Trigger)
-      render json: updated_trigger, type: Model::Trigger
+      save_and_respond(updated_trigger)
     end
 
     put_redirect
@@ -81,7 +81,7 @@ module PlaceOS::Api
     )]
     def create
       trigger = body_as Model::Trigger, constructor: :from_json
-      render :created, json: trigger, type: Model::Trigger
+      save_and_respond(trigger)
     end
 
     @[OpenAPI(

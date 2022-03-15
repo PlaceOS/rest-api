@@ -46,18 +46,12 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: get all settings
-        parameters:
-          #{Schema.qp "parent_id", "filter by parent_id", type: "string"}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::Settings}
       YAML
     )]
     def index
+      param(parent_ids : String?, description: "filter by parent_id")
       if parents = parent_ids
         # Directly search for model's settings
         parent_settings = Model::Settings.for_parent(parents)
@@ -69,7 +63,7 @@ module PlaceOS::Api
         elastic = Model::Settings.elastic
         query = elastic.query(params)
 
-        render json: paginate_results(elastic, query)
+        render json: paginate_results(elastic, query), type: Array(Model::Settings)
       end
     end
 
@@ -78,15 +72,10 @@ module PlaceOS::Api
         summary: get current setting
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Settings}
       YAML
     )]
     def show
-      render json: current_settings.decrypt_for!(current_user)
+      render json: current_settings.decrypt_for!(current_user), type: Model::Settings
     end
 
     @[OpenAPI(
@@ -106,9 +95,13 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_settings.assign_attributes_from_json(self.body)
+      # current_settings.assign_attributes_from_json(self.body)
 
-      save_and_respond(current_settings, &.decrypt_for!(current_user))
+      # save_and_respond(current_settings, &.decrypt_for!(current_user))
+
+      updated_settings = current_settings.assign_attributes_from_json(body_raw Model::Settings)
+
+      save_and_respond(updated_settings, &.decrypt_for!(current_user))
     end
 
     put_redirect

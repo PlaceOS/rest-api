@@ -43,81 +43,55 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: get all trigger instances in system
-        parameters:
-          #{Schema.qp "complete", "The maximum numbers of zones to return", type: "boolean"}
-          #{Schema.qp "important", "Filter by importance", type: "boolean"}
-          #{Schema.qp "triggered", "Filter by triggered", type: "boolean"}
-          #{Schema.qp "trigger_id", "Filter by trigger ID", type: "string"}
-          #{Schema.qp "as_of", "occurred before a particular time", type: "integer"}
-          #{Schema.qp "sys_id", "Filter by system ID", type: "string"}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::TriggerInstance}
       YAML
     )]
     def index
       elastic = Model::TriggerInstance.elastic
       query = elastic.query(params)
-      args = IndexParams.new(params)
-      control_system_id = params["sys_id"]
+
+      complete = param(complete : Bool?, description: "return full details") || false
+      important = param(important : Bool?, description: "filter by importance")
+      triggered = param(triggered : Bool?, description: "filter by triggered")
+      trigger_id = param(trigger_id : String?, description: "filter by trigger ID")
+      as_of = param(as_of : Int32?, description: "occurred before a particular time")
+      control_system_id = param(sys_id : String, description: "filter by system ID")
 
       # Filter by system ID
       query.must({"control_system_id" => [control_system_id]})
 
       # Filter by trigger ID
-      if (trigger_id = args.trigger_id)
-        query.filter({"trigger_id" => [trigger_id]})
-      end
+      query.filter({"trigger_id" => [trigger_id]}) if trigger_id
 
       # That occurred before a particular time
-      if (as_of = args.as_of)
-        query.range({
-          "updated_at" => {
-            :lte => as_of,
-          },
-        })
-      end
+      query.range({"updated_at" => {:lte => as_of}}) unless as_of.nil?
 
       # Filter by importance
-      if args.important
-        query.filter({"important" => [true]})
-      end
+      query.filter({"important" => [true]}) if important
 
       # Filter by triggered
-      if args.triggered
-        query.filter({"triggered" => [true]})
-      end
+      query.filter({"triggered" => [true]}) if triggered
 
       # Include parent documents in the search
       query.has_parent(parent: Model::Trigger, parent_index: Model::Trigger.table_name)
 
-      trigger_instances = paginate_results(elastic, query).map { |t| render_system_trigger(t, complete: args.complete.as(Bool)) }
+      trigger_instances = paginate_results(elastic, query).map { |t| render_system_trigger(t, complete) }
 
-      render json: trigger_instances
+      render json: trigger_instances, type: Array(Model::TriggerInstance)
     end
 
     @[OpenAPI(
       <<-YAML
         summary: get current trigger instance in system
-        parameters:
-          #{Schema.qp "complete", "choose to render extra association fields", type: "boolean"}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::TriggerInstance}
       YAML
     )]
     def show
       # Default to render extra association fields
       complete = boolean_param("complete", default: true)
-      render json: render_system_trigger(current_sys_trig, complete: complete)
+      render json: render_system_trigger(current_sys_trig, complete: complete), type: Model::TriggerInstance
     end
 
     class UpdateParams < Params
@@ -147,13 +121,13 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      args = UpdateParams.from_json(self.body)
+      body_args = UpdateParams.from_json(self.body)
 
-      current_sys_trig.enabled = args.enabled.as(Bool) unless args.enabled.nil?
-      current_sys_trig.important = args.important.as(Bool) unless args.important.nil?
-      current_sys_trig.exec_enabled = args.exec_enabled.as(Bool) unless args.exec_enabled.nil?
-
-      save_and_respond(current_sys_trig)
+      current_sys_trig.enabled = body_args.enabled.as(Bool) unless body_args.enabled.nil?
+      current_sys_trig.important = body_args.important.as(Bool) unless body_args.important.nil?
+      current_sys_trig.exec_enabled = body_args.exec_enabled.as(Bool) unless body_args.exec_enabled.nil?
+      current_sys_trig.save!
+      render json: current_sys_trig, type: Model::TriggerInstance
     end
 
     put_redirect
@@ -161,28 +135,17 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Create a trigger instance
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::TriggerInstance}
         security:
         - bearerAuth: []
-        responses:
-          422:
-            description: Unprocessable Entity
-          201:
-            description: OK
-            content:
-              #{Schema.ref Model::TriggerInstance}
       YAML
     )]
     def create
-      model = Model::TriggerInstance.from_json(self.body)
+      trigger_instance = body_as Model::TriggerInstance, constructor: :from_json
 
-      if model.control_system_id != current_system.id
+      if trigger_instance.control_system_id != current_system.id
         render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "control_system_id mismatch")
       else
-        save_and_respond model
+        save_and_respond trigger_instance
       end
     end
 
@@ -191,9 +154,6 @@ module PlaceOS::Api
         summary: Delete a trigger instance
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy

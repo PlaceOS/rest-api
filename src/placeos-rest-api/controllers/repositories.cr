@@ -34,17 +34,13 @@ module PlaceOS::Api
       params["id"]
     end
 
-    getter limit : Int32? do
-      params["limit"]?.try &.to_i?
-    end
+    # getter driver : String? do
+    #   params["driver"]?.presence
+    # end
 
-    getter driver : String? do
-      params["driver"]?.presence
-    end
-
-    getter commit : String do
-      params["commit"]
-    end
+    # getter commit : String do
+    #   params["commit"]
+    # end
 
     ###############################################################################################
 
@@ -63,18 +59,13 @@ module PlaceOS::Api
         summary: get all repositories
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::Repository}
       YAML
     )]
     def index
       elastic = Model::Repository.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::Repository)
     end
 
     @[OpenAPI(
@@ -82,37 +73,21 @@ module PlaceOS::Api
         summary: get current repository
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Repository}
       YAML
     )]
     def show
-      render json: current_repo
+      render json: current_repo, type: Array(Model::Repository)
     end
 
     @[OpenAPI(
       <<-YAML
         summary: Update a repository
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Repository}
         security:
         - bearerAuth: []
-        responses:
-          422:
-            description: Unprocessable Entity
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Repository}
       YAML
     )]
     def update
-      current_repo.assign_attributes_from_json(self.body)
+      current_repo.assign_attributes_from_json(body_raw Model::Repository)
 
       # Must destroy and re-add to change driver repository URIs
       if current_repo.uri_changed? && current_repo.repo_type.driver?
@@ -124,8 +99,16 @@ module PlaceOS::Api
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a repository
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      save_and_respond(Model::Repository.from_json(self.body))
+      repo = body_as Model::Repository, constructor: :from_json
+      save_and_respond(repo)
     end
 
     @[OpenAPI(
@@ -133,9 +116,6 @@ module PlaceOS::Api
         summary: Delete a repository
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy
@@ -147,13 +127,6 @@ module PlaceOS::Api
       summary: Pull repository at given id
       security:
       - bearerAuth: []
-      responses:
-        408:
-          description: Request Timeout
-        200:
-          description: OK
-        404:
-          description: Not Found
       YAML
     )]) do
       result = Repositories.pull_repository(current_repo)
@@ -195,21 +168,15 @@ module PlaceOS::Api
       summary: Returns a hash of folder_name to commit
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
       YAML
     )]) do
-      render json: PlaceOS::FrontendLoader::Client.client(&.loaded)
+      render json: PlaceOS::FrontendLoader::Client.client(&.loaded), type: Hash(String, String)
     end
 
     get("/:id/drivers", :drivers, annotations: @[OpenAPI(<<-YAML
       summary: Returns drivers in repository specified by the given id
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
       YAML
     )]) do
       repository_folder = current_repo.folder_name
@@ -221,27 +188,24 @@ module PlaceOS::Api
         core_client.drivers(repository_folder)
       end
 
-      render json: drivers
+      render json: drivers, type: Array(String)
     end
 
     get("/:id/commits", :commits, annotations: @[OpenAPI(<<-YAML
       summary: Returns a commits in repository specified by the given id
-      parameters:
-          #{Schema.qp "limit", "The maximum numbers of commits to return", type: "integer"}
-          #{Schema.qp "driver", "file_name of driver", type: "string"}
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
       YAML
     )]) do
+      limit = param(limit : Int32?, description: "The maximum numbers of commits to return")
+      driver = param(driver : String?, description: "file name of driver")
+
       render json: Api::Repositories.commits(
         repository: current_repo,
         request_id: request_id,
         number_of_commits: limit,
         file_name: driver,
-      )
+      ), type: Array(String)
     end
 
     def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
@@ -262,18 +226,12 @@ module PlaceOS::Api
 
     get("/:id/details", :details, annotations: @[OpenAPI(<<-YAML
       summary: Returns a details of a commit of a driver in a repository specified by the given id
-      parameters:
-          #{Schema.qp "driver", "Name of driver", type: "string"}
-          #{Schema.qp "commit", "Name of commit", type: "string"}
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
       YAML
     )]) do
-      driver_filename = required_param(driver)
-      commit = params["commit"]
+      commit = param(limit : String, description: "Name of commit")
+      driver_filename = param(driver : String, description: "Name of driver")
 
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
@@ -291,9 +249,6 @@ module PlaceOS::Api
       summary: Returns the branches of a repository specified by the given id
       security:
       - bearerAuth: []
-      responses:
-        200:
-          description: OK
       YAML
     )]) do
       branches = Api::Repositories.branches(
@@ -301,7 +256,7 @@ module PlaceOS::Api
         request_id: request_id,
       )
 
-      render json: branches
+      render json: branches, type: Array(String)
     end
 
     def self.branches(repository : Model::Repository, request_id : String)

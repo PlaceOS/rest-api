@@ -116,7 +116,7 @@ module PlaceOS::Api
       features = param(features : String?, description: "filter by features")
       module_id = param(module_id : String?, description: "filter by module_id")
       trigger_id = param(trigger_id : String?, description: "filter by trigger_id")
-      zone_id = param(zone_id : String?, description: "filter by zone_id")
+      zone_id = param(zone_id : String?, description: "filter by Zone id")
 
       # Filter systems by zone_id
       query.must({"zones" => [zone_id]}) if zone_id
