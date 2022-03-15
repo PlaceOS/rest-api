@@ -55,11 +55,6 @@ module PlaceOS::Api
     summary: Get the token associated with the given id
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
-      403:
-        description: Forbidden
     YAML
     )]) do
       head :forbidden unless is_admin?
@@ -71,18 +66,13 @@ module PlaceOS::Api
         summary: get all edges
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::Edge}
       YAML
     )]
     def index
       elastic = Model::Edge.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::Edge)
     end
 
     @[OpenAPI(
@@ -90,42 +80,35 @@ module PlaceOS::Api
         summary: get current edge
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Edge}
       YAML
     )]
     def show
-      render json: current_edge
+      render json: current_edge, type: Model::Edge
     end
 
     @[OpenAPI(
       <<-YAML
         summary: Update an edge
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Edge}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Edge}
       YAML
     )]
     def update
-      current_edge.assign_attributes_from_json(self.body)
+      current_edge.assign_attributes_from_json(body_raw Model::Edge)
       save_and_respond current_edge
     end
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a edge
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      create_body = Model::Edge::CreateBody.from_json(self.body)
+      create_body = body_as Model::Edge::CreateBody, constructor: :from_json
       user = Model::User.find!(create_body.user_id)
       save_and_respond(Model::Edge.for_user(
         user: user,
@@ -139,9 +122,6 @@ module PlaceOS::Api
         summary: Delete an edge
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy

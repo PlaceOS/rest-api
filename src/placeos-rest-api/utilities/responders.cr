@@ -6,6 +6,7 @@ module PlaceOS::Api
     include ::OpenAPI::Generator::Controller
     include ::OpenAPI::Generator::Helpers::ActionController
 
+    # TODO add open api annotation
     # Write JSON to the response IO
     #
     macro render_json(status = :ok, &block)

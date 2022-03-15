@@ -31,6 +31,13 @@ module PlaceOS::Api
     # Routes
     ###############################################################################################
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all assets
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def index
       elastic = Model::Asset.elastic
       query = elastic.query(params)
@@ -43,25 +50,54 @@ module PlaceOS::Api
         })
       end
 
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::Asset)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get an asset
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def show
       include_instances = boolean_param("instances")
       render json: !include_instances ? current_asset : with_fields(current_asset, {
         :asset_instances => current_asset.asset_instances.to_a,
-      })
+      }), type: Model::Asset
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update an asset
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def update
-      current_asset.assign_attributes_from_json(self.body)
+      current_asset.assign_attributes_from_json(body_raw Model::Asset)
       save_and_respond(current_asset)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create an asset
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      save_and_respond Model::Asset.from_json(self.body)
+      asset = body_as Model::Asset, constructor: :from_json
+      save_and_respond(asset)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete an asset
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def destroy
       current_asset.destroy # expires the cache in after callback
       head :ok
@@ -71,7 +107,7 @@ module PlaceOS::Api
       instances = current_asset.asset_instances.to_a
       set_collection_headers(instances.size, Model::AssetInstance.table_name)
 
-      render json: instances
+      render json: instances, type: Array(Model::AssetInstance)
     end
 
     # Helpers

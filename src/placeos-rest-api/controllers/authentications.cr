@@ -71,17 +71,8 @@ module PlaceOS::Api
       @[OpenAPI(
       <<-YAML
         summary: Update the current auth
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref {{ auth_model }}}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref {{ auth_model }}}
       YAML
     )]
       def update

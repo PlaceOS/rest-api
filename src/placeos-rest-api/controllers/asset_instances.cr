@@ -17,28 +17,63 @@ module PlaceOS::Api
 
     getter current_instance : Model::AssetInstance { find_asset_inst }
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get all instances of asset
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def index
       elastic = Model::AssetInstance.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
 
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::AssetInstance)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: get a asset instance
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def show
-      render json: current_instance
+      render json: current_instance, type: Model::AssetInstance
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a asset instance
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      model = Model::AssetInstance.from_json(self.body)
-      save_and_respond(model)
+      instance = body_as Model::AssetInstance, constructor: :from_json
+      save_and_respond(instance)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Update a instance
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def update
-      current_instance.assign_attributes_from_json(self.body)
+      current_instance.assign_attributes_from_json(body_raw Model::AssetInstance)
       save_and_respond(current_instance)
     end
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete an instance
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def destroy
       current_instance.destroy # expires the cache in after callback
       head :ok

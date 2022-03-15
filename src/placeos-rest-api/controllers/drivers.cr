@@ -31,18 +31,14 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: get drivers
-        parameters:
-          #{Schema.qp "role", "filter by role", type: "string"}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def index
       # Pick off role from HTTP params, render error if present and invalid
       # TODO: This is an example of a need to improve validation model of params.
+      param(role : String?, description: "filter by role")
       role = params["role"]?.try &.to_i?.try do |r|
         parsed = Model::Driver::Role.from_value?(r)
         return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Invalid `role`") if parsed.nil?
@@ -60,29 +56,25 @@ module PlaceOS::Api
 
       query.search_field "name"
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::Driver)
     end
 
     @[OpenAPI(
       <<-YAML
         summary: get current driver
-        parameters:
-          #{Schema.qp "compilation_status", "include compilation status in render", type: "string"}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def show
+      param(compilation_status : String?, description: "include compilation status in render")
       include_compilation_status = boolean_param("compilation_status", default: true)
 
       result = !include_compilation_status ? current_driver : with_fields(current_driver, {
         :compilation_status => Api::Drivers.compilation_status(current_driver, request_id),
       })
 
-      render json: result
+      render json: result, type: Model::Driver
     end
 
     @[OpenAPI(
@@ -93,7 +85,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_driver.assign_attributes_from_json(self.body)
+      current_driver.assign_attributes_from_json(body_raw Model::Driver)
 
       # Must destroy and re-add to change driver type
       return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Driver role must not change") if current_driver.role_changed?
@@ -103,8 +95,16 @@ module PlaceOS::Api
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a driver
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      save_and_respond(Model::Driver.from_json(self.body))
+      driver = body_as Model::Driver, constructor: :from_json
+      save_and_respond(driver)
     end
 
     @[OpenAPI(
@@ -112,9 +112,6 @@ module PlaceOS::Api
         summary: Delete a driver
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy
@@ -126,13 +123,6 @@ module PlaceOS::Api
     summary: Attempt to recompile driver with given ID
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
-      404:
-        description: Not Found
-      408:
-        description: Not Found
     YAML
     )]) do
       if current_driver.commit.starts_with?("RECOMPILE")
@@ -167,15 +157,6 @@ module PlaceOS::Api
     summary: Check if the core responsible for the driver has finished compilation
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
-      404:
-        description: Not Found
-      500:
-        description: Internal Server Error
-      503:
-        description: Service Unavailable
     YAML
     )]) do
       if (repository = current_driver.repository).nil?

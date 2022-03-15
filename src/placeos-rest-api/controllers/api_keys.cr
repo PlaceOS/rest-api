@@ -67,14 +67,15 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_api_key.assign_attributes_from_json(self.body)
+      current_api_key.assign_attributes_from_json(body_raw Model::ApiKey)
       save_and_respond(current_api_key) { show }
     end
 
     put_redirect
 
     def create
-      save_and_respond(Model::ApiKey.from_json(self.body)) do |key|
+      api_key = body_as Model::ApiKey, constructor: :from_json
+      save_and_respond(api_key) do |key|
         render_json(status: :created) { |json| key.to_public_json(json) }
       end
     end
