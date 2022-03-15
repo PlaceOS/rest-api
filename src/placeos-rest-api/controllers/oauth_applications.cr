@@ -36,30 +36,24 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: get all applications
-        parameters:
-          #{Schema.qp "authority", "filter by owner id", type: "string"}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref_array Model::DoorkeeperApplication}
       YAML
     )]
     def index
       elastic = Model::DoorkeeperApplication.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
+      authority_id = param(authority : String?, description: "filter by owner id")
 
       # Filter by authority_id
-      if authority = authority_id
+      if authority_id
         query.must({
-          "owner_id" => [authority],
+          "owner_id" => [authority_id],
         })
       end
 
-      render json: paginate_results(elastic, query)
+      render json: paginate_results(elastic, query), type: Array(Model::DoorkeeperApplication)
     end
 
     @[OpenAPI(
@@ -67,15 +61,10 @@ module PlaceOS::Api
         summary: get current application
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::DoorkeeperApplication}
       YAML
     )]
     def show
-      render json: current_app
+      render json: current_app, type: Model::DoorkeeperApplication
     end
 
     @[OpenAPI(
@@ -95,14 +84,22 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_app.assign_attributes_from_json(self.body)
+      current_app.assign_attributes_from_json(body_raw Model::DoorkeeperApplication)
       save_and_respond current_app
     end
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create an application
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      save_and_respond(Model::DoorkeeperApplication.from_json(self.body))
+      app = body_as Model::DoorkeeperApplication, constructor: :from_json
+      save_and_respond(app)
     end
 
     @[OpenAPI(
@@ -110,9 +107,6 @@ module PlaceOS::Api
         summary: Delete an application
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
       YAML
     )]
     def destroy

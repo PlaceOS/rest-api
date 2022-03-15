@@ -34,14 +34,6 @@ module PlaceOS::Api
       params["id"]
     end
 
-    # getter driver : String? do
-    #   params["driver"]?.presence
-    # end
-
-    # getter commit : String do
-    #   params["commit"]
-    # end
-
     ###############################################################################################
 
     getter current_repo : Model::Repository { find_repo }

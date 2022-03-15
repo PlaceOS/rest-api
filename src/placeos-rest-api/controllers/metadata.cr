@@ -47,27 +47,20 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Fetch metadata for a model
-        parameters:
-          #{Schema.qp "id", "Parent ID of metadata", type: "string"}
-          #{Schema.qp "name", "filter by name", type: "string"}
         security:
         - bearerAuth: []
-        responses:
-          403:
-            description: Forbidden
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Metadata}
       YAML
     )]
     def show
+      param(name : String?, description: "filter by name")
+      param(id : String, description: "Parent ID of metadata")
+
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
-      render json: Model::Metadata.build_metadata(parent_id, name)
+      render json: Model::Metadata.build_metadata(parent_id, name), type: Hash(String, PlaceOS::Model::Interface)
     end
 
     record Children, zone : Model::Zone, metadata : Hash(String, Model::Metadata::Interface) do
@@ -84,18 +77,13 @@ module PlaceOS::Api
     # Includes the parent metadata by default via `include_parent` param.
     get("/:id/children", :children_metadata, annotations: @[OpenAPI(<<-YAML
     summary: Fetch metadata for Zone children
-    parameters:
-    #{Schema.qp "include_parent", "Includes the parent metadata by default via `include_parent` param", type: "boolean"}
-    #{Schema.qp "name", "filter by name", type: "string"}
     security:
     - bearerAuth: []
-    responses:
-      200:
-        description: OK
-        content:
-          #{Schema.ref_array Model::Metadata}
     YAML
     )]) do
+      param(include_parent : Bool?, description: "Includes the parent metadata by defaulte")
+      param(id : String?, description: "filter by name")
+
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         head :forbidden unless name && guest_ids.includes?(parent_id)
@@ -113,26 +101,13 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Update metadata
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Metadata}
         security:
         - bearerAuth: []
-        responses:
-          400:
-            description: Bad Request
-          403:
-            description: Forbidden
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Metadata}
       YAML
     )]
     # ameba:disable Metrics/CyclomaticComplexity
     def update
-      metadata = Model::Metadata::Interface.from_json(self.body)
+      metadata = body_as Model::Metadata::Interface, constructor: :from_json
 
       # We need a name to lookup the metadata
       head :bad_request if metadata.name.empty?
@@ -168,7 +143,7 @@ module PlaceOS::Api
       response, status = save_and_status(meta)
 
       if status.ok? && response.is_a?(Model::Metadata)
-        render json: Model::Metadata.interface(response), status: status
+        render json: Model::Metadata.interface(response), type: Model::Metadata
       else
         render json: response, status: status
       end
@@ -176,6 +151,13 @@ module PlaceOS::Api
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Delete a metadata
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def destroy
       if (metadata_name = name).nil?
         head :bad_request
