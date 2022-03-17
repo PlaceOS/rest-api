@@ -56,8 +56,6 @@ module PlaceOS::Api
       save_and_respond(current_api_key) { show }
     end
 
-    put_redirect
-
     def create
       save_and_respond(Model::ApiKey.from_json(self.body)) do |key|
         render_json(status: :created) { |json| key.to_public_json(json) }

@@ -65,8 +65,6 @@ module PlaceOS::Api
       save_and_respond current_driver
     end
 
-    put_redirect
-
     def create
       save_and_respond(Model::Driver.from_json(self.body))
     end

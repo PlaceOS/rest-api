@@ -52,8 +52,6 @@ module PlaceOS::Api
       save_and_respond current_app
     end
 
-    put_redirect
-
     def create
       save_and_respond(Model::DoorkeeperApplication.from_json(self.body))
     end

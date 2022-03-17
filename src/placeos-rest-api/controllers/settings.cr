@@ -66,8 +66,6 @@ module PlaceOS::Api
       save_and_respond(current_settings, &.decrypt_for!(current_user))
     end
 
-    put_redirect
-
     def create
       new_settings = Model::Settings.from_json(self.body)
       save_and_respond(new_settings, &.decrypt_for!(current_user))

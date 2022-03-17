@@ -39,8 +39,6 @@ module PlaceOS::Api
       save_and_respond current_domain
     end
 
-    put_redirect
-
     def create
       save_and_respond(Model::Authority.from_json(self.body))
     end

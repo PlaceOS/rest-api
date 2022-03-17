@@ -44,8 +44,6 @@ module PlaceOS::Api
       save_and_respond(current_trigger)
     end
 
-    put_redirect
-
     def create
       save_and_respond Model::Trigger.from_json(self.body)
     end

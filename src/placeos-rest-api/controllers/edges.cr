@@ -67,8 +67,6 @@ module PlaceOS::Api
       save_and_respond current_edge
     end
 
-    put_redirect
-
     def create
       create_body = Model::Edge::CreateBody.from_json(self.body)
       user = Model::User.find!(create_body.user_id)

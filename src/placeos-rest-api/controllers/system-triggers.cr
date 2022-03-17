@@ -98,8 +98,6 @@ module PlaceOS::Api
       save_and_respond(current_sys_trig)
     end
 
-    put_redirect
-
     def create
       model = Model::TriggerInstance.from_json(self.body)
 

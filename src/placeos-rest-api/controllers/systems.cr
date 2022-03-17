@@ -206,8 +206,6 @@ module PlaceOS::Api
       save_and_respond(current_control_system)
     end
 
-    put_redirect
-
     def create
       save_and_respond Model::ControlSystem.from_json(self.body)
     end

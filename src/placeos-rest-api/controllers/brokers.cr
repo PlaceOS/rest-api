@@ -41,8 +41,6 @@ module PlaceOS::Api
       save_and_respond current_broker.assign_attributes_from_json(self.body)
     end
 
-    put_redirect
-
     def create
       save_and_respond(Model::Broker.from_json(self.body))
     end

@@ -54,8 +54,6 @@ module PlaceOS::Api
         save_and_respond current_auth
       end
 
-      put_redirect
-
       def create
         save_and_respond(Model::{{auth_type.id}}Authentication.from_json(self.body))
       end

@@ -168,8 +168,6 @@ module PlaceOS::Api
       save_and_respond user
     end
 
-    put_redirect
-
     # Destroy user, revoke authentication.
     def destroy
       if current_authority.try &.internals["soft_delete"]? == true

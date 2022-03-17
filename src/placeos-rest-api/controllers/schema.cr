@@ -31,8 +31,6 @@ module PlaceOS::Api
       save_and_respond(current_schema)
     end
 
-    put_redirect
-
     def create
       schema = Model::JsonSchema.from_json(self.body)
       save_and_respond(schema)

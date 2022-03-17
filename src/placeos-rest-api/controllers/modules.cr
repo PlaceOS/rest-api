@@ -176,8 +176,6 @@ module PlaceOS::Api
       end
     end
 
-    put_redirect
-
     def create
       save_and_respond(Model::Module.from_json(self.body))
     end

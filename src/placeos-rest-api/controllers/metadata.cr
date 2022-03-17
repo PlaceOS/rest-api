@@ -125,8 +125,6 @@ module PlaceOS::Api
       end
     end
 
-    put_redirect
-
     def destroy
       if (metadata_name = name).nil?
         head :bad_request
