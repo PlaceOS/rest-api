@@ -1,4 +1,8 @@
-## Unreleased
+## v1.34.0 (2022-03-17)
+
+### Feat
+
+- set modifier for metadata and settings ([#256](https://github.com/PlaceOS/rest-api/pull/256))
 
 ## v1.33.4 (2022-03-03)
 
