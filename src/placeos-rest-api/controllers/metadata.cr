@@ -42,6 +42,7 @@ module PlaceOS::Api
     getter current_zone : Model::Zone { find_zone }
 
     ###############################################################################################
+
     # Fetch metadata for a model
     #
     # Filter for a specific metadata by name via `name` param
@@ -81,42 +82,14 @@ module PlaceOS::Api
       end
     end
 
-    # ameba:disable Metrics/CyclomaticComplexity
     def update
       metadata = Model::Metadata::Interface.from_json(self.body)
 
-      # We need a name to lookup the metadata
+      # A name is required to lookup the metadata
       head :bad_request if metadata.name.empty?
 
-      meta = Model::Metadata.for(parent_id, metadata.name).first?
-
-      if meta
-        # Check if the current user has access
-        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id || (meta.editors & Set.new(user_token.user.roles)).size > 0
-
-        # only support+ users can edit the editors list
-        editors = metadata.editors
-        meta.editors = editors if editors && is_support?
-
-        # Update existing Metadata
-        meta.description = metadata.description
-        meta.details = metadata.details
-      else
-        # When creating a new metadata, must be at least a support user
-        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
-
-        # TODO: Check that the parent exists
-        # Create new Metadata
-        meta = Model::Metadata.new(
-          name: metadata.name,
-          details: metadata.details,
-          parent_id: parent_id,
-          description: metadata.description,
-          editors: metadata.editors || Set(String).new,
-        )
-      end
-
-      response, status = save_and_status(meta)
+      metadata = create_or_update(metadata)
+      response, status = save_and_status(metadata)
 
       if status.ok? && response.is_a?(Model::Metadata)
         render json: Model::Metadata.interface(response), status: status
@@ -139,6 +112,41 @@ module PlaceOS::Api
 
     # Helpers
     ###########################################################################
+
+    def create_or_update(metadata : Model::Metadata::Interface) : Model::Metadata
+      if meta = Model::Metadata.for(parent_id, metadata.name).first?
+        # Check if the current user has access
+        if !is_support? && parent_id != user_token.id && (meta.editors & Set.new(user_token.user.roles)).empty?
+          raise Error::Forbidden.new
+        end
+
+        # Only support+ users can edit the editors list
+        if (editors = metadata.editors) && is_support?
+          meta.editors = editors
+        end
+
+        # Update existing Metadata
+        meta.description = metadata.description
+        meta.details = metadata.details
+        meta
+      else
+        # When creating a new metadata, must be at least a support user
+        unless is_support? || parent_id == user_token.id
+          raise Error::Forbidden.new
+        end
+
+        # Create new Metadata
+        Model::Metadata.new(
+          name: metadata.name,
+          details: metadata.details,
+          parent_id: parent_id,
+          description: metadata.description,
+          editors: metadata.editors || Set(String).new,
+        )
+      end.tap do |model|
+        model.modified_by = current_user
+      end
+    end
 
     def find_zone
       Log.context.set(zone_id: parent_id)
