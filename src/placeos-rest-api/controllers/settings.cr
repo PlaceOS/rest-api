@@ -62,6 +62,7 @@ module PlaceOS::Api
 
     def update
       current_settings.assign_attributes_from_json(self.body)
+      current_settings.modified_by = current_user
 
       save_and_respond(current_settings, &.decrypt_for!(current_user))
     end
@@ -70,6 +71,8 @@ module PlaceOS::Api
 
     def create
       new_settings = Model::Settings.from_json(self.body)
+      new_settings.modified_by = current_user
+
       save_and_respond(new_settings, &.decrypt_for!(current_user))
     end
 
