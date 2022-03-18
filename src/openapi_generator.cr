@@ -1,4 +1,4 @@
-# class PlaceOS::Driver; end
+class PlaceOS::Driver; end
 
 require "placeos-models"
 
@@ -17,7 +17,7 @@ macro finished
   OpenAPI::Generator.generate(
     OpenAPI::Generator::RoutesProvider::ActionController.new,
     options: {
-      output: Path[Dir.current] / "openapi.yml",
+      output: Path[Dir.current] / "openapi4.yml",
     },
     base_document: {
       info:       {
