@@ -28,11 +28,7 @@ jobs:
   dockerfile-style:
     uses: PlaceOS/.github/.github/workflows/dockerfile-style.yml@main
 
-  test:
-    uses: PlaceOS/.github/.github/workflows/containerised-test.yml@main
-
   schema-generation:
-    needs: test
     runs-on: ubuntu-latest
     container: crystallang/crystal:1.3.2
     steps:
