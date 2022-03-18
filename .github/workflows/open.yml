@@ -7,6 +7,19 @@ on:
   workflow_dispatch:
 
 jobs:
+  schema-generation:
+      runs-on: ubuntu-latest
+      container: crystallang/crystal:1.3.2
+      steps:
+        - run: apk add curl
+        - uses: actions/checkout@v2
+        - run: shards install
+        - name: Generate OpenAPI schema
+          run: crystal run ./src/openapi_generator.cr
+        - uses: stefanzweifel/git-auto-commit-action@v4.12.0
+          with:
+            commit_message: "feat(schema): updated schema for changes in ${GITHUB_SHA}"
+            file_pattern: "openapi.yaml"
   test:
     runs-on: ubuntu-latest
     steps:
