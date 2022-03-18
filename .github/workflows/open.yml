@@ -11,7 +11,7 @@ jobs:
       runs-on: ubuntu-latest
       container: crystallang/crystal:1.3.2
       steps:
-        - run: apk add curl
+        - run: sudo apt install curl
         - uses: actions/checkout@v2
         - run: shards install
         - name: Generate OpenAPI schema
