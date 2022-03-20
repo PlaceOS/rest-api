@@ -14,7 +14,7 @@ jobs:
         uses: crystal-lang/install-crystal@v1.6.0
         with: 
             crystal: 1.3.2
-      - run: apt-get update && apt-get install curl
+      - run: sudo apt-get update && sudo apt-get install curl
       - uses: actions/checkout@v2
       - run: shards install
       - name: Generate OpenAPI schema
