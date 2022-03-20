@@ -11,8 +11,8 @@ jobs:
       runs-on: ubuntu-latest
       steps:
       - name: Install crystal
-          uses: crystal-lang/install-crystal@v1.6.0
-          with:
+        uses: crystal-lang/install-crystal@v1.6.0
+        with: 
             crystal: 1.3.2
       - run: apt-get update && apt-get install curl
       - uses: actions/checkout@v2
