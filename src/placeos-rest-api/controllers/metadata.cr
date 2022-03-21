@@ -1,15 +1,18 @@
 require "promise"
 
 require "./application"
+require "../utilities/history"
 
 module PlaceOS::Api
   class Metadata < Application
+    include Utils::History
+
     base "/api/engine/v2/metadata"
 
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index]
+    before_action :can_read, only: [:index, :history]
     before_action :can_read_guest, only: [:show, :children_metadata]
     before_action :can_write, only: [:update, :destroy, :update_alt]
 
@@ -26,7 +29,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     getter parent_id : String do
-      params["id"]
+      route_params["id"]
+    end
+
+    getter metadata_id : String do
+      route_params["metadata_id"]
     end
 
     getter name : String? do
@@ -40,6 +47,8 @@ module PlaceOS::Api
     ###############################################################################################
 
     getter current_zone : Model::Zone { find_zone }
+
+    getter current_metadata : Model::Metadata { find_metadata }
 
     ###############################################################################################
 
@@ -110,6 +119,11 @@ module PlaceOS::Api
       head :ok
     end
 
+    # Returns the version history for a Settings model
+    #
+    # /:metadata_id/history
+    model_history(current_metadata, :metadata_id)
+
     # Helpers
     ###########################################################################
 
@@ -146,6 +160,12 @@ module PlaceOS::Api
       end.tap do |model|
         model.modified_by = current_user
       end
+    end
+
+    def find_metadata
+      Log.context.set(metadata_id: metadata_id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Metadata.find!(metadata_id)
     end
 
     def find_zone

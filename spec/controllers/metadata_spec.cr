@@ -206,6 +206,32 @@ module PlaceOS::Api
         end
       end
 
+      describe "/metadata/:id/history" do
+        it "renders the version history for a single metadata document" do
+          changes = [0, 1, 2, 3].map { |i| JSON::Any.new({"test" => JSON::Any.new(i.to_i64)}) }
+          metadata = Generator.metadata
+          metadata.details = changes.first
+          metadata.save!
+
+          changes[1..].each_with_index(offset: 1) do |detail, i|
+            Timecop.freeze(i.seconds.from_now) do
+              metadata.details = detail
+              metadata.save!
+            end
+          end
+
+          result = curl(
+            method: "GET",
+            path: "#{base}/#{metadata.id}/history",
+            headers: scoped_authorization_header,
+          )
+          result.status_code.should eq 200
+          Array(String, Model::Metadata::Interface)
+            .from_json(result.body)
+            .map(&.details.as_h("test")).should eq [3, 2, 1, 0]
+        end
+      end
+
       describe "scopes" do
         context "read" do
           scope_name = "metadata"
@@ -261,6 +287,7 @@ module PlaceOS::Api
             result.status_code.should eq 403
           end
         end
+
         context "write" do
           scope_name = "metadata"
 

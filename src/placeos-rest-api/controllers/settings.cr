@@ -1,13 +1,16 @@
 require "./application"
+require "../utilities/history"
 
 module PlaceOS::Api
   class Settings < Application
-    base "/api/engine/v2/settings/"
+    include Utils::History
+
+    base "/api/engine/v2/settings"
 
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index, :show, :history]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :show]
@@ -24,14 +27,6 @@ module PlaceOS::Api
 
     getter parent_ids : Array(String)? do
       params["parent_id"]?.presence.try &.split(',').reject(&.empty?).uniq!
-    end
-
-    getter offset : Int32 do
-      params["offset"]?.try(&.to_i) || 0
-    end
-
-    getter limit : Int32 do
-      params["limit"]?.try(&.to_i) || 15
     end
 
     ###############################################################################################
@@ -81,45 +76,16 @@ module PlaceOS::Api
       head :ok
     end
 
-    # Returns history for a particular Setting
+    # Returns the version history for a Settings model
     #
-    get "/:id/history", :history do
-      history = current_settings.history(offset: offset, limit: limit)
-
+    # /:id/history
+    model_history(current_settings) do
       # Privilege respecting decrypted settings history
-      history.each &.decrypt_for!(current_user)
-
-      total = Api::Settings.history_count(current_settings)
-      range_start = offset
-      range_end = history.size + range_start
-
-      response.headers["X-Total-Count"] = total.to_s
-      response.headers["Content-Range"] = "sets #{range_start}-#{range_end}/#{total}"
-
-      # Set link
-      if range_end < total
-        params["offset"] = (range_end + 1).to_s
-        params["limit"] = limit.to_s
-        query_params = params.compact_map { |key, value| "#{key}=#{value}" unless key == "id" }.join("&")
-        path = File.join(base_route, "/#{current_settings.id}/history")
-        response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
-      end
-
-      render json: history
+      history.tap(&.each(&.decrypt_for!(current_user)))
     end
 
     # Helpers
     ###########################################################################
-
-    # TODO: Optimise, get total query size from the response from rethinkdb
-    def self.history_count(settings : Model::Settings) : Int32
-      Model::Settings.table_query do |q|
-        q
-          .get_all([settings.parent_id.as(String)], index: :parent_id)
-          .filter({settings_id: settings.id.as(String)})
-          .count
-      end.as_i
-    end
 
     # Get an ordered hierarchy of Settings for the model
     #
