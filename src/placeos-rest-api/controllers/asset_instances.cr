@@ -29,7 +29,7 @@ module PlaceOS::Api
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
 
-      render json: paginate_results(elastic, query), type: Array(Model::AssetInstance)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::AssetInstance)
     end
 
     @[OpenAPI(
