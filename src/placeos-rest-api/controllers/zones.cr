@@ -88,7 +88,7 @@ module PlaceOS::Api
         query.search_field "name"
       end
 
-      render json: paginate_results(elastic, query), type: Array(Model::Zone)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::Zone)
     end
 
     @[OpenAPI(
@@ -103,9 +103,9 @@ module PlaceOS::Api
       if complete
         render json: with_fields(current_zone, {
           :trigger_data => current_zone.trigger_data,
-        }), type: Model::Zone
+        }), type: ::PlaceOS::Model::Zone
       else
-        render json: current_zone, type: Model::Zone
+        render json: current_zone, type: ::PlaceOS::Model::Zone
       end
     end
 
@@ -117,7 +117,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      updated_zone = current_zone.assign_attributes_from_json(body_raw Model::Zone)
+      updated_zone = current_zone.assign_attributes_from_json(body_raw ::PlaceOS::Model::Zone)
       save_and_respond(updated_zone)
     end
 
@@ -131,7 +131,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      zone = body_as Model::Zone, constructor: :from_json
+      zone = body_as ::PlaceOS::Model::Zone, constructor: :from_json
       save_and_respond(zone)
     end
 
@@ -156,7 +156,7 @@ module PlaceOS::Api
       name = param(name : String?, description: "The name of the metadata")
       parent_id = current_zone.id.not_nil!
       metadata = Model::Metadata.build_metadata(parent_id, name)
-      render json: metadata, type: Model::Metadata
+      render json: metadata, type: ::PlaceOS::Model::Metadata
     end
 
     private enum ExecStatus
@@ -175,7 +175,7 @@ module PlaceOS::Api
     )]) do
       triggers = current_zone.trigger_data
       set_collection_headers(triggers.size, Model::Trigger.table_name)
-      render json: triggers, type: Array(Model::Trigger)
+      render json: triggers, type: Array(::PlaceOS::Model::Trigger)
     end
 
     record(

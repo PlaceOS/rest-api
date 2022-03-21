@@ -63,7 +63,7 @@ module PlaceOS::Api
         elastic = Model::Settings.elastic
         query = elastic.query(params)
 
-        render json: paginate_results(elastic, query), type: Array(Model::Settings)
+        render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::Settings)
       end
     end
 
@@ -75,39 +75,32 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      render json: current_settings.decrypt_for!(current_user), type: Model::Settings
+      render json: current_settings.decrypt_for!(current_user), type: ::PlaceOS::Model::Settings
     end
 
     @[OpenAPI(
       <<-YAML
         summary: Update a setting
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::Settings}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::Settings}
       YAML
     )]
     def update
-      # current_settings.assign_attributes_from_json(self.body)
-
-      # save_and_respond(current_settings, &.decrypt_for!(current_user))
-
-      updated_settings = current_settings.assign_attributes_from_json(body_raw Model::Settings)
-
+      updated_settings = current_settings.assign_attributes_from_json(body_raw ::PlaceOS::Model::Settings)
       save_and_respond(updated_settings, &.decrypt_for!(current_user))
     end
 
     put_redirect
 
+    @[OpenAPI(
+      <<-YAML
+        summary: Create a setting
+        security:
+        - bearerAuth: []
+      YAML
+    )]
     def create
-      new_settings = Model::Settings.from_json(self.body)
+      new_settings = body_as ::PlaceOS::Model::Settings, constructor: :from_json
       save_and_respond(new_settings, &.decrypt_for!(current_user))
     end
 

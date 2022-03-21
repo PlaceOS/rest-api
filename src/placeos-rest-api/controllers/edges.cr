@@ -72,7 +72,7 @@ module PlaceOS::Api
       elastic = Model::Edge.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query), type: Array(Model::Edge)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::Edge)
     end
 
     @[OpenAPI(
@@ -83,7 +83,7 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      render json: current_edge, type: Model::Edge
+      render json: current_edge, type: ::PlaceOS::Model::Edge
     end
 
     @[OpenAPI(
@@ -94,7 +94,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_edge.assign_attributes_from_json(body_raw Model::Edge)
+      current_edge.assign_attributes_from_json(body_raw ::PlaceOS::Model::Edge)
       save_and_respond current_edge
     end
 
@@ -110,7 +110,7 @@ module PlaceOS::Api
     def create
       create_body = body_as Model::Edge::CreateBody, constructor: :from_json
       user = Model::User.find!(create_body.user_id)
-      save_and_respond(Model::Edge.for_user(
+      save_and_respond(::PlaceOS::Model::Edge.for_user(
         user: user,
         name: create_body.name,
         description: create_body.description,

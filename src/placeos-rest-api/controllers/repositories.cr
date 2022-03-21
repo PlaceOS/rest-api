@@ -57,7 +57,7 @@ module PlaceOS::Api
       elastic = Model::Repository.elastic
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query), type: Array(Model::Repository)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::Repository)
     end
 
     @[OpenAPI(
@@ -68,7 +68,7 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      render json: current_repo, type: Array(Model::Repository)
+      render json: current_repo, type: Array(::PlaceOS::Model::Repository)
     end
 
     @[OpenAPI(
@@ -79,7 +79,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_repo.assign_attributes_from_json(body_raw Model::Repository)
+      current_repo.assign_attributes_from_json(body_raw ::PlaceOS::Model::Repository)
 
       # Must destroy and re-add to change driver repository URIs
       if current_repo.uri_changed? && current_repo.repo_type.driver?
@@ -99,7 +99,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      repo = body_as Model::Repository, constructor: :from_json
+      repo = body_as ::PlaceOS::Model::Repository, constructor: :from_json
       save_and_respond(repo)
     end
 

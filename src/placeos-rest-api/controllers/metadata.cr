@@ -60,7 +60,7 @@ module PlaceOS::Api
         head :forbidden unless name && guest_ids.includes?(parent_id)
       end
 
-      render json: Model::Metadata.build_metadata(parent_id, name), type: Hash(String, PlaceOS::Model::Interface)
+      render json: Model::Metadata.build_metadata(parent_id, name), type: Hash(String, ::PlaceOS::Model::Interface)
     end
 
     record Children, zone : Model::Zone, metadata : Hash(String, Model::Metadata::Interface) do
@@ -143,7 +143,7 @@ module PlaceOS::Api
       response, status = save_and_status(meta)
 
       if status.ok? && response.is_a?(Model::Metadata)
-        render json: Model::Metadata.interface(response), type: Model::Metadata
+        render json: Model::Metadata.interface(response), type: ::PlaceOS::Model::Metadata
       else
         render json: response, status: status
       end

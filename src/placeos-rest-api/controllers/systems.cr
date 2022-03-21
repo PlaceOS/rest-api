@@ -156,7 +156,7 @@ module PlaceOS::Api
 
       query.search_field "name"
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query), type: Array(Model::ControlSystem)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::ControlSystem)
     end
 
     # Finds all the systems with the specified email address
@@ -170,7 +170,7 @@ module PlaceOS::Api
       emails = required_param(in)
       systems = Model::ControlSystem.find_all(emails, index: :email).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
-      render json: systems, type: Array(Model::ControlSystem)
+      render json: systems, type: Array(::PlaceOS::Model::ControlSystem)
     end
 
     # Renders a control system
@@ -193,7 +193,7 @@ module PlaceOS::Api
       render json: !complete ? current_control_system : with_fields(current_control_system, {
         :module_data => current_control_system.module_data,
         :zone_data   => current_control_system.zone_data,
-      }), type: Model::ControlSystem
+      }), type: ::PlaceOS::Model::ControlSystem
     end
 
     # Updates a control system
@@ -212,10 +212,10 @@ module PlaceOS::Api
         return render_error(HTTP::Status::CONFLICT, "Attempting to edit an old System version")
       end
 
-      updated_control_system = current_control_system.assign_attributes_from_json(body_raw Model::ControlSystem)
+      updated_control_system = current_control_system.assign_attributes_from_json(body_raw ::PlaceOS::Model::ControlSystem)
       updated_control_system.version = system_version + 1
       updated_control_system.save!
-      render json: updated_control_system, type: Model::ControlSystem
+      render json: updated_control_system, type: ::PlaceOS::Model::ControlSystem
     end
 
     put_redirect
@@ -228,8 +228,8 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      c_system = body_as Model::ControlSystem, constructor: :from_json
-      render :created, json: c_system, type: Model::ControlSystem
+      c_system = body_as ::PlaceOS::Model::ControlSystem, constructor: :from_json
+      render :created, json: c_system, type: ::PlaceOS::Model::ControlSystem
     end
 
     @[OpenAPI(
@@ -266,7 +266,7 @@ module PlaceOS::Api
 
       set_collection_headers(documents.size, Model::Zone.table_name)
 
-      render json: documents, type: Array(Model::Zone)
+      render json: documents, type: Array(::PlaceOS::Model::Zone)
     end
 
     # Return metadata for the system
@@ -279,7 +279,7 @@ module PlaceOS::Api
     )]) do
       param(name : String?, description: "The name of the metadata")
       parent_id = current_control_system.id.not_nil!
-      render json: Model::Metadata.build_metadata(parent_id, name), type: Model::Metadata
+      render json: Model::Metadata.build_metadata(parent_id, name), type: ::PlaceOS::Model::Metadata
     end
 
     # Receive the collated settings for a system
@@ -290,7 +290,7 @@ module PlaceOS::Api
     - bearerAuth: []
     YAML
     )]) do
-      render json: Api::Settings.collated_settings(current_user, current_control_system), type: Array(Model::Settings)
+      render json: Api::Settings.collated_settings(current_user, current_control_system), type: Array(::PlaceOS::Model::Settings)
     end
 
     # Adds the module from the system if it doesn't already exist
@@ -310,7 +310,7 @@ module PlaceOS::Api
       end
 
       # Return the latest version of the control system
-      render json: Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"}), type: Model::ControlSystem
+      render json: Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"}), type: ::PlaceOS::Model::ControlSystem
     end
 
     # Removes the module from the system and deletes it if not used elsewhere

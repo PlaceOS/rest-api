@@ -40,7 +40,7 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      render json: current_instance, type: Model::AssetInstance
+      render json: current_instance, type: ::PlaceOS::Model::AssetInstance
     end
 
     @[OpenAPI(
@@ -51,7 +51,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      instance = body_as Model::AssetInstance, constructor: :from_json
+      instance = body_as ::PlaceOS::Model::AssetInstance, constructor: :from_json
       save_and_respond(instance)
     end
 
@@ -63,7 +63,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_instance.assign_attributes_from_json(body_raw Model::AssetInstance)
+      current_instance.assign_attributes_from_json(body_raw ::PlaceOS::Model::AssetInstance)
       save_and_respond(current_instance)
     end
 

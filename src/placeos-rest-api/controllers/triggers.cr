@@ -41,7 +41,7 @@ module PlaceOS::Api
       query = elastic.query(params)
       query.sort(NAME_SORT_ASC)
 
-      render json: paginate_results(elastic, query), type: Array(Model::Trigger)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::Trigger)
     end
 
     @[OpenAPI(
@@ -55,7 +55,7 @@ module PlaceOS::Api
       include_instances = param(instances : Bool?, description: "Include instances data in response")
       render json: !include_instances ? current_trigger : with_fields(current_trigger, {
         :trigger_instances => current_trigger.trigger_instances.to_a,
-      }), type: Model::Trigger
+      }), type: ::PlaceOS::Model::Trigger
     end
 
     @[OpenAPI(
@@ -66,7 +66,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      updated_trigger = current_trigger.assign_attributes_from_json(body_raw Model::Trigger)
+      updated_trigger = current_trigger.assign_attributes_from_json(body_raw ::PlaceOS::Model::Trigger)
       save_and_respond(updated_trigger)
     end
 
@@ -80,7 +80,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      trigger = body_as Model::Trigger, constructor: :from_json
+      trigger = body_as ::PlaceOS::Model::Trigger, constructor: :from_json
       save_and_respond(trigger)
     end
 
@@ -108,7 +108,7 @@ module PlaceOS::Api
 
       set_collection_headers(instances.size, Model::TriggerInstance.table_name)
 
-      render json: instances, type: Array(Model::TriggerInstance)
+      render json: instances, type: Array(::PlaceOS::Model::TriggerInstance)
     end
 
     # Helpers

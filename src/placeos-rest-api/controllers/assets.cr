@@ -50,7 +50,7 @@ module PlaceOS::Api
         })
       end
 
-      render json: paginate_results(elastic, query), type: Array(Model::Asset)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::Asset)
     end
 
     @[OpenAPI(
@@ -64,7 +64,7 @@ module PlaceOS::Api
       include_instances = boolean_param("instances")
       render json: !include_instances ? current_asset : with_fields(current_asset, {
         :asset_instances => current_asset.asset_instances.to_a,
-      }), type: Model::Asset
+      }), type: ::PlaceOS::Model::Asset
     end
 
     @[OpenAPI(
@@ -75,7 +75,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_asset.assign_attributes_from_json(body_raw Model::Asset)
+      current_asset.assign_attributes_from_json(body_raw ::PlaceOS::Model::Asset)
       save_and_respond(current_asset)
     end
 
@@ -87,7 +87,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      asset = body_as Model::Asset, constructor: :from_json
+      asset = body_as ::PlaceOS::Model::Asset, constructor: :from_json
       save_and_respond(asset)
     end
 
@@ -107,7 +107,7 @@ module PlaceOS::Api
       instances = current_asset.asset_instances.to_a
       set_collection_headers(instances.size, Model::AssetInstance.table_name)
 
-      render json: instances, type: Array(Model::AssetInstance)
+      render json: instances, type: Array(::PlaceOS::Model::AssetInstance)
     end
 
     # Helpers

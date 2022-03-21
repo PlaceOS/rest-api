@@ -40,7 +40,7 @@ module PlaceOS::Api
 
       set_collection_headers(brokers.size, Model::Broker.table_name)
 
-      render json: brokers, type: Array(Model::Broker)
+      render json: brokers, type: Array(::PlaceOS::Model::Broker)
     end
 
     @[OpenAPI(
@@ -51,7 +51,7 @@ module PlaceOS::Api
       YAML
     )]
     def show
-      render json: current_broker, type: Model::Broker
+      render json: current_broker, type: ::PlaceOS::Model::Broker
     end
 
     @[OpenAPI(
@@ -62,7 +62,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      save_and_respond current_broker.assign_attributes_from_json(body_raw Model::Broker)
+      save_and_respond current_broker.assign_attributes_from_json(body_raw ::PlaceOS::Model::Broker)
     end
 
     put_redirect
@@ -75,7 +75,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      broker = body_as Model::Broker, constructor: :from_json
+      broker = body_as ::PlaceOS::Model::Broker, constructor: :from_json
       save_and_respond(broker)
     end
 

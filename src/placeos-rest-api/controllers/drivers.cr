@@ -56,7 +56,7 @@ module PlaceOS::Api
 
       query.search_field "name"
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query), type: Array(Model::Driver)
+      render json: paginate_results(elastic, query), type: Array(::PlaceOS::Model::Driver)
     end
 
     @[OpenAPI(
@@ -74,7 +74,7 @@ module PlaceOS::Api
         :compilation_status => Api::Drivers.compilation_status(current_driver, request_id),
       })
 
-      render json: result, type: Model::Driver
+      render json: result, type: ::PlaceOS::Model::Driver
     end
 
     @[OpenAPI(
@@ -85,7 +85,7 @@ module PlaceOS::Api
       YAML
     )]
     def update
-      current_driver.assign_attributes_from_json(body_raw Model::Driver)
+      current_driver.assign_attributes_from_json(body_raw ::PlaceOS::Model::Driver)
 
       # Must destroy and re-add to change driver type
       return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Driver role must not change") if current_driver.role_changed?
@@ -103,7 +103,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      driver = body_as Model::Driver, constructor: :from_json
+      driver = body_as ::PlaceOS::Model::Driver, constructor: :from_json
       save_and_respond(driver)
     end
 

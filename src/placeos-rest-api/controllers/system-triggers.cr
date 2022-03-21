@@ -78,7 +78,7 @@ module PlaceOS::Api
 
       trigger_instances = paginate_results(elastic, query).map { |t| render_system_trigger(t, complete) }
 
-      render json: trigger_instances, type: Array(Model::TriggerInstance)
+      render json: trigger_instances, type: Array(::PlaceOS::Model::TriggerInstance)
     end
 
     @[OpenAPI(
@@ -91,7 +91,7 @@ module PlaceOS::Api
     def show
       # Default to render extra association fields
       complete = boolean_param("complete", default: true)
-      render json: render_system_trigger(current_sys_trig, complete: complete), type: Model::TriggerInstance
+      render json: render_system_trigger(current_sys_trig, complete: complete), type: ::PlaceOS::Model::TriggerInstance
     end
 
     class UpdateParams < Params
@@ -103,21 +103,8 @@ module PlaceOS::Api
     @[OpenAPI(
       <<-YAML
         summary: Update a trigger instance
-        parameters:
-          #{Schema.qp "enabled", "", type: "boolean"}
-          #{Schema.qp "important", "", type: "boolean"}
-          #{Schema.qp "exec_enabled", "", type: "boolean"}
-        requestBody:
-          required: true
-          content:
-            #{Schema.ref Model::TriggerInstance}
         security:
         - bearerAuth: []
-        responses:
-          200:
-            description: OK
-            content:
-              #{Schema.ref Model::TriggerInstance}
       YAML
     )]
     def update
@@ -127,7 +114,7 @@ module PlaceOS::Api
       current_sys_trig.important = body_args.important.as(Bool) unless body_args.important.nil?
       current_sys_trig.exec_enabled = body_args.exec_enabled.as(Bool) unless body_args.exec_enabled.nil?
       current_sys_trig.save!
-      render json: current_sys_trig, type: Model::TriggerInstance
+      render json: current_sys_trig, type: ::PlaceOS::Model::TriggerInstance
     end
 
     put_redirect
@@ -140,7 +127,7 @@ module PlaceOS::Api
       YAML
     )]
     def create
-      trigger_instance = body_as Model::TriggerInstance, constructor: :from_json
+      trigger_instance = body_as ::PlaceOS::Model::TriggerInstance, constructor: :from_json
 
       if trigger_instance.control_system_id != current_system.id
         render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "control_system_id mismatch")
