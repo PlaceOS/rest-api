@@ -49,8 +49,6 @@ module PlaceOS::Api
 
     getter current_zone : Model::Zone { find_zone }
 
-    getter current_metadata : Model::Metadata { find_metadata }
-
     ###############################################################################################
 
     # Fetch metadata for a model
