@@ -1,10 +1,7 @@
 require "./application"
-require "../utilities/history"
 
 module PlaceOS::Api
   class Settings < Application
-    include Utils::History
-
     base "/api/engine/v2/settings"
 
     # Scopes
@@ -27,6 +24,14 @@ module PlaceOS::Api
 
     getter parent_ids : Array(String)? do
       params["parent_id"]?.presence.try &.split(',').reject(&.empty?).uniq!
+    end
+
+    getter offset : Int32 do
+      params["offset"]?.try(&.to_i?) || 0
+    end
+
+    getter limit : Int32 do
+      params["limit"]?.try(&.to_i?) || 15
     end
 
     ###############################################################################################
@@ -78,10 +83,25 @@ module PlaceOS::Api
 
     # Returns the version history for a Settings model
     #
-    # /:id/history
-    model_history(current_settings) do
-      # Privilege respecting decrypted settings history
-      history.tap(&.each(&.decrypt_for!(current_user)))
+    get "/:id/history", :history do
+      history = current_settings.history(offset: offset, limit: limit)
+
+      total = current_settings.history_count
+      range_start = offset
+      range_end = history.size + range_start
+
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "sets #{range_start}-#{range_end}/#{total}"
+
+      # Set link
+      if range_end < total
+        params["offset"] = (range_end + 1).to_s
+        params["limit"] = limit.to_s
+        path = File.join(base_route, "/#{current_settings.id}/history")
+        response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
+      end
+
+      render json: history
     end
 
     # Helpers
@@ -90,9 +110,10 @@ module PlaceOS::Api
     # Get an ordered hierarchy of Settings for the model
     #
     def self.collated_settings(user : Model::User, model : Model::ControlSystem | Model::Module)
-      collated = model.settings_hierarchy.reverse!
-      collated.each &.decrypt_for!(user)
-      collated
+      model
+        .settings_hierarchy
+        .reverse!
+        .tap(&.each(&.decrypt_for!(user)))
     end
 
     protected def find_settings

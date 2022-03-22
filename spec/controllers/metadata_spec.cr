@@ -1,4 +1,5 @@
 require "../helper"
+require "timecop"
 
 module PlaceOS::Api
   describe Metadata do
@@ -209,7 +210,8 @@ module PlaceOS::Api
       describe "/metadata/:id/history" do
         it "renders the version history for a single metadata document" do
           changes = [0, 1, 2, 3].map { |i| JSON::Any.new({"test" => JSON::Any.new(i.to_i64)}) }
-          metadata = Generator.metadata
+          name = random_name
+          metadata = Model::Generator.metadata(name: name)
           metadata.details = changes.first
           metadata.save!
 
@@ -223,12 +225,14 @@ module PlaceOS::Api
           result = curl(
             method: "GET",
             path: "#{base}/#{metadata.id}/history",
-            headers: scoped_authorization_header,
+            headers: authorization_header,
           )
           result.status_code.should eq 200
-          Array(String, Model::Metadata::Interface)
+          Hash(String, Array(Model::Metadata::Interface))
             .from_json(result.body)
-            .map(&.details.as_h("test")).should eq [3, 2, 1, 0]
+            .tap(&.has_key?(name).should be_true)
+            .[name]
+            .map(&.details.as_h["test"]).should eq [3, 2, 1, 0]
         end
       end
 
