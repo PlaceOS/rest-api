@@ -128,7 +128,7 @@ module PlaceOS::Api
       range_end = history.max_of(&.last.size) + range_start
 
       response.headers["X-Total-Count"] = total.to_s
-      response.headers["Content-Range"] = "sets #{range_start}-#{range_end}/#{total}"
+      response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
 
       # Set link
       if range_end < total
