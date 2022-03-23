@@ -1,3 +1,9 @@
+## v1.35.1 (2022-03-23)
+
+### Refactor
+
+- **controllers**: remove `find_<model>` from `current_<model>` ([#259](https://github.com/PlaceOS/rest-api/pull/259))
+
 ## v1.35.0 (2022-03-23)
 
 ### Feat
