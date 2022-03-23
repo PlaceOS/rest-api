@@ -123,9 +123,9 @@ module PlaceOS::Api
     get "/:id/history", :history do
       history = Model::Metadata.build_history(parent_id, name, offset: offset, limit: limit)
 
-      total = Model::Metadata.for(parent_id, name).max_of(&.history_count)
+      total = Model::Metadata.for(parent_id, name).max_of?(&.history_count) || 0
       range_start = offset
-      range_end = history.max_of(&.last.size) + range_start
+      range_end = (history.max_of?(&.last.size) || 0) + range_start
 
       response.headers["X-Total-Count"] = total.to_s
       response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"

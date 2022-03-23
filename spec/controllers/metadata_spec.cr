@@ -228,17 +228,18 @@ module PlaceOS::Api
             end
           end
 
+          sleep 30.milliseconds
+
           result = curl(
             method: "GET",
-            path: "#{base}/#{metadata.id}/history",
+            path: File.join(base, metadata.parent_id.as(String), "history"),
             headers: authorization_header,
           )
+
           result.status_code.should eq 200
-          Hash(String, Array(Model::Metadata::Interface))
-            .from_json(result.body)
-            .tap(&.has_key?(name).should be_true)
-            .[name]
-            .map(&.details.as_h["test"]).should eq [3, 2, 1, 0]
+          history = Hash(String, Array(Model::Metadata::Interface)).from_json(result.body)
+          history.has_key?(name).should be_true
+          history[name].map(&.details.as_h["test"]).should eq [3, 2, 1, 0]
         end
       end
 
