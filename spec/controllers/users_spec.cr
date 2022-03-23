@@ -15,7 +15,7 @@ module PlaceOS::Api
           id = model.id.as(String)
           result = curl(
             method: "GET",
-            path: base + id,
+            path: File.join(base, id),
             headers: authorization_header,
           )
 
@@ -98,7 +98,7 @@ module PlaceOS::Api
             id = model.id.as(String)
             result = curl(
               method: "PATCH",
-              path: base + id,
+              path: File.join(base, id),
               body: {groups: updated_groups}.to_json,
               headers: authorization_header.merge({"Content-Type" => "application/json"})
             )

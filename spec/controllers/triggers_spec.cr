@@ -40,7 +40,7 @@ module PlaceOS::Api
           trigger.name = random_name
 
           id = trigger.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = curl(
             method: "PATCH",
             path: path,

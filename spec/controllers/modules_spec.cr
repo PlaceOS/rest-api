@@ -28,7 +28,7 @@ module PlaceOS::Api
           mod.connected = false
 
           id = mod.id.as(String)
-          path = base + id
+          path = File.join(base, id)
 
           result = curl(
             method: "PATCH",
@@ -51,7 +51,7 @@ module PlaceOS::Api
           mod.connected = !connected
 
           id = mod.id.as(String)
-          path = base + id
+          path = File.join(base, id)
 
           result = curl(
             method: "PATCH",
@@ -329,7 +329,7 @@ module PlaceOS::Api
           mod.connected = !connected
 
           id = mod.id.as(String)
-          path = base + id
+          path = File.join(base, id)
 
           result = update_route(path, mod, scoped_authorization_header)
 

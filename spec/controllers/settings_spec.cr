@@ -178,7 +178,7 @@ module PlaceOS::Api
           settings.settings_string = %(hello: "world"\n)
 
           id = settings.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = curl(
             method: "PATCH",
             path: path,
@@ -205,7 +205,7 @@ module PlaceOS::Api
           settings.settings_string = %(hello: "world"\n)
 
           id = settings.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = update_route(path, settings, scoped_authorization_header)
 
           result.status_code.should eq 200

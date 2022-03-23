@@ -41,7 +41,7 @@ module PlaceOS::Api
         asset.name = UUID.random.to_s
 
         id = asset.id.as(String)
-        path = base + id
+        path = File.join(base, id)
         result = curl(
           method: "PATCH",
           path: path,

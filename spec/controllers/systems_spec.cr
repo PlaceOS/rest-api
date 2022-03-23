@@ -538,7 +538,7 @@ module PlaceOS::Api
             id = cs.id.as(String)
 
             params = HTTP::Params.encode({"version" => "0"})
-            path = "#{base + id}?#{params}"
+            path = "#{File.join(base, id)}?#{params}"
 
             result = curl(
               method: "PATCH",
@@ -559,7 +559,7 @@ module PlaceOS::Api
             cs.persisted?.should be_true
 
             params = HTTP::Params.encode({"version" => "2"})
-            path = "#{base + id}?#{params}"
+            path = "#{File.join(base, id)}?#{params}"
 
             result = curl(
               method: "PATCH",
