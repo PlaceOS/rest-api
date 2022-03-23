@@ -47,7 +47,11 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_zone : Model::Zone { find_zone }
+    getter current_zone : Model::Zone do
+      Log.context.set(zone_id: parent_id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Zone.find!(parent_id)
+    end
 
     ###############################################################################################
 
@@ -162,12 +166,6 @@ module PlaceOS::Api
       end.tap do |model|
         model.modified_by = current_user
       end
-    end
-
-    def find_zone
-      Log.context.set(zone_id: parent_id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Zone.find!(parent_id)
     end
 
     # Fetch zones for system the current user has a role for

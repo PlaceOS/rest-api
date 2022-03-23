@@ -46,7 +46,38 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter user : Model::User { find_user }
+    getter user : Model::User do
+      lookup = params["id"]
+
+      # Index ordering to use for resolving the user.
+      ordering = if lookup.is_email?
+                   {:email, :login_name}
+                 else
+                   {:id, :login_name, :staff_id}
+                 end
+
+      authority = current_user.authority_id.as(String)
+
+      ordering.each.compact_map do |id_type|
+        case id_type
+        when :id
+          Model::User.find(lookup)
+        when :email
+          Model::User.find_by_email(authority_id: authority, email: lookup)
+        when :login_name
+          Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
+        when :staff_id
+          Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
+        end
+      end.first do
+        # 404 if the `User` was not found
+        raise RethinkORM::Error::DocumentNotFound.new
+      end.tap do |user|
+        Log.context.set(user_id: user.id)
+      end
+    end
+
+    ###############################################################################################
 
     # Render the current user
     get("/current", :current) do
@@ -218,37 +249,6 @@ module PlaceOS::Api
 
     # Helpers
     ###############################################################################################
-
-    protected def find_user
-      lookup = params["id"]
-
-      # Index ordering to use for resolving the user.
-      ordering = if lookup.is_email?
-                   {:email, :login_name}
-                 else
-                   {:id, :login_name, :staff_id}
-                 end
-
-      authority = current_user.authority_id.as(String)
-
-      query = ordering.each.compact_map do |id_type|
-        case id_type
-        when :id
-          Model::User.find(lookup)
-        when :email
-          Model::User.find_by_email(authority_id: authority, email: lookup)
-        when :login_name
-          Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
-        when :staff_id
-          Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
-        end
-      end
-
-      user = query.first { raise RethinkORM::Error::DocumentNotFound.new }
-
-      Log.context.set(user_id: user.id)
-      user
-    end
 
     protected def check_authorization
       # Does the current user have permission to perform the current action

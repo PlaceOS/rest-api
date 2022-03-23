@@ -21,7 +21,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_domain : Model::Authority { find_domain }
+    getter current_domain : Model::Authority do
+      id = params["id"]
+      Log.context.set(authority_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Authority.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       elastic = Model::Authority.elastic
@@ -48,16 +55,6 @@ module PlaceOS::Api
     def destroy
       current_domain.destroy
       head :ok
-    end
-
-    #  Helpers
-    ###########################################################################
-
-    protected def find_domain
-      id = params["id"]
-      Log.context.set(authority_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Authority.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

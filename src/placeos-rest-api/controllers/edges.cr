@@ -30,7 +30,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_edge : Model::Edge { find_edge }
+    getter current_edge : Model::Edge do
+      id = params["id"]
+      Log.context.set(edge_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
 
@@ -82,16 +89,6 @@ module PlaceOS::Api
     def destroy
       current_edge.destroy
       head :ok
-    end
-
-    # Helpers
-    ###########################################################################
-
-    protected def find_edge
-      id = params["id"]
-      Log.context.set(edge_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end
