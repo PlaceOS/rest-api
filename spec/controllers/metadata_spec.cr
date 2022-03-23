@@ -228,8 +228,6 @@ module PlaceOS::Api
             end
           end
 
-          sleep 30.milliseconds
-
           result = curl(
             method: "GET",
             path: File.join(base, metadata.parent_id.as(String), "history"),

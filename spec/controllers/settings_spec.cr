@@ -132,15 +132,18 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:id/history" do
+      describe "GET /settings/:id/history" do
         it "returns history for a master setting" do
           sys = Model::Generator.control_system.save!
 
           setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
           setting.settings_string = "tree: 1"
           setting.save!
-          setting.settings_string = "tree: 10"
-          setting.save!
+
+          Timecop.freeze(3.seconds.from_now) do
+            setting.settings_string = "tree: 10"
+            setting.save!
+          end
 
           result = curl(
             method: "GET",

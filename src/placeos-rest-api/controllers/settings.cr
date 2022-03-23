@@ -84,7 +84,7 @@ module PlaceOS::Api
     # Returns the version history for a Settings model
     #
     get "/:id/history", :history do
-      history = current_settings.history(offset: offset, limit: limit)
+      history = current_settings.history(offset: offset, limit: limit).to_a
 
       total = current_settings.history_count
       range_start = offset
