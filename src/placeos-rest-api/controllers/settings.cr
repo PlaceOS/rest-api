@@ -7,7 +7,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index, :show, :history]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
     before_action :check_admin, except: [:index, :show]
@@ -23,15 +23,15 @@ module PlaceOS::Api
     ###############################################################################################
 
     getter parent_ids : Array(String)? do
-      params["parent_id"]?.presence.try &.split(',').reject(&.empty?).uniq!
+      params["parent_id"]?.try &.split(',').reject(&.empty?).uniq!
     end
 
     getter offset : Int32 do
-      params["offset"]?.try(&.to_i) || 0
+      params["offset"]?.try(&.to_i?) || 0
     end
 
     getter limit : Int32 do
-      params["limit"]?.try(&.to_i) || 15
+      params["limit"]?.try(&.to_i?) || 15
     end
 
     ###############################################################################################
@@ -86,15 +86,12 @@ module PlaceOS::Api
       head :ok
     end
 
-    # Returns history for a particular Setting
+    # Returns the version history for a Settings model
     #
     get "/:id/history", :history do
-      history = current_settings.history(offset: offset, limit: limit)
+      history = current_settings.history(offset: offset, limit: limit).to_a
 
-      # Privilege respecting decrypted settings history
-      history.each &.decrypt_for!(current_user)
-
-      total = Api::Settings.history_count(current_settings)
+      total = current_settings.history_count
       range_start = offset
       range_end = history.size + range_start
 
@@ -103,9 +100,8 @@ module PlaceOS::Api
 
       # Set link
       if range_end < total
-        params["offset"] = (range_end + 1).to_s
-        params["limit"] = limit.to_s
-        query_params = params.compact_map { |key, value| "#{key}=#{value}" unless key == "id" }.join("&")
+        query_params["offset"] = (range_end + 1).to_s
+        query_params["limit"] = limit.to_s
         path = File.join(base_route, "/#{current_settings.id}/history")
         response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
       end
@@ -116,22 +112,13 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    # TODO: Optimise, get total query size from the response from rethinkdb
-    def self.history_count(settings : Model::Settings) : Int32
-      Model::Settings.table_query do |q|
-        q
-          .get_all([settings.parent_id.as(String)], index: :parent_id)
-          .filter({settings_id: settings.id.as(String)})
-          .count
-      end.as_i
-    end
-
     # Get an ordered hierarchy of Settings for the model
     #
     def self.collated_settings(user : Model::User, model : Model::ControlSystem | Model::Module)
-      collated = model.settings_hierarchy.reverse!
-      collated.each &.decrypt_for!(user)
-      collated
+      model
+        .settings_hierarchy
+        .reverse!
+        .tap(&.each(&.decrypt_for!(user)))
     end
   end
 end

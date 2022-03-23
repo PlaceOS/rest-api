@@ -12,7 +12,7 @@ module PlaceOS::Api
         Specs.test_base_index(klass: Model::Asset, controller_klass: Assets)
       end
 
-      describe "/:id/instances" do
+      describe "GET /asset-instances/:id/instances" do
         it "lists instances for an Asset" do
           asset = Model::Generator.asset.save!
           instances = Array(Model::AssetInstance).new(size: 3) { Model::Generator.asset_instance(asset).save! }
@@ -41,7 +41,7 @@ module PlaceOS::Api
         asset.name = UUID.random.to_s
 
         id = asset.id.as(String)
-        path = base + id
+        path = File.join(base, id)
         result = curl(
           method: "PATCH",
           path: path,

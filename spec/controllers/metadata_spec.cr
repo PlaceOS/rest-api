@@ -1,4 +1,5 @@
 require "../helper"
+require "timecop"
 
 module PlaceOS::Api
   describe Metadata do
@@ -6,7 +7,7 @@ module PlaceOS::Api
     base = Metadata::NAMESPACE[0]
 
     with_server do
-      describe "/metadata/:id/children/" do
+      describe "GET /metadata/:id/children/" do
         it "shows zone children metadata" do
           parent = Model::Generator.zone.save!
           parent_id = parent.id.as(String)
@@ -63,7 +64,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/metadata" do
+      describe "PUT /metadata" do
         it "creates metadata" do
           parent = Model::Generator.zone.save!
           meta = Model::Metadata::Interface.new(
@@ -84,7 +85,9 @@ module PlaceOS::Api
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
-          new_metadata = Model::Metadata.from_json(result.body)
+          result.status_code.should eq 201
+
+          new_metadata = Model::Metadata::Interface.from_json(result.body)
           found = Model::Metadata.for(parent.id.as(String), meta.name).first
           found.name.should eq new_metadata.name
         end
@@ -109,6 +112,8 @@ module PlaceOS::Api
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
+          result.status_code.should eq 201
+
           new_metadata = Model::Metadata::Interface.from_json(result.body)
           found = Model::Metadata.for(parent_id, meta.name).first
           found.name.should eq new_metadata.name
@@ -128,6 +133,8 @@ module PlaceOS::Api
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
+          result.status_code.should eq 200
+
           update_response_meta = Model::Metadata::Interface.from_json(result.body)
           update_response_meta.details.as_h["bye"]?.should be_nil
 
@@ -136,7 +143,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/metadata/:id" do
+      describe "GET /metadata/:id" do
         it "shows control_system metadata" do
           control_system = Model::Generator.control_system.save!
           control_system_id = control_system.id.as(String)
@@ -206,6 +213,34 @@ module PlaceOS::Api
         end
       end
 
+      describe "GET /metadata/:id/history" do
+        it "renders the version history for a single metadata document" do
+          changes = [0, 1, 2, 3].map { |i| JSON::Any.new({"test" => JSON::Any.new(i.to_i64)}) }
+          name = random_name
+          metadata = Model::Generator.metadata(name: name)
+          metadata.details = changes.first
+          metadata.save!
+
+          changes[1..].each_with_index(offset: 1) do |detail, i|
+            Timecop.freeze(i.seconds.from_now) do
+              metadata.details = detail
+              metadata.save!
+            end
+          end
+
+          result = curl(
+            method: "GET",
+            path: File.join(base, metadata.parent_id.as(String), "history"),
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          history = Hash(String, Array(Model::Metadata::Interface)).from_json(result.body)
+          history.has_key?(name).should be_true
+          history[name].map(&.details.as_h["test"]).should eq [3, 2, 1, 0]
+        end
+      end
+
       describe "scopes" do
         context "read" do
           scope_name = "metadata"
@@ -261,6 +296,7 @@ module PlaceOS::Api
             result.status_code.should eq 403
           end
         end
+
         context "write" do
           scope_name = "metadata"
 

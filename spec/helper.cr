@@ -164,7 +164,7 @@ module PlaceOS::Api::Specs
   def self.test_404(base, model_name, headers)
     it "404s if #{model_name} isn't present in database", tags: "search" do
       id = "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
-      path = base + id
+      path = File.join(base, id)
       result = curl("GET", path: path, headers: headers)
       result.status_code.should eq 404
     end
@@ -229,7 +229,7 @@ module PlaceOS::Api::Specs
       id = model.id.as(String)
       result = curl(
         method: "GET",
-        path: base + id,
+        path: File.join(base, id),
         headers: authorization_header,
       )
 
@@ -252,7 +252,7 @@ module PlaceOS::Api::Specs
       id = model.id.as(String)
       result = curl(
         method: "DELETE",
-        path: base + id,
+        path: File.join(base, id),
         headers: authorization_header,
       )
 
@@ -389,7 +389,7 @@ module PlaceOS::Api::Specs
           model.name = random_name
 
           id = model.id.as(String)
-          path = base + id
+          path = File.join({{ base }}, id)
           result = update_route(path, model, scoped_authorization_header)
 
           result.success?.should be_true

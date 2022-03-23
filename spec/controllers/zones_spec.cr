@@ -20,7 +20,7 @@ module PlaceOS::Api
           zone.name = random_name
 
           id = zone.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = curl(
             method: "PATCH",
             path: path,
@@ -37,7 +37,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:id/metadata" do
+      describe "GET /zones/:id/metadata" do
         it "shows zone metadata" do
           zone = Model::Generator.zone.save!
           zone_id = zone.id.as(String)

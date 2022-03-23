@@ -3,7 +3,7 @@ require "../lib/action-controller/spec/curl_context"
 def show_route(base, id, scoped_authorization_header)
   curl(
     method: "GET",
-    path: base + id,
+    path: File.join(base, id),
     headers: scoped_authorization_header,
   )
 end
@@ -28,7 +28,7 @@ end
 def delete_route(base, id, scoped_authorization_header)
   curl(
     method: "DELETE",
-    path: base + id,
+    path: File.join(base, id),
     headers: scoped_authorization_header,
   )
 end

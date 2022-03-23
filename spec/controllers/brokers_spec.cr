@@ -21,7 +21,7 @@ module PlaceOS::Api
           broker.name = random_name
 
           id = broker.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = curl(
             method: "PATCH",
             path: path,

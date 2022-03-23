@@ -15,7 +15,7 @@ module PlaceOS::Api
           id = model.id.as(String)
           result = curl(
             method: "GET",
-            path: base + id,
+            path: File.join(base, id),
             headers: authorization_header,
           )
 
@@ -98,7 +98,7 @@ module PlaceOS::Api
             id = model.id.as(String)
             result = curl(
               method: "PATCH",
-              path: base + id,
+              path: File.join(base, id),
               body: {groups: updated_groups}.to_json,
               headers: authorization_header.merge({"Content-Type" => "application/json"})
             )
@@ -113,7 +113,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/current" do
+      describe "GET /users/current" do
         it "renders the current user" do
           authenticated_user, authorization_header = authentication
           result = curl(
@@ -128,7 +128,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:id/metadata" do
+      describe "GET /users/:id/metadata" do
         it "shows user metadata" do
           user = Model::Generator.user.save!
           user_id = user.id.as(String)
