@@ -95,8 +95,8 @@ module PlaceOS::Api
 
       # Set link
       if range_end < total
-        params["offset"] = (range_end + 1).to_s
-        params["limit"] = limit.to_s
+        query_params["offset"] = (range_end + 1).to_s
+        query_params["limit"] = limit.to_s
         path = File.join(base_route, "/#{current_settings.id}/history")
         response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
       end
