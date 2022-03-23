@@ -144,7 +144,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "GET /:sys_id/zones" do
+      describe "GET /systems/:sys_id/zones" do
         it "lists zones for a system" do
           control_system = Model::Generator.control_system.save!
 
@@ -169,7 +169,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "PUT /:sys_id/module/:module_id" do
+      describe "PUT /systems/:sys_id/module/:module_id" do
         it "adds a module if not present" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module.save!
@@ -216,7 +216,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "DELETE /:sys_id/module/:module_id" do
+      describe "DELETE /systems/:sys_id/module/:module_id" do
         it "removes if not in use by another ControlSystem" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
@@ -263,7 +263,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "GET /:sys_id/settings" do
+      describe "GET /systems/:sys_id/settings" do
         it "collates System settings" do
           control_system = Model::Generator.control_system.save!
           control_system_settings_string = %(frangos: 1)
@@ -280,9 +280,9 @@ module PlaceOS::Api
           control_system.update!
 
           expected_settings_ids = [
-            control_system.master_settings,
-            zone1.master_settings,
-            zone0.master_settings,
+            control_system.settings,
+            zone1.settings,
+            zone0.settings,
           ].flat_map(&.compact_map(&.id)).reverse!
 
           path = "#{base}#{control_system.id}/settings"
@@ -326,7 +326,7 @@ module PlaceOS::Api
         end
       end
 
-      it "GET /:sys_id/functions/:module_slug" do
+      it "GET /systems/:sys_id/functions/:module_slug" do
         cs = PlaceOS::Model::Generator.control_system.save!
         mod = PlaceOS::Model::Generator.module(control_system: cs).save!
         module_slug = mod.id.as(String)
@@ -356,7 +356,7 @@ module PlaceOS::Api
         result.body.includes?("function1").should be_true
       end
 
-      describe "GET /:sys_id/types" do
+      describe "GET /systems/:sys_id/types" do
         it "returns types of modules in a system" do
           expected = {
             "Display"  => 2,
@@ -395,11 +395,11 @@ module PlaceOS::Api
         end
       end
 
-      describe "with core" do
+      context "with core" do
         mod, cs = get_sys
 
         # "fetches the state for `key` in module defined by `module_slug`
-        it "GET /:sys_id/:module_slug/:key" do
+        it "GET /systems/:sys_id/:module_slug/:key" do
           module_slug = cs.modules.first
 
           # Create a storage proxy
@@ -422,7 +422,7 @@ module PlaceOS::Api
           String.from_json(response.body).should eq("1")
         end
 
-        it "GET /:sys_id/:module_slug" do
+        it "GET /systems/:sys_id/:module_slug" do
           module_slug = cs.modules.first
 
           # Create a storage proxy
@@ -448,7 +448,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "POST /:sys_id/start" do
+      describe "POST /systems/:sys_id/start" do
         it "start modules in a system" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs).save!
@@ -474,7 +474,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "POST /:sys_id/stop" do
+      describe "POST /systems/:sys_id/stop" do
         it "stops modules in a system" do
           cs = Model::Generator.control_system.save!
           mod = Model::Generator.module(control_system: cs)
@@ -502,7 +502,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "GET /:sys_id/metadata" do
+      describe "GET /systems/:sys_id/metadata" do
         it "shows system metadata" do
           system = Model::Generator.control_system.save!
           system_id = system.id.as(String)
@@ -538,7 +538,7 @@ module PlaceOS::Api
             id = cs.id.as(String)
 
             params = HTTP::Params.encode({"version" => "0"})
-            path = "#{base + id}?#{params}"
+            path = "#{File.join(base, id)}?#{params}"
 
             result = curl(
               method: "PATCH",
@@ -559,7 +559,7 @@ module PlaceOS::Api
             cs.persisted?.should be_true
 
             params = HTTP::Params.encode({"version" => "2"})
-            path = "#{base + id}?#{params}"
+            path = "#{File.join(base, id)}?#{params}"
 
             result = curl(
               method: "PATCH",
@@ -573,7 +573,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:id/metadata" do
+      describe "GET /systems/:id/metadata" do
         it "shows system metadata" do
           system = Model::Generator.control_system.save!
           system_id = system.id.as(String)

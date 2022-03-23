@@ -9,7 +9,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index]
+    before_action :can_read, only: [:index, :history]
     before_action :can_read_guest, only: [:show, :children_metadata]
     before_action :can_write, only: [:update, :destroy, :update_alt]
 
@@ -26,11 +26,19 @@ module PlaceOS::Api
     ###############################################################################################
 
     getter parent_id : String do
-      params["id"]
+      route_params["id"]
     end
 
     getter name : String? do
       params["name"]?.presence
+    end
+
+    getter offset : Int32 do
+      params["offset"]?.try(&.to_i?) || 0
+    end
+
+    getter limit : Int32 do
+      params["limit"]?.try(&.to_i?) || 15
     end
 
     getter? include_parent : Bool do
@@ -110,39 +118,47 @@ module PlaceOS::Api
       head :ok
     end
 
+    # Returns the version history for a Settings model
+    #
+    get "/:id/history", :history do
+      history = Model::Metadata.build_history(parent_id, name, offset: offset, limit: limit)
+
+      total = Model::Metadata.for(parent_id, name).max_of?(&.history_count) || 0
+      range_start = offset
+      range_end = (history.max_of?(&.last.size) || 0) + range_start
+
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
+
+      # Set link
+      if range_end < total
+        params["offset"] = (range_end + 1).to_s
+        params["limit"] = limit.to_s
+        path = File.join(base_route, "/#{parent_id}/history")
+        response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
+      end
+
+      render json: history
+    end
+
     # Helpers
     ###########################################################################
 
-    def create_or_update(metadata : Model::Metadata::Interface) : Model::Metadata
-      if meta = Model::Metadata.for(parent_id, metadata.name).first?
+    def create_or_update(interface : Model::Metadata::Interface) : Model::Metadata
+      if metadata = Model::Metadata.for(parent_id, interface.name).first?
         # Check if the current user has access
-        if !is_support? && parent_id != user_token.id && (meta.editors & Set.new(user_token.user.roles)).empty?
-          raise Error::Forbidden.new
-        end
+        raise Error::Forbidden.new unless metadata.user_can_update?(user_token)
 
-        # Only support+ users can edit the editors list
-        if (editors = metadata.editors) && is_support?
-          meta.editors = editors
-        end
-
-        # Update existing Metadata
-        meta.description = metadata.description
-        meta.details = metadata.details
-        meta
+        metadata.assign_from_interface(user_token, interface)
       else
         # When creating a new metadata, must be at least a support user
-        unless is_support? || parent_id == user_token.id
-          raise Error::Forbidden.new
-        end
+        raise Error::Forbidden.new unless Model::Metadata.user_can_create?(interface.parent_id, user_token)
 
-        # Create new Metadata
-        Model::Metadata.new(
-          name: metadata.name,
-          details: metadata.details,
-          parent_id: parent_id,
-          description: metadata.description,
-          editors: metadata.editors || Set(String).new,
-        )
+        # Create a new Metadata
+        Model::Metadata.from_interface(interface).tap do |model|
+          # Set `parent_id` in create
+          model.parent_id = parent_id
+        end
       end.tap do |model|
         model.modified_by = current_user
       end
