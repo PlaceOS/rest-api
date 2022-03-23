@@ -64,7 +64,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/metadata" do
+      describe "PUT /metadata" do
         it "creates metadata" do
           parent = Model::Generator.zone.save!
           meta = Model::Metadata::Interface.new(
@@ -85,7 +85,9 @@ module PlaceOS::Api
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
-          new_metadata = Model::Metadata.from_json(result.body)
+          result.status_code.should eq 201
+
+          new_metadata = Model::Metadata::Interface.from_json(result.body)
           found = Model::Metadata.for(parent.id.as(String), meta.name).first
           found.name.should eq new_metadata.name
         end
@@ -110,6 +112,8 @@ module PlaceOS::Api
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
+          result.status_code.should eq 201
+
           new_metadata = Model::Metadata::Interface.from_json(result.body)
           found = Model::Metadata.for(parent_id, meta.name).first
           found.name.should eq new_metadata.name
@@ -129,6 +133,8 @@ module PlaceOS::Api
             headers: authorization_header.merge({"Content-Type" => "application/json"}),
           )
 
+          result.status_code.should eq 200
+
           update_response_meta = Model::Metadata::Interface.from_json(result.body)
           update_response_meta.details.as_h["bye"]?.should be_nil
 
@@ -137,7 +143,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/metadata/:id" do
+      describe "GET /metadata/:id" do
         it "shows control_system metadata" do
           control_system = Model::Generator.control_system.save!
           control_system_id = control_system.id.as(String)
@@ -207,7 +213,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/metadata/:id/history" do
+      describe "GET /metadata/:id/history" do
         it "renders the version history for a single metadata document" do
           changes = [0, 1, 2, 3].map { |i| JSON::Any.new({"test" => JSON::Any.new(i.to_i64)}) }
           name = random_name

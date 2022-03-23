@@ -155,7 +155,10 @@ module PlaceOS::Api
         raise Error::Forbidden.new unless Model::Metadata.user_can_create?(interface.parent_id, user_token)
 
         # Create a new Metadata
-        Model::Metadata.from_interface(interface)
+        Model::Metadata.from_interface(interface).tap do |model|
+          # Set `parent_id` in create
+          model.parent_id = parent_id
+        end
       end.tap do |model|
         model.modified_by = current_user
       end
