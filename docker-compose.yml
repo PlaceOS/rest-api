@@ -39,6 +39,7 @@ services:
       - ${PWD}/shard.yml:/app/shard.yml
       - ${PWD}/coverage:/app/coverage
     depends_on:
+      - auth
       - core
       - elastic
       - etcd
@@ -60,7 +61,6 @@ services:
     restart: always
     healthcheck:
       test: wget -q --no-verbose --tries=1 --spider http://localhost:9200/_cat/health
-      start_period: 20s
     environment:
       discovery.type: single-node
 
@@ -87,7 +87,6 @@ services:
     healthcheck:
       # Check if the DB's port is open
       test: "bash -c ': &>/dev/null </dev/tcp/127.0.0.1/28015'"
-      start_period: 10s
 
   search-ingest: # RethinkDB to Elasticsearch Service
     image: placeos/search-ingest:nightly
@@ -103,6 +102,20 @@ services:
       <<: *elastic-client-env
       # Environment
       <<: *deployment-env
+
+  auth: # Authentication Service
+    image: placeos/auth:nightly
+    restart: always
+    hostname: auth
+    depends_on:
+      - redis
+      - rethink
+    environment:
+      <<: *rethinkdb-client-env
+      <<: *redis-client-env
+      COAUTH_NO_SSL: "true"
+      TZ: $TZ
+      PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
     image: placeos/core:${PLACE_CORE_TAG:-nightly}
