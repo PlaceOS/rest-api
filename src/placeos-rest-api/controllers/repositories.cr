@@ -22,6 +22,12 @@ module PlaceOS::Api
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
 
+    private def drivers_only
+      unless current_repo.repo_type.driver?
+        render_error(:bad_request, "not a driver repository")
+      end
+    end
+
     # Params
     ###############################################################################################
 
@@ -39,15 +45,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_repo : Model::Repository { find_repo }
+    getter current_repo : Model::Repository do
+      id = params["id"]
+      Log.context.set(repository_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
+    end
 
     ###############################################################################################
-
-    private def drivers_only
-      unless current_repo.repo_type.driver?
-        render_error(:bad_request, "not a driver repository")
-      end
-    end
 
     def index
       elastic = Model::Repository.elastic
@@ -206,16 +211,6 @@ module PlaceOS::Api
           } }
         end
       end
-    end
-
-    #  Helpers
-    ###########################################################################
-
-    protected def find_repo
-      id = params["id"]
-      Log.context.set(repository_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

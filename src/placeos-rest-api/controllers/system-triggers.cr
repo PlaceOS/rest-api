@@ -24,8 +24,21 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_sys_trig : Model::TriggerInstance { find_sys_trig }
-    getter current_system : Model::ControlSystem { find_system }
+    getter current_sys_trig : Model::TriggerInstance do
+      id = params["trig_id"]
+      Log.context.set(trigger_instance_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    getter current_system : Model::ControlSystem do
+      id = params["sys_id"]
+      Log.context.set(control_system_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     class IndexParams < Params
       attribute complete : Bool = true
@@ -135,20 +148,6 @@ module PlaceOS::Api
         },
         except: except,
       )
-    end
-
-    protected def find_system
-      id = params["sys_id"]
-      Log.context.set(control_system_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    protected def find_sys_trig
-      id = params["trig_id"]
-      Log.context.set(trigger_instance_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

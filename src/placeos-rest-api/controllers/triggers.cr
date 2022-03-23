@@ -22,7 +22,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_trigger : Model::Trigger { find_trigger }
+    getter current_trigger : Model::Trigger do
+      id = params["id"]
+      Log.context.set(trigger_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       elastic = Model::Trigger.elastic
@@ -62,16 +69,6 @@ module PlaceOS::Api
       set_collection_headers(instances.size, Model::TriggerInstance.table_name)
 
       render json: instances
-    end
-
-    # Helpers
-    ###########################################################################
-
-    protected def find_trigger
-      id = params["id"]
-      Log.context.set(trigger_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

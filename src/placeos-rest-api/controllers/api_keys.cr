@@ -26,7 +26,12 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_api_key : Model::ApiKey { find_api_key }
+    getter current_api_key : Model::ApiKey do
+      id = params["id"]
+      Log.context.set(api_key: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
+    end
 
     ###############################################################################################
 
@@ -71,16 +76,6 @@ module PlaceOS::Api
 
     get "/inspect", :inspect_key do
       render json: authorize!
-    end
-
-    # Helpers
-    ###########################################################################
-
-    protected def find_api_key
-      id = params["id"]
-      Log.context.set(api_key: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

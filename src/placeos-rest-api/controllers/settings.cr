@@ -36,7 +36,12 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_settings : Model::Settings { find_settings }
+    getter current_settings : Model::Settings do
+      id = params["id"]
+      Log.context.set(settings_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Settings.find!(id, runopts: {"read_mode" => "majority"})
+    end
 
     ###############################################################################################
 
@@ -127,13 +132,6 @@ module PlaceOS::Api
       collated = model.settings_hierarchy.reverse!
       collated.each &.decrypt_for!(user)
       collated
-    end
-
-    protected def find_settings
-      id = params["id"]
-      Log.context.set(settings_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Settings.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

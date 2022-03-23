@@ -15,11 +15,23 @@ module PlaceOS::Api
 
     before_action :ensure_json, only: [:create]
 
-    getter current_asset : Model::Asset { find_asset }
+    # Params
+    ###############################################################################################
 
     getter parent_id : String? do
       params["parent_id"]?.presence || params["parent"]?.presence
     end
+
+    ###############################################################################################
+
+    getter current_asset : Model::Asset do
+      id = params["id"]
+      Log.context.set(asset_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Asset.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       elastic = Model::Asset.elastic
@@ -62,16 +74,6 @@ module PlaceOS::Api
       set_collection_headers(instances.size, Model::AssetInstance.table_name)
 
       render json: instances
-    end
-
-    # Helpers
-    ###########################################################################
-
-    protected def find_asset
-      id = params["id"]
-      Log.context.set(asset_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Asset.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end
