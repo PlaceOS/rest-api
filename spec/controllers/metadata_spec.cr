@@ -7,7 +7,7 @@ module PlaceOS::Api
     base = Metadata::NAMESPACE[0]
 
     with_server do
-      describe "/metadata/:id/children/" do
+      describe "GET /metadata/:id/children/" do
         it "shows zone children metadata" do
           parent = Model::Generator.zone.save!
           parent_id = parent.id.as(String)

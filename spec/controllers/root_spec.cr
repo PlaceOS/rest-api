@@ -6,14 +6,14 @@ module PlaceOS::Api
       _authenticated_user, authorization_header = authentication
       base = Api::Root::NAMESPACE[0]
 
-      describe "/" do
+      describe "GET /" do
         it "responds to health checks" do
           result = curl("GET", base, headers: authorization_header)
           result.status_code.should eq 200
         end
       end
 
-      describe "/scopes" do
+      describe "GET /scopes" do
         it "gets scope names" do
           result = curl("GET", File.join(base, "scopes"), headers: authorization_header)
           scopes = Array(String).from_json(result.body)
@@ -21,7 +21,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/cluster/versions" do
+      describe "GET /cluster/versions" do
         it "constructs service versions" do
           HttpMocks.service_version
 
@@ -31,7 +31,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/version" do
+      describe "GET /version" do
         it "renders version" do
           result = curl("GET", File.join(base, "version"), headers: authorization_header)
           result.status_code.should eq 200
@@ -44,7 +44,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/platform" do
+      describe "GET /platform" do
         it "renders platform information" do
           result = curl("GET", File.join(base, "platform"), headers: authorization_header)
           result.status_code.should eq 200
@@ -55,7 +55,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/signal" do
+      describe "POST /signal" do
         it "writes an arbitrary payload to a redis subscription" do
           subscription_channel = "test"
           channel = Channel(String).new

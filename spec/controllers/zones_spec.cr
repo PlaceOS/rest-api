@@ -37,7 +37,7 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:id/metadata" do
+      describe "GET /zones/:id/metadata" do
         it "shows zone metadata" do
           zone = Model::Generator.zone.save!
           zone_id = zone.id.as(String)

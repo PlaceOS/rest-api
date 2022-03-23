@@ -191,7 +191,7 @@ module PlaceOS::Api
       end
     end
 
-    describe "/:id/settings" do
+    describe "GET /modules/:id/settings" do
       it "collates Module settings" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
         driver_settings_string = %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)
@@ -282,7 +282,7 @@ module PlaceOS::Api
       end
     end
 
-    describe "/:id/ping" do
+    describe "POST /:id/ping" do
       it "fails for logic module" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
         mod = Model::Generator.module(driver: driver).save!
