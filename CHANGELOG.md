@@ -1,4 +1,8 @@
-## Unreleased
+## v1.35.0 (2022-03-23)
+
+### Feat
+
+- **metadata#history**: add `/metadata/:parent_id/history` ([#258](https://github.com/PlaceOS/rest-api/pull/258))
 
 ## v1.34.0 (2022-03-17)
 
