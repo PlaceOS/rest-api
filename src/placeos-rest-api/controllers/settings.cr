@@ -2,7 +2,7 @@ require "./application"
 
 module PlaceOS::Api
   class Settings < Application
-    base "/api/engine/v2/settings"
+    base "/api/engine/v2/settings/"
 
     # Scopes
     ###############################################################################################
@@ -23,7 +23,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     getter parent_ids : Array(String)? do
-      params["parent_id"]?.presence.try &.split(',').reject(&.empty?).uniq!
+      params["parent_id"]?.try &.split(',').reject(&.empty?).uniq!
     end
 
     getter offset : Int32 do
