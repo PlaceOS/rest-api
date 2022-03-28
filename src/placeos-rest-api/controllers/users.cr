@@ -153,6 +153,7 @@ module PlaceOS::Api
 
     def index
       elastic = Model::User.elastic
+      params["q"] = %("#{params["q"]}") if params["q"]?.to_s.is_email?
       query = elastic.query(params)
 
       query.must_not({"deleted" => [true]}) unless include_deleted?

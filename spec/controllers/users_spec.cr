@@ -9,6 +9,28 @@ module PlaceOS::Api
       Specs.test_404(base, model_name: Model::User.table_name, headers: authorization_header)
 
       describe "CRUD operations", tags: "crud" do
+        it "query via email" do
+          model = Model::Generator.user.save!
+          model.persisted?.should be_true
+          id = model.id.as(String)
+
+          params = HTTP::Params.encode({"q" => model.email.to_s})
+          path = "#{base}?#{params}"
+
+          sleep 2
+
+          result = curl(
+            method: "GET",
+            path: path,
+            headers: authorization_header,
+          )
+
+          result.status_code.should eq 200
+          response = Array(Model::User).from_json(result.body)
+          response.size.should eq 1
+          response.first.id.should eq id
+        end
+
         it "show" do
           model = Model::Generator.user.save!
           model.persisted?.should be_true
