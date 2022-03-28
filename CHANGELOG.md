@@ -1,3 +1,9 @@
+## v1.36.0 (2022-03-28)
+
+### Feat
+
+- **user**: query by single email ([#260](https://github.com/PlaceOS/rest-api/pull/260))
+
 ## v1.35.1 (2022-03-23)
 
 ### Refactor
