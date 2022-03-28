@@ -1,3 +1,9 @@
+## v1.37.0 (2022-03-28)
+
+### Feat
+
+- add driver response codes to public API ([#261](https://github.com/PlaceOS/rest-api/pull/261))
+
 ## v1.36.0 (2022-03-28)
 
 ### Feat
