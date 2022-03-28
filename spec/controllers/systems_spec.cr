@@ -280,9 +280,9 @@ module PlaceOS::Api
           control_system.update!
 
           expected_settings_ids = [
-            control_system.master_settings,
-            zone1.master_settings,
-            zone0.master_settings,
+            control_system.settings,
+            zone1.settings,
+            zone0.settings,
           ].flat_map(&.compact_map(&.id)).reverse!
 
           path = "#{base}#{control_system.id}/settings"
