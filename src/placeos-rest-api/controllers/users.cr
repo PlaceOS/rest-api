@@ -122,27 +122,13 @@ module PlaceOS::Api
 
     def index
       elastic = Model::User.elastic
+      params["q"] = %("#{params["q"]}") if params["q"]?.to_s.is_email?
       query = elastic.query(params)
 
       query.must_not({"deleted" => [true]}) unless include_deleted?
 
       if authority = authority_id
         query.filter({"authority_id" => [authority]})
-      end
-
-      email = params["email"]?.try &.to_s
-
-      # Query by single email
-      if email && params.size == 1
-        authority_id = current_user.authority_id.as(String)
-        user = Model::User.find_by_email(authority_id, email)
-        if user
-          render_json do |json|
-            is_admin? ? user.to_admin_json(json) : user.to_public_json(json)
-          end
-        else
-          head :not_found
-        end
       end
 
       render_json do |json|

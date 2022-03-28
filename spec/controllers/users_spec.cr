@@ -14,8 +14,10 @@ module PlaceOS::Api
           model.persisted?.should be_true
           id = model.id.as(String)
 
-          params = HTTP::Params.encode({"email" => model.email.to_s})
+          params = HTTP::Params.encode({"q" => model.email.to_s})
           path = "#{base}?#{params}"
+
+          sleep 2
 
           result = curl(
             method: "GET",
@@ -24,18 +26,9 @@ module PlaceOS::Api
           )
 
           result.status_code.should eq 200
-          response_model = Model::User.from_trusted_json(result.body)
-          response_model.id.should eq id
-
-          model.destroy
-
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
-
-          result.status_code.should eq 404
+          response = Array(Model::User).from_json(result.body)
+          response.size.should eq 1
+          response.first.id.should eq id
         end
 
         it "show" do
