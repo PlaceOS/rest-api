@@ -35,6 +35,9 @@ struct PlaceOS::Api::WebSocket::Session::Response < PlaceOS::Api::WebSocket::Ses
 
   getter level : ::Log::Severity?
 
+  @[JSON::Field(key: "code")]
+  getter response_code : Int32?
+
   alias Metadata = NamedTuple(
     sys: String,
     mod: String,
@@ -50,7 +53,8 @@ struct PlaceOS::Api::WebSocket::Session::Response < PlaceOS::Api::WebSocket::Ses
     value : String? = nil,
     @module_id : String? = nil,
     @level : ::Log::Severity? = nil,
-    @metadata : Metadata? = nil
+    @metadata : Metadata? = nil,
+    @response_code : Int32? = nil
   )
     # Remove invalid UTF-8 data from the payload
     @value = value.is_a?(String) ? value.scrub : nil
