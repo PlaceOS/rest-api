@@ -94,7 +94,7 @@ module PlaceOS::Api
                  HTTP::Status::BAD_REQUEST
                in DriverError::RequestFailed, DriverError::UnexpectedFailure
                  Log.info { error.message }
-                 HTTP::Status::INTERNAL_SERVER_ERROR
+                 error.response_code
                in DriverError::AccessDenied
                  Log.info { error.message }
                  HTTP::Status::UNAUTHORIZED

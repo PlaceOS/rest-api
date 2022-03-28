@@ -51,7 +51,7 @@ shards:
 
   crystal-kcov:
     git: https://github.com/vici37/crystal-kcov.git
-    version: 0.2.0+git.commit.88516de9fe96df40ef62cdb6dbe0e2b6cbbd1697
+    version: 0.2.1+git.commit.7b00bbd32d3a67ca5111c25312f4c56433b65aab
 
   crystar:
     git: https://github.com/naqvis/crystar.git
@@ -171,11 +171,11 @@ shards:
 
   placeos-core-client:
     git: https://github.com/placeos/core-client.git
-    version: 0.4.1
+    version: 0.5.1
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.2.1
+    version: 6.3.1
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -187,7 +187,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 7.6.6
+    version: 7.6.7
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
