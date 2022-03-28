@@ -171,11 +171,11 @@ shards:
 
   placeos-core-client:
     git: https://github.com/placeos/core-client.git
-    version: 0.5.0
+    version: 0.5.1
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.3.0
+    version: 6.3.1
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
