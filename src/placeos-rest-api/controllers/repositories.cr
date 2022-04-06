@@ -214,6 +214,7 @@ module PlaceOS::Api
     end
 
     get "/:id/releases", :releases do
+      render_error(HTTP::Status::BAD_REQUEST, "can only get releases for interface repositories") unless current_repo.repo_type.interface?
       releases = Api::Repositories.releases(
         repository: current_repo,
         request_id: request_id,
@@ -223,20 +224,9 @@ module PlaceOS::Api
     end
 
     def self.releases(repository : Model::Repository, request_id : String)
-      case repository.repo_type
-      in .interface?
-        # Dial the frontends service
-        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
-          frontends_client.releases(repository.folder_name)
-        end
-      in .driver?
-        Log.info { {
-          message:       "can only get releases for interface repositories",
-          repository_id: repository.id,
-          folder_name:   repository.folder_name,
-          name:          repository.name,
-          type:          repository.repo_type.to_s,
-        } }
+      # Dial the frontends service
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        frontends_client.releases(repository.folder_name)
       end.tap do |result|
         if result.nil?
           Log.info { {
