@@ -1,3 +1,9 @@
+## v1.38.0 (2022-04-06)
+
+### Feat
+
+- **repositories**: add releases endpoint ([#262](https://github.com/PlaceOS/rest-api/pull/262))
+
 ## v1.37.0 (2022-03-28)
 
 ### Feat
