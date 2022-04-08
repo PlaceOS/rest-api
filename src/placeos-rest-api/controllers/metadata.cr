@@ -55,6 +55,27 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    def index
+      queries = query_params.compact_map do |key, value|
+        Model::Metadata::Query.from_param?(key, value.presence)
+      end
+
+      results = Model::Metadata.query(queries)
+      total = results.size
+
+      # TODO: Add pagination to `Metadata#index`
+      # range_start = offset
+      # range_end = (results.size || 0) + range_start
+
+      range_start = 0
+      range_end = total
+
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
+
+      render json: results
+    end
+
     # Fetch metadata for a model
     #
     # Filter for a specific metadata by name via `name` param
