@@ -1,3 +1,9 @@
+## v1.39.0 (2022-04-08)
+
+### Feat
+
+- **controller/metadata**: add an index method ([#264](https://github.com/PlaceOS/rest-api/pull/264))
+
 ## v1.38.0 (2022-04-06)
 
 ### Feat
