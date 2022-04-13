@@ -49,7 +49,8 @@ module PlaceOS::Api
     getter user : Model::User do
       lookup = params["id"]
 
-      # NOTE:: remove after June 2023, added to help with 2022 user id migration
+      # TODO: Remove user id query prefixing.
+      # Remove after June 2023, added to help with 2022 user id migration
       lookup = "#{Model::User.table_name}-#{lookup}" unless lookup.starts_with?("#{Model::User.table_name}-")
 
       # Index ordering to use for resolving the user.
