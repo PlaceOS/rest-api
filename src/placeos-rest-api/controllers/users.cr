@@ -48,6 +48,8 @@ module PlaceOS::Api
 
     getter user : Model::User do
       lookup = params["id"]
+
+      # NOTE:: remove after June 2023, added to help with 2022 user id migration
       lookup = "user-#{lookup}" unless lookup.starts_with?("user-")
 
       # Index ordering to use for resolving the user.
