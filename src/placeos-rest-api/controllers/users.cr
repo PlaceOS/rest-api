@@ -48,6 +48,7 @@ module PlaceOS::Api
 
     getter user : Model::User do
       lookup = params["id"]
+      lookup = "user-#{lookup}" unless lookup.starts_with?("user-")
 
       # Index ordering to use for resolving the user.
       ordering = if lookup.is_email?
