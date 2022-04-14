@@ -73,7 +73,15 @@ module PlaceOS::Api
       response.headers["X-Total-Count"] = total.to_s
       response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
 
-      render json: results
+      if include_parent?
+        render_json do |json|
+          json.array do
+            results.each &.to_parent_json(json)
+          end
+        end
+      else
+        render json: results
+      end
     end
 
     # Fetch metadata for a model
