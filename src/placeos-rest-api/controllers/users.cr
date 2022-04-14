@@ -49,10 +49,6 @@ module PlaceOS::Api
     getter user : Model::User do
       lookup = params["id"]
 
-      # TODO: Remove user id query prefixing.
-      # Remove after June 2023, added to help with 2022 user id migration
-      lookup = "#{Model::User.table_name}-#{lookup}" unless lookup.starts_with?("#{Model::User.table_name}-")
-
       # Index ordering to use for resolving the user.
       ordering = if lookup.is_email?
                    {:email, :login_name}
@@ -65,6 +61,10 @@ module PlaceOS::Api
       ordering.each.compact_map do |id_type|
         case id_type
         when :id
+          # TODO: Remove user id query prefixing.
+          # Remove after June 2023, added to help with 2022 user id migration
+          lookup = "#{Model::User.table_name}-#{lookup}" unless lookup.starts_with?("#{Model::User.table_name}-")
+
           Model::User.find(lookup)
         when :email
           Model::User.find_by_email(authority_id: authority, email: lookup)
