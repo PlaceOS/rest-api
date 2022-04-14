@@ -1,3 +1,9 @@
+## v1.40.0 (2022-04-14)
+
+### Feat
+
+- **metadata**: add `include_parent` to index
+
 ## v1.39.0 (2022-04-08)
 
 ### Feat
