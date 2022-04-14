@@ -63,9 +63,8 @@ module PlaceOS::Api
         when :id
           # TODO: Remove user id query prefixing.
           # Remove after June 2023, added to help with 2022 user id migration
-          lookup = "user-#{lookup}" unless lookup.starts_with?("user-")
-
-          Model::User.find(lookup)
+          id_lookup = "#{Model::User.table_name}-#{lookup}" unless lookup.starts_with?("#{Model::User.table_name}-")
+          Model::User.find(id_lookup)
         when :email
           Model::User.find_by_email(authority_id: authority, email: lookup)
         when :login_name
