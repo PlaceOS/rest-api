@@ -1,3 +1,9 @@
+## v1.41.0 (2022-04-14)
+
+### Feat
+
+- **controllers/users**: ensure user_id continuity ([#265](https://github.com/PlaceOS/rest-api/pull/265))
+
 ## v1.40.0 (2022-04-14)
 
 ### Feat
