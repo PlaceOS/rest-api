@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 4.8.0
+    version: 4.9.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -51,7 +51,7 @@ shards:
 
   crystal-kcov:
     git: https://github.com/vici37/crystal-kcov.git
-    version: 0.2.2+git.commit.09e8a9b442d287d213c8ab458521b42a96bfb9b9
+    version: 0.2.3+git.commit.7e49fe22d7d47040c9de77eb77a6daa76ce0655d
 
   crystar:
     git: https://github.com/naqvis/crystar.git
@@ -72,6 +72,10 @@ shards:
   etcd:
     git: https://github.com/place-labs/crystal-etcd.git
     version: 1.2.5
+
+  exception_page:
+    git: https://github.com/crystal-loot/exception_page.git
+    version: 0.3.0
 
   exec_from:
     git: https://github.com/place-labs/exec_from.git
@@ -187,7 +191,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 8.2.2
+    version: 8.2.8
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -227,7 +231,7 @@ shards:
 
   rethinkdb-orm:
     git: https://github.com/spider-gazelle/rethinkdb-orm.git
-    version: 6.0.2
+    version: 6.0.4
 
   retriable:
     git: https://github.com/sija/retriable.cr.git
@@ -239,7 +243,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.1.5
+    version: 2.1.6
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
