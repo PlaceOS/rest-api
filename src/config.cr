@@ -34,8 +34,18 @@ module PlaceOS::Api
       config.service_name = "PlaceOS Rest-API"
       config.service_version = "1.0.0"
       config.exporter = OpenTelemetry::Exporter.new(variant: :http) do |exporter|
-        exporter = exporter.as(OpenTelemetry::Exporter::Http)
-        exporter.endpoint = "https://otlp.nr-data.net:4318/v1/traces"
+        if ENV["NEW_RELIC_KEY"]?
+          exporter = exporter.as(OpenTelemetry::Exporter::Http)
+          exporter.endpoint = "https://otlp.nr-data.net:4318/v1/traces"
+        end
+        if ENV["ELASTIC_APM_API_KEY"]?
+          exporter = exporter.as(OpenTelemetry::Exporter::Http)
+          exporter.endpoint = "https://otlp.nr-data.net:4318/v1/traces"
+        end
+        if endpoint = ENV["OPENTELEMETRY_ENDPOINT"]?
+          exporter = exporter.as(OpenTelemetry::Exporter::Http)
+          exporter.endpoint = endpoint
+        end
         exporter.headers = HTTP::Headers{
           "api-key" => api_key
         }
