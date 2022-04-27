@@ -22,6 +22,8 @@ module PlaceOS::Api
   INFLUX_HOST    = ENV["INFLUX_HOST"]?
   INFLUX_ORG     = ENV["INFLUX_ORG"]? || "placeos"
 
+  NEW_RELIC_KEY = ENV["NEW_RELIC_KEY"]?
+
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
 

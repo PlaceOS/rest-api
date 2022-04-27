@@ -99,6 +99,10 @@ dependencies:
     github: spider-gazelle/secrets-env
     version: ~> 1
 
+  # For tracing with newrelic
+  opentelemetry-instrumentation:
+    github: wyhaines/opentelemetry-instrumentation.cr
+
 development_dependencies:
   # Linter
   ameba:
