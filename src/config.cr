@@ -29,16 +29,16 @@ module PlaceOS::Api
     ActionController::LogHandler.new(filters, ms: true)
   )
 
-  if api_key = NEW_RELIC_KEY
+  if api_key = OPENTELEMETRY_PROVIDER_KEY
     OpenTelemetry.configure do |config|
       config.service_name = "PlaceOS Rest-API"
       config.service_version = "1.0.0"
       config.exporter = OpenTelemetry::Exporter.new(variant: :http) do |exporter|
         exporter = exporter.as(OpenTelemetry::Exporter::Http)
         exporter.endpoint = "https://otlp.nr-data.net:4318/v1/traces"
-        headers = HTTP::Headers.new
-        headers["api-key"] = api_key
-        exporter.headers = headers
+        exporter.headers = HTTP::Headers{
+          "api-key" => api_key
+        }
       end
     end
   end

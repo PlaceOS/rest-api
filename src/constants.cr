@@ -22,7 +22,7 @@ module PlaceOS::Api
   INFLUX_HOST    = ENV["INFLUX_HOST"]?
   INFLUX_ORG     = ENV["INFLUX_ORG"]? || "placeos"
 
-  NEW_RELIC_KEY = ENV["NEW_RELIC_KEY"]?
+  OPENTELEMETRY_PROVIDER_KEY = ENV["OPENTELEMETRY_PROVIDER_KEY"]? || ENV["ELASTIC_APM_API_KEY"]? || ENV["NEW_RELIC_KEY"]?
 
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
