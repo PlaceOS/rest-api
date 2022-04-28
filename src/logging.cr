@@ -1,5 +1,4 @@
 require "placeos-log-backend"
-require "placeos-log-backend/telemetry"
 require "raven"
 require "raven/integrations/action-controller"
 
