@@ -1,4 +1,8 @@
-## Unreleased
+## v1.43.2 (2022-04-30)
+
+### Fix
+
+- update `placeos-compiler`
 
 ## v1.43.1 (2022-04-28)
 
