@@ -1,4 +1,8 @@
-## Unreleased
+## v1.44.0 (2022-05-03)
+
+### Feat
+
+- **metadata**: PATCH to patch `details`, PUT to replace ([#269](https://github.com/PlaceOS/rest-api/pull/269))
 
 ## v1.43.2 (2022-04-30)
 
