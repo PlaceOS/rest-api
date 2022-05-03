@@ -39,9 +39,4 @@ module PlaceOS::Api::Logging
     namespaces: namespaces,
     backend: log_backend,
   )
-
-  PlaceOS::LogBackend.configure_opentelemetry(
-    service_name: APP_NAME,
-    service_version: VERSION,
-  )
 end
