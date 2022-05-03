@@ -123,13 +123,22 @@ module PlaceOS::Api
       end
     end
 
-    def update
+    patch "/:id", :merge do
+      mutate(merge: true)
+    end
+
+    put "/:id", :update do
+      mutate(merge: false)
+    end
+
+    # Find (otherwise create) then update (or patch) the Metadata.
+    protected def mutate(merge : Bool)
       metadata = Model::Metadata::Interface.from_json(self.body)
 
       # A name is required to lookup the metadata
-      head :bad_request if metadata.name.empty?
+      return head :bad_request if metadata.name.empty?
 
-      metadata = create_or_update(metadata)
+      metadata = create_or_update(metadata, merge: merge)
       response, status = save_and_status(metadata)
 
       if status.ok? && response.is_a?(Model::Metadata)
@@ -138,8 +147,6 @@ module PlaceOS::Api
         render json: response, status: status
       end
     end
-
-    put_redirect
 
     def destroy
       if (metadata_name = name).nil?
@@ -177,12 +184,12 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    def create_or_update(interface : Model::Metadata::Interface) : Model::Metadata
+    def create_or_update(interface : Model::Metadata::Interface, merge : Bool) : Model::Metadata
       if metadata = Model::Metadata.for(parent_id, interface.name).first?
         # Check if the current user has access
         raise Error::Forbidden.new unless metadata.user_can_update?(user_token)
 
-        metadata.assign_from_interface(user_token, interface)
+        metadata.assign_from_interface(user_token, interface, merge)
       else
         # When creating a new metadata, must be at least a support user
         raise Error::Forbidden.new unless Model::Metadata.user_can_create?(interface.parent_id, user_token)
