@@ -59,6 +59,8 @@ dependencies:
   # Centrally defined logging configuration
   placeos-log-backend:
     github: place-labs/log-backend
+    version: ">= 0.8.9"
+
 
   # Database view
   placeos-models:
