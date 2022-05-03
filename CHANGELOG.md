@@ -1,3 +1,9 @@
+## v1.44.1 (2022-05-03)
+
+### Fix
+
+- update `placeos-log-backend`
+
 ## v1.44.0 (2022-05-03)
 
 ### Feat
