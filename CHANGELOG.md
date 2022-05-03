@@ -1,3 +1,9 @@
+## v1.44.2 (2022-05-03)
+
+### Fix
+
+- **logging**: remove extra call to configure OpenTelemetry
+
 ## v1.44.1 (2022-05-03)
 
 ### Fix
