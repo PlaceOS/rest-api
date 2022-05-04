@@ -1,3 +1,9 @@
+## v1.44.3 (2022-05-04)
+
+### Fix
+
+- **controller/edges**: default to logged in user ID
+
 ## v1.44.2 (2022-05-03)
 
 ### Fix
