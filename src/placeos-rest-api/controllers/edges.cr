@@ -78,7 +78,7 @@ module PlaceOS::Api
 
     def create
       create_body = Model::Edge::CreateBody.from_json(self.body)
-      user = Model::User.find!(create_body.user_id)
+      user = Model::User.find!(create_body.user_id || current_user.id.as(String))
       save_and_respond(Model::Edge.for_user(
         user: user,
         name: create_body.name,
