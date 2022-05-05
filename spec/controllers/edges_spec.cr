@@ -14,6 +14,21 @@ module PlaceOS::Api
 
       describe "CRUD operations", tags: "crud" do
         Specs.test_crd(Model::Edge, Edges)
+
+        describe "create" do
+          it "contains the api token in the response" do
+            result = curl(
+              method: "POST",
+              path: base,
+              body: {
+                "description" => "",
+                "name" => "test-edge"
+              }.to_json,
+              headers: authorization_header.merge({"Content-Type" => "application/json"}),
+            )
+            result.body.should contain "x_api_key"
+          end
+        end
       end
 
       describe "scopes" do
