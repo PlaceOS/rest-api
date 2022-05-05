@@ -79,11 +79,19 @@ module PlaceOS::Api
     def create
       create_body = Model::Edge::CreateBody.from_json(self.body)
       user = Model::User.find!(create_body.user_id || current_user.id.as(String))
-      save_and_respond(Model::Edge.for_user(
+      new_edge = Model::Edge.for_user(
         user: user,
         name: create_body.name,
-        description: create_body.description,
-      ))
+        description: create_body.description
+      )
+
+      # Ensure instance variable initialised
+      new_edge.x_api_key
+
+      _result, status = save_and_status(new_edge)  
+      render_json(status) do |json|
+        new_edge.to_key_json(json)
+      end
     end
 
     def destroy
