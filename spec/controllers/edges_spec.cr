@@ -26,7 +26,8 @@ module PlaceOS::Api
               }.to_json,
               headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )
-            result.body.should contain "x_api_key"
+
+            JSON.parse(result.body)["x_api_key"]?.try(&.as_s?).should_not be_nil
           end
         end
       end
