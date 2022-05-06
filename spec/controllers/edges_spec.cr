@@ -22,7 +22,7 @@ module PlaceOS::Api
               path: base,
               body: {
                 "description" => "",
-                "name" => "test-edge"
+                "name"        => "test-edge",
               }.to_json,
               headers: authorization_header.merge({"Content-Type" => "application/json"}),
             )

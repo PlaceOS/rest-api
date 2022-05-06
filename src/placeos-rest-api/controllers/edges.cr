@@ -88,7 +88,7 @@ module PlaceOS::Api
       # Ensure instance variable initialised
       new_edge.x_api_key
 
-      _result, status = save_and_status(new_edge)  
+      _result, status = save_and_status(new_edge)
       render_json(status) do |json|
         new_edge.to_key_json(json)
       end
