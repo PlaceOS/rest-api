@@ -38,7 +38,7 @@ module PlaceOS::Api
     end
 
     getter limit : Int32 do
-      params["limit"]?.try(&.to_i?) || 15
+      params["limit"]?.try(&.to_i?) || 100
     end
 
     getter? include_parent : Bool do
@@ -56,19 +56,16 @@ module PlaceOS::Api
     ###############################################################################################
 
     def index
+      # Construct the queries from the URI parameters
       queries = query_params.compact_map do |key, value|
         Model::Metadata::Query.from_param?(key, value.presence)
       end
 
-      results = Model::Metadata.query(queries)
+      results = Model::Metadata.query(queries, offset, limit)
+
       total = results.size
-
-      # TODO: Add pagination to `Metadata#index`
-      # range_start = offset
-      # range_end = (results.size || 0) + range_start
-
-      range_start = 0
-      range_end = total
+      range_start = offset
+      range_end = total + range_start
 
       response.headers["X-Total-Count"] = total.to_s
       response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
