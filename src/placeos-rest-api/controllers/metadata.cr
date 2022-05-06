@@ -61,14 +61,32 @@ module PlaceOS::Api
         Model::Metadata::Query.from_param?(key, value.presence)
       end
 
-      results = Model::Metadata.query(queries, offset, limit)
+      # TODO: Use destructure after `spider-gazelle/promise` is fixed
+      data = Promise.all(
+        Promise.defer { Model::Metadata.query(queries, offset, limit) },
+        Promise.defer { Model::Metadata.query_count(queries) },
+      ).get
 
-      total = results.size
-      range_start = offset
-      range_end = total + range_start
+      total = 0
+      results = Array(Model::Metadata).new(initial_capacity: 0)
+      data.each do |element|
+        case element
+        in Int32                  then total = element
+        in Array(Model::Metadata) then results = element
+        end
+      end
+
+      range_end = results.size + offset
 
       response.headers["X-Total-Count"] = total.to_s
-      response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
+      response.headers["Content-Range"] = "metadata #{offset}-#{range_end}/#{total}"
+
+      # Set link if further results
+      if range_end < total
+        query_params["offset"] = (range_end + 1).to_s
+        query_params["limit"] = limit.to_s
+        response.headers["Link"] = %(<#{base_route}?#{query_params}>; rel="next")
+      end
 
       if include_parent?
         render_json do |json|
