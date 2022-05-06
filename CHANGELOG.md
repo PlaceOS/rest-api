@@ -1,4 +1,8 @@
-## Unreleased
+## v1.45.0 (2022-05-06)
+
+### Feat
+
+- **controller/metadata**: add pagination for `query` route ([#271](https://github.com/PlaceOS/rest-api/pull/271))
 
 ## v1.44.4 (2022-05-06)
 
