@@ -3,7 +3,3 @@ dependencies:
     github: spider-gazelle/pars
   secrets-env:
     github: spider-gazelle/secrets-env
-
-  opentelemetry-api:
-    github: place-labs/opentelemetry-api.cr
-    branch: fix/trace/in_span
