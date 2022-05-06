@@ -62,19 +62,10 @@ module PlaceOS::Api
       end
 
       # TODO: Use destructure after `spider-gazelle/promise` is fixed
-      data = Promise.all(
-        Promise.defer { Model::Metadata.query(queries, offset, limit) },
-        Promise.defer { Model::Metadata.query_count(queries) },
-      ).get
-
-      total = 0
-      results = Array(Model::Metadata).new(initial_capacity: 0)
-      data.each do |element|
-        case element
-        in Int32                  then total = element
-        in Array(Model::Metadata) then results = element
-        end
-      end
+      query_promise = Promise.defer { Model::Metadata.query(queries, offset, limit) }
+      query_count_promise = Promise.defer { Model::Metadata.query_count(queries) }
+      results = query_promise.get
+      total = query_count_promise.get
 
       range_end = results.size + offset
 
