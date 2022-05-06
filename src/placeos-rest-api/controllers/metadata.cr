@@ -38,7 +38,7 @@ module PlaceOS::Api
     end
 
     getter limit : Int32 do
-      params["limit"]?.try(&.to_i?) || 15
+      params["limit"]?.try(&.to_i?) || 100
     end
 
     getter? include_parent : Bool do
@@ -56,22 +56,28 @@ module PlaceOS::Api
     ###############################################################################################
 
     def index
+      # Construct the queries from the URI parameters
       queries = query_params.compact_map do |key, value|
         Model::Metadata::Query.from_param?(key, value.presence)
       end
 
-      results = Model::Metadata.query(queries)
-      total = results.size
+      # TODO: Use destructure after `spider-gazelle/promise` is fixed
+      query_promise = Promise.defer { Model::Metadata.query(queries, offset, limit) }
+      query_count_promise = Promise.defer { Model::Metadata.query_count(queries) }
+      results = query_promise.get
+      total = query_count_promise.get
 
-      # TODO: Add pagination to `Metadata#index`
-      # range_start = offset
-      # range_end = (results.size || 0) + range_start
-
-      range_start = 0
-      range_end = total
+      range_end = results.size + offset
 
       response.headers["X-Total-Count"] = total.to_s
-      response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
+      response.headers["Content-Range"] = "metadata #{offset}-#{range_end}/#{total}"
+
+      # Set link if further results
+      if range_end < total
+        query_params["offset"] = (range_end + 1).to_s
+        query_params["limit"] = limit.to_s
+        response.headers["Link"] = %(<#{base_route}?#{query_params}>; rel="next")
+      end
 
       if include_parent?
         render_json do |json|
