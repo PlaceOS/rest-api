@@ -1,3 +1,9 @@
+## v1.44.4 (2022-05-06)
+
+### Fix
+
+- **controller/edges**: include `x_api_token` in Edge creation response ([#270](https://github.com/PlaceOS/rest-api/pull/270))
+
 ## v1.44.3 (2022-05-04)
 
 ### Fix
