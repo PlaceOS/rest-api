@@ -1,3 +1,9 @@
+## v1.46.0 (2022-05-10)
+
+### Feat
+
+- **users**: resource token to default to first oauth app ([#273](https://github.com/PlaceOS/rest-api/pull/273))
+
 ## v1.45.0 (2022-05-06)
 
 ### Feat
