@@ -113,13 +113,20 @@ module PlaceOS::Api
       end
 
       head :not_found unless current_user.refresh_token.presence
+      authority = current_authority
+      head :not_found unless authority
 
       begin
-        internals = current_authority.not_nil!.internals
-        sso_strat_id = internals["oauth-strategy"].as_s # (i.e. oauth_strat-FNsaSj6bp-M)
-        render(:not_found, text: "no oauth configuration specified in authority") unless sso_strat_id.presence
+        internals = authority.internals
+        sso_strat = if sso_strat_id = internals["oauth-strategy"]?.try(&.as_s?) # (i.e. oauth_strat-FNsaSj6bp-M)
+                      ::PlaceOS::Model::OAuthAuthentication.find(sso_strat_id)
+                    else
+                      ::PlaceOS::Model::OAuthAuthentication.collection_query do |table|
+                        table.get_all(authority.id, index: :authority_id)
+                      end.first?
+                    end
+        render(:not_found, text: "no oauth configuration found") unless sso_strat
 
-        sso_strat = ::PlaceOS::Model::OAuthAuthentication.find!(sso_strat_id)
         client_id = sso_strat.client_id
         client_secret = sso_strat.client_secret
         token_uri = URI.parse(sso_strat.token_url)
