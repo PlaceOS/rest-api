@@ -57,8 +57,8 @@ struct PlaceOS::Api::WebSocket::Session::Response < PlaceOS::Api::WebSocket::Ses
     @response_code : Int32? = nil
   )
     # Remove invalid UTF-8 data from the payload
-    @value = value.is_a?(String) ? value.scrub : nil
+    @value = value.try &.scrub
     # Remove invalid UTF-8 data from the error message
-    @message = message.is_a?(String) ? message.scrub : nil
+    @message = message.try &.scrub
   end
 end
