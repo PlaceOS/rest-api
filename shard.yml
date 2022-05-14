@@ -54,7 +54,7 @@ dependencies:
   # For frontends client
   placeos-frontend-loader:
     github: placeos/frontend-loader
-    version: ~> 2.0
+    version: ~> 2.4
 
   # Centrally defined logging configuration
   placeos-log-backend:
@@ -122,3 +122,8 @@ development_dependencies:
   webmock:
     github: manastech/webmock.cr
     branch: master
+
+  # required for specs (core_helper)
+  placeos-compiler:
+    github: placeos/compiler
+    version: ~> 4.9
