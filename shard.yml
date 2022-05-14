@@ -122,3 +122,8 @@ development_dependencies:
   webmock:
     github: manastech/webmock.cr
     branch: master
+
+  # required for specs (core_helper)
+  placeos-compiler:
+    github: placeos/compiler
+    version: ~> 4.9
