@@ -81,6 +81,10 @@ shards:
     git: https://github.com/crystal-loot/exception_page.git
     version: 0.3.0
 
+  exec_from:
+    git: https://github.com/place-labs/exec_from.git
+    version: 2.0.0
+
   faker:
     git: https://github.com/askn/faker.git
     version: 0.8.0
@@ -165,6 +169,10 @@ shards:
     git: https://github.com/spider-gazelle/pinger.git
     version: 1.1.2
 
+  placeos-compiler:
+    git: https://github.com/placeos/compiler.git
+    version: 4.9.2
+
   placeos-core-client:
     git: https://github.com/placeos/core-client.git
     version: 0.5.2
@@ -232,6 +240,10 @@ shards:
   retriable:
     git: https://github.com/sija/retriable.cr.git
     version: 0.2.4
+
+  rwlock:
+    git: https://github.com/spider-gazelle/readers-writer.git
+    version: 1.0.7
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
