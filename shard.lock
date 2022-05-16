@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 4.10.0
+    version: 4.10.1
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -155,7 +155,7 @@ shards:
 
   opentelemetry-instrumentation:
     git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.3.0+git.commit.1e9e8421ec4add04048c305478d4e071b0f08747
+    version: 0.3.0+git.commit.c135b4a750beee73b45d8fdba77a259f30788cb4
 
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
