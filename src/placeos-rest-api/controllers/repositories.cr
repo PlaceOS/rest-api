@@ -102,20 +102,16 @@ module PlaceOS::Api
     end
 
     def self.pull_repository(repository : Model::Repository)
-      # Keep the repository at `HEAD` if it was previously held at `HEAD`
-      reset_to_head = repository.repo_type.interface? && repository.commit_hash == "HEAD"
-
       # Trigger a pull event
       repository.pull!
 
       found_repo = Utils::Changefeeds.await_model_change(repository, 3.minutes) do |updated|
-        updated.destroyed? || !updated.should_pull?
+        updated.destroyed? || !updated.deployed_commit_hash.nil?
       end
 
       unless found_repo.nil?
-        new_commit = found_repo.commit_hash
+        new_commit = found_repo.deployed_commit_hash
         Log.info { found_repo.destroyed? ? "repository delete during pull" : "repository pulled to #{new_commit}" }
-        found_repo.update_fields(commit_hash: "HEAD") if reset_to_head
         {found_repo.destroyed?, new_commit}
       end
     end
