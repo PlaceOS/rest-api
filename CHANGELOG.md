@@ -1,4 +1,8 @@
-## Unreleased
+## v1.47.0 (2022-05-16)
+
+### Feat
+
+- **repositories**: new method for repository pull feedback ([#275](https://github.com/PlaceOS/rest-api/pull/275))
 
 ## v1.46.0 (2022-05-10)
 
