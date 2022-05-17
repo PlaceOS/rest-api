@@ -1,4 +1,8 @@
-## Unreleased
+## v1.47.1 (2022-05-17)
+
+### Fix
+
+- **repositories**: inconsistent pull responses ([#277](https://github.com/PlaceOS/rest-api/pull/277))
 
 ## v1.47.0 (2022-05-16)
 
