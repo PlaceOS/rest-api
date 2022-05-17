@@ -103,8 +103,12 @@ module PlaceOS::Api
 
     def self.pull_repository(repository : Model::Repository)
       # Trigger a pull event
-      repository.pull!
+      spawn do
+        sleep 0.1
+        repository.pull!
+      end
 
+      # Start monitoring changes (we ignore deployed_commit_hash == nil)
       found_repo = Utils::Changefeeds.await_model_change(repository, 3.minutes) do |updated|
         updated.destroyed? || !updated.deployed_commit_hash.nil?
       end
