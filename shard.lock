@@ -95,7 +95,7 @@ shards:
 
   git-repository:
     git: https://github.com/place-labs/git-repository.git
-    version: 1.1.4
+    version: 1.2.0
 
   habitat:
     git: https://github.com/luckyframework/habitat.git
@@ -151,11 +151,11 @@ shards:
 
   opentelemetry-api:
     git: https://github.com/wyhaines/opentelemetry-api.cr.git
-    version: 0.2.4
+    version: 0.2.5
 
   opentelemetry-instrumentation:
     git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.3.0+git.commit.c135b4a750beee73b45d8fdba77a259f30788cb4
+    version: 0.3.1+git.commit.d4bd9afb7c28616b081b05978d836fd1c873ab75
 
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
@@ -183,7 +183,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.4.1
+    version: 2.5.0
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
