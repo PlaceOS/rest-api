@@ -10,7 +10,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    generate_scope_check(Model::Edge::CONTROL_SCOPE)
+    generate_scope_check "edge-control"
 
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
