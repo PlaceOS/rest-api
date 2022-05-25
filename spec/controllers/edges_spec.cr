@@ -2,11 +2,8 @@ require "../helper"
 require "placeos-core/placeos-edge/client"
 
 module PlaceOS::Api
-  TEST_EDGE_JSON = "{\"name\":\"Test Edge\",\"description\":\"A test edge\"}"
-  TEST_LOCAL_HOST = "localhost"
-  TEST_LOCAL_PORT = 6000
   describe Edges do
-    _authenticated_user, authorization_header = authentication
+    authenticated_user, authorization_header = authentication
     base = Edges::NAMESPACE[0]
 
     with_server do
@@ -19,9 +16,14 @@ module PlaceOS::Api
       describe "control" do
         it "authenticates with an API key from a new edge" do
           # First create a new edge to test with as the countroller would
-          create_body = Model::Edge::CreateBody.from_json(TEST_EDGE_JSON)
+          edge_name = "Test Edge"
+
+          edge_host = "localhost"
+          edge_port = 6000
+
+          create_body = Model::Edge::CreateBody.new(name: edge_name, user_id: authenticated_user.id.as(String))
           new_edge = Model::Edge.for_user(
-            user: _authenticated_user,
+            user: authenticated_user,
             name: create_body.name,
             description: create_body.description
           )
@@ -29,17 +31,16 @@ module PlaceOS::Api
           # Ensure instance variable initialised and edge saved
           new_edge.x_api_key
           new_edge.save!
-          
-          uri = URI.new(host: TEST_LOCAL_HOST)
-          uri.port = TEST_LOCAL_PORT
-          uri.query = "api-key=#{new_edge.x_api_key}"
+
+          uri = URI.new(host: edge_host, port: edge_port, query: "api-key=#{new_edge.x_api_key}")
           client = PlaceOS::Edge::Client.new(
             uri: uri,
             secret: new_edge.x_api_key
           )
+
           client.connect do
             client.transport.closed?.should_not be_nil
-            client.disconnect          
+            client.disconnect
           end
         end
       end
