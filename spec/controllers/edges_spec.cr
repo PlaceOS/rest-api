@@ -13,11 +13,10 @@ module PlaceOS::Api
         Specs.test_base_index(Model::Edge, Edges)
       end
 
-      describe "control" do
+      describe "/control" do
         it "authenticates with an API key from a new edge" do
-          # First create a new edge to test with as the countroller would
+          # Create a new edge to test with as the controller would
           edge_name = "Test Edge"
-
           edge_host = "localhost"
           edge_port = 6000
 
