@@ -29,7 +29,7 @@ x-search-ingest-client-env: &search-ingest-client-env
 
 services:
   test: # Rest API
-    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.3.2}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.4.1}
     volumes:
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
@@ -74,7 +74,7 @@ services:
       ALLOW_NONE_AUTHENTICATION: "yes"
 
   redis:
-    image: eqalpha/keydb
+    image: eqalpha/keydb:alpine
     restart: always
     hostname: redis
     healthcheck:

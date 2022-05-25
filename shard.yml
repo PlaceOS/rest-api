@@ -126,4 +126,8 @@ development_dependencies:
   # required for specs (core_helper)
   placeos-compiler:
     github: placeos/compiler
-    version: ~> 4.9
+    version: ">= 4.9"
+
+  placeos-core:
+    github: placeos/core
+    branch: master
