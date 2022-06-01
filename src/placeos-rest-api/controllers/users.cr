@@ -12,11 +12,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt, :undestroy]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :revive, :update_alt]
 
-    before_action :user, only: [:destroy, :update, :show, :undestroy]
+    before_action :user, only: [:destroy, :update, :revive, :show]
 
-    before_action :check_admin, only: [:index, :destroy, :create, :undestroy]
+    before_action :check_admin, only: [:index, :destroy, :create, :revive]
 
     # Callbacks
     ###############################################################################################
@@ -226,10 +226,9 @@ module PlaceOS::Api
       render_error(HTTP::Status::BAD_REQUEST, e.message)
     end
 
-    post "/:id/revive", :undestroy do
+    post "/:id/revive", :revive do
       user.deleted = false
-      user.save
-      head :ok
+      save_and_respond(user)
     rescue e : Model::Error
       render_error(HTTP::Status::BAD_REQUEST, e.message)
     end
