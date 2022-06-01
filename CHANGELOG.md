@@ -1,4 +1,8 @@
-## Unreleased
+## v1.48.0 (2022-06-01)
+
+### Feat
+
+- **users**: add route for reviving a deleted user ([#280](https://github.com/PlaceOS/rest-api/pull/280))
 
 ## v1.47.1 (2022-05-17)
 
