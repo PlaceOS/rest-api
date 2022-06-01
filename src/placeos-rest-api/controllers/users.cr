@@ -12,11 +12,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt, :undestroy]
 
-    before_action :user, only: [:destroy, :update, :show]
+    before_action :user, only: [:destroy, :update, :show, :undestroy]
 
-    before_action :check_admin, only: [:index, :destroy, :create]
+    before_action :check_admin, only: [:index, :destroy, :create, :undestroy]
 
     # Callbacks
     ###############################################################################################
@@ -214,12 +214,21 @@ module PlaceOS::Api
 
     # Destroy user, revoke authentication.
     def destroy
-      if current_authority.try &.internals["soft_delete"]? == true
+      force_removal = params["force_removal"]? == "true"
+      if !force_removal && current_authority.try &.internals["soft_delete"]? == true
         user.deleted = true
         user.save
       else
         user.destroy
       end
+      head :ok
+    rescue e : Model::Error
+      render_error(HTTP::Status::BAD_REQUEST, e.message)
+    end
+
+    post "/:id/revive", :undestroy do
+      user.deleted = false
+      user.save
       head :ok
     rescue e : Model::Error
       render_error(HTTP::Status::BAD_REQUEST, e.message)
