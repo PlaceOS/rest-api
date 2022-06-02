@@ -61,7 +61,6 @@ services:
       <<: *redis-client-env
       <<: *rethinkdb-client-env
 
-  # TODO: Mock and remove after interface has stabilised
   build:
     image: placeos/build:${PLACE_BUILD_TAG:-nightly}
     restart: always
