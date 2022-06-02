@@ -129,8 +129,7 @@ module PlaceOS::Api
     get "/:id/drivers", :drivers do
       drivers = Build::Client.client &.discover_drivers(
         url: current_repository.uri,
-        commit: current_repository.commit_hash,
-        branch: current_repository.branch,
+        ref: current_repository.commit_hash || current_repository.branch,
         username: current_repository.username,
         password: current_repository.decrypt_password,
         request_id: request_id,
