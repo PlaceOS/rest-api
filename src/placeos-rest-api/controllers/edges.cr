@@ -10,7 +10,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    generate_scope_check(Model::Edge::CONTROL_SCOPE)
+    generate_scope_check(::PlaceOS::Model::Edge::CONTROL_SCOPE)
 
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
@@ -30,7 +30,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_edge : Model::Edge { find_edge }
+    getter current_edge : Model::Edge do
+      id = params["id"]
+      Log.context.set(edge_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
 
@@ -71,27 +78,25 @@ module PlaceOS::Api
 
     def create
       create_body = Model::Edge::CreateBody.from_json(self.body)
-      user = Model::User.find!(create_body.user_id)
-      save_and_respond(Model::Edge.for_user(
+      user = Model::User.find!(create_body.user_id || current_user.id.as(String))
+      new_edge = Model::Edge.for_user(
         user: user,
         name: create_body.name,
-        description: create_body.description,
-      ))
+        description: create_body.description
+      )
+
+      # Ensure instance variable initialised
+      new_edge.x_api_key
+
+      _result, status = save_and_status(new_edge)
+      render_json(status) do |json|
+        new_edge.to_key_json(json)
+      end
     end
 
     def destroy
       current_edge.destroy
       head :ok
-    end
-
-    # Helpers
-    ###########################################################################
-
-    protected def find_edge
-      id = params["id"]
-      Log.context.set(edge_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

@@ -15,7 +15,16 @@ module PlaceOS::Api
 
     before_action :ensure_json, only: [:create]
 
-    getter current_instance : Model::AssetInstance { find_asset_inst }
+    ###########################################################################
+
+    getter current_instance : Model::AssetInstance do
+      id = params["id"]
+      Log.context.set(asset_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::AssetInstance.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###########################################################################
 
     def index
       elastic = Model::AssetInstance.elastic
@@ -42,16 +51,6 @@ module PlaceOS::Api
     def destroy
       current_instance.destroy # expires the cache in after callback
       head :ok
-    end
-
-    # Helpers
-    ###########################################################################
-
-    protected def find_asset_inst
-      id = params["id"]
-      Log.context.set(asset_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::AssetInstance.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

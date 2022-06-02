@@ -1,9 +1,10 @@
 dependencies:
-  neuroplastic:
-    github: place-labs/neuroplastic
+  pars:
+    github: spider-gazelle/pars
+
   secrets-env:
     github: spider-gazelle/secrets-env
-  rethinkdb:
-    github: place-labs/crystal-rethinkdb
-    version: ~> 0.3
-    branch: fix/connection-retry
+
+  placeos-core-client:
+    github: placeos/core-client
+    branch: feat/build

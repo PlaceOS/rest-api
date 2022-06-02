@@ -58,9 +58,8 @@ module PlaceOS::Api
       response.headers["Content-Range"] = "#{item_type} #{range_start}-#{range_end}/#{total_items}"
 
       if range_end < total_items
-        params["offset"] = (range_end + 1).to_s
-        params["limit"] = query.limit.to_s
-        query_params = params.join('&') { |key, value| "#{key}=#{value}" }
+        query_params["offset"] = (range_end + 1).to_s
+        query_params["limit"] = query.limit.to_s
         response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
       end
 
@@ -163,7 +162,7 @@ module PlaceOS::Api
     end
 
     # 400 if unable to parse some JSON passed by a client
-    rescue_from JSON::MappingError do |error|
+    rescue_from JSON::SerializableError do |error|
       message = "Missing or extraneous properties in client JSON"
       Log.debug(exception: error) { message }
 

@@ -9,7 +9,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index]
+    before_action :can_read, only: [:index, :history]
     before_action :can_read_guest, only: [:show, :children_metadata]
     before_action :can_write, only: [:update, :destroy, :update_alt]
 
@@ -26,11 +26,19 @@ module PlaceOS::Api
     ###############################################################################################
 
     getter parent_id : String do
-      params["id"]
+      route_params["id"]
     end
 
     getter name : String? do
       params["name"]?.presence
+    end
+
+    getter offset : Int32 do
+      params["offset"]?.try(&.to_i?) || 0
+    end
+
+    getter limit : Int32 do
+      params["limit"]?.try(&.to_i?) || 100
     end
 
     getter? include_parent : Bool do
@@ -39,9 +47,49 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_zone : Model::Zone { find_zone }
+    getter current_zone : Model::Zone do
+      Log.context.set(zone_id: parent_id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Zone.find!(parent_id)
+    end
 
     ###############################################################################################
+
+    def index
+      # Construct the queries from the URI parameters
+      queries = query_params.compact_map do |key, value|
+        Model::Metadata::Query.from_param?(key, value.presence)
+      end
+
+      # TODO: Use destructure after `spider-gazelle/promise` is fixed
+      query_promise = Promise.defer { Model::Metadata.query(queries, offset, limit) }
+      query_count_promise = Promise.defer { Model::Metadata.query_count(queries) }
+      results = query_promise.get
+      total = query_count_promise.get
+
+      range_end = results.size + offset
+
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "metadata #{offset}-#{range_end}/#{total}"
+
+      # Set link if further results
+      if range_end < total
+        query_params["offset"] = (range_end + 1).to_s
+        query_params["limit"] = limit.to_s
+        response.headers["Link"] = %(<#{base_route}?#{query_params}>; rel="next")
+      end
+
+      if include_parent?
+        render_json do |json|
+          json.array do
+            results.each &.to_parent_json(json)
+          end
+        end
+      else
+        render json: results
+      end
+    end
+
     # Fetch metadata for a model
     #
     # Filter for a specific metadata by name via `name` param
@@ -81,42 +129,23 @@ module PlaceOS::Api
       end
     end
 
-    # ameba:disable Metrics/CyclomaticComplexity
-    def update
+    patch "/:id", :merge do
+      mutate(merge: true)
+    end
+
+    put "/:id", :update do
+      mutate(merge: false)
+    end
+
+    # Find (otherwise create) then update (or patch) the Metadata.
+    protected def mutate(merge : Bool)
       metadata = Model::Metadata::Interface.from_json(self.body)
 
-      # We need a name to lookup the metadata
-      head :bad_request if metadata.name.empty?
+      # A name is required to lookup the metadata
+      return head :bad_request if metadata.name.empty?
 
-      meta = Model::Metadata.for(parent_id, metadata.name).first?
-
-      if meta
-        # Check if the current user has access
-        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id || (meta.editors & Set.new(user_token.user.roles)).size > 0
-
-        # only support+ users can edit the editors list
-        editors = metadata.editors
-        meta.editors = editors if editors && is_support?
-
-        # Update existing Metadata
-        meta.description = metadata.description
-        meta.details = metadata.details
-      else
-        # When creating a new metadata, must be at least a support user
-        raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
-
-        # TODO: Check that the parent exists
-        # Create new Metadata
-        meta = Model::Metadata.new(
-          name: metadata.name,
-          details: metadata.details,
-          parent_id: parent_id,
-          description: metadata.description,
-          editors: metadata.editors || Set(String).new,
-        )
-      end
-
-      response, status = save_and_status(meta)
+      metadata = create_or_update(metadata, merge: merge)
+      response, status = save_and_status(metadata)
 
       if status.ok? && response.is_a?(Model::Metadata)
         render json: Model::Metadata.interface(response), status: status
@@ -124,8 +153,6 @@ module PlaceOS::Api
         render json: response, status: status
       end
     end
-
-    put_redirect
 
     def destroy
       if (metadata_name = name).nil?
@@ -137,13 +164,50 @@ module PlaceOS::Api
       head :ok
     end
 
+    # Returns the version history for a Settings model
+    #
+    get "/:id/history", :history do
+      history = Model::Metadata.build_history(parent_id, name, offset: offset, limit: limit)
+
+      total = Model::Metadata.for(parent_id, name).max_of?(&.history_count) || 0
+      range_start = offset
+      range_end = (history.max_of?(&.last.size) || 0) + range_start
+
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "metadata #{range_start}-#{range_end}/#{total}"
+
+      # Set link
+      if range_end < total
+        params["offset"] = (range_end + 1).to_s
+        params["limit"] = limit.to_s
+        path = File.join(base_route, "/#{parent_id}/history")
+        response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
+      end
+
+      render json: history
+    end
+
     # Helpers
     ###########################################################################
 
-    def find_zone
-      Log.context.set(zone_id: parent_id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Zone.find!(parent_id)
+    def create_or_update(interface : Model::Metadata::Interface, merge : Bool) : Model::Metadata
+      if metadata = Model::Metadata.for(parent_id, interface.name).first?
+        # Check if the current user has access
+        raise Error::Forbidden.new unless metadata.user_can_update?(user_token)
+
+        metadata.assign_from_interface(user_token, interface, merge)
+      else
+        # When creating a new metadata, must be at least a support user
+        raise Error::Forbidden.new unless Model::Metadata.user_can_create?(interface.parent_id, user_token)
+
+        # Create a new Metadata
+        Model::Metadata.from_interface(interface).tap do |model|
+          # Set `parent_id` in create
+          model.parent_id = parent_id
+        end
+      end.tap do |model|
+        model.modified_by = current_user
+      end
     end
 
     # Fetch zones for system the current user has a role for

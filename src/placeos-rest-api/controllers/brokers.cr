@@ -23,7 +23,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_broker : Model::Broker { find_broker }
+    getter current_broker : Model::Broker do
+      id = params["id"]
+      Log.context.set(broker_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Broker.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       brokers = Model::Broker.all.to_a
@@ -50,16 +57,6 @@ module PlaceOS::Api
     def destroy
       current_broker.destroy
       head :ok
-    end
-
-    # Helpers
-    ############################################################################
-
-    protected def find_broker
-      id = params["id"]
-      Log.context.set(broker_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Broker.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

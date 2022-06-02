@@ -29,7 +29,14 @@ module PlaceOS::Api
 
       ###############################################################################################
 
-      getter current_auth : Model::{{auth_type.id}}Authentication { find_auth }
+      getter current_auth : Model::{{auth_type.id}}Authentication do
+        id = params["id"]
+        Log.context.set({{auth_type.id.underscore}}_id: id)
+        # Find will raise a 404 (not found) if there is an error
+        Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
+      end
+
+      ###############################################################################################
 
       def index
         elastic = Model::{{auth_type.id}}Authentication.elastic
@@ -63,16 +70,6 @@ module PlaceOS::Api
       def destroy
         current_auth.destroy
         head :ok
-      end
-
-      #  Helpers
-      ###########################################################################
-
-      protected def find_auth
-        id = params["id"]
-        Log.context.set({{auth_type.id.underscore}}_id: id)
-        # Find will raise a 404 (not found) if there is an error
-        Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
       end
     end
   {% end %}

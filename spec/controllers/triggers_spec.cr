@@ -12,7 +12,7 @@ module PlaceOS::Api
         Specs.test_base_index(klass: Model::Trigger, controller_klass: Triggers)
       end
 
-      describe "/:id/instances" do
+      describe "GET /triggers/:id/instances" do
         it "lists instances for a Trigger" do
           trigger = Model::Generator.trigger.save!
           instances = Array(Model::TriggerInstance).new(size: 3) { Model::Generator.trigger_instance(trigger).save! }
@@ -40,7 +40,7 @@ module PlaceOS::Api
           trigger.name = random_name
 
           id = trigger.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = curl(
             method: "PATCH",
             path: path,

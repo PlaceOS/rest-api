@@ -34,11 +34,11 @@ module PlaceOS::Api::WebSocket
                 name: status_name,
                 command: Session::Request::Command::Bind,
               ).to_json
-              sleep 0.1
+              sleep 100.milliseconds
               driver_proxy[status_name] = 1
-              sleep 0.1
+              sleep 100.milliseconds
               driver_proxy[status_name] = 2
-              sleep 0.1
+              sleep 100.milliseconds
             end
 
             updates, control_system, mod = results
@@ -75,9 +75,9 @@ module PlaceOS::Api::WebSocket
               command:     Session::Request::Command::Bind,
             }
             ws.send Session::Request.new(**request).to_json
-            sleep 0.1
+            sleep 100.milliseconds
             ws.send Session::Request.new(**request.merge({command: Session::Request::Command::Bind})).to_json
-            sleep 0.1
+            sleep 100.milliseconds
           end
 
           updates, control_system, mod = results
@@ -109,7 +109,7 @@ module PlaceOS::Api::WebSocket
               command:     Session::Request::Command::Exec,
             }
             ws.send Session::Request.new(**request).to_json
-            sleep 0.1
+            sleep 100.milliseconds
           end
 
           # Check for successful exec response
@@ -131,7 +131,7 @@ module PlaceOS::Api::WebSocket
               command:     Session::Request::Command::Debug,
             }
             ws.send Session::Request.new(**request).to_json
-            sleep 0.1
+            sleep 100.milliseconds
           end
 
           # Check all messages received
@@ -153,7 +153,7 @@ module PlaceOS::Api::WebSocket
               command:     Session::Request::Command::Ignore,
             }
             ws.send Session::Request.new(**request).to_json
-            sleep 0.1
+            sleep 100.milliseconds
           end
 
           # Check all messages received

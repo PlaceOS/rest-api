@@ -89,7 +89,13 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_control_system : Model::ControlSystem { find_system }
+    getter current_control_system : Model::ControlSystem do
+      Log.context.set(control_system_id: control_system_id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     # Websocket API session manager
     class_getter session_manager : WebSocket::Manager { WebSocket::Manager.new(core_discovery) }
@@ -453,12 +459,6 @@ module PlaceOS::Api
       Core::Client.client(uri: self.locate_module(module_id), request_id: request_id) do |client|
         yield client
       end
-    end
-
-    protected def find_system
-      Log.context.set(control_system_id: control_system_id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
     end
   end
 end

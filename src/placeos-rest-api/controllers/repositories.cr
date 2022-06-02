@@ -23,6 +23,19 @@ module PlaceOS::Api
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
 
+    private def drivers_only
+      unless current_repository.repo_type.driver?
+        render_error(:bad_request, "not a driver repository")
+      end
+    end
+
+    getter current_repository : Model::Repository do
+      id = params["id"]
+      Log.context.set(repository_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
     # Params
     ###############################################################################################
 
@@ -39,16 +52,6 @@ module PlaceOS::Api
     end
 
     ###############################################################################################
-
-    getter current_repository : Model::Repository { find_repo }
-
-    ###############################################################################################
-
-    private def drivers_only
-      unless current_repository.repo_type.driver?
-        render_error(:bad_request, "not a driver repository")
-      end
-    end
 
     def index
       elastic = Model::Repository.elastic
@@ -98,20 +101,20 @@ module PlaceOS::Api
     end
 
     def self.pull_repository(repository : Model::Repository)
-      # Keep the repository at `HEAD` if it was previously held at `HEAD`
-      reset_to_head = repository.repo_type.interface? && repository.commit_hash == "HEAD"
-
       # Trigger a pull event
-      repository.pull!
+      spawn do
+        sleep 0.1
+        repository.pull!
+      end
 
+      # Start monitoring changes (we ignore deployed_commit_hash == nil)
       found_repo = Utils::Changefeeds.await_model_change(repository, 3.minutes) do |updated|
-        updated.destroyed? || !updated.should_pull?
+        updated.destroyed? || !updated.deployed_commit_hash.nil?
       end
 
       unless found_repo.nil?
-        new_commit = found_repo.commit_hash
+        new_commit = found_repo.deployed_commit_hash
         Log.info { found_repo.destroyed? ? "repository delete during pull" : "repository pulled to #{new_commit}" }
-        found_repo.update_fields(commit_hash: "HEAD") if reset_to_head
         {found_repo.destroyed?, new_commit}
       end
     end
@@ -138,7 +141,7 @@ module PlaceOS::Api
 
     get "/:id/commits", :commits do
       render json: Api::Repositories.commits(
-        repository: current_repo,
+        repository: current_repository,
         request_id: request_id,
         number_of_commits: limit,
         file_name: driver,
@@ -209,14 +212,31 @@ module PlaceOS::Api
       end
     end
 
-    #  Helpers
-    ###########################################################################
+    get "/:id/releases", :releases do
+      render_error(HTTP::Status::BAD_REQUEST, "can only get releases for interface repositories") unless current_repository.repo_type.interface?
+      releases = Api::Repositories.releases(
+        repository: current_repository,
+        request_id: request_id,
+      )
 
-    protected def find_repo
-      id = params["id"]
-      Log.context.set(repository_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
+      render json: releases
+    end
+
+    def self.releases(repository : Model::Repository, request_id : String)
+      # Dial the frontends service
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        frontends_client.releases(repository.folder_name)
+      end.tap do |result|
+        if result.nil?
+          Log.info { {
+            message:       "failed to retrieve releases",
+            repository_id: repository.id,
+            folder_name:   repository.folder_name,
+            name:          repository.name,
+            type:          repository.repo_type.to_s,
+          } }
+        end
+      end
     end
   end
 end

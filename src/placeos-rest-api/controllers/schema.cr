@@ -14,7 +14,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_schema : Model::JsonSchema { find_schema }
+    getter current_schema : Model::JsonSchema do
+      id = params["id"]
+      Log.context.set(schema_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::JsonSchema.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       elastic = Model::JsonSchema.elastic
@@ -41,13 +48,6 @@ module PlaceOS::Api
     def destroy
       current_schema.destroy
       head :ok
-    end
-
-    protected def find_schema
-      id = params["id"]
-      Log.context.set(schema_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::JsonSchema.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

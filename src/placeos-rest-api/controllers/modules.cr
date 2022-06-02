@@ -44,7 +44,13 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_module : Model::Module { find_module }
+    getter current_module : Model::Module do
+      Log.context.set(module_id: module_id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Module.find!(module_id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     private class IndexParams < Params
       attribute as_of : Int32?
@@ -307,15 +313,6 @@ module PlaceOS::Api
       id = mod.is_a?(String) ? mod : mod.id.as(String)
       storage = Driver::RedisStorage.new(id)
       key ? storage[key] : storage.to_h
-    end
-
-    # Helpers
-    ###############################################################################################
-
-    protected def find_module
-      Log.context.set(module_id: module_id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Module.find!(module_id, runopts: {"read_mode" => "majority"})
     end
   end
 end

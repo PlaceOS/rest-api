@@ -21,7 +21,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_driver : Model::Driver { find_driver }
+    getter current_driver : Model::Driver do
+      id = params["id"]
+      Log.context.set(driver_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       # Pick off role from HTTP params, render error if present and invalid
@@ -138,16 +145,6 @@ module PlaceOS::Api
     rescue e
       Log.error(exception: e) { "failed to request driver compilation status from build" }
       false
-    end
-
-    #  Helpers
-    ###########################################################################
-
-    protected def find_driver
-      id = params["id"]
-      Log.context.set(driver_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

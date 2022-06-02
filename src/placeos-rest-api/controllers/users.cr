@@ -12,11 +12,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :revive, :update_alt]
 
-    before_action :user, only: [:destroy, :update, :show]
+    before_action :user, only: [:destroy, :update, :revive, :show]
 
-    before_action :check_admin, only: [:index, :destroy, :create]
+    before_action :check_admin, only: [:index, :destroy, :create, :revive]
 
     # Callbacks
     ###############################################################################################
@@ -46,7 +46,41 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter user : Model::User { find_user }
+    getter user : Model::User do
+      lookup = params["id"]
+
+      # Index ordering to use for resolving the user.
+      ordering = if lookup.is_email?
+                   {:email, :login_name}
+                 else
+                   {:id, :login_name, :staff_id}
+                 end
+
+      authority = current_user.authority_id.as(String)
+
+      ordering.each.compact_map do |id_type|
+        case id_type
+        when :id
+          # TODO: Remove user id query prefixing.
+          # Remove after June 2023, added to help with 2022 user id migration
+          id_lookup = lookup.starts_with?("#{Model::User.table_name}-") ? lookup : "#{Model::User.table_name}-#{lookup}"
+          Model::User.find(id_lookup)
+        when :email
+          Model::User.find_by_email(authority_id: authority, email: lookup)
+        when :login_name
+          Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
+        when :staff_id
+          Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
+        end
+      end.first do
+        # 404 if the `User` was not found
+        raise RethinkORM::Error::DocumentNotFound.new
+      end.tap do |user|
+        Log.context.set(user_id: user.id)
+      end
+    end
+
+    ###############################################################################################
 
     # Render the current user
     get("/current", :current) do
@@ -79,13 +113,20 @@ module PlaceOS::Api
       end
 
       head :not_found unless current_user.refresh_token.presence
+      authority = current_authority
+      head :not_found unless authority
 
       begin
-        internals = current_authority.not_nil!.internals
-        sso_strat_id = internals["oauth-strategy"].as_s # (i.e. oauth_strat-FNsaSj6bp-M)
-        render(:not_found, text: "no oauth configuration specified in authority") unless sso_strat_id.presence
+        internals = authority.internals
+        sso_strat = if sso_strat_id = internals["oauth-strategy"]?.try(&.as_s?) # (i.e. oauth_strat-FNsaSj6bp-M)
+                      ::PlaceOS::Model::OAuthAuthentication.find(sso_strat_id)
+                    else
+                      ::PlaceOS::Model::OAuthAuthentication.collection_query do |table|
+                        table.get_all(authority.id, index: :authority_id)
+                      end.first?
+                    end
+        render(:not_found, text: "no oauth configuration found") unless sso_strat
 
-        sso_strat = ::PlaceOS::Model::OAuthAuthentication.find!(sso_strat_id)
         client_id = sso_strat.client_id
         client_secret = sso_strat.client_secret
         token_uri = URI.parse(sso_strat.token_url)
@@ -122,6 +163,7 @@ module PlaceOS::Api
 
     def index
       elastic = Model::User.elastic
+      params["q"] = %("#{params["q"]}") if params["q"]?.to_s.is_email?
       query = elastic.query(params)
 
       query.must_not({"deleted" => [true]}) unless include_deleted?
@@ -172,13 +214,21 @@ module PlaceOS::Api
 
     # Destroy user, revoke authentication.
     def destroy
-      if current_authority.try &.internals["soft_delete"]? == true
+      force_removal = params["force_removal"]? == "true"
+      if !force_removal && current_authority.try &.internals["soft_delete"]? == true
         user.deleted = true
         user.save
       else
         user.destroy
       end
       head :ok
+    rescue e : Model::Error
+      render_error(HTTP::Status::BAD_REQUEST, e.message)
+    end
+
+    post "/:id/revive", :revive do
+      user.deleted = false
+      save_and_respond(user)
     rescue e : Model::Error
       render_error(HTTP::Status::BAD_REQUEST, e.message)
     end
@@ -218,37 +268,6 @@ module PlaceOS::Api
 
     # Helpers
     ###############################################################################################
-
-    protected def find_user
-      lookup = params["id"]
-
-      # Index ordering to use for resolving the user.
-      ordering = if lookup.is_email?
-                   {:email, :login_name}
-                 else
-                   {:id, :login_name, :staff_id}
-                 end
-
-      authority = current_user.authority_id.as(String)
-
-      query = ordering.each.compact_map do |id_type|
-        case id_type
-        when :id
-          Model::User.find(lookup)
-        when :email
-          Model::User.find_by_email(authority_id: authority, email: lookup)
-        when :login_name
-          Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
-        when :staff_id
-          Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
-        end
-      end
-
-      user = query.first { raise RethinkORM::Error::DocumentNotFound.new }
-
-      Log.context.set(user_id: user.id)
-      user
-    end
 
     protected def check_authorization
       # Does the current user have permission to perform the current action

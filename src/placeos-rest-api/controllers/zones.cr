@@ -46,8 +46,6 @@ module PlaceOS::Api
       boolean_param("complete", allow_empty: true)
     end
 
-    ###############################################################################################
-
     getter parent_id : String? do
       params["parent_id"]?.presence || params["parent"]?.presence
     end
@@ -56,7 +54,16 @@ module PlaceOS::Api
       params["tags"]?.presence.try &.gsub(/[^0-9a-z ]/i, "").split(',').reject(&.empty?).uniq!
     end
 
-    getter current_zone : Model::Zone { find_zone }
+    ###############################################################################################
+
+    getter current_zone : Model::Zone do
+      id = params["id"]
+      Log.context.set(zone_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       elastic = Model::Zone.elastic
@@ -189,16 +196,6 @@ module PlaceOS::Api
         method:      method,
       } }
       render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
-    end
-
-    # Helpers
-    ###########################################################################
-
-    protected def find_zone
-      id = params["id"]
-      Log.context.set(zone_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

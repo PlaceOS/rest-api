@@ -42,12 +42,11 @@ module PlaceOS::Api
       end
 
       describe "index", tags: "search" do
-        pending "searches on keys" do
+        it "searches on keys" do
           unencrypted = %({"secret_key": "secret1234"})
           settings = Model::Generator.settings(settings_string: unencrypted).save!
 
-          sleep 20.milliseconds
-
+          sleep 1.seconds
           refresh_elastic(Model::Settings.table_name)
 
           params = HTTP::Params.encode({"q" => settings.keys.first})
@@ -133,15 +132,18 @@ module PlaceOS::Api
         end
       end
 
-      describe "/:id/history" do
+      describe "GET /settings/:id/history" do
         it "returns history for a master setting" do
           sys = Model::Generator.control_system.save!
 
           setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
           setting.settings_string = "tree: 1"
           setting.save!
-          setting.settings_string = "tree: 10"
-          setting.save!
+
+          Timecop.freeze(3.seconds.from_now) do
+            setting.settings_string = "tree: 10"
+            setting.save!
+          end
 
           result = curl(
             method: "GET",
@@ -179,7 +181,7 @@ module PlaceOS::Api
           settings.settings_string = %(hello: "world"\n)
 
           id = settings.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = curl(
             method: "PATCH",
             path: path,
@@ -206,7 +208,7 @@ module PlaceOS::Api
           settings.settings_string = %(hello: "world"\n)
 
           id = settings.id.as(String)
-          path = base + id
+          path = File.join(base, id)
           result = update_route(path, settings, scoped_authorization_header)
 
           result.status_code.should eq 200

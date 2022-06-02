@@ -19,7 +19,7 @@ module PlaceOS::Api
           mod.connected = false
 
           id = mod.id.as(String)
-          path = base + id
+          path = File.join(base, id)
 
           result = curl(
             method: "PATCH",
@@ -42,7 +42,7 @@ module PlaceOS::Api
           mod.connected = !connected
 
           id = mod.id.as(String)
-          path = base + id
+          path = File.join(base, id)
 
           result = curl(
             method: "PATCH",
@@ -182,7 +182,7 @@ module PlaceOS::Api
       end
     end
 
-    describe "/:id/settings" do
+    describe "GET /modules/:id/settings" do
       it "collates Module settings" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
         driver_settings_string = %(value: 0\nscreen: 0\nfrangos: 0\nchop: 0)
@@ -204,10 +204,10 @@ module PlaceOS::Api
         Model::Generator.settings(mod: mod, settings_string: module_settings_string).save!
 
         expected_settings_ids = [
-          mod.master_settings,
-          control_system.master_settings,
-          zone.master_settings,
-          driver.master_settings,
+          mod.settings,
+          control_system.settings,
+          zone.settings,
+          driver.settings,
         ].flat_map(&.compact_map(&.id)).reverse!
 
         path = "#{base}#{mod.id}/settings"
@@ -273,7 +273,7 @@ module PlaceOS::Api
       end
     end
 
-    describe "/:id/ping" do
+    describe "POST /:id/ping" do
       it "fails for logic module" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
         mod = Model::Generator.module(driver: driver).save!
@@ -320,7 +320,7 @@ module PlaceOS::Api
           mod.connected = !connected
 
           id = mod.id.as(String)
-          path = base + id
+          path = File.join(base, id)
 
           result = update_route(path, mod, scoped_authorization_header)
 

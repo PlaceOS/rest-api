@@ -26,7 +26,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_app : Model::DoorkeeperApplication { find_app }
+    getter current_app : Model::DoorkeeperApplication do
+      id = params["id"]
+      Log.context.set(application_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    ###############################################################################################
 
     def index
       elastic = Model::DoorkeeperApplication.elastic
@@ -61,16 +68,6 @@ module PlaceOS::Api
     def destroy
       current_app.destroy
       head :ok
-    end
-
-    #  Helpers
-    ###########################################################################
-
-    protected def find_app
-      id = params["id"]
-      Log.context.set(application_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
     end
   end
 end

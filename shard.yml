@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.33.4
+version: 1.48.0
 crystal: ">= 1.1.1"
 
 targets:
@@ -15,7 +15,6 @@ dependencies:
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
-    version: ~> 3
 
   # Email validations
   CrystalEmail:
@@ -34,8 +33,8 @@ dependencies:
 
   # Elasticsearch extension for RethinkORM
   neuroplastic:
-    github: place-labs/neuroplastic
-    version: ~> 1.8
+    github: spider-gazelle/neuroplastic
+    version: ~> 1.11
 
   # Performs ping requests
   pinger:
@@ -60,16 +59,18 @@ dependencies:
   # For frontends client
   placeos-frontend-loader:
     github: placeos/frontend-loader
-    version: ~> 1.3
+    version: ~> 2.4
 
   # Centrally defined logging configuration
   placeos-log-backend:
     github: place-labs/log-backend
+    version: ">= 0.8.13"
+
 
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 6.4
+    version: ~> 8.1
 
   # An abstraction over Fibers
   promise:
@@ -89,7 +90,6 @@ dependencies:
   # ORM for RethinkDB built on active-model
   rethinkdb-orm:
     github: spider-gazelle/rethinkdb-orm
-    version: ~> 5
 
   # Client for Search Ingest RethinkDB Elasticsearch indexer
   search-ingest:
@@ -126,4 +126,13 @@ development_dependencies:
 
   webmock:
     github: manastech/webmock.cr
+    branch: master
+
+  # required for specs (core_helper)
+  placeos-compiler:
+    github: placeos/compiler
+    version: ">= 4.9"
+
+  placeos-core:
+    github: placeos/core
     branch: master

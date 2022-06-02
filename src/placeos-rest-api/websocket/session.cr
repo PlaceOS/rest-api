@@ -81,7 +81,7 @@ module PlaceOS::Api::WebSocket
       args = [] of JSON::Any if args.nil?
       Log.debug { {message: "exec", args: args.to_json} }
 
-      response, _status_code = Driver::Proxy::RemoteDriver.new(
+      response, response_code = Driver::Proxy::RemoteDriver.new(
         sys_id: system_id,
         module_name: module_name,
         index: index,
@@ -104,9 +104,10 @@ module PlaceOS::Api::WebSocket
           name:  name,
         },
         value: response,
+        response_code: response_code,
       ))
     rescue e : Driver::Proxy::RemoteDriver::Error
-      respond(error_response(request_id, e.error_code, e.message))
+      respond(error_response(request_id, e.error_code, e.message, e.response_code))
     rescue e
       Log.error(exception: e) { {
         message: "failed to execute request",
@@ -449,13 +450,15 @@ module PlaceOS::Api::WebSocket
     protected def error_response(
       request_id : Int64?,
       error_code : Response::ErrorCode?,
-      message : String?
+      message : String?,
+      response_code : Int32? = 500
     )
       Api::WebSocket::Session::Response.new(
         id: request_id || 0_i64,
         type: :error,
         error_code: error_code,
         message: message || "",
+        response_code: response_code
       )
     end
 

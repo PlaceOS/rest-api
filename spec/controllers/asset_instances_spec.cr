@@ -52,7 +52,7 @@ module PlaceOS::Api
           asset_instance = Model::Generator.asset_instance.save!
 
           id = asset_instance.id.not_nil!
-          path = base + id
+          path = File.join(base, id)
 
           result = curl(
             method: "PATCH",
@@ -74,7 +74,7 @@ module PlaceOS::Api
           model.persisted?.should be_true
 
           id = model.id.not_nil!
-          path = base + id
+          path = File.join(base, id)
 
           result = curl(method: "DELETE", path: path, headers: authorization_header)
           result.status_code.should eq 200

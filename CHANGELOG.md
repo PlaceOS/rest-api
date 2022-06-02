@@ -1,3 +1,141 @@
+## v1.48.0 (2022-06-01)
+
+### Feat
+
+- **users**: add route for reviving a deleted user ([#280](https://github.com/PlaceOS/rest-api/pull/280))
+
+## v1.47.1 (2022-05-17)
+
+### Fix
+
+- **repositories**: inconsistent pull responses ([#277](https://github.com/PlaceOS/rest-api/pull/277))
+
+## v1.47.0 (2022-05-16)
+
+### Feat
+
+- **repositories**: new method for repository pull feedback ([#275](https://github.com/PlaceOS/rest-api/pull/275))
+
+## v1.46.0 (2022-05-10)
+
+### Feat
+
+- **users**: resource token to default to first oauth app ([#273](https://github.com/PlaceOS/rest-api/pull/273))
+
+## v1.45.0 (2022-05-06)
+
+### Feat
+
+- **controller/metadata**: add pagination for `query` route ([#271](https://github.com/PlaceOS/rest-api/pull/271))
+
+## v1.44.4 (2022-05-06)
+
+### Fix
+
+- **controller/edges**: include `x_api_token` in Edge creation response ([#270](https://github.com/PlaceOS/rest-api/pull/270))
+
+## v1.44.3 (2022-05-04)
+
+### Fix
+
+- **controller/edges**: default to logged in user ID
+
+## v1.44.2 (2022-05-03)
+
+### Fix
+
+- **logging**: remove extra call to configure OpenTelemetry
+
+## v1.44.1 (2022-05-03)
+
+### Fix
+
+- update `placeos-log-backend`
+
+## v1.44.0 (2022-05-03)
+
+### Feat
+
+- **metadata**: PATCH to patch `details`, PUT to replace ([#269](https://github.com/PlaceOS/rest-api/pull/269))
+
+## v1.43.2 (2022-04-30)
+
+### Fix
+
+- update `placeos-compiler`
+
+## v1.43.1 (2022-04-28)
+
+### Fix
+
+- **telemetry**: seperate telemetry file
+
+## v1.43.0 (2022-04-27)
+
+### Feat
+
+- **logging**: configure OpenTelemetry
+
+## v1.42.0 (2022-04-26)
+
+### Feat
+
+- **logging**: add configuration by LOG_LEVEL env var
+
+## v1.41.0 (2022-04-14)
+
+### Feat
+
+- **controllers/users**: ensure user_id continuity ([#265](https://github.com/PlaceOS/rest-api/pull/265))
+
+## v1.40.0 (2022-04-14)
+
+### Feat
+
+- **metadata**: add `include_parent` to index
+
+## v1.39.0 (2022-04-08)
+
+### Feat
+
+- **controller/metadata**: add an index method ([#264](https://github.com/PlaceOS/rest-api/pull/264))
+
+## v1.38.0 (2022-04-06)
+
+### Feat
+
+- **repositories**: add releases endpoint ([#262](https://github.com/PlaceOS/rest-api/pull/262))
+
+## v1.37.0 (2022-03-28)
+
+### Feat
+
+- add driver response codes to public API ([#261](https://github.com/PlaceOS/rest-api/pull/261))
+
+## v1.36.0 (2022-03-28)
+
+### Feat
+
+- **user**: query by single email ([#260](https://github.com/PlaceOS/rest-api/pull/260))
+
+## v1.35.1 (2022-03-23)
+
+### Refactor
+
+- **controllers**: remove `find_<model>` from `current_<model>` ([#259](https://github.com/PlaceOS/rest-api/pull/259))
+
+## v1.35.0 (2022-03-23)
+
+### Feat
+
+- **metadata#history**: add `/metadata/:parent_id/history` ([#258](https://github.com/PlaceOS/rest-api/pull/258))
+
+## v1.34.0 (2022-03-17)
+
+### Feat
+
+- set modifier for metadata and settings ([#256](https://github.com/PlaceOS/rest-api/pull/256))
+
 ## v1.33.4 (2022-03-03)
 
 ### Fix
