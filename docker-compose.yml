@@ -130,7 +130,8 @@ services:
       PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
-    image: placeos/core:${PLACE_CORE_TAG:-nightly}
+    # image: placeos/core:${PLACE_CORE_TAG:-nightly}
+    image: ghcr.io/placeos/core:feat-build
     restart: always
     hostname: core
     depends_on:
