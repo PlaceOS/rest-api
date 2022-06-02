@@ -425,14 +425,17 @@ end
 MOCK_SERVER = MockServer.new
 
 abstract class PlaceOS::Api::Application < ActionController::Base
-  def self.with_request(verb, path, expect_failure = false)
+  def self.with_request(verb, path, expect_failure = false, route_params = nil)
     io = IO::Memory.new
     context = context(verb.upcase, path)
-    MOCK_SERVER.route_handler.search_route(context)
+
+    context.route_params = route_params if route_params
+
+    MOCK_SERVER.route_handler.search_route(verb, path, "#{verb.downcase}#{path}", context)
     context.response.output = io
 
     yield new(context)
-    io.rewind
+
     context.response.status.success?.should(expect_failure ? be_false : be_true)
     context
   end

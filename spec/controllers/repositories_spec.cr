@@ -118,7 +118,7 @@ module PlaceOS::Api
           it "fetches the commits for a repository" do
             id = repo.id.as(String)
             response = Api::Repositories
-              .with_request("GET", "#{base}#{id}/commits", &.commits)
+              .with_request("GET", "#{base}#{id}/commits", route_params: {"id" => id}, &.commits)
               .response
             response.status.should eq HTTP::Status::OK
             Array(String).from_json(response.output).should_not be_empty
@@ -130,7 +130,7 @@ module PlaceOS::Api
               "driver" => "drivers/place/private_helper.cr",
             }
             response = Api::Repositories
-              .with_request("GET", "#{base}#{id}/commits?#{params}", &.commits)
+              .with_request("GET", "#{base}#{id}/commits?#{params}", route_params: {"id" => id}, &.commits)
               .response
 
             response.status.should eq HTTP::Status::OK
