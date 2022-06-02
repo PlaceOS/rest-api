@@ -29,11 +29,8 @@ module PlaceOS::Api
         add_core(edge_id, current_node: core_discovery.find(edge_id))
       end
 
-      spawn(same_thread: true) do
-        loop do
-          socket.ping rescue break
-          sleep 30
-        end
+      socket.on_ping do |message|
+        socket.pong(message) 
       end
 
       socket.on_close { remove(edge_id) }
