@@ -143,7 +143,7 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.11.0
+    version: 1.11.1
 
   open_api:
     git: https://github.com/elbywan/open_api.cr.git
@@ -304,4 +304,3 @@ shards:
   webmock:
     git: https://github.com/manastech/webmock.cr.git
     version: 0.14.0+git.commit.42b347cdd64e13193e46167a03593944ae2b3d20
-
