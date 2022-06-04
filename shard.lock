@@ -143,7 +143,7 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.11.1
+    version: 1.11.0
 
   open_api:
     git: https://github.com/elbywan/open_api.cr.git
@@ -159,11 +159,11 @@ shards:
 
   opentelemetry-api:
     git: https://github.com/wyhaines/opentelemetry-api.cr.git
-    version: 0.3.2
+    version: 0.3.1
 
   opentelemetry-instrumentation:
     git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.3.3+git.commit.8fae1e32b960c77abeae7b7da0d03f7994acd0ea
+    version: 0.3.2+git.commit.47a7b5c243edf08dd9f7a4e2270a7698489dcb1b
 
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
