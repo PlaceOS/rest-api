@@ -159,11 +159,11 @@ shards:
 
   opentelemetry-api:
     git: https://github.com/wyhaines/opentelemetry-api.cr.git
-    version: 0.3.1
+    version: 0.3.4
 
   opentelemetry-instrumentation:
     git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.3.2+git.commit.47a7b5c243edf08dd9f7a4e2270a7698489dcb1b
+    version: 0.3.6+git.commit.64fa1db57f535c511e6515620e7f8e4ce8a72780
 
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
@@ -183,7 +183,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.3.1+git.commit.ce5cbf752e0e6da73b6009bd1b3c53d5d0d05aee
+    version: 4.3.1+git.commit.caa4031e550421f3885b4d44becbbe977c716358
 
   placeos-core-client:
     git: https://github.com/placeos/core-client.git
@@ -199,7 +199,7 @@ shards:
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
-    version: 0.10.2
+    version: 0.10.3
 
   placeos-models:
     git: https://github.com/placeos/models.git
@@ -304,3 +304,4 @@ shards:
   webmock:
     git: https://github.com/manastech/webmock.cr.git
     version: 0.14.0+git.commit.42b347cdd64e13193e46167a03593944ae2b3d20
+
