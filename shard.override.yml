@@ -7,4 +7,8 @@ dependencies:
 
   placeos-core-client:
     github: placeos/core-client
-    branch: feat/build
+    version: ~> 1.0
+
+  action-controller:
+    github: spider-gazelle/action-controller
+    version: ~> 5.1
