@@ -89,7 +89,7 @@ module PlaceOS::Api
         response.success?.should be_true
       end
 
-      it "POST /:id/recompile" do
+      pending "POST /:id/recompile" do
         driver = get_driver
 
         response = client.post(

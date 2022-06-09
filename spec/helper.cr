@@ -80,33 +80,24 @@ end
 # This method is synchronised due to the redundant top-level calls.
 def authentication(sys_admin : Bool = true, support : Bool = true, scope = [PlaceOS::Model::UserJWT::Scope::PUBLIC])
   CREATION_LOCK.synchronize do
-    test_user_email = PlaceOS::Model::Email.new("test-admin-#{sys_admin ? "1" : "0"}-supp-#{support ? "1" : "0"}-rest-api@place.tech")
-    existing = PlaceOS::Model::User.where(email: test_user_email).first?
+    authenticated_user = generate_auth_user(sys_admin, support, scope)
 
-    authenticated_user = if existing
-                           existing
-                         else
-                           user = PlaceOS::Model::Generator.user
-                           user.sys_admin = sys_admin
-                           user.support = support
-                           user.save!
-                         end
-
-    authorization_header = HTTP::Headers{
+    headers = HTTP::Headers{
       "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
       "Content-Type"  => "application/json",
+      "Host"          => "localhost",
     }
 
-    {authenticated_user, authorization_header}
+    {authenticated_user, headers}
   end
 end
 
 def generate_auth_user(sys_admin, support, scopes)
   scope_list = scopes.try &.join('-', &.to_s)
-  test_user_email = PlaceOS::Model::Email.new("test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech")
-  existing = PlaceOS::Model::User.where(email: test_user_email).first?
 
-  existing || PlaceOS::Model::Generator.user.tap do |user|
+  test_user_email = PlaceOS::Model::Email.new("test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech")
+
+  PlaceOS::Model::User.where(email: test_user_email).first? || PlaceOS::Model::Generator.user.tap do |user|
     user.email = test_user_email
     user.sys_admin = sys_admin
     user.support = support
