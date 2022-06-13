@@ -3,16 +3,14 @@ require "timecop"
 
 module PlaceOS::Api
   describe AssetInstances do
-    _, authorization_header = authentication
-
-    Specs.test_404(
+    Spec.test_404(
       AssetInstances.base_route,
       model_name: Model::AssetInstance.table_name,
-      headers: authorization_header,
+      headers: Spec::Authentication.headers,
     )
 
     describe "index", tags: "search" do
-      Specs.test_base_index(klass: Model::AssetInstance, controller_klass: AssetInstances)
+      Spec.test_base_index(klass: Model::AssetInstance, controller_klass: PlaceOS::Api::AssetInstances)
     end
 
     describe "CRUD operations", tags: "crud" do
@@ -23,7 +21,7 @@ module PlaceOS::Api
         result = client.post(
           path: AssetInstances.base_route,
           body: body,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 201
@@ -37,7 +35,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         fetched = Model::AssetInstance.from_trusted_json(result.body)
@@ -53,7 +51,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: {approval: true}.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -71,7 +69,7 @@ module PlaceOS::Api
         id = model.id.not_nil!
         path = File.join(AssetInstances.base_route, id)
 
-        result = client.delete(path: path, headers: authorization_header)
+        result = client.delete(path: path, headers: Spec::Authentication.headers)
         result.status_code.should eq 200
 
         Model::AssetInstance.find(id.as(String)).should be_nil

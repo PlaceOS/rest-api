@@ -4,12 +4,10 @@ require "webmock"
 require "../helper"
 
 module PlaceOS::Api::WebSocket
-  authenticated_user, authorization_header = authentication
-
   pending Session do
     describe "systems/control" do
       it "opens a websocket session" do
-        bind(Systems.base_route, authorization_header) do |ws|
+        bind(Systems.base_route, Spec::Authentication.headers) do |ws|
           ws.closed?.should be_false
         end
       end
@@ -20,7 +18,7 @@ module PlaceOS::Api::WebSocket
         it "receives updates" do
           # Status to bind
           status_name = "nugget"
-          results = test_websocket_api(Systems.base_route, authorization_header) do |ws, control_system, mod|
+          results = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
             # Create a storage proxy
             driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
 
@@ -63,7 +61,7 @@ module PlaceOS::Api::WebSocket
         status_name = "nugget"
 
         id = rand(10).to_i64
-        results = test_websocket_api(Systems.base_route, authorization_header) do |ws, control_system, mod|
+        results = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
@@ -97,7 +95,7 @@ module PlaceOS::Api::WebSocket
         status_name = "function2"
 
         id = rand(10).to_i64
-        updates, _, _ = test_websocket_exec(Systems.base_route, authorization_header) do |ws, control_system, mod|
+        updates, _, _ = test_websocket_exec(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
@@ -119,7 +117,7 @@ module PlaceOS::Api::WebSocket
         status_name = "nugget"
 
         id = rand(10).to_i64
-        updates, _, _ = test_websocket_api(Systems.base_route, authorization_header) do |ws, control_system, mod|
+        updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
@@ -141,7 +139,7 @@ module PlaceOS::Api::WebSocket
         status_name = "nugget"
 
         id = rand(10).to_i64
-        updates, _, _ = test_websocket_api(Systems.base_route, authorization_header) do |ws, control_system, mod|
+        updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
@@ -214,7 +212,7 @@ end
 # Binds to the websocket API
 # Yields API websocket, and a control system + module
 # Cleans up the websocket and models
-def test_websocket_api(base, authorization_header)
+def test_websocket_api(base, headers)
   # Create a System
   control_system = PlaceOS::Model::Generator.control_system.save!
 
@@ -231,7 +229,7 @@ def test_websocket_api(base, authorization_header)
   lookup_key = "#{mod.custom_name}/1"
   sys_lookup[lookup_key] = mod.id.as(String)
 
-  bind(base, authorization_header, on_message) do |ws|
+  bind(base, headers, on_message) do |ws|
     yield ({ws, control_system, mod})
   end
 
@@ -242,7 +240,7 @@ def test_websocket_api(base, authorization_header)
   {updates, control_system, mod}
 end
 
-def test_websocket_exec(base, authorization_header)
+def test_websocket_exec(base, headers)
   control_system = PlaceOS::Model::Generator.control_system.save!
   mod = PlaceOS::Model::Generator.module(control_system: control_system).save!
 
@@ -268,7 +266,7 @@ def test_websocket_exec(base, authorization_header)
     updates << PlaceOS::Api::WebSocket::Session::Response.from_json message
   }
 
-  bind(base, authorization_header, on_message) do |ws|
+  bind(base, headers, on_message) do |ws|
     yield ({ws, control_system, mod})
   end
 

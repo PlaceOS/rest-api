@@ -1,21 +1,21 @@
 require "../helper"
 
 module PlaceOS::Api
-  describe ApiKeys do
-    _, scoped_authorization_header = x_api_authentication
+  _, scoped_headers = Spec::Authentication.x_api_authentication
 
-    Specs.test_404(ApiKeys.base_route, model_name: Model::ApiKey.table_name, headers: scoped_authorization_header)
+  describe ApiKeys do
+    Spec.test_404(ApiKeys.base_route, model_name: Model::ApiKey.table_name, headers: scoped_headers)
 
     describe "index", tags: "search" do
-      Specs.test_base_index(Model::ApiKey, ApiKeys)
+      Spec.test_base_index(Model::ApiKey, ApiKeys)
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(Model::ApiKey, ApiKeys)
+      Spec.test_crd(Model::ApiKey, ApiKeys)
     end
 
     describe "scopes" do
-      Specs.test_controller_scope(ApiKeys)
+      Spec.test_controller_scope(ApiKeys)
     end
   end
 end

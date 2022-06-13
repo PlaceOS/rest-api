@@ -2,12 +2,10 @@ require "../helper"
 
 module PlaceOS::Api
   describe Triggers do
-    _authenticated_user, authorization_header = authentication
-
-    Specs.test_404(Triggers.base_route, model_name: Model::Trigger.table_name, headers: authorization_header)
+    Spec.test_404(Triggers.base_route, model_name: Model::Trigger.table_name, headers: Spec::Authentication.headers)
 
     describe "index", tags: "search" do
-      Specs.test_base_index(klass: Model::Trigger, controller_klass: Triggers)
+      Spec.test_base_index(klass: Model::Trigger, controller_klass: Triggers)
     end
 
     describe "GET /triggers/:id/instances" do
@@ -17,7 +15,7 @@ module PlaceOS::Api
 
         response = client.get(
           path: File.join(Triggers.base_route, trigger.id.not_nil!, "instances"),
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         # Can't use from_json directly on the model as `id` will not be parsed
@@ -29,7 +27,8 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(klass: Model::Trigger, controller_klass: Triggers)
+      Spec.test_crd(klass: Model::Trigger, controller_klass: Triggers)
+
       it "update" do
         trigger = Model::Generator.trigger.save!
         original_name = trigger.name
@@ -41,7 +40,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: trigger.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -63,7 +62,7 @@ module PlaceOS::Api
 
           result = client.get(
             path: path,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           response = JSON.parse(result.body)
@@ -74,7 +73,7 @@ module PlaceOS::Api
   end
 
   describe "scopes" do
-    Specs.test_controller_scope(Triggers)
-    Specs.test_update_write_scope(Triggers)
+    Spec.test_controller_scope(Triggers)
+    Spec.test_update_write_scope(Triggers)
   end
 end

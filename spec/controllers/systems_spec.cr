@@ -35,12 +35,10 @@ module PlaceOS::Api
   end
 
   describe Systems do
-    _, authorization_header = authentication
-
-    Specs.test_404(Systems.base_route, model_name: Model::ControlSystem.table_name, headers: authorization_header)
+    Spec.test_404(Systems.base_route, model_name: Model::ControlSystem.table_name, headers: Spec::Authentication.headers)
 
     describe "index", tags: "search" do
-      Specs.test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
+      Spec.test_base_index(klass: Model::ControlSystem, controller_klass: Systems)
 
       context "query parameter" do
         it "zone_id filters systems by zones" do
@@ -69,7 +67,7 @@ module PlaceOS::Api
           path = "#{Systems.base_route}?#{params}"
 
           refresh_elastic(Model::ControlSystem.table_name)
-          found = until_expected("GET", path, authorization_header) do |response|
+          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
             returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             (returned_ids | expected_ids).size == total_ids
           end
@@ -96,7 +94,7 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"email" => expected_emails.join(',')})
           path = "#{Systems.base_route}?#{params}"
 
-          found = until_expected("GET", path, authorization_header) do |response|
+          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
             refresh_elastic(Model::ControlSystem.table_name)
             returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             (returned_ids | expected_ids).size == total_ids
@@ -129,7 +127,7 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"module_id" => module_id})
           path = "#{Systems.base_route}?#{params}"
 
-          found = until_expected("GET", path, authorization_header) do |response|
+          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
             refresh_elastic(Model::ControlSystem.table_name)
             returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             (returned_ids | expected_ids).size == total_ids
@@ -154,7 +152,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -171,7 +169,7 @@ module PlaceOS::Api
         cs.persisted?.should be_true
         mod.persisted?.should be_true
 
-        spec_add_module(cs, mod, authorization_header)
+        spec_add_module(cs, mod, Spec::Authentication.headers)
         {cs, mod}.each &.destroy
       end
 
@@ -183,7 +181,7 @@ module PlaceOS::Api
 
         result = client.put(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 404
@@ -200,13 +198,13 @@ module PlaceOS::Api
         cs2.persisted?.should be_true
         mod.persisted?.should be_true
 
-        cs1 = spec_add_module(cs1, mod, authorization_header)
+        cs1 = spec_add_module(cs1, mod, Spec::Authentication.headers)
 
-        spec_add_module(cs2, mod, authorization_header)
+        spec_add_module(cs2, mod, Spec::Authentication.headers)
 
-        cs1 = spec_delete_module(cs1, mod, authorization_header)
+        cs1 = spec_delete_module(cs1, mod, Spec::Authentication.headers)
 
-        spec_add_module(cs1, mod, authorization_header)
+        spec_add_module(cs1, mod, Spec::Authentication.headers)
       end
     end
 
@@ -224,7 +222,7 @@ module PlaceOS::Api
 
         mod_id = mod.id.as(String)
 
-        spec_delete_module(cs, mod, authorization_header)
+        spec_delete_module(cs, mod, Spec::Authentication.headers)
 
         Model::Module.find(mod_id).should be_nil
         {mod, cs}.each &.try &.destroy
@@ -246,7 +244,7 @@ module PlaceOS::Api
         cs1.modules.should contain mod_id
         cs2.modules.should contain mod_id
 
-        cs1 = spec_delete_module(cs1, mod, authorization_header)
+        cs1 = spec_delete_module(cs1, mod, Spec::Authentication.headers)
 
         cs2 = Model::ControlSystem.find!(cs2.id.as(String))
         cs2.modules.should contain mod_id
@@ -282,7 +280,7 @@ module PlaceOS::Api
         path = "#{Systems.base_route}#{control_system.id}/settings"
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.success?.should be_true
@@ -306,7 +304,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         unless result.success?
@@ -341,7 +339,7 @@ module PlaceOS::Api
 
       result = client.get(
         path: path,
-        headers: authorization_header,
+        headers: Spec::Authentication.headers,
       )
 
       result.body.includes?("function1").should be_true
@@ -372,7 +370,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -406,7 +404,7 @@ module PlaceOS::Api
 
         response = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
         String.from_json(response.body).should eq("1")
       end
@@ -428,7 +426,7 @@ module PlaceOS::Api
 
         response = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         state = Hash(String, String).from_json(response.body)
@@ -450,7 +448,7 @@ module PlaceOS::Api
 
         result = client.post(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -477,7 +475,7 @@ module PlaceOS::Api
 
         result = client.post(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -496,7 +494,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: Systems.base_route + "#{system_id}/metadata",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -510,7 +508,7 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(klass: Model::ControlSystem, controller_klass: Systems)
+      Spec.test_crd(klass: Model::ControlSystem, controller_klass: Systems)
 
       describe "update" do
         it "if version is valid" do
@@ -528,7 +526,7 @@ module PlaceOS::Api
           result = client.patch(
             path: path,
             body: cs.to_json,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.status_code.should eq 200
@@ -548,7 +546,7 @@ module PlaceOS::Api
           result = client.patch(
             path: path,
             body: cs.to_json,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.status_code.should eq 409
@@ -564,7 +562,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: Systems.base_route + "#{system_id}/metadata",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -578,9 +576,9 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      Specs.test_controller_scope(Systems)
+      Spec.test_controller_scope(Systems)
       it "should not allow start" do
-        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
+        _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :read)])
 
         cs = Model::Generator.control_system.save!
         mod = Model::Generator.module(control_system: cs).save!
@@ -594,14 +592,14 @@ module PlaceOS::Api
 
         result = client.post(
           path: path,
-          headers: scoped_authorization_header,
+          headers: scoped_headers,
         )
 
         result.status_code.should eq 403
       end
 
       it "should allow start" do
-        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :write)])
+        _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("systems", :write)])
 
         cs = Model::Generator.control_system.save!
         mod = Model::Generator.module(control_system: cs).save!
@@ -615,7 +613,7 @@ module PlaceOS::Api
 
         result = client.post(
           path: path,
-          headers: scoped_authorization_header,
+          headers: scoped_headers,
         )
 
         result.status_code.should eq 200

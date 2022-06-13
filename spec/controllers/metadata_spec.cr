@@ -3,8 +3,6 @@ require "timecop"
 
 module PlaceOS::Api
   describe Metadata do
-    _authenticated_user, authorization_header = authentication
-
     describe "GET /metadata/:id/children/" do
       it "shows zone children metadata" do
         parent = Model::Generator.zone.save!
@@ -19,7 +17,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: "#{Metadata.base_route}/#{parent_id}/children",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
@@ -48,7 +46,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: "#{Metadata.base_route}/#{parent_id}/children?name=special",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
@@ -61,8 +59,9 @@ module PlaceOS::Api
     end
 
     describe "PUT /metadata" do
-      it "creates metadata" do
+      it "creates metadata", focus: true do
         parent = Model::Generator.zone.save!
+
         meta = Model::Metadata::Interface.new(
           name: "test",
           description: "",
@@ -72,12 +71,12 @@ module PlaceOS::Api
         )
 
         parent_id = parent.id.as(String)
-        path = "#{Metadata.base_route}/#{parent_id}"
+        path = "#{Api::Metadata.base_route}/#{parent_id}"
 
         result = client.put(
           path: path,
           body: meta.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 201
@@ -103,7 +102,7 @@ module PlaceOS::Api
         result = client.put(
           path: path,
           body: meta.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 201
@@ -123,7 +122,7 @@ module PlaceOS::Api
         result = client.put(
           path: path,
           body: updated_meta.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -144,7 +143,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: "#{Metadata.base_route}/#{control_system_id}",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -162,7 +161,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: "#{Metadata.base_route}/#{control_system_id}?name=special",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -176,7 +175,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: "#{Metadata.base_route}/#{zone_id}",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -194,7 +193,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: "#{Metadata.base_route}/#{zone_id}?name=special",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -219,7 +218,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: File.join(Metadata.base_route, metadata.parent_id.as(String), "history"),
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -234,7 +233,7 @@ module PlaceOS::Api
         scope_name = "metadata"
 
         it "allows access to show" do
-          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+          _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
           parent = Model::Generator.zone.save!
           parent_id = parent.id.as(String)
@@ -248,7 +247,7 @@ module PlaceOS::Api
 
           result = client.get(
             path: "#{Metadata.base_route}/#{parent_id}/children",
-            headers: scoped_authorization_header,
+            headers: scoped_headers,
           )
           result.status_code.should eq 200
           Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
@@ -261,7 +260,7 @@ module PlaceOS::Api
         end
 
         it "should not allow access to delete" do
-          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+          _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
 
           parent = Model::Generator.zone.save!
           parent_id = parent.id.as(String)
@@ -277,7 +276,7 @@ module PlaceOS::Api
 
           result = client.delete(
             path: "#{Metadata.base_route}/#{id}",
-            headers: scoped_authorization_header,
+            headers: scoped_headers,
           )
           result.status_code.should eq 403
         end
@@ -287,7 +286,7 @@ module PlaceOS::Api
         scope_name = "metadata"
 
         it "should allow access to update" do
-          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+          _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
           parent = Model::Generator.zone.save!
           meta = Model::Metadata::Interface.new(
@@ -304,7 +303,7 @@ module PlaceOS::Api
           result = client.put(
             path: path,
             body: meta.to_json,
-            headers: scoped_authorization_header,
+            headers: scoped_headers,
           )
 
           new_metadata = Model::Metadata::Interface.from_json(result.body)
@@ -313,7 +312,7 @@ module PlaceOS::Api
         end
 
         it "should not allow access to show" do
-          _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+          _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
 
           parent = Model::Generator.zone.save!
           parent_id = parent.id.as(String)
@@ -327,14 +326,14 @@ module PlaceOS::Api
 
           result = client.get(
             path: "#{Metadata.base_route}/#{parent_id}/children",
-            headers: scoped_authorization_header,
+            headers: scoped_headers,
           )
           result.status_code.should eq 403
         end
       end
 
       it "checks that guests can read metadata" do
-        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+        _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
 
         zone = Model::Generator.zone.save!
         zone_id = zone.id.as(String)
@@ -342,7 +341,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: "#{Metadata.base_route}/#{zone_id}",
-          headers: scoped_authorization_header,
+          headers: scoped_headers,
         )
 
         result.status_code.should eq 200
@@ -353,14 +352,14 @@ module PlaceOS::Api
       end
 
       it "checks that guests cannot write metadata" do
-        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+        _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
 
         zone = Model::Generator.zone.save!
         zone_id = zone.id.as(String)
 
         result = client.post(
           path: "#{Metadata.base_route}/#{zone_id}",
-          headers: scoped_authorization_header,
+          headers: scoped_headers,
         )
         result.success?.should be_false
       end

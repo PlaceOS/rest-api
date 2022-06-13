@@ -3,12 +3,10 @@ require "timecop"
 
 module PlaceOS::Api
   describe SystemTriggers do
-    _, authorization_header = authentication
-
-    Specs.test_404(
+    Spec.test_404(
       SystemTriggers.base_route.gsub(/:sys_id/, "sys-#{Random.rand(9999)}"),
       model_name: Model::TriggerInstance.table_name,
-      headers: authorization_header,
+      headers: Spec::Authentication.headers,
     )
 
     describe "index", tags: "search" do
@@ -33,7 +31,7 @@ module PlaceOS::Api
 
           params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
           path = "#{path}?#{params}"
-          correct_response = until_expected("GET", path, authorization_header) do |response|
+          correct_response = until_expected("GET", path, Spec::Authentication.headers) do |response|
             results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             contains_correct = results.any?(inst1.id)
             contains_incorrect = results.any?(inst2.id)
@@ -57,7 +55,7 @@ module PlaceOS::Api
         result = client.post(
           path: path,
           body: body,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 201
@@ -73,7 +71,7 @@ module PlaceOS::Api
         id = trigger_instance.id.not_nil!
 
         path = SystemTriggers.base_route.gsub(/:sys_id/, sys.id) + id
-        result = client.get(path: path, headers: authorization_header)
+        result = client.get(path: path, headers: Spec::Authentication.headers)
 
         result.status_code.should eq 200
 
@@ -99,7 +97,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: {important: updated_importance}.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -121,7 +119,7 @@ module PlaceOS::Api
         id = model.id.not_nil!
         path = SystemTriggers.base_route.gsub(/:sys_id/, sys.id) + id
 
-        result = client.delete(path: path, headers: authorization_header)
+        result = client.delete(path: path, headers: Spec::Authentication.headers)
         result.status_code.should eq 200
 
         Model::TriggerInstance.find(id.as(String)).should be_nil

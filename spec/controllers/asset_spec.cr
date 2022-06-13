@@ -2,12 +2,10 @@ require "../helper"
 
 module PlaceOS::Api
   describe Assets do
-    _, authorization_header = authentication
-
-    Specs.test_404(Assets.base_route, model_name: Model::Asset.table_name, headers: authorization_header)
+    Spec.test_404(Assets.base_route, model_name: Model::Asset.table_name, headers: Spec::Authentication.headers)
 
     describe "index", tags: "search" do
-      Specs.test_base_index(klass: Model::Asset, controller_klass: Assets)
+      Spec.test_base_index(klass: Model::Asset, controller_klass: Assets)
     end
 
     describe "GET /asset-instances/:id/instances" do
@@ -17,7 +15,7 @@ module PlaceOS::Api
 
         response = client.get(
           path: File.join(Assets.base_route, asset.id.not_nil!, "asset_instances"),
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         # Can't use from_json directly on the model as `id` will not be parsed
@@ -28,7 +26,7 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(klass: Model::Asset, controller_klass: Assets)
+      Spec.test_crd(klass: Model::Asset, controller_klass: Assets)
     end
 
     it "update" do
@@ -42,7 +40,7 @@ module PlaceOS::Api
       result = client.patch(
         path: path,
         body: asset.to_json,
-        headers: authorization_header,
+        headers: Spec::Authentication.headers,
       )
 
       result.status_code.should eq 200
@@ -60,11 +58,11 @@ module PlaceOS::Api
         asset_instance_id = asset_instance.id.as(String)
 
         params = HTTP::Params{"instances" => "true"}
-        path = "#{Assets.base}#{asset.id}?#{params}"
+        path = "#{Assets.base_route}#{asset.id}?#{params}"
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         response = JSON.parse(result.body)
@@ -74,7 +72,7 @@ module PlaceOS::Api
   end
 
   describe "scopes" do
-    Specs.test_controller_scope(Assets)
-    Specs.test_update_write_scope(Assets)
+    Spec.test_controller_scope(Assets)
+    Spec.test_update_write_scope(Assets)
   end
 end

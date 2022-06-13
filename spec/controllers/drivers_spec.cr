@@ -2,10 +2,8 @@ require "../helper"
 
 module PlaceOS::Api
   describe Drivers do
-    _, authorization_header = authentication
-
     describe "index", tags: "search" do
-      Specs.test_base_index(klass: Model::Driver, controller_klass: Drivers)
+      Spec.test_base_index(klass: Model::Driver, controller_klass: Drivers)
 
       it "filters queries by driver role" do
         service = Model::Generator.driver(role: Model::Driver::Role::Service)
@@ -19,7 +17,7 @@ module PlaceOS::Api
 
         refresh_elastic(Model::Driver.table_name)
         path = "#{Drivers.base_route}?#{params}"
-        found = until_expected("GET", path, authorization_header) do |response|
+        found = until_expected("GET", path, Spec::Authentication.headers) do |response|
           results = Array(Hash(String, JSON::Any)).from_json(response.body)
           all_service_roles = results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }
           contains_search_term = results.any? { |r| r["id"] == service.id }
@@ -30,14 +28,14 @@ module PlaceOS::Api
       end
     end
 
-    Specs.test_404(Drivers.base_route, model_name: Model::Driver.table_name, headers: authorization_header)
+    Spec.test_404(Drivers.base_route, model_name: Model::Driver.table_name, headers: Spec::Authentication.headers)
 
     describe "CRUD operations", tags: "crud" do
       before_each do
         HttpMocks.reset
       end
 
-      Specs.test_crd(klass: Model::Driver, controller_klass: Drivers)
+      Spec.test_crd(klass: Model::Driver, controller_klass: Drivers)
 
       describe "update" do
         it "if role is preserved" do
@@ -50,7 +48,7 @@ module PlaceOS::Api
           result = client.patch(
             path: path,
             body: driver.changed_attributes.to_json,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
           result.success?.should be_true
 
@@ -67,7 +65,7 @@ module PlaceOS::Api
           result = client.patch(
             path: path,
             body: driver.changed_attributes.to_json,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.success?.should_not be_true
@@ -83,7 +81,7 @@ module PlaceOS::Api
 
         response = client.get(
           path: "#{Drivers.base_route}#{driver.id.not_nil!}/compiled",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         response.success?.should be_true
@@ -94,7 +92,7 @@ module PlaceOS::Api
 
         response = client.post(
           path: "#{Drivers.base_route}#{driver.id.not_nil!}/recompile",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         response.success?.should be_true
@@ -108,7 +106,7 @@ module PlaceOS::Api
         HttpMocks.core_compiled
       end
 
-      Specs.test_controller_scope(Drivers)
+      Spec.test_controller_scope(Drivers)
     end
   end
 end

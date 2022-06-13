@@ -42,7 +42,7 @@ services:
       - ${PWD}/shard.yml:/app/shard.yml
       - ${PWD}/coverage:/app/coverage
     depends_on:
-      - auth
+      # - auth
       - build
       - core
       - elastic
@@ -50,6 +50,8 @@ services:
       - redis
       - rethink
       - search-ingest
+    security_opt:
+      - seccomp:unconfined
     environment:
       # Environment
       GITHUB_ACTION: ${GITHUB_ACTION:-}
@@ -115,22 +117,22 @@ services:
       # Environment
       <<: *deployment-env
 
-  auth: # Authentication Service
-    image: placeos/auth:nightly
-    restart: always
-    hostname: auth
-    depends_on:
-      - redis
-      - rethink
-    environment:
-      <<: *rethinkdb-client-env
-      <<: *redis-client-env
-      COAUTH_NO_SSL: "true"
-      TZ: $TZ
-      PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
+  # auth: # Authentication Service
+  #   image: placeos/auth:nightly
+  #   restart: always
+  #   hostname: auth
+  #   depends_on:
+  #     - redis
+  #     - rethink
+  #   environment:
+  #     <<: *rethinkdb-client-env
+  #     <<: *redis-client-env
+  #     COAUTH_NO_SSL: "true"
+  #     TZ: $TZ
+  #     PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
-    image: ghcr.io/placeos/core:feat-build
+    image: placeos/core:feat-build
     restart: always
     hostname: core
     depends_on:

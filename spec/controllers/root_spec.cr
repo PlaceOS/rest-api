@@ -2,18 +2,16 @@ require "../helper"
 
 module PlaceOS::Api
   describe Root do
-    _authenticated_user, authorization_header = authentication
-
     describe "GET /" do
       it "responds to health checks" do
-        result = client.get(Root.base_route, headers: authorization_header)
+        result = client.get(Root.base_route, headers: Spec::Authentication.headers)
         result.status_code.should eq 200
       end
     end
 
     describe "GET /scopes" do
       it "gets scope names" do
-        result = client.get(File.join(Root.base_route, "scopes"), headers: authorization_header)
+        result = client.get(File.join(Root.base_route, "scopes"), headers: Spec::Authentication.headers)
         scopes = Array(String).from_json(result.body)
         scopes.size.should eq(Root.scopes.size)
       end
@@ -31,7 +29,7 @@ module PlaceOS::Api
 
     describe "GET /version" do
       it "renders version" do
-        result = client.get(File.join(Root.base_route, "version"), headers: authorization_header)
+        result = client.get(File.join(Root.base_route, "version"), headers: Spec::Authentication.headers)
         result.status_code.should eq 200
         response = PlaceOS::Model::Version.from_json(result.body)
 
@@ -44,7 +42,7 @@ module PlaceOS::Api
 
     describe "GET /platform" do
       it "renders platform information" do
-        result = client.get(File.join(Root.base_route, "platform"), headers: authorization_header)
+        result = client.get(File.join(Root.base_route, "platform"), headers: Spec::Authentication.headers)
         result.status_code.should eq 200
         response = PlaceOS::Api::Root::PlatformInfo.from_json(result.body)
 
@@ -64,7 +62,7 @@ module PlaceOS::Api
         end
 
         params = HTTP::Params{"channel" => subscription_channel}
-        result = client.post(File.join(Root.base_route, "signal?#{params}"), body: "hello", headers: authorization_header)
+        result = client.post(File.join(Root.base_route, "signal?#{params}"), body: "hello", headers: Spec::Authentication.headers)
         result.status_code.should eq 200
 
         begin
@@ -80,12 +78,12 @@ module PlaceOS::Api
       end
 
       it "validates presence of `channel` param" do
-        result = client.post(File.join(Root.base_route, "signal"), body: "hello", headers: authorization_header)
+        result = client.post(File.join(Root.base_route, "signal"), body: "hello", headers: Spec::Authentication.headers)
         result.status_code.should eq 400
       end
 
       context "guest users" do
-        _, guest_header = authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::Scope::GUEST])
+        _, guest_header = Spec::Authentication.authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::Scope::GUEST])
 
         it "prevented access to non-guest channels " do
           result = client.post(File.join(Root.base_route, "signal?channel=dummy"), body: "hello", headers: guest_header)

@@ -3,11 +3,10 @@ require "timecop"
 
 module PlaceOS::Api
   describe Modules do
-    _authenticated_user, authorization_header = authentication
-    Specs.test_404(Modules.base_route, model_name: Model::Module.table_name, headers: authorization_header)
+    Spec.test_404(Modules.base_route, model_name: Model::Module.table_name, headers: Spec::Authentication.headers)
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(klass: Model::Module, controller_klass: Modules)
+      Spec.test_crd(klass: Model::Module, controller_klass: Modules)
 
       it "update preserves logic module connection status" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
@@ -21,7 +20,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: mod.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -43,7 +42,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: mod.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -69,7 +68,7 @@ module PlaceOS::Api
 
         params = HTTP::Params.encode({"q" => name})
         path = "#{Modules.base_route.rstrip('/')}?#{params}"
-        header = authorization_header
+        header = Spec::Authentication.headers
         found = until_expected("GET", path, header) do |response|
           Array(Hash(String, JSON::Any)).from_json(response.body).any? do |result|
             result["id"].as_s == doc.id
@@ -90,6 +89,7 @@ module PlaceOS::Api
           "#{Modules.base_route}?#{HTTP::Params{"control_system_id" => sys.id.as(String)}}"
         )
 
+        response.status.success?.should be_true
         response.headers["X-Total-Count"].should eq("1")
         Array(Hash(String, JSON::Any)).from_json(response.body.to_s).map(&.["id"].as_s).first?.should eq(mod.id)
       end
@@ -111,7 +111,7 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
           path = "#{Modules.base_route}?#{params}"
 
-          found = until_expected("GET", path, authorization_header) do |response|
+          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
             results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
             contains_correct = results.any?(mod1.id)
             contains_incorrect = results.any?(mod2.id)
@@ -131,7 +131,7 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"connected" => "true"})
           path = "#{Modules.base_route}?#{params}"
 
-          found = until_expected("GET", path, authorization_header) do |response|
+          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
             results = Array(Hash(String, JSON::Any)).from_json(response.body)
 
             all_connected = results.all? { |r| r["connected"].as_bool == true }
@@ -152,7 +152,7 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"no_logic" => "true"})
           path = "#{Modules.base_route}?#{params}"
 
-          found = until_expected("GET", path, authorization_header) do |response|
+          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
             results = Array(Hash(String, JSON::Any)).from_json(response.body)
 
             no_logic = results.all? { |r| r["role"].as_i != Model::Driver::Role::Logic.to_i }
@@ -197,7 +197,7 @@ module PlaceOS::Api
         path = "#{Modules.base_route}#{mod.id}/settings"
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.success?.should be_true
@@ -224,7 +224,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         unless result.success?
@@ -242,7 +242,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         unless result.success?
@@ -260,7 +260,7 @@ module PlaceOS::Api
           path = "#{Modules.base_route}#{mod.id}/ping"
           result = client.post(
             path: path,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.success?.should be_false
@@ -278,7 +278,7 @@ module PlaceOS::Api
           path = "#{Modules.base_route}#{mod.id}/ping"
           result = client.post(
             path: path,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           body = JSON.parse(result.body)
@@ -287,10 +287,10 @@ module PlaceOS::Api
         end
 
         describe "scopes" do
-          Specs.test_controller_scope(Modules)
+          Spec.test_controller_scope(Modules)
 
           it "checks scope on update" do
-            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+            _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Write)])
             driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
             mod = Model::Generator.module(driver: driver).save!
 
@@ -300,15 +300,15 @@ module PlaceOS::Api
             id = mod.id.as(String)
             path = File.join(Modules.base_route, id)
 
-            result = Scopes.update(path, mod, scoped_authorization_header)
+            result = Scopes.update(path, mod, scoped_headers)
 
             result.status_code.should eq 200
             updated = Model::Module.from_trusted_json(result.body)
             updated.id.should eq mod.id
             updated.connected.should eq !connected
 
-            _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Read)])
-            result = Scopes.update(path, mod, scoped_authorization_header)
+            _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("modules", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+            result = Scopes.update(path, mod, scoped_headers)
 
             result.success?.should be_false
             result.status_code.should eq 403

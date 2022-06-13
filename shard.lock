@@ -79,11 +79,11 @@ shards:
 
   debug:
     git: https://github.com/sija/debug.cr.git
-    version: 2.0.1
+    version: 2.0.2
 
   defined:
     git: https://github.com/wyhaines/defined.cr.git
-    version: 0.3.4
+    version: 0.3.6
 
   dtls:
     git: https://github.com/spider-gazelle/crystal-dtls.git
@@ -187,7 +187,7 @@ shards:
 
   opentelemetry-instrumentation:
     git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.3.6+git.commit.64fa1db57f535c511e6515620e7f8e4ce8a72780
+    version: 0.3.5
 
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
@@ -203,7 +203,7 @@ shards:
 
   placeos-build:
     git: https://github.com/placeos/build.git
-    version: 1.0.3+git.commit.67e7e5aebe872b8d7369fa572e55e2be26d94503
+    version: 1.0.3+git.commit.9cebd6e63b0466d5c2e580dbf67854694a54f799
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.3.1+git.commit.6995c2ae32c74b9a44d7875ff2f55abd5603bbad
+    version: 4.3.1+git.commit.516813c454424c19fe68372dc1d685180a745064
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -227,7 +227,7 @@ shards:
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
-    version: 0.10.3
+    version: 0.10.5
 
   placeos-models:
     git: https://github.com/placeos/models.git
@@ -251,7 +251,7 @@ shards:
 
   raven:
     git: https://github.com/sija/raven.cr.git
-    version: 1.9.1+git.commit.d53319dc4ce26fc44f13b9c1c6ffb8699e22899b
+    version: 1.9.2+git.commit.de91bb38858124270ea06be61641153b8947e18f
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git

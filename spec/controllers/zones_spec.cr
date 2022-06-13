@@ -2,16 +2,14 @@ require "../helper"
 
 module PlaceOS::Api
   describe Zones do
-    _authenticated_user, authorization_header = authentication
-
-    Specs.test_404(Zones.base_route, model_name: Model::Zone.table_name, headers: authorization_header)
+    Spec.test_404(Zones.base_route, model_name: Model::Zone.table_name, headers: Spec::Authentication.headers)
 
     describe "index", tags: "search" do
-      Specs.test_base_index(klass: Model::Zone, controller_klass: Zones)
+      Spec.test_base_index(klass: Model::Zone, controller_klass: Zones)
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(klass: Model::Zone, controller_klass: Zones)
+      Spec.test_crd(klass: Model::Zone, controller_klass: Zones)
       it "update" do
         zone = Model::Generator.zone.save!
         original_name = zone.name
@@ -22,7 +20,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: zone.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.success?.should be_true
@@ -42,7 +40,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: Zones.base_route + "#{zone_id}/metadata",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -56,8 +54,8 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      Specs.test_controller_scope(Zones)
-      Specs.test_update_write_scope(Zones)
+      Spec.test_controller_scope(Zones)
+      Spec.test_update_write_scope(Zones)
     end
   end
 end

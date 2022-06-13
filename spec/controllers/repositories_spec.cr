@@ -2,16 +2,14 @@ require "../helper"
 
 module PlaceOS::Api
   describe Repositories do
-    _authenticated_user, authorization_header = authentication
-
-    Specs.test_404(Repositories.base_route, model_name: Model::Repository.table_name, headers: authorization_header)
+    Spec.test_404(Repositories.base_route, model_name: Model::Repository.table_name, headers: Spec::Authentication.headers)
 
     describe "index", tags: "search" do
-      Specs.test_base_index(Model::Repository, Repositories)
+      Spec.test_base_index(Model::Repository, Repositories)
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(Model::Repository, Repositories)
+      Spec.test_crd(Model::Repository, Repositories)
 
       it "update" do
         repository = Model::Generator.repository.save!
@@ -23,7 +21,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: repository.changed_attributes.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -42,7 +40,7 @@ module PlaceOS::Api
           result = client.patch(
             path: path,
             body: {uri: "https://changed:8080"}.to_json,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.status_code.should eq 422
@@ -56,7 +54,7 @@ module PlaceOS::Api
           result = client.patch(
             path: path,
             body: {uri: "https://changed:8080"}.to_json,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.status_code.should eq 200
@@ -74,7 +72,7 @@ module PlaceOS::Api
           path = "#{Repositories.base_route}#{id}/drivers"
           result = client.get(
             path: path,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.status.should eq HTTP::Status::BAD_REQUEST
@@ -85,7 +83,7 @@ module PlaceOS::Api
           path = "#{Repositories.base_route}#{id}/details"
           result = client.get(
             path: path,
-            headers: authorization_header,
+            headers: Spec::Authentication.headers,
           )
 
           result.status.should eq HTTP::Status::BAD_REQUEST
@@ -125,8 +123,8 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      Specs.test_controller_scope(Repositories)
-      Specs.test_update_write_scope(Repositories)
+      Spec.test_controller_scope(Repositories)
+      Spec.test_update_write_scope(Repositories)
     end
   end
 end

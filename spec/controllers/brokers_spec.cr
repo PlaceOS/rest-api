@@ -2,16 +2,14 @@ require "../helper"
 
 module PlaceOS::Api
   describe Brokers do
-    _, authorization_header = authentication
-
-    Specs.test_404(Brokers.base_route, model_name: Model::Broker.table_name, headers: authorization_header)
+    Spec.test_404(Brokers.base_route, model_name: Model::Broker.table_name, headers: Spec::Authentication.headers)
 
     describe "index", tags: "search" do
-      Specs.test_base_index(klass: Model::Broker, controller_klass: Brokers)
+      Spec.test_base_index(klass: Model::Broker, controller_klass: Brokers)
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(Model::Broker, Brokers)
+      Spec.test_crd(Model::Broker, Brokers)
 
       it "update" do
         broker = Model::Generator.broker.save!
@@ -23,7 +21,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: broker.changed_attributes.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -35,8 +33,8 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      Specs.test_update_write_scope(Brokers)
-      Specs.test_controller_scope(Brokers)
+      Spec.test_update_write_scope(Brokers)
+      Spec.test_controller_scope(Brokers)
     end
   end
 end

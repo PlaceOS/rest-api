@@ -2,13 +2,12 @@ require "../helper"
 
 module PlaceOS::Api
   describe Settings do
-    _, authorization_header = authentication
-    Specs.test_404(Settings.base_route, model_name: Model::Settings.table_name, headers: authorization_header)
+    Spec.test_404(Settings.base_route, model_name: Model::Settings.table_name, headers: Spec::Authentication.headers)
 
     describe "support user" do
       context "access" do
         it "index" do
-          _, support_header = authentication(sys_admin: false, support: true)
+          _, support_header = Spec::Authentication.authentication(sys_admin: false, support: true)
           sys = Model::Generator.control_system.save!
           setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
           setting.settings_string = "tree: 1"
@@ -22,7 +21,7 @@ module PlaceOS::Api
         end
 
         it "show" do
-          _, support_header = authentication(sys_admin: false, support: true)
+          _, support_header = Spec::Authentication.authentication(sys_admin: false, support: true)
           sys = Model::Generator.control_system.save!
           setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
           setting.settings_string = "tree: 1"
@@ -50,7 +49,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header
+          headers: Spec::Authentication.headers
         )
 
         result.status_code.should eq 200
@@ -75,7 +74,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: File.join(Settings.base_route, "?parent_id=#{sys.id},#{sys2.id}"),
-          headers: authorization_header
+          headers: Spec::Authentication.headers
         )
 
         result.status_code.should eq 200
@@ -103,7 +102,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: File.join(Settings.base_route, "?parent_id=#{sys.id}"),
-          headers: authorization_header
+          headers: Spec::Authentication.headers
         )
 
         result.status_code.should eq 200
@@ -140,7 +139,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: File.join(Settings.base_route, "/#{setting.id}/history"),
-          headers: authorization_header
+          headers: Spec::Authentication.headers
         )
 
         result.success?.should be_true
@@ -151,7 +150,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: File.join(Settings.base_route, "/#{setting.id}/history?limit=1"),
-          headers: authorization_header
+          headers: Spec::Authentication.headers
         )
 
         link = %(</api/engine/v2/settings/#{setting.id}/history?limit=1&offset=2>; rel="next")
@@ -165,7 +164,7 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      Specs.test_crd(klass: Model::Settings, controller_klass: Settings)
+      Spec.test_crd(klass: Model::Settings, controller_klass: Settings)
       it "update" do
         settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
         original_settings = settings.settings_string
@@ -176,7 +175,7 @@ module PlaceOS::Api
         result = client.patch(
           path: path,
           body: settings.to_json,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -189,17 +188,17 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      Specs.test_controller_scope(Settings)
+      Spec.test_controller_scope(Settings)
 
       it "checks scope on update" do
-        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Write)])
+        _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Write)])
         settings = Model::Generator.settings(encryption_level: Encryption::Level::None).save!
         original_settings = settings.settings_string
         settings.settings_string = %(hello: "world"\n)
 
         id = settings.id.as(String)
         path = File.join(Settings.base_route, id)
-        result = Scopes.update(path, settings, scoped_authorization_header)
+        result = Scopes.update(path, settings, scoped_headers)
 
         result.status_code.should eq 200
         updated = Model::Settings.from_trusted_json(result.body)
@@ -208,8 +207,8 @@ module PlaceOS::Api
         updated.settings_string.should_not eq original_settings
         updated.destroy
 
-        _, scoped_authorization_header = authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Read)])
-        result = Scopes.update(path, settings, scoped_authorization_header)
+        _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("settings", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+        result = Scopes.update(path, settings, scoped_headers)
 
         result.success?.should be_false
         result.status_code.should eq 403

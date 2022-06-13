@@ -11,9 +11,27 @@ require "./spec_helpers/*"
 
 include PlaceOS::Api::SpecClient
 
+abstract class ActionController::Base
+  macro inherited
+    macro finished
+      {% begin %}
+      def self.base_route
+        NAMESPACE[0]
+      end
+      {% end %}
+    end
+  end
+end
+
+module PlaceOS::Api
+  include Spec::Authentication
+end
+
 Spec.before_suite do
   Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: :trace)
   clear_tables
+  PlaceOS::Api::Spec::Authentication.authenticated.tap { |a| pp! a }
+  sleep 100.milliseconds
 end
 
 Spec.before_each do
@@ -37,8 +55,10 @@ def clear_tables
   {% begin %}
     Promise.all(
       {% for t in {
+                    PlaceOS::Model::ApiKey,
                     PlaceOS::Model::Asset,
                     PlaceOS::Model::AssetInstance,
+                    PlaceOS::Model::Authority,
                     PlaceOS::Model::ControlSystem,
                     PlaceOS::Model::Driver,
                     PlaceOS::Model::Module,
@@ -46,63 +66,13 @@ def clear_tables
                     PlaceOS::Model::Settings,
                     PlaceOS::Model::Trigger,
                     PlaceOS::Model::TriggerInstance,
+                    PlaceOS::Model::User,
                     PlaceOS::Model::Zone,
                   } %}
         Promise.defer { {{t.id}}.clear },
       {% end %}
-    )
+    ).get
   {% end %}
-end
-
-CREATION_LOCK = Mutex.new(protection: :reentrant)
-
-# Yield an authenticated user, and a header with X-API-Key set
-def x_api_authentication(sys_admin : Bool = true, support : Bool = true, scope = [PlaceOS::Model::UserJWT::Scope::PUBLIC])
-  CREATION_LOCK.synchronize do
-    user, _header = authentication(sys_admin, support, scope)
-    unless api_key = user.api_tokens.first?
-      api_key = PlaceOS::Model::ApiKey.new
-      api_key.user = user
-      api_key.name = user.name
-      api_key.save!
-    end
-
-    authorization_header = HTTP::Headers{
-      "X-API-Key"    => api_key.x_api_key.not_nil!,
-      "Content-Type" => "application/json",
-    }
-
-    {api_key.user, authorization_header}
-  end
-end
-
-# Yield an authenticated user, and a header with Authorization bearer set
-# This method is synchronised due to the redundant top-level calls.
-def authentication(sys_admin : Bool = true, support : Bool = true, scope = [PlaceOS::Model::UserJWT::Scope::PUBLIC])
-  CREATION_LOCK.synchronize do
-    authenticated_user = generate_auth_user(sys_admin, support, scope)
-
-    headers = HTTP::Headers{
-      "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
-      "Content-Type"  => "application/json",
-      "Host"          => "localhost",
-    }
-
-    {authenticated_user, headers}
-  end
-end
-
-def generate_auth_user(sys_admin, support, scopes)
-  scope_list = scopes.try &.join('-', &.to_s)
-
-  test_user_email = PlaceOS::Model::Email.new("test-#{"admin-" if sys_admin}#{"supp" if support}-scope-#{scope_list}-rest-api@place.tech")
-
-  PlaceOS::Model::User.where(email: test_user_email).first? || PlaceOS::Model::Generator.user.tap do |user|
-    user.email = test_user_email
-    user.sys_admin = sys_admin
-    user.support = support
-    user.save!
-  end
 end
 
 def until_expected(method, path, headers : HTTP::Headers, timeout : Time::Span = 3.seconds, &block : HTTP::Client::Response -> Bool)
@@ -138,9 +108,7 @@ def until_expected(method, path, headers : HTTP::Headers, timeout : Time::Span =
   rescue
   end
 
-  success = channel.receive?
-  channel.close
-  !!success
+  !!channel.receive?.tap { channel.close }
 end
 
 def random_name

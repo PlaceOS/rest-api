@@ -2,8 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Users do
-    authenticated_user, authorization_header = authentication
-    Specs.test_404(Users.base_route, model_name: Model::User.table_name, headers: authorization_header)
+    Spec.test_404(Users.base_route, model_name: Model::User.table_name, headers: Spec::Authentication.headers)
 
     describe "CRUD operations", tags: "crud" do
       it "query via email" do
@@ -18,7 +17,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: path,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -33,7 +32,7 @@ module PlaceOS::Api
         id = model.id.as(String)
         result = client.get(
           path: File.join(Users.base_route, id),
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -49,7 +48,7 @@ module PlaceOS::Api
         id = model.id.as(String)
         result = client.get(
           path: Users.base_route + model.email.to_s,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -69,7 +68,7 @@ module PlaceOS::Api
         id = model.id.as(String)
         result = client.get(
           path: Users.base_route + login,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -88,7 +87,7 @@ module PlaceOS::Api
         id = model.id.as(String)
         result = client.get(
           path: Users.base_route + staff_id,
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
@@ -113,7 +112,7 @@ module PlaceOS::Api
           result = client.patch(
             path: File.join(Users.base_route, id),
             body: {groups: updated_groups}.to_json,
-            headers: authorization_header
+            headers: Spec::Authentication.headers
           )
 
           result.status_code.should eq 200
@@ -128,15 +127,14 @@ module PlaceOS::Api
 
     describe "GET /users/current" do
       it "renders the current user" do
-        authenticated_user, authorization_header = authentication
         result = client.get(
           path: File.join(Users.base_route, "/current"),
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         result.status_code.should eq 200
         response_user = Model::User.from_trusted_json(result.body)
-        response_user.id.should eq authenticated_user.id
+        response_user.id.should eq Spec::Authentication.user.id
       end
     end
 
@@ -148,7 +146,7 @@ module PlaceOS::Api
 
         result = client.get(
           path: Users.base_route + "#{user_id}/metadata",
-          headers: authorization_header,
+          headers: Spec::Authentication.headers,
         )
 
         metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
@@ -162,7 +160,7 @@ module PlaceOS::Api
     end
 
     describe "scopes" do
-      Specs.test_controller_scope(Users)
+      Spec.test_controller_scope(Users)
     end
   end
 end
