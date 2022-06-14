@@ -71,7 +71,7 @@ shards:
 
   defined:
     git: https://github.com/wyhaines/defined.cr.git
-    version: 0.3.4
+    version: 0.3.6
 
   dtls:
     git: https://github.com/spider-gazelle/crystal-dtls.git
@@ -183,7 +183,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.3.1+git.commit.caa4031e550421f3885b4d44becbbe977c716358
+    version: 4.3.1+git.commit.516813c454424c19fe68372dc1d685180a745064
 
   placeos-core-client:
     git: https://github.com/placeos/core-client.git
