@@ -14,9 +14,9 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :revive, :update_alt]
 
-    before_action :user, only: [:destroy, :update, :revive, :show]
+    before_action :user, only: [:destroy, :update, :revive, :show, :delete_resource_token]
 
-    before_action :check_admin, only: [:index, :destroy, :create, :revive]
+    before_action :check_admin, only: [:index, :destroy, :create, :revive, :delete_resource_token]
 
     # Callbacks
     ###############################################################################################
@@ -156,6 +156,15 @@ module PlaceOS::Api
           raise error
         end
       end
+    end
+
+    delete("/:id/resource_token", :delete_resource_token) do
+      user.access_token = nil
+      user.refresh_token = nil
+      user.expires_at = nil
+      user.expires = false
+      user.save!
+      head :ok
     end
 
     # CRUD
