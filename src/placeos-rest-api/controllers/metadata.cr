@@ -197,8 +197,8 @@ module PlaceOS::Api
 
         metadata.assign_from_interface(user_token, interface, merge)
       else
-        # When creating a new metadata, must be at least a support user
-        raise Error::Forbidden.new unless Model::Metadata.user_can_create?(interface.parent_id, user_token)
+        # When creating a new metadata, must be at least a support user or own the metadata
+        raise Error::Forbidden.new unless Model::Metadata.user_can_create?(parent_id, user_token)
 
         # Create a new Metadata
         Model::Metadata.from_interface(interface).tap do |model|
