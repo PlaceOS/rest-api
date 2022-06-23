@@ -228,7 +228,9 @@ module PlaceOS::Api
         user.deleted = true
         user.save
       else
+        user_id = user.id
         user.destroy
+        spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: user_id}) }
       end
       head :ok
     rescue e : Model::Error
