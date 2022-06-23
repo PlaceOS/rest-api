@@ -137,6 +137,19 @@ module PlaceOS::Api
       mutate(merge: false)
     end
 
+    SIGNAL_CHANNEL = "placeos/metadata/changed"
+
+    protected def self.signal_metadata(action : Symbol, metadata) : Nil
+      payload = {
+        action:   action,
+        metadata: metadata,
+      }.to_json
+
+      Log.info { "signalling #{SIGNAL_CHANNEL} with #{payload.bytesize} bytes" }
+
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(SIGNAL_CHANNEL, payload)
+    end
+
     # Find (otherwise create) then update (or patch) the Metadata.
     protected def mutate(merge : Bool)
       metadata = Model::Metadata::Interface.from_json(self.body)
@@ -148,7 +161,9 @@ module PlaceOS::Api
       response, status = save_and_status(metadata)
 
       if status.ok? && response.is_a?(Model::Metadata)
-        render json: Model::Metadata.interface(response), status: status
+        payload = response.interface
+        spawn { self.class.signal_metadata(:update, payload) }
+        render json: payload, status: status
       else
         render json: response, status: status
       end
@@ -160,6 +175,18 @@ module PlaceOS::Api
       end
 
       Model::Metadata.for(parent_id, metadata_name).each &.destroy
+      spawn do
+        if metadata_name.empty?
+          self.class.signal_metadata(:destroy_all, {
+            parent_id: parent_id,
+          })
+        else
+          self.class.signal_metadata(:destroy, {
+            parent_id: parent_id,
+            name:      metadata_name,
+          })
+        end
+      end
 
       head :ok
     end
