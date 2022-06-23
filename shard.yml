@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 1.48.0
+version: 2.0.0
 crystal: ">= 1.1.1"
 
 targets:
@@ -61,11 +61,10 @@ dependencies:
     github: place-labs/log-backend
     version: ">= 0.8.13"
 
-
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 8.10
+    version: ~> 8.11
 
   # An abstraction over Fibers
   promise:
