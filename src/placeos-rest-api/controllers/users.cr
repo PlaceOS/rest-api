@@ -44,6 +44,10 @@ module PlaceOS::Api
       boolean_param("include_deleted")
     end
 
+    getter? include_metadata : Bool do
+      boolean_param("include_metadata")
+    end
+
     ###############################################################################################
 
     getter user : Model::User do
@@ -181,9 +185,13 @@ module PlaceOS::Api
         query.filter({"authority_id" => [authority]})
       end
 
-      render_json do |json|
-        json.array do
-          paginate_results(elastic, query).each &.to_admin_json(json)
+      if include_metadata?
+        render_json do |json|
+          json.array { paginate_results(elastic, query).each &.to_admin_metadata_json(json) }
+        end
+      else
+        render_json do |json|
+          json.array { paginate_results(elastic, query).each &.to_admin_json(json) }
         end
       end
     end
@@ -191,7 +199,11 @@ module PlaceOS::Api
     def show
       # We only want to provide limited "public" information
       render_json do |json|
-        is_admin? ? user.to_admin_json(json) : user.to_public_json(json)
+        if is_admin?
+          include_metadata? ? user.to_admin_metadata_json(json) : user.to_admin_json(json)
+        else
+          user.to_public_json(json)
+        end
       end
     end
 
