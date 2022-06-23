@@ -60,6 +60,9 @@ module PlaceOS::Api
       if range_end < total_items
         query_params["offset"] = (range_end + 1).to_s
         query_params["limit"] = query.limit.to_s
+        if ref = data[:ref]
+          query_params["ref"] = ref
+        end
         response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
       end
 
