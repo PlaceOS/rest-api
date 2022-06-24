@@ -195,7 +195,7 @@ module PlaceOS::Api
                 end
 
       path = Path["placeos/"].join(channel).to_s
-      Log.info { "signalling #{path} with #{payload.size} bytes" }
+      Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
 
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
       head :ok

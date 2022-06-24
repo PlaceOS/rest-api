@@ -14,9 +14,9 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :revive, :update_alt]
 
-    before_action :user, only: [:destroy, :update, :revive, :show]
+    before_action :user, only: [:destroy, :update, :revive, :show, :delete_resource_token]
 
-    before_action :check_admin, only: [:index, :destroy, :create, :revive]
+    before_action :check_admin, only: [:index, :destroy, :create, :revive, :delete_resource_token]
 
     # Callbacks
     ###############################################################################################
@@ -42,6 +42,10 @@ module PlaceOS::Api
 
     getter? include_deleted : Bool do
       boolean_param("include_deleted")
+    end
+
+    getter? include_metadata : Bool do
+      boolean_param("include_metadata")
     end
 
     ###############################################################################################
@@ -158,6 +162,15 @@ module PlaceOS::Api
       end
     end
 
+    delete("/:id/resource_token", :delete_resource_token) do
+      user.access_token = nil
+      user.refresh_token = nil
+      user.expires_at = nil
+      user.expires = false
+      user.save!
+      head :ok
+    end
+
     # CRUD
     ###############################################################################################
 
@@ -165,6 +178,7 @@ module PlaceOS::Api
       elastic = Model::User.elastic
       params["q"] = %("#{params["q"]}") if params["q"]?.to_s.is_email?
       query = elastic.query(params)
+      query.sort(NAME_SORT_ASC)
 
       query.must_not({"deleted" => [true]}) unless include_deleted?
 
@@ -172,9 +186,13 @@ module PlaceOS::Api
         query.filter({"authority_id" => [authority]})
       end
 
-      render_json do |json|
-        json.array do
-          paginate_results(elastic, query).each &.to_admin_json(json)
+      if include_metadata?
+        render_json do |json|
+          json.array { paginate_results(elastic, query).each &.to_admin_metadata_json(json) }
+        end
+      else
+        render_json do |json|
+          json.array { paginate_results(elastic, query).each &.to_admin_json(json) }
         end
       end
     end
@@ -182,7 +200,11 @@ module PlaceOS::Api
     def show
       # We only want to provide limited "public" information
       render_json do |json|
-        is_admin? ? user.to_admin_json(json) : user.to_public_json(json)
+        if is_admin?
+          include_metadata? ? user.to_admin_metadata_json(json) : user.to_admin_json(json)
+        else
+          user.to_public_json(json)
+        end
       end
     end
 
@@ -219,7 +241,9 @@ module PlaceOS::Api
         user.deleted = true
         user.save
       else
+        user_id = user.id
         user.destroy
+        spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: user_id}) }
       end
       head :ok
     rescue e : Model::Error

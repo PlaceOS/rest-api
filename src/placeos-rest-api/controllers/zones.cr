@@ -114,7 +114,9 @@ module PlaceOS::Api
     end
 
     def destroy
+      zone_id = current_zone.id
       current_zone.destroy
+      spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: zone_id}) }
       head :ok
     end
 

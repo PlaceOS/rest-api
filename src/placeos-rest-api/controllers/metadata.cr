@@ -9,7 +9,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :history]
+    before_action :can_read, only: [:history]
     before_action :can_read_guest, only: [:show, :children_metadata]
     before_action :can_write, only: [:update, :destroy, :update_alt]
 
@@ -54,41 +54,6 @@ module PlaceOS::Api
     end
 
     ###############################################################################################
-
-    def index
-      # Construct the queries from the URI parameters
-      queries = query_params.compact_map do |key, value|
-        Model::Metadata::Query.from_param?(key, value.presence)
-      end
-
-      # TODO: Use destructure after `spider-gazelle/promise` is fixed
-      query_promise = Promise.defer { Model::Metadata.query(queries, offset, limit) }
-      query_count_promise = Promise.defer { Model::Metadata.query_count(queries) }
-      results = query_promise.get
-      total = query_count_promise.get
-
-      range_end = results.size + offset
-
-      response.headers["X-Total-Count"] = total.to_s
-      response.headers["Content-Range"] = "metadata #{offset}-#{range_end}/#{total}"
-
-      # Set link if further results
-      if range_end < total
-        query_params["offset"] = (range_end + 1).to_s
-        query_params["limit"] = limit.to_s
-        response.headers["Link"] = %(<#{base_route}?#{query_params}>; rel="next")
-      end
-
-      if include_parent?
-        render_json do |json|
-          json.array do
-            results.each &.to_parent_json(json)
-          end
-        end
-      else
-        render json: results
-      end
-    end
 
     # Fetch metadata for a model
     #
@@ -137,6 +102,19 @@ module PlaceOS::Api
       mutate(merge: false)
     end
 
+    SIGNAL_CHANNEL = "placeos/metadata/changed"
+
+    protected def self.signal_metadata(action : Symbol, metadata) : Nil
+      payload = {
+        action:   action,
+        metadata: metadata,
+      }.to_json
+
+      Log.info { "signalling #{SIGNAL_CHANNEL} with #{payload.bytesize} bytes" }
+
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(SIGNAL_CHANNEL, payload)
+    end
+
     # Find (otherwise create) then update (or patch) the Metadata.
     protected def mutate(merge : Bool)
       metadata = Model::Metadata::Interface.from_json(self.body)
@@ -148,7 +126,9 @@ module PlaceOS::Api
       response, status = save_and_status(metadata)
 
       if status.ok? && response.is_a?(Model::Metadata)
-        render json: Model::Metadata.interface(response), status: status
+        payload = response.interface
+        spawn { self.class.signal_metadata(:update, payload) }
+        render json: payload, status: status
       else
         render json: response, status: status
       end
@@ -160,6 +140,18 @@ module PlaceOS::Api
       end
 
       Model::Metadata.for(parent_id, metadata_name).each &.destroy
+      spawn do
+        if metadata_name.empty?
+          self.class.signal_metadata(:destroy_all, {
+            parent_id: parent_id,
+          })
+        else
+          self.class.signal_metadata(:destroy, {
+            parent_id: parent_id,
+            name:      metadata_name,
+          })
+        end
+      end
 
       head :ok
     end
@@ -197,8 +189,8 @@ module PlaceOS::Api
 
         metadata.assign_from_interface(user_token, interface, merge)
       else
-        # When creating a new metadata, must be at least a support user
-        raise Error::Forbidden.new unless Model::Metadata.user_can_create?(interface.parent_id, user_token)
+        # When creating a new metadata, must be at least a support user or own the metadata
+        raise Error::Forbidden.new unless Model::Metadata.user_can_create?(parent_id, user_token)
 
         # Create a new Metadata
         Model::Metadata.from_interface(interface).tap do |model|
