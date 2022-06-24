@@ -46,6 +46,8 @@ services:
       - redis
       - rethink
       - search-ingest
+    security_opt:
+      - seccomp:unconfined
     environment:
       # Environment
       GITHUB_ACTION: ${GITHUB_ACTION:-}
