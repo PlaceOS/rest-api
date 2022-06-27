@@ -59,7 +59,7 @@ module PlaceOS::Api
     end
 
     describe "PUT /metadata" do
-      it "creates metadata", focus: true do
+      it "creates metadata" do
         parent = Model::Generator.zone.save!
 
         meta = Model::Metadata::Interface.new(

@@ -30,15 +30,14 @@ end
 Spec.before_suite do
   Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: :trace)
   clear_tables
-  PlaceOS::Api::Spec::Authentication.authenticated.tap { |a| pp! a }
-  sleep 100.milliseconds
+  PlaceOS::Api::Spec::Authentication.authenticated
 end
+
+Spec.after_suite { clear_tables }
 
 Spec.before_each do
   PlaceOS::Api::HttpMocks.reset
 end
-
-Spec.after_suite { clear_tables }
 
 # Application config
 require "../src/config"

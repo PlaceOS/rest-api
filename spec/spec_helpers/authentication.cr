@@ -3,17 +3,17 @@ require "mutex"
 module PlaceOS::Api::Spec::Authentication
   CREATION_LOCK = Mutex.new(protection: :reentrant)
 
-  class_getter authenticated : Tuple(Model::User, HTTP::Headers) do
+  def self.authenticated : Tuple(Model::User, HTTP::Headers)
     authentication
   end
 
-  class_getter user : Model::User do
+  def self.user : Model::User
     CREATION_LOCK.synchronize do
       authenticated.first
     end
   end
 
-  class_getter headers : HTTP::Headers do
+  def self.headers : HTTP::Headers
     CREATION_LOCK.synchronize do
       authenticated.last
     end
