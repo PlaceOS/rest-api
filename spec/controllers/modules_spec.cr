@@ -86,10 +86,11 @@ module PlaceOS::Api
 
         # Call the index method of the controller
         response = client.get(
-          "#{Modules.base_route}?#{HTTP::Params{"control_system_id" => sys.id.as(String)}}"
+          "#{Modules.base_route}?#{HTTP::Params{"control_system_id" => sys.id.as(String)}}",
+          headers: Spec::Authentication.headers,
         )
 
-        response.status.success?.should be_true
+        response.status_code.should eq 200
         response.headers["X-Total-Count"].should eq("1")
         Array(Hash(String, JSON::Any)).from_json(response.body.to_s).map(&.["id"].as_s).first?.should eq(mod.id)
       end
