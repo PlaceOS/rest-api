@@ -59,10 +59,11 @@ module PlaceOS::Api::WebSocket
                           Driver::Proxy::RemoteDriver::Clearance::User
                         end
 
+      # Empty's metadata cache upon cache_timeout
+      @cache_cleaner = Tasker.instance.every(cache_timeout) { clear_caches }
+
       # Perform writes
       spawn(name: "socket_writes_#{request_id}", same_thread: true) { run_writes }
-      # Begin clearing cache
-      spawn(name: "cache_cleaner_#{request_id}", same_thread: true) { cache_plumbing }
     end
 
     # WebSocket API Handlers
@@ -402,8 +403,12 @@ module PlaceOS::Api::WebSocket
     # Shutdown handler
     #
     def cleanup
+      # cleanup the write fiber
+      write_channel.close
+
       # Stop the cache cleaner
       cache_cleaner.try &.cancel
+      clear_caches
 
       # Unbind all modules
       bindings.clear
@@ -462,15 +467,11 @@ module PlaceOS::Api::WebSocket
       )
     end
 
-    # Empty's metadata cache upon cache_timeout
-    #
-    protected def cache_plumbing
-      @cache_cleaner = Tasker.instance.every(cache_timeout) do
-        Log.trace { "cleaning websocket session cache" }
-        cache_lock.synchronize do
-          @metadata_cache = {} of String => Driver::DriverModel::Metadata
-          @module_id_cache = {} of String => String
-        end
+    private def clear_caches
+      Log.trace { "cleaning websocket session cache" }
+      cache_lock.synchronize do
+        @metadata_cache = {} of String => Driver::DriverModel::Metadata
+        @module_id_cache = {} of String => String
       end
     end
 
