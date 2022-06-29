@@ -37,8 +37,8 @@ module PlaceOS::Api::WebSocket
 
       ws.on_close do |_|
         Log.trace { {request_id: request_id, frame: "CLOSE"} }
-        session.cleanup
         session_lock.synchronize { sessions.delete(session) }
+        session.cleanup
       end
     end
 
