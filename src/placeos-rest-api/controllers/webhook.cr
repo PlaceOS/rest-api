@@ -49,7 +49,7 @@ module PlaceOS::Api
 
           body_data = request.body.try(&.gets_to_end) || ""
           header_data = request.headers.try(&.to_h) || Hash(String, Array(String)).new
-          header_data["pos-query-params"] = [params.to_s]
+          header_data["pos-query-params"] = [query_params.to_s]
 
           args = {method_type, header_data, body_data}
 
@@ -93,6 +93,19 @@ module PlaceOS::Api
 
     {% for http_method in ActionController::Router::HTTP_METHODS.reject &.==("head") %}
       {{http_method.id}} "/:id/notify" do
+        return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
+        Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
+        head :not_found
+      end
+
+      {{http_method.id}} "/:id/notify/:secret" do
+        return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
+        Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
+        head :not_found
+      end
+
+      {{http_method.id}} "/:id/notify/:secret/:mod/:index/:method" do
+        params["exec"] = "true"
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
         head :not_found

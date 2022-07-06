@@ -12,3 +12,7 @@ dependencies:
   action-controller:
     github: spider-gazelle/action-controller
     version: ~> 5.1
+
+  opentelemetry-sdk:
+    github: wyhaines/opentelemetry-sdk.cr
+    branch: main
