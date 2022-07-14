@@ -75,7 +75,8 @@ module PlaceOS::Api
 
       pending "GET /:id/compiled" do
         driver = get_driver
-        Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
+
+        Utils::Changefeeds.await_model_change(driver, timeout: 20.seconds) do |update|
           update.destroyed? || !update.recompile_commit?
         end
 

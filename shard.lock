@@ -7,7 +7,7 @@ shards:
 
   action-controller: # Overridden
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 5.1.4
+    version: 5.1.6
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -183,7 +183,7 @@ shards:
 
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
-    version: 2.1.5
+    version: 2.2.0
 
   opentelemetry-api:
     git: https://github.com/wyhaines/opentelemetry-api.cr.git
@@ -191,7 +191,7 @@ shards:
 
   opentelemetry-instrumentation:
     git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.3.6+git.commit.2b4477f57da6b593469deadc3a439e5ed83dd23f
+    version: 0.5.0+git.commit.7d83b9a53c9540fbc159f06eeed5d4bdad5c4377
 
   opentelemetry-sdk: # Overridden
     git: https://github.com/wyhaines/opentelemetry-sdk.cr.git
@@ -227,7 +227,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.3.11
+    version: 6.4.2
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git

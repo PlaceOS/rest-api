@@ -406,7 +406,8 @@ module PlaceOS::Api
           path: path,
           headers: Spec::Authentication.headers,
         )
-        String.from_json(response.body).should eq("1")
+
+        Int32.from_json(response.body).should eq(1)
       end
 
       it "GET /systems/:sys_id/:module_slug" do

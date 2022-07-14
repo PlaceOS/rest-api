@@ -4,7 +4,7 @@ require "webmock"
 require "../helper"
 
 module PlaceOS::Api::WebSocket
-  pending Session do
+  describe Session do
     describe "systems/control" do
       it "opens a websocket session" do
         bind(Systems.base_route, Spec::Authentication.headers) do |ws|
@@ -178,28 +178,16 @@ module PlaceOS::Api::WebSocket
   end
 end
 
-# Generate a controller context for testing a websocket
-#
-def websocket_context(path)
-  context(
-    method: "GET",
-    path: path,
-    headers: HTTP::Headers{
-      "Connection" => "Upgrade",
-      "Upgrade"    => "websocket",
-      "Origin"     => "localhost",
-    }
-  )
-end
-
 # Binds to the system websocket endpoint
 #
 def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) {})
+  host = "localhost"
   bearer = auth["Authorization"].split(' ').last
-  path = "#{base}control?bearer_token=#{bearer}"
+  path = File.join(base, "control?bearer_token=#{bearer}")
 
   # Create a websocket connection, then run the session
-  socket = HTTP::WebSocket.new("localhost", path, 6000)
+  socket = client.establish_ws(path, headers: HTTP::Headers{"Host" => host})
+
   socket.on_message &on_message
 
   spawn(same_thread: true) { socket.run }

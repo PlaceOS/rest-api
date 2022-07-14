@@ -10,7 +10,7 @@ module PlaceOS::Api
     end
 
     describe "/control" do
-      it "authenticates with an API key from a new edge", focus: true do
+      it "authenticates with an API key from a new edge" do
         # Create a new edge to test with as the controller would
         edge_host = "localhost"
 
@@ -23,7 +23,7 @@ module PlaceOS::Api
         new_edge.x_api_key
         new_edge.save!
 
-        path = "#{Edges.base_route}/control"
+        path = File.join(Edges.base_route, "control")
 
         uri = URI.new(host: edge_host, path: path, query: URI::Params{"api-key" => new_edge.x_api_key})
 
@@ -33,6 +33,7 @@ module PlaceOS::Api
         )
 
         websocket = client.establish_ws(uri, headers: HTTP::Headers{"Host" => edge_host})
+        spawn(same_thread: true) { websocket.run }
         edge_client.connect(websocket) do
           edge_client.transport.closed?.should be_false
           edge_client.disconnect
