@@ -58,7 +58,7 @@ module PlaceOS::Api
           trigger_instance_id = trigger_instance.id.as(String)
 
           params = HTTP::Params{"instances" => "true"}
-          path = "#{Triggers.base_route}#{trigger.id}?#{params}"
+          path = File.join(Triggers.base_route, "#{trigger.id}?#{params}")
 
           result = client.get(
             path: path,

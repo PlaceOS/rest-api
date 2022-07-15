@@ -69,7 +69,7 @@ module PlaceOS::Api
 
         it "errors if enumerating drivers in an interface repo" do
           id = repo.id.as(String)
-          path = "#{Repositories.base_route}#{id}/drivers"
+          path = File.join(Repositories.base_route, "#{id}/drivers")
           result = client.get(
             path: path,
             headers: Spec::Authentication.headers,
@@ -80,7 +80,7 @@ module PlaceOS::Api
 
         it "errors when requesting driver details from an interface repo" do
           id = repo.id.as(String)
-          path = "#{Repositories.base_route}#{id}/details"
+          path = File.join(Repositories.base_route, "#{id}/details")
           result = client.get(
             path: path,
             headers: Spec::Authentication.headers,
@@ -106,16 +106,24 @@ module PlaceOS::Api
           repo.save!
         end
 
-        pending "fetches commits for a repository" do
+        it "fetches commits for a repository" do
           id = repo.id.as(String)
-          response = client.get("#{Repositories.base_route}#{id}/commits?#{HTTP::Params{"id" => id}}")
+          path = File.join(Repositories.base_route, "#{id}/commits?#{HTTP::Params{"id" => id}}")
+          response = client.get(
+            path: path,
+            headers: Spec::Authentication.headers,
+          )
           response.status.should eq HTTP::Status::OK
           Array(String).from_json(response.body).should_not be_empty
         end
 
-        pending "fetches commits for a file" do
+        it "fetches commits for a file" do
           id = repo.id.as(String)
-          response = client.get("#{Repositories.base_route}#{id}/commits?#{HTTP::Params{"driver" => "drivers/place/private_helper.cr", "id" => id}}")
+          path = File.join(Repositories.base_route, "#{id}/commits?#{HTTP::Params{"driver" => "drivers/place/private_helper.cr", "id" => id}}")
+          response = client.get(
+            path: path,
+            headers: Spec::Authentication.headers,
+          )
           response.status.should eq HTTP::Status::OK
           Array(String).from_json(response.body).should_not be_empty
         end

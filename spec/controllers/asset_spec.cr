@@ -58,7 +58,7 @@ module PlaceOS::Api
         asset_instance_id = asset_instance.id.as(String)
 
         params = HTTP::Params{"instances" => "true"}
-        path = "#{Assets.base_route}#{asset.id}?#{params}"
+        path = File.join(Assets.base_route, "#{asset.id}?#{params}")
 
         result = client.get(
           path: path,

@@ -80,8 +80,9 @@ module PlaceOS::Api
           update.destroyed? || !update.recompile_commit?
         end
 
+        path = File.join(Drivers.base_route, "#{driver.id.not_nil!}/compiled")
         response = client.get(
-          path: "#{Drivers.base_route}#{driver.id.not_nil!}/compiled",
+          path: path,
           headers: Spec::Authentication.headers,
         )
 
@@ -90,9 +91,9 @@ module PlaceOS::Api
 
       it "POST /:id/recompile" do
         driver = get_driver
-
+        path = File.join(Drivers.base_route, "#{driver.id.not_nil!}/recompile")
         response = client.post(
-          path: "#{Drivers.base_route}#{driver.id.not_nil!}/recompile",
+          path: path,
           headers: Spec::Authentication.headers,
         )
 

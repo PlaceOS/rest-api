@@ -195,7 +195,7 @@ module PlaceOS::Api
           driver.settings,
         ].flat_map(&.compact_map(&.id)).reverse!
 
-        path = "#{Modules.base_route}#{mod.id}/settings"
+        path = File.join(Modules.base_route, "#{mod.id}/settings")
         result = client.get(
           path: path,
           headers: Spec::Authentication.headers,
@@ -221,7 +221,7 @@ module PlaceOS::Api
         control_system.update!
 
         mod = Model::Generator.module(driver: driver, control_system: control_system).save!
-        path = "#{Modules.base_route}#{mod.id}/settings"
+        path = File.join(Modules.base_route, "#{mod.id}/settings")
 
         result = client.get(
           path: path,
@@ -239,7 +239,7 @@ module PlaceOS::Api
       it "returns an empty array for a module without associated settings" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
         mod = Model::Generator.module(driver: driver).save!
-        path = "#{Modules.base_route}#{mod.id}/settings"
+        path = File.join(Modules.base_route, "#{mod.id}/settings")
 
         result = client.get(
           path: path,
@@ -258,7 +258,7 @@ module PlaceOS::Api
         it "fails for logic module" do
           driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
           mod = Model::Generator.module(driver: driver).save!
-          path = "#{Modules.base_route}#{mod.id}/ping"
+          path = File.join(Modules.base_route, "#{mod.id}/ping")
           result = client.post(
             path: path,
             headers: Spec::Authentication.headers,
@@ -276,7 +276,7 @@ module PlaceOS::Api
           mod.ip = "127.0.0.1"
           mod.save!
 
-          path = "#{Modules.base_route}#{mod.id}/ping"
+          path = File.join(Modules.base_route, "#{mod.id}/ping")
           result = client.post(
             path: path,
             headers: Spec::Authentication.headers,

@@ -277,7 +277,7 @@ module PlaceOS::Api
           zone0.settings,
         ].flat_map(&.compact_map(&.id)).reverse!
 
-        path = "#{Systems.base_route}#{control_system.id}/settings"
+        path = File.join(Systems.base_route, "#{control_system.id}/settings")
         result = client.get(
           path: path,
           headers: Spec::Authentication.headers,
@@ -300,7 +300,7 @@ module PlaceOS::Api
 
         control_system.zones = [zone0.id.as(String), zone1.id.as(String)]
         control_system.save!
-        path = "#{Systems.base_route}#{control_system.id}/settings"
+        path = File.join(Systems.base_route, "#{control_system.id}/settings")
 
         result = client.get(
           path: path,
