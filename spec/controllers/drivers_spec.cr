@@ -73,7 +73,7 @@ module PlaceOS::Api
         end
       end
 
-      pending "GET /:id/compiled" do
+      it "GET /:id/compiled" do
         driver = get_driver
 
         Utils::Changefeeds.await_model_change(driver, timeout: 20.seconds) do |update|
@@ -88,7 +88,7 @@ module PlaceOS::Api
         response.success?.should be_true
       end
 
-      pending "POST /:id/recompile" do
+      it "POST /:id/recompile" do
         driver = get_driver
 
         response = client.post(

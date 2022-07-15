@@ -3,6 +3,7 @@ version: "3.7"
 # YAML Anchors
 
 x-deployment-env: &deployment-env
+  LOG_LEVEL: trace
   ENV: ${ENV:-development}
   SG_ENV: ${SG_ENV:-development}
   TZ: $TZ

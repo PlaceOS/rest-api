@@ -211,7 +211,7 @@ shards:
 
   placeos-build:
     git: https://github.com/placeos/build.git
-    version: 1.0.3+git.commit.c90103811698bde356f0ce8756768c91533b994c
+    version: 1.0.6+git.commit.f8d65b6ed947b1c28378214a9df54261bff2bd76
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -227,7 +227,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.4.2
+    version: 6.4.4
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
