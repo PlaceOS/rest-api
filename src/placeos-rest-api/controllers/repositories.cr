@@ -151,9 +151,21 @@ module PlaceOS::Api
       number_of_commits = 50 if number_of_commits.nil?
       case repository.repo_type
       in .driver?
-        # Dial the core responsible for the driver
-        Api::Systems.core_for(repository.folder_name, request_id) do |core_client|
-          core_client.driver(file_name || ".", repository.folder_name, repository.branch, number_of_commits)
+        Build::Client.client do |build_client|
+          args = {
+            url:        repository.uri,
+            branch:     repository.branch,
+            username:   repository.username,
+            password:   repository.decrypt_password,
+            request_id: request_id,
+            count:      number_of_commits,
+          }
+
+          if file_name
+            build_client.file_commits(**args.merge(file: file_name))
+          else
+            build_client.repository_commits(**args)
+          end.map(&.hash) # Extract only the commit hash from the commit object
         end
       in .interface?
         # Dial the frontends service

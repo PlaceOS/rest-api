@@ -98,32 +98,34 @@ module PlaceOS::Api
       end
 
       context "driver" do
-        repo = Model::Generator.repository(type: :driver).tap do |r|
-          r.uri = "https://github.com/placeOS/private-drivers"
-        end
+        repo = Model::Generator.repository(type: :driver)
 
         before_all do
+          repo.uri = "https://github.com/placeOS/private-drivers"
           repo.save!
         end
 
         it "fetches commits for a repository" do
           id = repo.id.as(String)
-          path = File.join(Repositories.base_route, "#{id}/commits?#{HTTP::Params{"id" => id}}")
+          path = File.join(Repositories.base_route, "#{id}/commits")
           response = client.get(
             path: path,
             headers: Spec::Authentication.headers,
           )
+
           response.status.should eq HTTP::Status::OK
           Array(String).from_json(response.body).should_not be_empty
         end
 
         it "fetches commits for a file" do
           id = repo.id.as(String)
-          path = File.join(Repositories.base_route, "#{id}/commits?#{HTTP::Params{"driver" => "drivers/place/private_helper.cr", "id" => id}}")
+          params = HTTP::Params{"driver" => "drivers/place/private_helper.cr"}
+          path = File.join(Repositories.base_route, "#{id}/commits?#{params}")
           response = client.get(
             path: path,
             headers: Spec::Authentication.headers,
           )
+
           response.status.should eq HTTP::Status::OK
           Array(String).from_json(response.body).should_not be_empty
         end
