@@ -41,6 +41,7 @@ module PlaceOS::Api
 
     def show
       include_instances = boolean_param("instances")
+
       render json: !include_instances ? current_trigger : with_fields(current_trigger, {
         :trigger_instances => current_trigger.trigger_instances.to_a,
       })

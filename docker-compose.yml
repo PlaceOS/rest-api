@@ -3,9 +3,14 @@ version: "3.7"
 # YAML Anchors
 
 x-deployment-env: &deployment-env
+  LOG_LEVEL: trace
   ENV: ${ENV:-development}
   SG_ENV: ${SG_ENV:-development}
   TZ: $TZ
+
+x-build-client-env: &build-client-env
+  PLACEOS_BUILD_HOST: ${PLACEOS_BUILD_HOST:-build}
+  PLACEOS_BUILD_PORT: ${PLACEOS_BUILD_PORT:-3000}
 
 x-elastic-client-env: &elastic-client-env
   ELASTIC_HOST: ${ELASTIC_HOST:-elastic}
@@ -14,7 +19,6 @@ x-elastic-client-env: &elastic-client-env
 x-etcd-client-env: &etcd-client-env
   ETCD_HOST: ${ETCD_HOST:-etcd}
   ETCD_PORT: ${ETCD_PORT:-2379}
-
 
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -29,7 +33,7 @@ x-search-ingest-client-env: &search-ingest-client-env
 
 services:
   test: # Rest API
-    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.4.1}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.5.0}
     volumes:
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
@@ -39,7 +43,7 @@ services:
       - ${PWD}/shard.yml:/app/shard.yml
       - ${PWD}/coverage:/app/coverage
     depends_on:
-      - auth
+      - build
       - core
       - elastic
       - etcd
@@ -53,10 +57,18 @@ services:
       GITHUB_ACTION: ${GITHUB_ACTION:-}
       <<: *deployment-env
       # Service Hosts
+      <<: *build-client-env
       <<: *elastic-client-env
       <<: *etcd-client-env
       <<: *redis-client-env
       <<: *rethinkdb-client-env
+
+  build:
+    image: placeos/build:${PLACE_BUILD_TAG:-nightly}
+    restart: always
+    hostname: build
+    environment:
+      <<: *deployment-env
 
   elastic:
     image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.9.1}
@@ -105,22 +117,8 @@ services:
       # Environment
       <<: *deployment-env
 
-  auth: # Authentication Service
-    image: placeos/auth:nightly
-    restart: always
-    hostname: auth
-    depends_on:
-      - redis
-      - rethink
-    environment:
-      <<: *rethinkdb-client-env
-      <<: *redis-client-env
-      COAUTH_NO_SSL: "true"
-      TZ: $TZ
-      PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
-
   core: # Module coordinator
-    image: placeos/core:${PLACE_CORE_TAG:-nightly}
+    image: ghcr.io/placeos/core:feat-build
     restart: always
     hostname: core
     depends_on:

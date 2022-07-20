@@ -29,7 +29,7 @@ module PlaceOS::Api
     def notify(method_type : String) # ameba:disable Metrics/CyclomaticComplexity
       # Notify the trigger service
       # TODO: Triggers service should expose a versioned client
-      trigger_uri = TRIGGERS_URI.dup
+      trigger_uri = PLACE_TRIGGERS_URI.dup
       trigger_uri.path = "/api/triggers/v2/webhook?id=#{current_trigger_instance.id}&secret=#{current_trigger_instance.webhook_secret}"
       trigger_response = HTTP::Client.post(
         trigger_uri,

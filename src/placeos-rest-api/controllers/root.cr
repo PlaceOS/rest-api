@@ -157,7 +157,7 @@ module PlaceOS::Api
     end
 
     protected def self.triggers_version : PlaceOS::Model::Version
-      trigger_uri = TRIGGERS_URI.dup
+      trigger_uri = PLACE_TRIGGERS_URI.dup
       trigger_uri.path = "/api/triggers/v2/version"
       response = HTTP::Client.get trigger_uri
       PlaceOS::Model::Version.from_json(response.body)

@@ -1,3 +1,4 @@
+require "placeos-build/client"
 require "placeos-frontend-loader/client"
 
 require "./application"
@@ -18,14 +19,21 @@ module PlaceOS::Api
     # Callbacks
     ###############################################################################################
 
-    before_action :current_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
+    before_action :current_repository, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
     before_action :body, only: [:create, :update, :update_alt]
     before_action :drivers_only, only: [:drivers, :details]
 
     private def drivers_only
-      unless current_repo.repo_type.driver?
+      unless current_repository.repo_type.driver?
         render_error(:bad_request, "not a driver repository")
       end
+    end
+
+    getter current_repository : Model::Repository do
+      id = params["id"]
+      Log.context.set(repository_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
     end
 
     # Params
@@ -45,15 +53,6 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_repo : Model::Repository do
-      id = params["id"]
-      Log.context.set(repository_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    ###############################################################################################
-
     def index
       elastic = Model::Repository.elastic
       query = elastic.query(params)
@@ -62,18 +61,18 @@ module PlaceOS::Api
     end
 
     def show
-      render json: current_repo
+      render json: current_repository
     end
 
     def update
-      current_repo.assign_attributes_from_json(self.body)
+      current_repository.assign_attributes_from_json(self.body)
 
       # Must destroy and re-add to change driver repository URIs
-      if current_repo.uri_changed? && current_repo.repo_type.driver?
+      if current_repository.uri_changed? && current_repository.repo_type.driver?
         return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "`uri` of Driver repositories cannot change")
       end
 
-      save_and_respond current_repo
+      save_and_respond current_repository
     end
 
     put_redirect
@@ -83,12 +82,12 @@ module PlaceOS::Api
     end
 
     def destroy
-      current_repo.destroy
+      current_repository.destroy
       head :ok
     end
 
     post "/:id/pull", :pull do
-      result = Repositories.pull_repository(current_repo)
+      result = Repositories.pull_repository(current_repository)
       if result
         destroyed, commit_hash = result
         if destroyed
@@ -128,21 +127,20 @@ module PlaceOS::Api
     end
 
     get "/:id/drivers", :drivers do
-      repository_folder = current_repo.folder_name
-
-      # Request to core:
-      # "/api/core/v1/drivers/?repository=#{repository}"
-      # Returns: `["path/to/file.cr"]`
-      drivers = Api::Systems.core_for(repository_folder, request_id) do |core_client|
-        core_client.drivers(repository_folder)
-      end
+      drivers = Build::Client.client &.discover_drivers(
+        url: current_repository.uri,
+        ref: current_repository.commit_hash || current_repository.branch,
+        username: current_repository.username,
+        password: current_repository.decrypt_password,
+        request_id: request_id,
+      )
 
       render json: drivers
     end
 
     get "/:id/commits", :commits do
       render json: Api::Repositories.commits(
-        repository: current_repo,
+        repository: current_repository,
         request_id: request_id,
         number_of_commits: limit,
         file_name: driver,
@@ -153,9 +151,21 @@ module PlaceOS::Api
       number_of_commits = 50 if number_of_commits.nil?
       case repository.repo_type
       in .driver?
-        # Dial the core responsible for the driver
-        Api::Systems.core_for(repository.folder_name, request_id) do |core_client|
-          core_client.driver(file_name || ".", repository.folder_name, repository.branch, number_of_commits)
+        Build::Client.client do |build_client|
+          args = {
+            url:        repository.uri,
+            branch:     repository.branch,
+            username:   repository.username,
+            password:   repository.decrypt_password,
+            request_id: request_id,
+            count:      number_of_commits,
+          }
+
+          if file_name
+            build_client.file_commits(**args.merge(file: file_name))
+          else
+            build_client.repository_commits(**args)
+          end.map(&.hash) # Extract only the commit hash from the commit object
         end
       in .interface?
         # Dial the frontends service
@@ -168,21 +178,23 @@ module PlaceOS::Api
     get "/:id/details", :details do
       driver_filename = required_param(driver)
 
-      # Request to core:
-      # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
-      # Returns: https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
-      details = Api::Systems.core_for(driver_filename, request_id) do |core_client|
-        core_client.driver_details(driver_filename, commit, current_repo.folder_name)
+      info = Build::Client.client do |client|
+        client.metadata(
+          file: driver_filename,
+          url: current_repository.uri,
+          commit: commit,
+          username: current_repository.username,
+          password: current_repository.password,
+          request_id: request_id,
+        )
       end
 
-      # The raw JSON string is returned
-      response.headers["Content-Type"] = "application/json"
-      render text: details
+      render json: info
     end
 
     get "/:id/branches", :branches do
       branches = Api::Repositories.branches(
-        repository: current_repo,
+        repository: current_repository,
         request_id: request_id,
       )
 
@@ -197,9 +209,7 @@ module PlaceOS::Api
           frontends_client.branches(repository.folder_name)
         end
       in .driver?
-        Api::Systems.core_for(repository.id.as(String), request_id) do |core_client|
-          core_client.branches?(repository.folder_name)
-        end
+        Build::Client.client &.branches(url: repository.uri, request_id: request_id, username: repository.username, password: repository.password)
       end.tap do |result|
         if result.nil?
           Log.info { {
@@ -214,9 +224,9 @@ module PlaceOS::Api
     end
 
     get "/:id/releases", :releases do
-      render_error(HTTP::Status::BAD_REQUEST, "can only get releases for interface repositories") unless current_repo.repo_type.interface?
+      render_error(HTTP::Status::BAD_REQUEST, "can only get releases for interface repositories") unless current_repository.repo_type.interface?
       releases = Api::Repositories.releases(
-        repository: current_repo,
+        repository: current_repository,
         request_id: request_id,
       )
 
