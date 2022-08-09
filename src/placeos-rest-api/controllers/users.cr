@@ -16,7 +16,7 @@ module PlaceOS::Api
 
     before_action :user, only: [:destroy, :update, :revive, :show, :delete_resource_token]
 
-    before_action :check_admin, only: [:index, :destroy, :create, :revive, :delete_resource_token]
+    before_action :check_admin, only: [:destroy, :create, :revive, :delete_resource_token]
 
     # Callbacks
     ###############################################################################################
@@ -182,17 +182,28 @@ module PlaceOS::Api
 
       query.must_not({"deleted" => [true]}) unless include_deleted?
 
-      if authority = authority_id
+      if !is_admin?
+        # regular users can only see their own domain
+        query.filter({"authority_id" => [current_user.authority_id.as(String)]})
+      elsif authority = authority_id
         query.filter({"authority_id" => [authority]})
       end
 
-      if include_metadata?
-        render_json do |json|
-          json.array { paginate_results(elastic, query).each &.to_admin_metadata_json(json) }
-        end
-      else
-        render_json do |json|
-          json.array { paginate_results(elastic, query).each &.to_admin_json(json) }
+      render_json do |json|
+        json.array do
+          if is_admin?
+            if include_metadata?
+              paginate_results(elastic, query).each &.to_admin_metadata_json(json)
+            else
+              paginate_results(elastic, query).each &.to_admin_json(json)
+            end
+          else
+            if include_metadata?
+              paginate_results(elastic, query).each &.to_public_metadata_json(json)
+            else
+              paginate_results(elastic, query).each &.to_public_json(json)
+            end
+          end
         end
       end
     end
@@ -203,7 +214,7 @@ module PlaceOS::Api
         if is_admin?
           include_metadata? ? user.to_admin_metadata_json(json) : user.to_admin_json(json)
         else
-          user.to_public_json(json)
+          include_metadata? ? user.to_public_metadata_json(json) : user.to_public_json(json)
         end
       end
     end
