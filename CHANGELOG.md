@@ -1,5 +1,23 @@
 ## Unreleased
 
+### Feat
+
+- **users**: allow any authenticated user to list users ([#296](https://github.com/PlaceOS/rest-api/pull/296))
+- **webhook**: add additional routes ([#293](https://github.com/PlaceOS/rest-api/pull/293))
+- **application**: improve query result accuracy ([#290](https://github.com/PlaceOS/rest-api/pull/290))
+- **users**: optionally include user metadata ([#288](https://github.com/PlaceOS/rest-api/pull/288))
+- add metadata change signaling ([#286](https://github.com/PlaceOS/rest-api/pull/286))
+- **users**: add route for deleting resource tokens ([#283](https://github.com/PlaceOS/rest-api/pull/283))
+
+### Fix
+
+- **websocket**: close write_channel on cleanup ([#291](https://github.com/PlaceOS/rest-api/pull/291))
+- **metadata**: users can create their own metadata ([#287](https://github.com/PlaceOS/rest-api/pull/287))
+
+### Perf
+
+- **metadata**: remove metadata querying ([#289](https://github.com/PlaceOS/rest-api/pull/289))
+
 ## v1.48.0 (2022-06-01)
 
 ### Feat
@@ -345,7 +363,6 @@
 ### Feat
 
 - add logstash support
-- add logstash support
 - **users**: find user using email or id
 
 ## v1.20.0 (2021-01-28)
@@ -359,10 +376,6 @@
 
 - **controllers**: use 400 over 422 for missing params
 - **controllers**: save_and_respond accepts mutation block
-
-### Fix
-
-- **controller:users**: pull String out of IO for double parse
 
 ## v1.18.3 (2021-01-21)
 
@@ -414,7 +427,6 @@
 ### Feat
 
 - **app**: add environment list behind `-e` or `--env`
-- **metadata**: allow users to edit their metadata
 - **metadata**: allow users to edit their metadata
 
 ### Refactor
@@ -472,7 +484,6 @@
 - **controllers:root**: skip setting of user_id for root
 - **rest-api**: expires check is clearer
 - **controller:metadata**: consistent updates to `details`
-- **controller:metadata**: consistent updates to `details`
 - **users**: return token after being refreshed
 - **Dockerfile**: ensure valid certificates and timezone info
 - **users**: ensure refresh token present
@@ -488,9 +499,7 @@
 ### Feat
 
 - **users**: provide a method for updating admin attributes
-- **users**: provide a method for updating admin attributes
 - **user**: add scope to refresh request
-- **users**: support for managing SSO resource tokens
 - **users**: support for managing SSO resource tokens
 
 ## v1.16.4 (2020-07-15)
@@ -536,16 +545,11 @@
 ### Feat
 
 - allow users to be created for other domains
-- allow users to be created for other domains
 - add secrets and clean up constants
 
 ## v1.13.4 (2020-06-24)
 
 ## v1.13.3 (2020-06-22)
-
-### Refactor
-
-- **root**: use RubberSoul::Client
 
 ## v1.13.1 (2020-06-19)
 
@@ -576,7 +580,6 @@
 
 ### Feat
 
-- **systems**: helper for finding by resource email
 - allow querying for multiple email addresses
 - **systems**: helper for finding by resource email
 
@@ -648,7 +651,6 @@
 - **controllers**: add `../drivers/:id/compiled` and `../modules/:id/load`
 - **dockerfile**: bump crystal version
 - add support for crystal 0.34
-- **dockerfile**: don't run process as root
 
 ### Fix
 
@@ -671,7 +673,6 @@
 - **oauth_apps**: add support for filtering by authority
 - **controller:modules**: `complete` boolean param for `show` route
 - **controller:root**: add `build_time` and `commit` fields for `GET /version`
-- **zone_metadata**: initial work metadata API
 - **zone_metadata**: allow use of put or post verbs
 - **zone_metadata**: initial work metadata API
 - **zones**: add filtering zones by parent
@@ -688,7 +689,6 @@
 - **session**: debug/ignore
 - **root.cr**: add cluster details endpoint
 - alias PATCH with PUT
-- improve listing and pagination of data
 - include methods for re-indexing elastic
 - **Dockerfile**: build images using alpine
 - improve authentication / authorisation
@@ -778,7 +778,6 @@
 
 - module exec, system exec, refactor System's remove route
 - migrate to new error handler
-- add support for triggers
 - add support for triggers
 - **controller/systems**: implement `/systems/:sys_id/types``
 - **controllers/settings**: implement basic settings api logic
