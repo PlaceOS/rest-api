@@ -1,5 +1,5 @@
 ARG CRYSTAL_VERSION=1.4.1
-FROM crystallang/crystal:${CRYSTAL_VERSION}-alpine as build
+FROM alpine:3.16 as build
 WORKDIR /app
 
 # Set the commit via a build arg
@@ -23,19 +23,36 @@ RUN adduser \
     "${USER}"
 
 # Add trusted CAs for communicating with external services
-RUN apk upgrade --no-cache apk && \
-    apk add --no-cache \
+RUN apk add --no-cache \
         ca-certificates \
         curl \
     && \
     update-ca-certificates
+
+# Add crystal lang
+# can look up packages here: https://pkgs.alpinelinux.org/packages?name=crystal
+RUN apk add \
+  --update \
+  --no-cache \
+  --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main \
+  --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community \
+    crystal \
+    shards \
+    yaml-dev \
+    yaml-static \
+    libxml2-dev \
+    openssl-dev \
+    openssl-libs-static \
+    zlib-dev \
+    zlib-static \
+    tzdata
 
 # Install shards for caching
 COPY shard.yml shard.yml
 COPY shard.override.yml shard.override.yml
 COPY shard.lock shard.lock
 
-RUN shards install --production --ignore-crystal-version
+RUN shards install --production --ignore-crystal-version --skip-postinstall --skip-executables
 
 # Add src
 COPY ./src /app/src
@@ -47,13 +64,14 @@ RUN UNAME_AT_COMPILE_TIME=true \
     crystal build \
         --release \
         --error-trace \
+        --static \
         -o /app/rest-api \
         /app/src/app.cr
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
-RUN for binary in "/app/rest-api" "/bin/ping" "/bin/ping6"; do \
+RUN for binary in "/bin/ping" "/bin/ping6"; do \
         ldd "$binary" | \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
