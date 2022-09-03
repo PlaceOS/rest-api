@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **Dockerfile**: add support for ARM64 builds ([#297](https://github.com/PlaceOS/rest-api/pull/297))
 - **users**: allow any authenticated user to list users ([#296](https://github.com/PlaceOS/rest-api/pull/296))
 - **webhook**: add additional routes ([#293](https://github.com/PlaceOS/rest-api/pull/293))
 - **application**: improve query result accuracy ([#290](https://github.com/PlaceOS/rest-api/pull/290))
@@ -194,6 +195,17 @@
 
 ## v1.31.1 (2022-02-24)
 
+### Feat
+
+- **root**: add additional logging to signal requests ([#234](https://github.com/PlaceOS/rest-api/pull/234))
+- **controllers:root**: add `/platform` to render platform metadata ([#228](https://github.com/PlaceOS/rest-api/pull/228))
+- **users controller**: add support for user model soft delete ([#224](https://github.com/PlaceOS/rest-api/pull/224))
+- **assets**: add controller & spec ([#222](https://github.com/PlaceOS/rest-api/pull/222))
+- add helper methods for authenticating MQTT websocket access ([#219](https://github.com/PlaceOS/rest-api/pull/219))
+- **api**: forward `user_id` for module executes ([#217](https://github.com/PlaceOS/rest-api/pull/217))
+- **cluster api**: timeout requests for process details ([#208](https://github.com/PlaceOS/rest-api/pull/208))
+- **users**: look up with authority ([#206](https://github.com/PlaceOS/rest-api/pull/206))
+
 ### Fix
 
 - **root**: expose `/platform` ([#236](https://github.com/PlaceOS/rest-api/pull/236))
@@ -216,33 +228,18 @@
 - websocket api ([#203](https://github.com/PlaceOS/rest-api/pull/203))
 - **spec**: use module class_getter for auth header ([#205](https://github.com/PlaceOS/rest-api/pull/205))
 
+## v1.30.2 (2021-10-14)
+
 ### Feat
 
-- **root**: add additional logging to signal requests ([#234](https://github.com/PlaceOS/rest-api/pull/234))
-- **controllers:root**: add `/platform` to render platform metadata ([#228](https://github.com/PlaceOS/rest-api/pull/228))
-- **users controller**: add support for user model soft delete ([#224](https://github.com/PlaceOS/rest-api/pull/224))
-- **assets**: add controller & spec ([#222](https://github.com/PlaceOS/rest-api/pull/222))
-- add helper methods for authenticating MQTT websocket access ([#219](https://github.com/PlaceOS/rest-api/pull/219))
-- **api**: forward `user_id` for module executes ([#217](https://github.com/PlaceOS/rest-api/pull/217))
-- **cluster api**: timeout requests for process details ([#208](https://github.com/PlaceOS/rest-api/pull/208))
-- **users**: look up with authority ([#206](https://github.com/PlaceOS/rest-api/pull/206))
-
-## v1.30.2 (2021-10-14)
+- **utilities current user**: x-api-key needs param support ([#197](https://github.com/PlaceOS/rest-api/pull/197))
 
 ### Refactor
 
 - session writes ([#200](https://github.com/PlaceOS/rest-api/pull/200))
 - use new dispatch endpoint ([#196](https://github.com/PlaceOS/rest-api/pull/196))
 
-### Feat
-
-- **utilities current user**: x-api-key needs param support ([#197](https://github.com/PlaceOS/rest-api/pull/197))
-
 ## v1.30.1 (2021-10-08)
-
-### Refactor
-
-- **user**: use new Email struct ([#194](https://github.com/PlaceOS/rest-api/pull/194))
 
 ### Fix
 
@@ -250,6 +247,10 @@
 - **responders**: callback skipped on model creation ([#193](https://github.com/PlaceOS/rest-api/pull/193))
 - **api/modules**: remove parent index query
 - **api:cluster**: improve error handling when requesting core status
+
+### Refactor
+
+- **user**: use new Email struct ([#194](https://github.com/PlaceOS/rest-api/pull/194))
 
 ## v1.30.0 (2021-09-16)
 
@@ -271,15 +272,24 @@
 - **api/repositories**: pull on each pull request ([#148](https://github.com/PlaceOS/rest-api/pull/148))
 - **session**: shrink caches, sync access
 
-### Perf
-
-- **controller/systems**: use tally_by
-
 ### Refactor
 
 - **session**: better log contexts
 
+### Perf
+
+- **controller/systems**: use tally_by
+
 ## v1.29.0 (2021-07-06)
+
+### Feat
+
+- **root**: add promises for service versions
+- add service versions route
+- **root**: add `Version`
+- add JSON schema CRUD routes
+- **controllers/user:destroy**: render errors
+- **controllers/repositories**: support branch switching
 
 ### Fix
 
@@ -307,25 +317,16 @@
 
 - **controllers/metadata**: use IO to render iterator
 
-### Feat
-
-- **root**: add promises for service versions
-- add service versions route
-- **root**: add `Version`
-- add JSON schema CRUD routes
-- **controllers/user:destroy**: render errors
-- **controllers/repositories**: support branch switching
-
 ## v1.27.0 (2021-04-29)
-
-### Refactor
-
-- **current_user**: touch-up
 
 ### Feat
 
 - **log**: configure raven log backend and exception handler
 - **logging**: register log level change signals
+
+### Refactor
+
+- **current_user**: touch-up
 
 ## v1.26.1 (2021-04-14)
 
@@ -354,16 +355,16 @@
 
 ## v1.21.0 (2021-03-03)
 
+### Feat
+
+- add logstash support
+- **users**: find user using email or id
+
 ### Fix
 
 - **controller:cluster**: empty array on key miss
 - **config**: report logs in milliseconds only
 - **controller:repositories**: force compile interface repositories
-
-### Feat
-
-- add logstash support
-- **users**: find user using email or id
 
 ## v1.20.0 (2021-01-28)
 
@@ -378,6 +379,12 @@
 - **controllers**: save_and_respond accepts mutation block
 
 ## v1.18.3 (2021-01-21)
+
+### Feat
+
+- **controller:edge**: add CRUD, and token method
+- **edge**: implement edge proxy
+- **controller:edge**: implement connection manager
 
 ### Fix
 
@@ -395,17 +402,7 @@
 - **controller:cluster**: edge observability
 - **controllers:repositories**: enum methods
 
-### Feat
-
-- **controller:edge**: add CRUD, and token method
-- **edge**: implement edge proxy
-- **controller:edge**: implement connection manager
-
 ## v1.18.1 (2020-12-03)
-
-### Refactor
-
-- **controller:repositories**: use `limit` rather than `count` for commit listing
 
 ### Feat
 
@@ -415,6 +412,10 @@
 ### Fix
 
 - docker compose test ([#69](https://github.com/PlaceOS/rest-api/pull/69))
+
+### Refactor
+
+- **controller:repositories**: use `limit` rather than `count` for commit listing
 
 ## v1.17.11 (2020-10-21)
 
@@ -429,32 +430,32 @@
 - **app**: add environment list behind `-e` or `--env`
 - **metadata**: allow users to edit their metadata
 
-### Refactor
-
-- **session**: use exhaustive case for websocket messages
-
 ### Fix
 
 - **log**: register Log backends before deps have chance to log anything
 
-## v1.17.8 (2020-09-23)
-
 ### Refactor
 
-- remove Hash kernel extension
-- **controllers**: lazy getters
-- **responders**: use `case ... in` when matching driver error codes
+- **session**: use exhaustive case for websocket messages
 
-### Fix
-
-- **controller:modules**: check boolean param is nil, rather than truthy
-- minor typos
+## v1.17.8 (2020-09-23)
 
 ### Feat
 
 - allow guest access to zone details ([#59](https://github.com/PlaceOS/rest-api/pull/59))
 - **exec error**: respond with JSON
 - **exec error**: return failure details
+
+### Fix
+
+- **controller:modules**: check boolean param is nil, rather than truthy
+- minor typos
+
+### Refactor
+
+- remove Hash kernel extension
+- **controllers**: lazy getters
+- **responders**: use `case ... in` when matching driver error codes
 
 ## v1.17.6 (2020-09-09)
 
@@ -479,6 +480,12 @@
 
 ## v1.17.2 (2020-08-14)
 
+### Feat
+
+- **users**: provide a method for updating admin attributes
+- **user**: add scope to refresh request
+- **users**: support for managing SSO resource tokens
+
 ### Fix
 
 - **controllers:root**: skip setting of user_id for root
@@ -496,12 +503,6 @@
 
 - update placeos-models
 
-### Feat
-
-- **users**: provide a method for updating admin attributes
-- **user**: add scope to refresh request
-- **users**: support for managing SSO resource tokens
-
 ## v1.16.4 (2020-07-15)
 
 ### Fix
@@ -510,16 +511,21 @@
 
 ## v1.16.3 (2020-07-15)
 
+### Feat
+
+- **controller:repositories**: support branch listing for interface repositories
+
 ### Fix
 
 - **controller:systems**: run save callbacks on remove module
 - **controller:repositories**: asynchronously pull Interface repositories
 
+## v1.15.1 (2020-07-08)
+
 ### Feat
 
-- **controller:repositories**: support branch listing for interface repositories
-
-## v1.15.1 (2020-07-08)
+- **controller:metadata**: generic metadata controller
+- **controller:system-triggers**: add a `complete` param for show and index
 
 ### Fix
 
@@ -535,11 +541,6 @@
 - **controller:zone-metadata**: correctly generate filtered metadata
 - **controller:systems**: filter by trigger_id
 
-### Feat
-
-- **controller:metadata**: generic metadata controller
-- **controller:system-triggers**: add a `complete` param for show and index
-
 ## v1.13.5 (2020-06-29)
 
 ### Feat
@@ -553,10 +554,9 @@
 
 ## v1.13.1 (2020-06-19)
 
-### Refactor
+### Feat
 
-- **root**: use RubberSoul::Client
-- **controllers**: set_collection_headers shortcut for fixed collections
+- **controller:systems**: add `emails` filter to index`
 
 ### Fix
 
@@ -566,9 +566,10 @@
 - **Log**: use `Log#setup`
 - **controller:modules**: update neuroplastic
 
-### Feat
+### Refactor
 
-- **controller:systems**: add `emails` filter to index`
+- **root**: use RubberSoul::Client
+- **controllers**: set_collection_headers shortcut for fixed collections
 
 ## v1.12.0 (2020-06-16)
 
@@ -593,13 +594,13 @@
 - use the shared discovery instance
 - allow sending the bearer token via cookie
 
-### Refactor
-
-- rename `placeos-rest-api`
-
 ### Fix
 
 - **spec:modules**: explicit overload fix
+
+### Refactor
+
+- rename `placeos-rest-api`
 
 ## v1.8.4 (2020-05-14)
 
@@ -611,27 +612,27 @@
 
 ## v1.8.1 (2020-05-04)
 
-### Fix
-
-- **controller:repositories**: upcase 'HEAD'
-
 ### Feat
 
 - **controller:repositories**: handle `Interface` type repositories
 
+### Fix
+
+- **controller:repositories**: upcase 'HEAD'
+
 ## v1.7.1 (2020-05-01)
 
-### Refactor
+### Feat
 
-- migrate to Log
+- **users controller**: add destroy method
 
 ### Fix
 
 - **users controller**: @user is nilable
 
-### Feat
+### Refactor
 
-- **users controller**: add destroy method
+- migrate to Log
 
 ## v1.6.0 (2020-04-20)
 
@@ -760,19 +761,23 @@
 - **repositories**: details method was named incorrectly
 - **webhooks**: compile
 
-### Perf
-
-- use `reverse!` where appropriate
-- **controller:systems**: prefer update over replace
-- **controller:systems**: improve system module `running` state toggle query
-
 ### Refactor
 
 - `ACAEngine` -> `PlaceOS`, `engine-api` -> `rest-api`
 - **utils:severity_converter**: factor `SeverityConverter` out into its own file
 - **controllers/zones**: remove unneccessary rescue block
 
+### Perf
+
+- use `reverse!` where appropriate
+- **controller:systems**: prefer update over replace
+- **controller:systems**: improve system module `running` state toggle query
+
 ## v1.3.0 (2019-12-04)
+
+### BREAKING CHANGE
+
+- paths for requests require a slight change
 
 ### Feat
 
@@ -792,6 +797,18 @@
 - **models**: add settings module
 - **model**: add driver_name field to Module
 
+### Fix
+
+- **config**: syntax error in logger initialisation
+- actually send the error response in create bindings
+- update lock file
+- **session**: implement exec websocket request
+- **root**: correct root path
+- **systems**: update hound-dog discovery calls
+- **session_manager**: use the global logger
+- **model:module**: include driver to fix type resolution
+- **user**: remove scrypt, discard password logic
+
 ### Refactor
 
 - update tagged logs, remove casts scattered through controllers
@@ -805,19 +822,3 @@
 - **models**: separate models
 - **api**: change version routing "v1" -> "v2"
 - Engine -> ACAEngine
-
-### Fix
-
-- **config**: syntax error in logger initialisation
-- actually send the error response in create bindings
-- update lock file
-- **session**: implement exec websocket request
-- **root**: correct root path
-- **systems**: update hound-dog discovery calls
-- **session_manager**: use the global logger
-- **model:module**: include driver to fix type resolution
-- **user**: remove scrypt, discard password logic
-
-### BREAKING CHANGE
-
-- paths for requests require a slight change
