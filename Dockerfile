@@ -1,4 +1,4 @@
-ARG CRYSTAL_VERSION=1.4.1
+ARG CRYSTAL_VERSION=1.5.0
 FROM alpine:3.16 as build
 WORKDIR /app
 
@@ -23,11 +23,21 @@ RUN adduser \
     "${USER}"
 
 # Add trusted CAs for communicating with external services
-RUN apk add --no-cache \
-        ca-certificates \
-        curl \
-    && \
-    update-ca-certificates
+RUN apk add \
+  --update \
+  --no-cache \
+    ca-certificates \
+    yaml-dev \
+    yaml-static \
+    libxml2-dev \
+    openssl-dev \
+    openssl-libs-static \
+    zlib-dev \
+    zlib-static \
+    tzdata \
+    curl
+
+RUN update-ca-certificates
 
 # Add crystal lang
 # can look up packages here: https://pkgs.alpinelinux.org/packages?name=crystal
@@ -37,15 +47,7 @@ RUN apk add \
   --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main \
   --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community \
     crystal \
-    shards \
-    yaml-dev \
-    yaml-static \
-    libxml2-dev \
-    openssl-dev \
-    openssl-libs-static \
-    zlib-dev \
-    zlib-static \
-    tzdata
+    shards
 
 # Install shards for caching
 COPY shard.yml shard.yml
@@ -61,12 +63,7 @@ COPY ./src /app/src
 RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_COMMIT=$PLACE_COMMIT \
     PLACE_VERSION=$PLACE_VERSION \
-    crystal build \
-        --release \
-        --error-trace \
-        --static \
-        -o /app/rest-api \
-        /app/src/app.cr
+    shards build --production --release --error-trace
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
@@ -101,13 +98,15 @@ COPY --from=build /usr/share/zoneinfo/ /usr/share/zoneinfo/
 COPY --from=build /bin/ping /ping
 COPY --from=build /bin/ping6 /ping6
 
+# Copy the app into place
 COPY --from=build /app/deps /
-COPY --from=build /app/rest-api /rest-api
+COPY --from=build /app/bin /
 
 # Use an unprivileged user.
 USER appuser:appuser
 
 # Run the app binding on port 3000
 EXPOSE 3000
+ENTRYPOINT ["/rest-api"]
 HEALTHCHECK CMD ["/rest-api", "-c", "http://127.0.0.1:3000/api/engine/v2/"]
 CMD ["/rest-api", "-b", "0.0.0.0", "-p", "3000"]
