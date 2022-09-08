@@ -1,4 +1,8 @@
 dependencies:
+  action-controller:
+    github: spider-gazelle/action-controller
+    version: ~> 4.1
+
   pars:
     github: spider-gazelle/pars
 
