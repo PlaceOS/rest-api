@@ -34,7 +34,8 @@ RUN apk add \
     openssl-libs-static \
     zlib-dev \
     zlib-static \
-    tzdata
+    tzdata \
+    curl
 
 RUN update-ca-certificates
 
