@@ -12,6 +12,7 @@
 
 ### Fix
 
+- **Dockerfile**: don't use edge libraries ([#298](https://github.com/PlaceOS/rest-api/pull/298))
 - **websocket**: close write_channel on cleanup ([#291](https://github.com/PlaceOS/rest-api/pull/291))
 - **metadata**: users can create their own metadata ([#287](https://github.com/PlaceOS/rest-api/pull/287))
 
