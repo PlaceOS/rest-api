@@ -68,7 +68,7 @@ RUN UNAME_AT_COMPILE_TIME=true \
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
-RUN for binary in "/bin/ping" "/bin/ping6"; do \
+RUN for binary in "/bin/ping" "/bin/ping6" /app/bin/*; do \
         ldd "$binary" | \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
