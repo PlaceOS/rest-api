@@ -44,22 +44,21 @@ dependencies:
   # For core client
   placeos-core-client:
     github: placeos/core-client
-    version: ~> 0.3
+    version: ~> 0.5
 
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ~> 6.1
+    version: ~> 6.4
 
   # For frontends client
   placeos-frontend-loader:
     github: placeos/frontend-loader
-    version: ~> 2.4
 
   # Centrally defined logging configuration
   placeos-log-backend:
     github: place-labs/log-backend
-    version: ">= 0.11.0"
+    version: ">= 0.11.2"
 
   # Database view
   placeos-models:

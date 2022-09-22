@@ -2,179 +2,165 @@ require "../helper"
 
 module PlaceOS::Api
   describe Users do
-    authenticated_user, authorization_header = authentication
-    base = Users::NAMESPACE[0]
+    Spec.test_404(Users.base_route, model_name: Model::User.table_name, headers: Spec::Authentication.headers)
 
-    with_server do
-      Specs.test_404(base, model_name: Model::User.table_name, headers: authorization_header)
+    describe "CRUD operations", tags: "crud" do
+      it "query via email" do
+        model = Model::Generator.user.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
 
-      describe "CRUD operations", tags: "crud" do
-        it "query via email" do
-          model = Model::Generator.user.save!
-          model.persisted?.should be_true
-          id = model.id.as(String)
+        params = HTTP::Params.encode({"q" => model.email.to_s})
+        path = "#{Users.base_route}?#{params}"
 
-          params = HTTP::Params.encode({"q" => model.email.to_s})
-          path = "#{base}?#{params}"
+        sleep 2
 
-          sleep 2
+        result = client.get(
+          path: path,
+          headers: Spec::Authentication.headers,
+        )
 
-          result = curl(
-            method: "GET",
-            path: path,
-            headers: authorization_header,
-          )
+        result.status_code.should eq 200
+        response = Array(Model::User).from_json(result.body)
+        response.size.should eq 1
+        response.first.id.should eq id
+      end
 
-          result.status_code.should eq 200
-          response = Array(Model::User).from_json(result.body)
-          response.size.should eq 1
-          response.first.id.should eq id
-        end
+      it "show" do
+        model = Model::Generator.user.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = client.get(
+          path: File.join(Users.base_route, id),
+          headers: Spec::Authentication.headers,
+        )
 
-        it "show" do
-          model = Model::Generator.user.save!
-          model.persisted?.should be_true
-          id = model.id.as(String)
-          result = curl(
-            method: "GET",
-            path: File.join(base, id),
-            headers: authorization_header,
-          )
+        result.status_code.should eq 200
+        response_model = Model::User.from_trusted_json(result.body)
+        response_model.id.should eq id
 
-          result.status_code.should eq 200
-          response_model = Model::User.from_trusted_json(result.body)
-          response_model.id.should eq id
+        model.destroy
+      end
 
-          model.destroy
-        end
+      it "show via email" do
+        model = Model::Generator.user.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = client.get(
+          path: Users.base_route + model.email.to_s,
+          headers: Spec::Authentication.headers,
+        )
 
-        it "show via email" do
-          model = Model::Generator.user.save!
-          model.persisted?.should be_true
-          id = model.id.as(String)
-          result = curl(
-            method: "GET",
-            path: base + model.email.to_s,
-            headers: authorization_header,
-          )
+        result.status_code.should eq 200
+        response_model = Model::User.from_trusted_json(result.body)
+        response_model.id.should eq id
+        response_model.email.should eq model.email
 
-          result.status_code.should eq 200
-          response_model = Model::User.from_trusted_json(result.body)
-          response_model.id.should eq id
-          response_model.email.should eq model.email
+        model.destroy
+      end
 
-          model.destroy
-        end
+      it "show via login_name" do
+        login = random_name
+        model = Model::Generator.user
+        model.login_name = login
+        model.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = client.get(
+          path: Users.base_route + login,
+          headers: Spec::Authentication.headers,
+        )
 
-        it "show via login_name" do
-          login = random_name
+        result.status_code.should eq 200
+        response_model = Model::User.from_trusted_json(result.body)
+        response_model.id.should eq id
+
+        model.destroy
+      end
+
+      it "show via staff_id" do
+        staff_id = "12345678"
+        model = Model::Generator.user
+        model.staff_id = staff_id
+        model.save!
+        model.persisted?.should be_true
+        id = model.id.as(String)
+        result = client.get(
+          path: Users.base_route + staff_id,
+          headers: Spec::Authentication.headers,
+        )
+
+        result.status_code.should eq 200
+        response_model = Model::User.from_trusted_json(result.body)
+        response_model.id.should eq id
+
+        model.destroy
+      end
+
+      describe "update" do
+        it "updates groups" do
+          initial_groups = ["public"]
+
           model = Model::Generator.user
-          model.login_name = login
+          model.groups = initial_groups
           model.save!
           model.persisted?.should be_true
+
+          updated_groups = ["admin", "public", "calendar"]
+
           id = model.id.as(String)
-          result = curl(
-            method: "GET",
-            path: base + login,
-            headers: authorization_header,
+          result = client.patch(
+            path: File.join(Users.base_route, id),
+            body: {groups: updated_groups}.to_json,
+            headers: Spec::Authentication.headers
           )
 
           result.status_code.should eq 200
           response_model = Model::User.from_trusted_json(result.body)
           response_model.id.should eq id
+          response_model.groups.should eq updated_groups
 
           model.destroy
         end
-
-        it "show via staff_id" do
-          staff_id = "12345678"
-          model = Model::Generator.user
-          model.staff_id = staff_id
-          model.save!
-          model.persisted?.should be_true
-          id = model.id.as(String)
-          result = curl(
-            method: "GET",
-            path: base + staff_id,
-            headers: authorization_header,
-          )
-
-          result.status_code.should eq 200
-          response_model = Model::User.from_trusted_json(result.body)
-          response_model.id.should eq id
-
-          model.destroy
-        end
-
-        describe "update" do
-          it "updates groups" do
-            initial_groups = ["public"]
-
-            model = Model::Generator.user
-            model.groups = initial_groups
-            model.save!
-            model.persisted?.should be_true
-
-            updated_groups = ["admin", "public", "calendar"]
-
-            id = model.id.as(String)
-            result = curl(
-              method: "PATCH",
-              path: File.join(base, id),
-              body: {groups: updated_groups}.to_json,
-              headers: authorization_header.merge({"Content-Type" => "application/json"})
-            )
-
-            result.status_code.should eq 200
-            response_model = Model::User.from_trusted_json(result.body)
-            response_model.id.should eq id
-            response_model.groups.should eq updated_groups
-
-            model.destroy
-          end
-        end
       end
+    end
 
-      describe "GET /users/current" do
-        it "renders the current user" do
-          authenticated_user, authorization_header = authentication
-          result = curl(
-            method: "GET",
-            path: File.join(base, "/current"),
-            headers: authorization_header,
-          )
+    describe "GET /users/current" do
+      it "renders the current user" do
+        result = client.get(
+          path: File.join(Users.base_route, "/current"),
+          headers: Spec::Authentication.headers,
+        )
 
-          result.status_code.should eq 200
-          response_user = Model::User.from_trusted_json(result.body)
-          response_user.id.should eq authenticated_user.id
-        end
+        result.status_code.should eq 200
+        response_user = Model::User.from_trusted_json(result.body)
+        response_user.id.should eq Spec::Authentication.user.id
       end
+    end
 
-      describe "GET /users/:id/metadata" do
-        it "shows user metadata" do
-          user = Model::Generator.user.save!
-          user_id = user.id.as(String)
-          meta = Model::Generator.metadata(name: "special", parent: user_id).save!
+    describe "GET /users/:id/metadata" do
+      it "shows user metadata" do
+        user = Model::Generator.user.save!
+        user_id = user.id.as(String)
+        meta = Model::Generator.metadata(name: "special", parent: user_id).save!
 
-          result = curl(
-            method: "GET",
-            path: base + "#{user_id}/metadata",
-            headers: authorization_header,
-          )
+        result = client.get(
+          path: Users.base_route + "#{user_id}/metadata",
+          headers: Spec::Authentication.headers,
+        )
 
-          metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
-          metadata.size.should eq 1
-          metadata.first[1].parent_id.should eq user_id
-          metadata.first[1].name.should eq meta.name
+        metadata = Hash(String, Model::Metadata::Interface).from_json(result.body)
+        metadata.size.should eq 1
+        metadata.first[1].parent_id.should eq user_id
+        metadata.first[1].name.should eq meta.name
 
-          user.destroy
-          meta.destroy
-        end
+        user.destroy
+        meta.destroy
       end
+    end
 
-      describe "scopes" do
-        Specs.test_controller_scope(Users)
-      end
+    describe "scopes" do
+      Spec.test_controller_scope(Users)
     end
   end
 end

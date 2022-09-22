@@ -1,22 +1,30 @@
 dependencies:
-  action-controller:
-    github: spider-gazelle/action-controller
-    version: ~> 4.1
-
   pars:
     github: spider-gazelle/pars
 
   secrets-env:
     github: spider-gazelle/secrets-env
 
-  placeos-log-backend:
-    github: place-labs/log-backend
-    version: ">= 0.11.2"
+  rethinkdb-orm:
+    github: spider-gazelle/rethinkdb-orm
+
+  rethinkdb:
+    github: kingsleyh/crystal-rethinkdb
+    version: ~> 0.3
+
+  CrystalEmail:
+    github: place-labs/CrystalEmail
+    version: ~> 0.2
+
+  opentelemetry-instrumentation:
+    github: wyhaines/opentelemetry-instrumentation.cr
+    branch: main
 
   opentelemetry-sdk:
     github: wyhaines/opentelemetry-sdk.cr
     branch: main
 
-  opentelemetry-instrumentation:
-    github: wyhaines/opentelemetry-instrumentation.cr
-    branch: main
+  # TODO:: remove
+  http-params-serializable:
+    github: place-labs/http-params-serializable
+    branch: master
