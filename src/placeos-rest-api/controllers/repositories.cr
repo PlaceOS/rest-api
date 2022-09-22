@@ -150,18 +150,10 @@ module PlaceOS::Api
     end
 
     def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
-      number_of_commits = 50 if number_of_commits.nil?
-      case repository.repo_type
-      in .driver?
-        # Dial the core responsible for the driver
-        Api::Systems.core_for(repository.folder_name, request_id) do |core_client|
-          core_client.driver(file_name || ".", repository.folder_name, repository.branch, number_of_commits)
-        end
-      in .interface?
-        # Dial the frontends service
-        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
-          frontends_client.commits(repository.folder_name, repository.branch, number_of_commits)
-        end
+      # Dial the frontends service which can provide all the details
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = repository.decrypt_password if repository.password.presence
+        frontends_client.remote_commits(repository.uri, repository.branch, file_name, number_of_commits, repository.username, password)
       end
     end
 
@@ -190,26 +182,10 @@ module PlaceOS::Api
     end
 
     def self.branches(repository : Model::Repository, request_id : String)
-      case repository.repo_type
-      in .interface?
-        # Dial the frontends service
-        FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
-          frontends_client.branches(repository.folder_name)
-        end
-      in .driver?
-        Api::Systems.core_for(repository.id.as(String), request_id) do |core_client|
-          core_client.branches?(repository.folder_name)
-        end
-      end.tap do |result|
-        if result.nil?
-          Log.info { {
-            message:       "failed to retrieve branches",
-            repository_id: repository.id,
-            folder_name:   repository.folder_name,
-            name:          repository.name,
-            type:          repository.repo_type.to_s,
-          } }
-        end
+      # Dial the frontends service which can provide all the details
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = repository.decrypt_password if repository.password.presence
+        frontends_client.remote_branches(repository.uri, repository.username, password)
       end
     end
 
@@ -224,19 +200,10 @@ module PlaceOS::Api
     end
 
     def self.releases(repository : Model::Repository, request_id : String)
-      # Dial the frontends service
+      # Dial the frontends service which can provide all the details
       FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
-        frontends_client.releases(repository.folder_name)
-      end.tap do |result|
-        if result.nil?
-          Log.info { {
-            message:       "failed to retrieve releases",
-            repository_id: repository.id,
-            folder_name:   repository.folder_name,
-            name:          repository.name,
-            type:          repository.repo_type.to_s,
-          } }
-        end
+        password = repository.decrypt_password if repository.password.presence
+        frontends_client.releases(repository.uri, repository.username, password)
       end
     end
   end
