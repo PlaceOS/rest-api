@@ -7,11 +7,11 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 5.3.14
+    version: 5.4.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
-    version: 4.0.0
+    version: 4.2.0
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
