@@ -17,30 +17,24 @@ module PlaceOS::Api
       # Callbacks
       ###############################################################################################
 
-      before_action :current_auth, only: [:show, :update, :update_alt, :destroy]
-      before_action :body, only: [:create, :update, :update_alt]
-
-      # Params
-      ###############################################################################################
-
-      getter authority_id : String? do
-        params["authority_id"]?.presence || params["authority"]?.presence
-      end
-
-      ###############################################################################################
-
-      getter current_auth : Model::{{auth_type.id}}Authentication do
-        id = params["id"]
+      @[AC::Route::Filter(:before_action, except: [:index, :create])]
+      def find_current_auth(id : String)
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
-        Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
+        @current_auth = Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
       end
+
+      getter! current_auth : Model::{{auth_type.id}}Authentication
 
       ###############################################################################################
 
-      def index
+      @[AC::Route::GET("/")]
+      def index(
+        @[AC::Param::Info(description: "return authentications that belong to the provided domain", example: "auth-12345")]
+        authority_id : String? = nil,
+      ) : Array(Model::{{auth_type.id}}Authentication)
         elastic = Model::{{auth_type.id}}Authentication.elastic
-        query = elastic.query(params)
+        query = elastic.query(search_params)
 
         if authority = authority_id
           query.filter({
@@ -49,27 +43,32 @@ module PlaceOS::Api
         end
 
         query.sort(NAME_SORT_ASC)
-        render json: paginate_results(elastic, query)
+        paginate_results(elastic, query)
       end
 
-      def show
-        render json: current_auth
+      @[AC::Route::GET("/:id")]
+      def show : Model::{{auth_type.id}}Authentication
+        current_auth
       end
 
-      def update
-        current_auth.assign_attributes_from_json(self.body)
-        save_and_respond current_auth
+      @[AC::Route::PATCH("/:id", body: :auth)]
+      @[AC::Route::PUT("/:id", body: :auth)]
+      def update(auth : Model::{{auth_type.id}}Authentication) : Model::{{auth_type.id}}Authentication
+        current = current_auth
+        current.assign_attributes(auth)
+        raise Error::ModelValidation.new(current.errors) unless current.save
+        current
       end
 
-      put_redirect
-
-      def create
-        save_and_respond(Model::{{auth_type.id}}Authentication.from_json(self.body))
+      @[AC::Route::POST("/", body: :auth, status_code: HTTP::Status::CREATED)]
+      def create(auth : Model::{{auth_type.id}}Authentication) : Model::{{auth_type.id}}Authentication
+        raise Error::ModelValidation.new(auth.errors) unless auth.save
+        auth
       end
 
-      def destroy
+      @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+      def destroy : Nil
         current_auth.destroy
-        head :ok
       end
     end
   {% end %}

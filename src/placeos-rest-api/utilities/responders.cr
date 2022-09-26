@@ -50,6 +50,7 @@ module PlaceOS::Api
     end
 
     # Merge fields into object
+    # TODO:: update this
     def with_fields(model, fields) : Hash
       attrs = Hash(String, JSON::Any).from_json(model.to_json)
       attrs.merge(fields)
