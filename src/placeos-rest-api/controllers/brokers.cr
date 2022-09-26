@@ -9,15 +9,15 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:collection, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
 
-    before_action :check_admin, except: [:index, :show]
-    before_action :check_support, only: [:index, :show]
+    before_action :check_admin, except: [:collection, :show]
+    before_action :check_support, only: [:collection, :show]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    @[AC::Route::Filter(:before_action, except: [:collection, :create])]
     def find_current_broker(id : String)
       Log.context.set(broker_id: id)
       # Find will raise a 404 (not found) if there is an error
