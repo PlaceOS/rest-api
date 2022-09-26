@@ -51,9 +51,9 @@ module PlaceOS::Api
         # [ { "uri": <uri>, "id": <id> }, ... ]
         details.map do |id, uri|
           {
-            id: id,
-            uri: uri,
-            load: nil.as(PlaceOS::Core::Client::Load?),
+            id:     id,
+            uri:    uri,
+            load:   nil.as(PlaceOS::Core::Client::Load?),
             status: nil.as(PlaceOS::Core::Client::CoreStatus?),
           }.as(NodeStatus)
         end

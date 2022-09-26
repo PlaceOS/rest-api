@@ -13,34 +13,26 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :current_driver, only: [:show, :update, :update_alt, :destroy, :recompile]
-    before_action :body, only: [:create, :update, :update_alt]
-
-    ###############################################################################################
-
-    getter current_driver : Model::Driver do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, only: [:show, :update, :update_alt, :destroy, :recompile])]
+    def current_driver(id : String)
       Log.context.set(driver_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
+      @current_driver = Model::Driver.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_driver : Model::Driver
 
     ###############################################################################################
 
-    def index
-      # Pick off role from HTTP params, render error if present and invalid
-      # TODO: This is an example of a need to improve validation model of params.
-      role = params["role"]?.try &.to_i?.try do |r|
-        parsed = Model::Driver::Role.from_value?(r)
-        return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Invalid `role`") if parsed.nil?
-        parsed
-      end
-
+    @[AC::Route::GET("/")]
+    def index(
+      @[AC::Param::Info(description: "filter by the type of driver", example: "Logic")]
+      role : Model::Driver::Role? = nil
+    ) : Array(Model::Driver)
       elastic = Model::Driver.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
 
       if role
         query.filter({
@@ -50,51 +42,56 @@ module PlaceOS::Api
 
       query.search_field "name"
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      include_compilation_status = boolean_param("compilation_status", default: true)
-
-      result = !include_compilation_status ? current_driver : with_fields(current_driver, {
-        :compilation_status => Api::Drivers.compilation_status(current_driver, request_id),
+    @[AC::Route::GET("/:id")]
+    def show(
+      @[AC::Param::Info(name: "compilation_status", description: "check if the driver is compiled?", example: "false")]
+      include_compilation_status : Bool = true
+    ) : Model::Driver | Hash(String, Hash(String, Bool) | JSON::Any)
+      # TODO:: find an alternative for with_fields
+      !include_compilation_status ? current_driver : with_fields(current_driver, {
+        "compilation_status" => Api::Drivers.compilation_status(current_driver, request_id),
       })
-
-      render json: result
     end
 
-    def update
-      current_driver.assign_attributes_from_json(self.body)
-
-      # Must destroy and re-add to change driver type
-      return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "Driver role must not change") if current_driver.role_changed?
-
-      save_and_respond current_driver
+    @[AC::Route::PATCH("/:id", body: :driver)]
+    @[AC::Route::PUT("/:id", body: :driver)]
+    def update(driver : Model::Driver) : Model::Driver
+      current = current_driver
+      current.assign_attributes(driver)
+      raise Error::ModelValidation.new({ActiveModel::Error.new(current_driver, :role, "Driver role must not change")}) if current_driver.role_changed?
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      save_and_respond(Model::Driver.from_json(self.body))
+    @[AC::Route::POST("/", body: :driver, status_code: HTTP::Status::CREATED)]
+    def create(driver : Model::Driver) : Model::Driver
+      raise Error::ModelValidation.new(driver.errors) unless driver.save
+      driver
     end
 
-    def destroy
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_driver.destroy
-      head :ok
     end
 
-    post("/:id/recompile", :recompile) do
+    @[AC::Route::POST("/:id/recompile", status: {
+      Nil => HTTP::Status::ALREADY_REPORTED,
+    })]
+    def recompile : Model::Driver?
       if current_driver.commit.starts_with?("RECOMPILE")
-        head :already_reported
+        nil
       else
         if (recompiled = Drivers.recompile(current_driver))
           if recompiled.destroyed?
-            head :not_found
+            raise Error::NotFound.new("driver was deleted")
           else
-            render json: recompiled
+            recompiled
           end
         else
-          head :request_timeout
+          raise IO::TimeoutError.new("time exceeded waiting for driver to recompile")
         end
       end
     end
@@ -111,27 +108,25 @@ module PlaceOS::Api
     end
 
     # Check if the core responsible for the driver has finished compilation
-    #
-    get("/:id/compiled", :compiled) do
+    @[AC::Route::GET("/:id/compiled", status: {
+      NamedTuple(compilation_output: String) => HTTP::Status::SERVICE_UNAVAILABLE,
+    })]
+    def compiled : Nil | NamedTuple(compilation_output: String)
       if (repository = current_driver.repository).nil?
         Log.error { {repository_id: current_driver.repository_id, message: "failed to load driver's repository"} }
-        head :internal_server_error
+        raise "failed to load driver's repository"
       end
 
       compiled = self.class.driver_compiled?(current_driver, repository, request_id)
-
       Log.info { "#{compiled ? "" : "not "}compiled" }
 
-      if compiled
-        # Driver binary present
-        head :ok
-      else
+      unless compiled
         if current_driver.compilation_output.nil?
           # Driver not compiled yet
-          head :not_found
+          raise Error::NotFound.new("Driver not compiled yet")
         else
           # Driver previously failed to compile
-          render :service_unavailable, json: {compilation_output: current_driver.compilation_output}
+          {compilation_output: current_driver.compilation_output.not_nil!}
         end
       end
     end

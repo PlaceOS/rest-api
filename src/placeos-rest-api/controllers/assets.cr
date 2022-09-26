@@ -53,11 +53,12 @@ module PlaceOS::Api
       if include_instances
         # TODO:: we should make this part of the model (JSON write only lazy getter)
         # in the mean time this will work and our docs still look okay
-        render json: with_fields(current_asset, {
+        with_fields(current_asset, {
           "asset_instances" => current_asset.asset_instances.to_a,
         })
+      else
+        current_asset
       end
-      current_asset
     end
 
     @[AC::Route::PATCH("/:id", body: :asset)]
