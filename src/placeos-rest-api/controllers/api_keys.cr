@@ -23,7 +23,7 @@ module PlaceOS::Api
     def find_current_api_key(id : String)
       Log.context.set(api_key: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
+      @current_api_key = Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
     end
 
     getter! current_api_key : Model::ApiKey
