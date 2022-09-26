@@ -87,7 +87,7 @@ module PlaceOS::Api::Spec
         headers: Spec::Authentication.headers
       )
 
-      result.status_code.should eq 200
+      result.success?.should eq true
       {{ klass.id }}.find(id).should be_nil
     end
   end

@@ -13,8 +13,6 @@ module PlaceOS::Api
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:show]
 
-    before_action :ensure_json, only: [:create]
-
     ###########################################################################
 
     getter current_instance : Model::AssetInstance do
