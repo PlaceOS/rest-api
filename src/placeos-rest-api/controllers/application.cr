@@ -89,6 +89,28 @@ module PlaceOS::Api
       response.headers["Content-Range"] = "#{content_type} 0-#{size - 1}/#{size}"
     end
 
+    getter! search_params : Hash(String, String)
+
+    @[AC::Route::Filter(:before_action, only: [:index])]
+    def build_search_params(
+      @[AC::Param::Info(name: "q", description: "returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)")]
+      query : String = "*",
+      @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
+      limit : UInt32 = 100_u32,
+      @[AC::Param::Info(description: "deprecated, the starting offset of the result set. Used to implement pagination")]
+      offset : UInt32 = 0_u32,
+      @[AC::Param::Info(description: "a token for accessing the next page of results, provided in the `Link` header")]
+      ref : String? = nil
+    )
+      search_params = {
+        "q"      => query,
+        "limit"  => limit.to_s,
+        "offset" => offset.to_s,
+      }
+      search_params["ref"] = ref.not_nil! if ref.presence
+      @search_params = search_params
+    end
+
     # Callbacks
     ###########################################################################
 

@@ -12,11 +12,6 @@ module PlaceOS::Api
 
     before_action :check_admin, except: :inspect_key
 
-    # Callbacks
-    ###############################################################################################
-
-    before_action :body, only: [:create, :update, :update_alt]
-
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create, :inspect_key])]
@@ -32,9 +27,12 @@ module PlaceOS::Api
 
     # returns a list of the API keys associated with the provided domain, otherwise all domains
     @[AC::Route::GET("/")]
-    def index(authority_id : String? = nil) : Array(Model::ApiKey::PublicResponse)
+    def index(
+      @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
+      authority_id : String? = nil
+    ) : Array(Model::ApiKey::PublicResponse)
       elastic = Model::ApiKey.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
 
       if authority = authority_id
         query.filter({"authority_id" => [authority]})
