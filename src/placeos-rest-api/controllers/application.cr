@@ -188,6 +188,7 @@ module PlaceOS::Api
     end
 
     # 404 if resource not present
+    @[AC::Route::Exception(Error::NotFound, status_code: HTTP::Status::NOT_FOUND)]
     @[AC::Route::Exception(RethinkORM::Error::DocumentNotFound, status_code: HTTP::Status::NOT_FOUND)]
     def resource_not_found(error) : CommonError
       Log.debug(exception: error) { error.message }

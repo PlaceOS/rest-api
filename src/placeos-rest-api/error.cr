@@ -12,6 +12,9 @@ module PlaceOS::Api
     class Forbidden < Error
     end
 
+    class NotFound < Error
+    end
+
     class ModelValidation < Error
       getter failures : Array(NamedTuple(field: Symbol, reason: String))
 
