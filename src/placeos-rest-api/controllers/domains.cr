@@ -13,48 +13,50 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :current_domain, only: [:show, :update, :update_alt, :destroy]
-    before_action :body, only: [:create, :update, :update_alt]
-
-    ###############################################################################################
-
-    getter current_domain : Model::Authority do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    def find_current_domain(id : String)
       Log.context.set(authority_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Authority.find!(id, runopts: {"read_mode" => "majority"})
     end
 
+    getter! current_domain : Model::Authority
+
     ###############################################################################################
 
-    def index
+    @[AC::Route::GET("/")]
+    def index : Array(Model::Authority)
       elastic = Model::Authority.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      render json: current_domain
+    @[AC::Route::GET("/:id")]
+    def show : Model::Authority
+      current_domain
     end
 
-    def update
-      current_domain.assign_attributes_from_json(self.body)
-      save_and_respond current_domain
+    @[AC::Route::PATCH("/:id", body: :domain)]
+    @[AC::Route::PUT("/:id", body: :domain)]
+    def update(domain : Model::Authority) : Model::Authority
+      current = current_domain
+      current.assign_attributes(domain)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      save_and_respond(Model::Authority.from_json(self.body))
+    @[AC::Route::POST("/", body: :domain, status_code: HTTP::Status::CREATED)]
+    def create(domain : Model::Authority) : Model::Authority
+      raise Error::ModelValidation.new(domain.errors) unless domain.save
+      domain
     end
 
-    def destroy
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_domain.destroy
-      head :ok
     end
   end
 end

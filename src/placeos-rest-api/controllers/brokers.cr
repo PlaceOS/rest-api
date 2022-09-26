@@ -15,48 +15,50 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :current_broker, only: [:show, :update, :update_alt, :destroy]
-    before_action :body, only: [:create, :update, :update_alt]
-
-    ###############################################################################################
-
-    getter current_broker : Model::Broker do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    def find_current_broker(id : String)
       Log.context.set(broker_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Broker.find!(id, runopts: {"read_mode" => "majority"})
+      @current_broker = Model::Broker.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_broker : Model::Broker
 
     ###############################################################################################
 
-    def index
+    @[AC::Route::GET("/")]
+    def collection : Array(Model::Broker)
+      # named collection, not index as we don't support query params on this route
       brokers = Model::Broker.all.to_a
-
       set_collection_headers(brokers.size, Model::Broker.table_name)
-
-      render json: brokers
+      brokers
     end
 
-    def show
-      render json: current_broker
+    @[AC::Route::GET("/:id")]
+    def show : Model::Broker
+      current_broker
     end
 
-    def update
-      save_and_respond current_broker.assign_attributes_from_json(self.body)
+    @[AC::Route::PATCH("/:id", body: :broker)]
+    @[AC::Route::PUT("/:id", body: :broker)]
+    def update(broker : Model::Broker) : Model::Broker
+      current = current_broker
+      current.assign_attributes(broker)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      save_and_respond(Model::Broker.from_json(self.body))
+    @[AC::Route::POST("/", body: :broker, status_code: HTTP::Status::CREATED)]
+    def create(broker : Model::Broker) : Model::Broker
+      raise Error::ModelValidation.new(broker.errors) unless broker.save
+      broker
     end
 
-    def destroy
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_broker.destroy
-      head :ok
     end
   end
 end

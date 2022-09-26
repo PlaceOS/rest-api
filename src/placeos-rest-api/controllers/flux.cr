@@ -5,7 +5,9 @@ module PlaceOS::Api
     # use influxdb path for any existing influx clients
     base "/api/v2"
 
-    post("/query", :query) do
+    # an influxDB proxy endpoint, route compatible with existing influxDB clients
+    @[AC::Route::POST("/query")]
+    def query
       request_headers = request.headers
 
       # stream the data

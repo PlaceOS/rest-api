@@ -70,7 +70,7 @@ module PlaceOS::Api
         path = File.join(AssetInstances.base_route, id)
 
         result = client.delete(path: path, headers: Spec::Authentication.headers)
-        result.status_code.should eq 200
+        result.success?.should eq true
 
         Model::AssetInstance.find(id.as(String)).should be_nil
       end
