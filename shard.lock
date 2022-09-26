@@ -11,7 +11,7 @@ shards:
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
-    version: 4.2.1
+    version: 4.2.2
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
