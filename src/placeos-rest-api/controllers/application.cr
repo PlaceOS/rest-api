@@ -13,7 +13,7 @@ module PlaceOS::Api
 
     # Customise the request body parser
     add_parser("application/json") do |klass, body_io|
-      if klass < ActiveModel::Model
+      if klass.is_a? ActiveModel::Model
         object = klass.new
         # we clear the changes information so we can track what was assigned from the JSON
         object.clear_changes_information
@@ -115,11 +115,12 @@ module PlaceOS::Api
     ###########################################################################
 
     # All routes are authenticated, except root
-    # NOTE:: we
+    # NOTE:: we don't need these to use strong params
     before_action :authorize!, except: [:root, :mqtt_user, :mqtt_access]
 
     # Simplifies determining user's requests in server-side logs
-    @[AC::Route::Filter(:before_action, except: [:root, :mqtt_user, :mqtt_access])]
+    before_action :set_user_id, except: [:root, :mqtt_user, :mqtt_access]
+
     def set_user_id
       Log.context.set(user_id: user_token.id)
     end
