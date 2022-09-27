@@ -13,62 +13,69 @@ module PlaceOS::Api
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :current_trigger, only: [:show, :update, :update_alt, :destroy]
-    before_action :ensure_json, only: [:create, :update, :update_alt]
-    before_action :body, only: [:create, :update, :update_alt]
-
-    ###############################################################################################
-
-    getter current_trigger : Model::Trigger do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
+    def find_current_trigger(id : String)
       Log.context.set(trigger_id: id)
       # Find will raise a 404 (not found) if there is an error
       Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
     end
 
+    getter! current_trigger : Model::Trigger
+
     ###############################################################################################
 
-    def index
+    @[AC::Route::GET("/")]
+    def index : Array(Model::Trigger)
       elastic = Model::Trigger.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
-
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      include_instances = boolean_param("instances")
-      render json: !include_instances ? current_trigger : with_fields(current_trigger, {
-        :trigger_instances => current_trigger.trigger_instances.to_a,
-      })
+    # update so we can provide instance details
+    class Model::Trigger
+      @[JSON::Field(key: "trigger_instances")]
+      property trigger_instances_details : Array(Model::TriggerInstance)? = nil
     end
 
-    def update
-      current_trigger.assign_attributes_from_json(self.body)
-      save_and_respond(current_trigger)
+    @[AC::Route::GET("/:id")]
+    def show(
+      @[AC::Param::Info(name: "instances", description: "return the instances associated with this trigger", example: "true")]
+      include_instances : Bool? = nil
+    ) : Model::Trigger
+      trig = current_trigger
+      trig.trigger_instances_details = trig.trigger_instances.to_a if include_instances
+      trig
     end
 
-    put_redirect
-
-    def create
-      save_and_respond Model::Trigger.from_json(self.body)
+    @[AC::Route::PATCH("/:id", body: :trig)]
+    @[AC::Route::PUT("/:id", body: :trig)]
+    def update(trig : Model::Trigger) : Model::Trigger
+      current = current_trigger
+      current.assign_attributes(trig)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    def destroy
+    @[AC::Route::POST("/", body: :trig, status_code: HTTP::Status::CREATED)]
+    def create(trig : Model::Trigger) : Model::Trigger
+      raise Error::ModelValidation.new(trig.errors) unless trig.save
+      trig
+    end
+
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_trigger.destroy # expires the cache in after callback
-      head :ok
     end
 
     # Get instances associated with
-    get "/:id/instances", :instances do
+    @[AC::Route::GET("/:id/instances")]
+    def instances : Array(Model::TriggerInstance)
       instances = current_trigger.trigger_instances.to_a
-
       set_collection_headers(instances.size, Model::TriggerInstance.table_name)
-
-      render json: instances
+      instances
     end
   end
 end
