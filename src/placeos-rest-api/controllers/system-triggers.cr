@@ -89,7 +89,7 @@ module PlaceOS::Api
       trigger_instances
     end
 
-    @[AC::Route::GET("/:id")]
+    @[AC::Route::GET("/:trig_id")]
     def show(complete : Bool = true) : Model::TriggerInstance
       # Default to render extra association fields
       render_system_trigger(current_sys_trig, complete: complete)
@@ -99,8 +99,8 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
-    @[AC::Route::PATCH("/:id", body: :args)]
-    @[AC::Route::PUT("/:id", body: :args)]
+    @[AC::Route::PATCH("/:trig_id", body: :args)]
+    @[AC::Route::PUT("/:trig_id", body: :args)]
     def update(args : UpdateParams) : Model::TriggerInstance
       current = current_sys_trig
       current.enabled = args.enabled.as(Bool) unless args.enabled.nil?
@@ -117,7 +117,7 @@ module PlaceOS::Api
       trig_inst
     end
 
-    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    @[AC::Route::DELETE("/:trig_id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_sys_trig.destroy # Expires the cache in after callback
     end
