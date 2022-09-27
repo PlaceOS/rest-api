@@ -108,12 +108,10 @@ module PlaceOS::Api
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish(SIGNAL_CHANNEL, payload)
     end
 
-    record InterfaceError, field : Symbol, message : String
-
     # Find (otherwise create) then update (or patch) the Metadata.
     protected def mutate(parent_id : String, metadata : Model::Metadata::Interface, merge : Bool)
       # A name is required to lookup the metadata
-      raise Error::ModelValidation.new({InterfaceError.new(:name, "Name must not be empty")}) unless metadata.name.presence
+      raise Error::ModelValidation.new({Error::Field.new(:name, "Name must not be empty")}) unless metadata.name.presence
 
       metadata = create_or_update(parent_id, metadata, merge: merge)
       raise Error::ModelValidation.new(metadata.errors) unless metadata.save

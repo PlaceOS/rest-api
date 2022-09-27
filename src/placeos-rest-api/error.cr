@@ -15,6 +15,8 @@ module PlaceOS::Api
     class NotFound < Error
     end
 
+    record Field, field : Symbol, message : String
+
     class ModelValidation < Error
       getter failures : Array(NamedTuple(field: Symbol, reason: String))
 

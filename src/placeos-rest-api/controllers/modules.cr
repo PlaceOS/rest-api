@@ -20,94 +20,90 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :state, :show, :ping]
     before_action :check_support, only: [:index, :state, :show, :ping]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
-    before_action :current_module, only: [:show, :update, :update_alt, :destroy, :ping, :state]
-    before_action :body, only: [:create, :execute, :update, :update_alt]
-
-    # Params
-    ###############################################################################################
-
-    getter module_id : String do
-      params["id"]
-    end
-
-    getter method : String do
-      params["method"]
-    end
-
-    getter key : String do
-      params["key"]
-    end
-
-    ###############################################################################################
-
-    getter current_module : Model::Module do
-      Log.context.set(module_id: module_id)
+    @[AC::Route::Filter(:before_action, only: [:show, :update, :update_alt, :destroy, :ping, :state])]
+    def find_current_module(id : String)
+      Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Module.find!(module_id, runopts: {"read_mode" => "majority"})
+      @current_module = Model::Module.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    getter! current_module : Model::Module
+
+    # Response helpers
+    ###############################################################################################
+
+    record ControlSystemDetails, name : String, zone_data : Array(Model::Zone) do
+      include JSON::Serializable
+    end
+
+    record DriverDetails, name : String, description : String? do
+      include JSON::Serializable
+    end
+
+    # extend the ControlSystem model to handle our return values
+    class Model::Module
+      @[JSON::Field(key: "driver")]
+      property driver_details : Api::Modules::DriverDetails? = nil
+      property compiled : Bool? = nil
+      @[JSON::Field(key: "control_system")]
+      property control_system_details : Api::Modules::ControlSystemDetails? = nil
     end
 
     ###############################################################################################
 
-    private class IndexParams < Params
-      attribute as_of : Int32?
-      attribute control_system_id : String?
-      attribute connected : Bool?
-      attribute driver_id : String?
-      attribute no_logic : Bool = false
-      attribute running : Bool?
-    end
-
-    DRIVER_ATTRIBUTES = %w(name description)
-
-    def index
-      args = IndexParams.new(params)
-
+    @[AC::Route::GET("/")]
+    def index(
+      @[AC::Param::Info(description: "only return modules updated before this time (unix epoch)")]
+      as_of : Int64? = nil,
+      @[AC::Param::Info(description: "only return modules running in this system (query params are ignored if this is provided)", example: "sys-1234")]
+      control_system_id : String? = nil,
+      @[AC::Param::Info(description: "only return modules with a particular connected state", example: "true")]
+      connected : Bool? = nil,
+      @[AC::Param::Info(description: "only return instances of this driver", example: "driver-1234")]
+      driver_id : String? = nil,
+      @[AC::Param::Info(description: "do not return logic modules (return only modules that can exist in multiple systems)", example: "true")]
+      no_logic : Bool = false,
+      @[AC::Param::Info(description: "return only running modules", example: "true")]
+      running : Bool? = nil
+    ) : Array(Model::Module)
       # if a system id is present we query the database directly
-      if (sys_id = args.control_system_id)
-        cs = Model::ControlSystem.find!(sys_id)
+      if control_system_id
+        cs = Model::ControlSystem.find!(control_system_id)
         # Include subset of association data with results
         results = Model::Module.find_all(cs.modules).compact_map do |mod|
           next if (driver = mod.driver).nil?
 
           # Most human readable module data is contained in driver
-          driver_field = restrict_attributes(
-            driver,
-            only: DRIVER_ATTRIBUTES,
-          )
-
-          with_fields(mod, {
-            :driver   => driver_field,
-            :compiled => Api::Modules.driver_compiled?(mod, request_id),
-          })
+          mod.driver_details = DriverDetails.new(driver.name, driver.description)
+          mod.compiled = Api::Modules.driver_compiled?(mod, request_id)
+          mod
         end.to_a
 
         set_collection_headers(results.size, Model::Module.table_name)
 
-        render json: results
+        results
       else # we use Elasticsearch
         elastic = Model::Module.elastic
-        query = elastic.query(params)
+        query = elastic.query(search_params)
 
-        if (driver_id = args.driver_id)
+        if driver_id
           query.filter({"driver_id" => [driver_id]})
         end
 
-        unless (connected = args.connected).nil?
+        unless connected.nil?
           query.filter({
             "ignore_connected" => [false],
             "connected"        => [connected],
           })
         end
 
-        unless (running = args.running).nil?
+        unless running.nil?
           query.should({"running" => [running]})
         end
 
-        if (as_of = args.as_of)
+        if as_of
           query.range({
             "updated_at" => {
               :lte => as_of,
@@ -115,7 +111,7 @@ module PlaceOS::Api
           })
         end
 
-        if args.no_logic
+        if no_logic
           query.must_not({"role" => [Model::Driver::Role::Logic.to_i]})
         end
 
@@ -124,118 +120,101 @@ module PlaceOS::Api
         search_results = paginate_results(elastic, query)
 
         # Include subset of association data with results
-        includes = search_results.compact_map do |d|
+        search_results.compact_map do |d|
           sys = d.control_system
           driver = d.driver
           next unless driver
 
-          # Most human readable module data is contained in driver
-          driver_field = restrict_attributes(
-            driver,
-            only: DRIVER_ATTRIBUTES,
-          )
-
           # Include control system on Logic modules so it is possible
           # to display the inherited settings
           sys_field = if sys
-                        restrict_attributes(
-                          sys,
-                          only: [
-                            "name",
-                          ],
-                          fields: {
-                            :zone_data => sys.zone_data,
-                          }
-                        )
+                        ControlSystemDetails.new(sys.name, Model::Zone.find_all(sys.zones).to_a)
                       else
                         nil
                       end
 
-          with_fields(d, {
-            :control_system => sys_field,
-            :driver         => driver_field,
-          }.compact)
+          d.control_system_details = sys_field
+          d.driver_details = DriverDetails.new(driver.name, driver.description)
+          d
         end
-
-        render json: includes
       end
     end
 
-    def show
-      complete = boolean_param("complete")
-
-      response = !complete ? current_module : with_fields(current_module, {
-        :driver => restrict_attributes(current_module.driver, only: DRIVER_ATTRIBUTES),
-      })
-
-      render json: response
-    end
-
-    def update
-      current_module.assign_attributes_from_json(self.body)
-
-      save_and_respond(current_module) do |mod|
-        driver = mod.driver
-        !driver ? mod : with_fields(mod, {
-          :driver => restrict_attributes(driver, only: DRIVER_ATTRIBUTES),
-        })
+    @[AC::Route::GET("/:id")]
+    def show(
+      @[AC::Param::Info(description: "return the driver details along with the module?", example: "true")]
+      complete : Bool = false
+    ) : Model::Module
+      if complete && (driver = current_module.driver)
+        current_module.driver_details = DriverDetails.new(driver.name, driver.description)
+        current_module
+      else
+        current_module
       end
     end
 
-    put_redirect
+    @[AC::Route::PATCH("/:id", body: :mod)]
+    @[AC::Route::PUT("/:id", body: :mod)]
+    def update(mod : Model::Module) : Model::Module
+      current = current_module
+      current.assign_attributes(mod)
+      raise Error::ModelValidation.new(current.errors) unless current.save
 
-    def create
-      save_and_respond(Model::Module.from_json(self.body))
+      if driver = current.driver
+        current.driver_details = DriverDetails.new(driver.name, driver.description)
+      end
+      current
     end
 
-    def destroy
+    @[AC::Route::POST("/", body: :mod, status_code: HTTP::Status::CREATED)]
+    def create(mod : Model::Module) : Model::Module
+      raise Error::ModelValidation.new(mod.errors) unless mod.save
+      mod
+    end
+
+    def destroy : Nil
       current_module.destroy
-      head :ok
     end
 
     # Receive the collated settings for a module
-    #
-    get("/:id/settings", :settings) do
-      render json: Api::Settings.collated_settings(current_user, current_module)
+    @[AC::Route::GET("/:id/settings")]
+    def settings : Array(PlaceOS::Model::Settings)
+      Api::Settings.collated_settings(current_user, current_module)
     end
 
     # Starts a module
-    post("/:id/start", :start) do
-      head :ok if current_module.running == true
-
+    @[AC::Route::POST("/:id/start")]
+    def start : Nil
+      return if current_module.running == true
       current_module.update_fields(running: true)
 
       # Changes cleared on a successful update
       if current_module.running_changed?
         Log.error { {controller: "Modules", action: "start", module_id: current_module.id, event: "failed"} }
-        head :internal_server_error
-      else
-        head :ok
+        raise "failed to update database to start module #{current_module.id}"
       end
     end
 
     # Stops a module
-    post("/:id/stop", :stop) do
-      head :ok unless current_module.running
-
+    @[AC::Route::POST("/:id/stop")]
+    def stop : Nil
+      return unless current_module.running
       current_module.update_fields(running: false)
 
       # Changes cleared on a successful update
       if current_module.running_changed?
         Log.error { {controller: "Modules", action: "stop", module_id: current_module.id, event: "failed"} }
-        head :internal_server_error
-      else
-        head :ok
+        raise "failed to update database to stop module #{current_module.id}"
       end
     end
 
     # Executes a command on a module
-    post("/:id/exec/:method", :execute) do
+    @[AC::Route::POST("/:id/exec/:method", body: :args)]
+    def execute(id : String, method : String, args : Array(JSON::Any)) : Nil
       sys_id = current_module.control_system_id || ""
-      args = Array(JSON::Any).from_json(self.body)
 
       result, status_code = Driver::Proxy::RemoteDriver.new(
-        module_id: module_id,
+        module_id: id,
         sys_id: sys_id,
         module_name: current_module.name,
         discovery: self.class.core_discovery,
@@ -247,6 +226,7 @@ module PlaceOS::Api
         request_id: request_id,
       )
 
+      # customise the response based on the execute results
       response.content_type = "application/json"
       render text: result, status: status_code
     rescue e : Driver::Proxy::RemoteDriver::Error
@@ -255,7 +235,7 @@ module PlaceOS::Api
       Log.error(exception: e) { {
         message:     "core execute request failed",
         sys_id:      sys_id,
-        module_id:   module_id,
+        module_id:   id,
         module_name: current_module.name,
         method:      method,
       } }
@@ -267,34 +247,48 @@ module PlaceOS::Api
       end
     end
 
-    # Dumps the complete status state of the module
-    get("/:id/state", :state) do
-      render json: self.class.module_state(current_module)
+    # Dumps the complete status state of the module, key values are serialised JSON
+    @[AC::Route::GET("/:id/state")]
+    def state : Hash(String, String)
+      self.class.module_state(current_module).as(Hash(String, String))
     end
 
     # Returns the value of the requested status variable
-    get("/:id/state/:key", :state_lookup) do
-      render json: self.class.module_state(current_module, key)
+    @[AC::Route::GET("/:id/state/:key")]
+    def state_lookup(
+      @[AC::Param::Info(description: "that name of the status we are after")]
+      key : String
+    ) : String
+      self.class.module_state(current_module, key).as(String)
     end
 
-    post("/:id/ping", :ping) do
+    record PingResult, host : String, pingable : Bool?, warning : String?, exception : String? do
+      include JSON::Serializable
+    end
+
+    # pings the ip or hostname specified in the modules configuration
+    @[AC::Route::POST("/:id/ping")]
+    def ping : PingResult
       if current_module.role.logic?
         Log.debug { {controller: "Modules", action: "ping", module_id: current_module.id, role: current_module.role.to_s} }
-        head :not_acceptable
+        raise Error::ModelValidation.new({Error::Field.new(:role, "ping not supported for module role: #{current_module.role}")})
       else
         pinger = Pinger.new(current_module.hostname.as(String), count: 3)
         pinger.ping
-        render json: {
-          host:      pinger.ip.to_s,
-          pingable:  pinger.pingable,
-          warning:   pinger.warning,
+        PingResult.new(
+          host: pinger.ip.to_s,
+          pingable: pinger.pingable,
+          warning: pinger.warning,
           exception: pinger.exception,
-        }
+        )
       end
     end
 
-    post("/:id/load", :load) do
-      render json: Api::Systems.core_for(module_id, request_id, &.load(module_id))
+    # Loads the module if not already loaded
+    # If the module is already running, it will be updated to latest settings.
+    @[AC::Route::POST("/:id/load")]
+    def load(id : String) : Bool
+      Api::Systems.core_for(id, request_id, &.load(id))
     end
 
     # Helpers
