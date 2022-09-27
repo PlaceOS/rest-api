@@ -18,7 +18,7 @@ module PlaceOS::Api
     class ModelValidation < Error
       getter failures : Array(NamedTuple(field: Symbol, reason: String))
 
-      def initialize(failures : Enumerable(ActiveModel::Error), message : String = "validation failed")
+      def initialize(failures : Enumerable, message : String = "validation failed")
         @failures = failures.map { |fail| {field: fail.field, reason: fail.message} }.to_a
         super(message)
       end
