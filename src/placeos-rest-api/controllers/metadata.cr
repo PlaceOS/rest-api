@@ -63,7 +63,9 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
       parent_id : String,
       @[AC::Param::Info(description: "the parent metadata is included in the results by default", example: "false")]
-      include_parent : Bool = true
+      include_parent : Bool = true,
+      @[AC::Param::Info(description: "filter for a particular metadata key", example: "config")]
+      name : String? = nil
     ) : Array(Children)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
@@ -73,7 +75,7 @@ module PlaceOS::Api
       Log.context.set(zone_id: parent_id)
       current_zone = Model::Zone.find!(parent_id)
       current_zone.children.all.compact_map do |zone|
-        Children.new(zone, name).to_json(json) if include_parent || zone.id != parent_id
+        Children.new(zone, name) if include_parent || zone.id != parent_id
       end
     end
 
@@ -146,7 +148,7 @@ module PlaceOS::Api
     end
 
     # Returns the version history for a Settings model
-    @[AC::Route::GET("/:id/children")]
+    @[AC::Route::GET("/:id/history")]
     def history(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
       parent_id : String,
