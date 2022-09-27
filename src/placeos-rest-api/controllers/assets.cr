@@ -79,7 +79,6 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_asset.destroy # expires the cache in after callback
-      head :ok
     end
 
     @[AC::Route::GET("/:id/asset_instances")]
