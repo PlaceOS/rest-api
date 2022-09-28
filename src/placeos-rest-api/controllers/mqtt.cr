@@ -18,7 +18,7 @@ module PlaceOS::Api
       topic : String,
       @[AC::Param::Info(name: "acc", description: "access level required")]
       access : MqttAcl,
-      clientid : String? = nil,
+      clientid : String? = nil
     ) : Nil
       # Skip validation of the JWT as it may have expired.
       # This is acceptable as this route is a permission check for an established connection.

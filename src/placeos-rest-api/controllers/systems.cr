@@ -77,7 +77,7 @@ module PlaceOS::Api
       features : Array(String)? = nil,
       module_id : String? = nil,
       trigger_id : String? = nil,
-      zone_id : String? = nil,
+      zone_id : String? = nil
     ) : Array(Model::ControlSystem)
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(search_params)
@@ -346,7 +346,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:sys_id/:module_slug")]
     def state(
       sys_id : String,
-      module_slug : String,
+      module_slug : String
     ) : Hash(String, String)
       module_name, index = RemoteDriver.get_parts(module_slug)
       self.class.module_state(sys_id, module_name, index) || {} of String => String
@@ -357,7 +357,7 @@ module PlaceOS::Api
     def state_lookup(
       sys_id : String,
       module_slug : String,
-      key : String,
+      key : String
     ) : JSON::Any
       module_name, index = RemoteDriver.get_parts(module_slug)
       JSON.parse(self.class.module_state(sys_id, module_name, index, key).as(String?) || "null")
@@ -372,7 +372,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:sys_id/functions/:module_slug")]
     def functions(
       sys_id : String,
-      module_slug : String,
+      module_slug : String
     ) : Hash(String, FunctionDetails)
       module_name, index = RemoteDriver.get_parts(module_slug)
       metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(
@@ -404,9 +404,9 @@ module PlaceOS::Api
       # Transform function metadata
       functions.transform_values do |arguments|
         FunctionDetails.new(
-          arity:  arguments.size,
+          arity: arguments.size,
           params: arguments,
-          order:  arguments.keys,
+          order: arguments.keys,
         )
       end
     end
