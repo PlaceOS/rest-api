@@ -33,34 +33,11 @@ module PlaceOS::Api
     # Helpers for defining scope checks on controller actions
     include Utils::Scopes
 
-    # For want of route templating, this module exists
-    include Utils::PutRedirect
-
     # Core service discovery
     class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
 
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name.keyword" => {order: :asc}}
-
-    # TODO:: remove
-    macro required_param(key)
-      if (%value = {{ key }}).nil?
-        return render_error(HTTP::Status::BAD_REQUEST, "Missing '{{ key }}' param")
-      else
-        %value
-      end
-    end
-
-    # TODO:: remove
-    def boolean_param(key : String, default : Bool = false, allow_empty : Bool = false) : Bool
-      return true if allow_empty && params.has_key?(key) && params[key].nil?
-
-      case params[key]?.presence.try(&.downcase)
-      when .in?("1", "true")  then true
-      when .in?("0", "false") then false
-      else                         default
-      end
-    end
 
     # for converting comma seperated lists
     # i.e. `"id-1,id-2,id-3"`
@@ -133,13 +110,6 @@ module PlaceOS::Api
       Log.context.set(user_id: user_token.id)
     end
 
-    # TODO:: remove
-    getter body : IO do
-      request_body = request.body
-      raise Error::NoBody.new if request_body.nil?
-      request_body
-    end
-
     getter request_id : String { UUID.random.to_s }
 
     # This makes it simple to match client requests with server side logs.
@@ -156,15 +126,6 @@ module PlaceOS::Api
       )
 
       response.headers["X-Request-ID"] = request_id
-    end
-
-    # TODO:: remove once updated
-    protected def ensure_json
-      unless request.headers["Content-Type"]?.try(&.starts_with?("application/json"))
-        return render_error(HTTP::Status::NOT_ACCEPTABLE, "Accepts: application/json")
-      end
-
-      body
     end
 
     ###########################################################################

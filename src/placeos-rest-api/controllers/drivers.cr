@@ -24,6 +24,15 @@ module PlaceOS::Api
 
     getter! current_driver : Model::Driver
 
+    # Response helpers
+    ###############################################################################################
+
+    # extend the ControlSystem model to handle our return values
+    class Model::Driver
+      @[JSON::Field(key: "compilation_status")]
+      property compilation_status_details : Hash(String, Bool)? = nil
+    end
+
     ###############################################################################################
 
     @[AC::Route::GET("/")]
@@ -49,11 +58,9 @@ module PlaceOS::Api
     def show(
       @[AC::Param::Info(name: "compilation_status", description: "check if the driver is compiled?", example: "false")]
       include_compilation_status : Bool = true
-    ) : Model::Driver | Hash(String, Hash(String, Bool) | JSON::Any)
-      # TODO:: find an alternative for with_fields
-      !include_compilation_status ? current_driver : with_fields(current_driver, {
-        "compilation_status" => Api::Drivers.compilation_status(current_driver, request_id),
-      })
+    ) : Model::Driver
+      current_driver.compilation_status_details = Api::Drivers.compilation_status(current_driver, request_id) if include_compilation_status
+      current_driver
     end
 
     @[AC::Route::PATCH("/:id", body: :driver)]

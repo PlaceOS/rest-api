@@ -24,6 +24,15 @@ module PlaceOS::Api
 
     getter! current_asset : Model::Asset
 
+    # Response helpers
+    ###############################################################################################
+
+    # extend the ControlSystem model to handle our return values
+    class Model::Asset
+      @[JSON::Field(key: "asset_instances")]
+      property asset_instances_details : Array(PlaceOS::Model::AssetInstance)? = nil
+    end
+
     ###############################################################################################
 
     @[AC::Route::GET("/")]
@@ -50,15 +59,8 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "instances", description: "return assets that are a subset of this asset?", example: "true")]
       include_instances : Bool = false
     ) : Model::Asset | Hash(String, Array(PlaceOS::Model::AssetInstance) | JSON::Any)
-      if include_instances
-        # TODO:: we should make this part of the model (JSON write only lazy getter)
-        # in the mean time this will work and our docs still look okay
-        with_fields(current_asset, {
-          "asset_instances" => current_asset.asset_instances.to_a,
-        })
-      else
-        current_asset
-      end
+      current_asset.asset_instances_details = current_asset.asset_instances.to_a if include_instances
+      current_asset
     end
 
     @[AC::Route::PATCH("/:id", body: :asset)]

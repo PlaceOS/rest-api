@@ -6,8 +6,8 @@ module PlaceOS::Api
     base "/api/v2"
 
     # an influxDB proxy endpoint, route compatible with existing influxDB clients
-    @[AC::Route::POST("/query")]
-    def query
+    @[AC::Route::POST("/query", body: body)]
+    def query(body : String)
       request_headers = request.headers
 
       # stream the data

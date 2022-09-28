@@ -28,17 +28,5 @@ module PlaceOS::Api
         super(message)
       end
     end
-
-    # TODO:: remove below:
-    class NoBody < Error
-    end
-
-    class InvalidParams < Error
-      getter params
-
-      def initialize(@params : Params, message = "")
-        super(message)
-      end
-    end
   end
 end
