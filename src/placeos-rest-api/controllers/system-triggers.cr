@@ -16,7 +16,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_sys_trig(
       @[AC::Param::Info(name: "trig_id", description: "the id of the trigger", example: "trig-1234")]
       id : String
@@ -28,7 +28,7 @@ module PlaceOS::Api
 
     getter! current_sys_trig : Model::TriggerInstance
 
-    @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_system(
       @[AC::Param::Info(name: "sys_id", description: "the id of the system", example: "sys-1234")]
       id : String

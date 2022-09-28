@@ -13,6 +13,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_app(id : String)
       Log.context.set(application_id: id)
       # Find will raise a 404 (not found) if there is an error

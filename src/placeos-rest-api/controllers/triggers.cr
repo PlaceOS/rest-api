@@ -15,11 +15,11 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_trigger(id : String)
       Log.context.set(trigger_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
+      @current_trigger = Model::Trigger.find!(id, runopts: {"read_mode" => "majority"})
     end
 
     getter! current_trigger : Model::Trigger

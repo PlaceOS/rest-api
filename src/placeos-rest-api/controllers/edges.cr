@@ -27,7 +27,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, only: [:destroy, :drivers, :show, :update, :token])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_edge(id : String)
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error

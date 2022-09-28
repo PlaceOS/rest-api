@@ -17,7 +17,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :loaded_interfaces])]
     def find_current_repo(id : String)
       Log.context.set(repository_id: id)
       # Find will raise a 404 (not found) if there is an error

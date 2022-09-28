@@ -15,7 +15,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, only: [:show, :update, :update_alt, :destroy, :recompile])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def current_driver(id : String)
       Log.context.set(driver_id: id)
       # Find will raise a 404 (not found) if there is an error
