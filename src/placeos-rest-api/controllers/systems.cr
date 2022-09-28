@@ -28,7 +28,7 @@ module PlaceOS::Api
     before_action :can_read_guest, only: [:show, :sys_zones]
 
     before_action :can_read, only: [:index, :find_by_email]
-    before_action :can_write, only: [:create, :update, :destroy, :remove_module, :update_alt, :start, :stop]
+    before_action :can_write, only: [:create, :update, :destroy, :remove_module, :start, :stop]
 
     before_action :can_read_control, only: [:types, :functions, :state, :state_lookup]
     before_action :can_write_control, only: [:control, :execute]
@@ -358,9 +358,9 @@ module PlaceOS::Api
       sys_id : String,
       module_slug : String,
       key : String,
-    ) : String?
+    ) : JSON::Any
       module_name, index = RemoteDriver.get_parts(module_slug)
-      self.class.module_state(sys_id, module_name, index, key).as(String?)
+      JSON.parse(self.class.module_state(sys_id, module_name, index, key).as(String?) || "null")
     end
 
     record FunctionDetails, arity : Int32, params : Hash(String, JSON::Any), order : Array(String) do

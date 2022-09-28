@@ -1,6 +1,5 @@
 require "./application"
 
-# NOTE: this API does not need to be documented as intended for internal use.
 module PlaceOS::Api
   class MQTT < Application
     base "/api/engine/v2/mqtt/"

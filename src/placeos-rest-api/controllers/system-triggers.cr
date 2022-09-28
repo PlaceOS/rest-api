@@ -9,9 +9,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, only: [:create, :update, :update_alt, :destroy]
+    before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
 
     ###############################################################################################
@@ -112,7 +112,6 @@ module PlaceOS::Api
 
     @[AC::Route::POST("/", body: :trig_inst, status_code: HTTP::Status::CREATED)]
     def create(trig_inst : Model::TriggerInstance) : Model::TriggerInstance
-      raise Error::ModelValidation.new({ActiveModel::Error.new(trig_inst, :control_system_id, "control_system_id mismatch")}) if trig_inst.control_system_id != current_system.id
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save
       trig_inst
     end

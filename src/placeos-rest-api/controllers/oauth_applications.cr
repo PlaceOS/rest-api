@@ -9,7 +9,7 @@ module PlaceOS::Api
 
     before_action :check_admin
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     ###############################################################################################
 

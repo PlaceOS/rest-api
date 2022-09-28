@@ -14,8 +14,6 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :revive]
 
-    before_action :user, only: [:destroy, :update, :revive, :show, :delete_resource_token]
-
     before_action :check_admin, only: [:destroy, :create, :revive, :delete_resource_token]
 
     ###############################################################################################
@@ -34,7 +32,7 @@ module PlaceOS::Api
 
       authority = current_user.authority_id.as(String)
 
-      ordering.each.compact_map do |id_type|
+      ordering.each.compact_map { |id_type|
         case id_type
         when :id
           # TODO: Remove user id query prefixing.
@@ -48,11 +46,12 @@ module PlaceOS::Api
         when :staff_id
           Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
         end
-      end.first do
+      }.first {
         # 404 if the `User` was not found
         raise RethinkORM::Error::DocumentNotFound.new
-      end.tap do |user|
-        Log.context.set(user_id: user.id)
+      }.tap do |found|
+        Log.context.set(user_id: found.id)
+        @user = found
       end
     end
 

@@ -8,7 +8,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :history]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
@@ -26,11 +26,11 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::GET("/", converters: {parent_ids: ConvertStringArray})]
+    @[AC::Route::GET("/", converters: {parent_id: ConvertStringArray})]
     def index(
-      parent_ids : Array(String)
+      parent_id : Array(String)? = nil
     ) : Array(Model::Settings)
-      if parents = parent_ids
+      if parents = parent_id
         # Directly search for model's settings
         parent_settings = Model::Settings.for_parent(parents)
         # Decrypt for the user

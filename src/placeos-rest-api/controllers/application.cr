@@ -13,15 +13,18 @@ module PlaceOS::Api
 
     # Customise the request body parser
     add_parser("application/json") do |klass, body_io|
-      if klass.is_a? ActiveModel::Model
-        object = klass.new
+      json = body_io.gets_to_end
+      object = klass.from_json(json)
+
+      # TODO:: try to improve this double parsing
+      if object.is_a?(::PlaceOS::Model::ModelBase)
+        object = object.class.new
         # we clear the changes information so we can track what was assigned from the JSON
         object.clear_changes_information
-        object.assign_attributes_from_json(body_io)
-        object
-      else
-        klass.from_json(body_io)
+        object.assign_attributes_from_json(json)
       end
+
+      object
     end
 
     # Helpers for controller responses
@@ -146,7 +149,7 @@ module PlaceOS::Api
 
     # CONFLICT if there is a version clash
     @[AC::Route::Exception(Error::Conflict, status_code: HTTP::Status::CONFLICT)]
-    def resource_requires_authentication(error) : CommonError
+    def resource_conflict(error) : CommonError
       Log.debug { error.message }
       CommonError.new(error, false)
     end

@@ -10,7 +10,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:collection, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:collection, :show]
     before_action :check_support, only: [:collection, :show]

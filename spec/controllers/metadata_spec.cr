@@ -79,7 +79,7 @@ module PlaceOS::Api
           headers: Spec::Authentication.headers,
         )
 
-        result.status_code.should eq 201
+        result.success?.should be_true
 
         new_metadata = Model::Metadata::Interface.from_json(result.body)
         found = Model::Metadata.for(parent.id.as(String), meta.name).first
@@ -105,7 +105,7 @@ module PlaceOS::Api
           headers: Spec::Authentication.headers,
         )
 
-        result.status_code.should eq 201
+        result.success?.should be_true
 
         new_metadata = Model::Metadata::Interface.from_json(result.body)
         found = Model::Metadata.for(parent_id, meta.name).first
@@ -125,7 +125,7 @@ module PlaceOS::Api
           headers: Spec::Authentication.headers,
         )
 
-        result.status_code.should eq 200
+        result.success?.should be_true
 
         update_response_meta = Model::Metadata::Interface.from_json(result.body)
         update_response_meta.details.as_h["bye"]?.should be_nil

@@ -10,7 +10,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :branches, :commits]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt] # brances, commits?
+    before_action :can_write, only: [:create, :update, :destroy, :remove] # brances, commits?
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]

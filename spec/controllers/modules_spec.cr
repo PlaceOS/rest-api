@@ -265,7 +265,7 @@ module PlaceOS::Api
           )
 
           result.success?.should be_false
-          result.status_code.should eq 406
+          result.status_code.should eq 422
         end
 
         it "pings a module" do
