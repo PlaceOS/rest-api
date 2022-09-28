@@ -15,6 +15,9 @@ module PlaceOS::Api
     class NotFound < Error
     end
 
+    class Conflict < Error
+    end
+
     record Field, field : Symbol, message : String
 
     class ModelValidation < Error

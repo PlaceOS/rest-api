@@ -38,7 +38,7 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
-    record DriverDetails, name : String, description : String? do
+    record DriverDetails, name : String, description : String?, module_name : String? do
       include JSON::Serializable
     end
 
@@ -76,7 +76,7 @@ module PlaceOS::Api
           next if (driver = mod.driver).nil?
 
           # Most human readable module data is contained in driver
-          mod.driver_details = DriverDetails.new(driver.name, driver.description)
+          mod.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
           mod.compiled = Api::Modules.driver_compiled?(mod, request_id)
           mod
         end.to_a
@@ -134,7 +134,7 @@ module PlaceOS::Api
                       end
 
           d.control_system_details = sys_field
-          d.driver_details = DriverDetails.new(driver.name, driver.description)
+          d.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
           d
         end
       end
@@ -146,7 +146,7 @@ module PlaceOS::Api
       complete : Bool = false
     ) : Model::Module
       if complete && (driver = current_module.driver)
-        current_module.driver_details = DriverDetails.new(driver.name, driver.description)
+        current_module.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
         current_module
       else
         current_module
@@ -161,7 +161,7 @@ module PlaceOS::Api
       raise Error::ModelValidation.new(current.errors) unless current.save
 
       if driver = current.driver
-        current.driver_details = DriverDetails.new(driver.name, driver.description)
+        current.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
       end
       current
     end

@@ -28,7 +28,7 @@ module PlaceOS::Api
     before_action :can_read_guest, only: [:show, :sys_zones]
 
     before_action :can_read, only: [:index, :find_by_email]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt, :start, :stop]
+    before_action :can_write, only: [:create, :update, :destroy, :remove_module, :update_alt, :start, :stop]
 
     before_action :can_read_control, only: [:types, :functions, :state, :state_lookup]
     before_action :can_write_control, only: [:control, :execute]
@@ -38,61 +38,29 @@ module PlaceOS::Api
 
     before_action :check_support, only: [:state, :state_lookup, :functions]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :current_control_system, only: [:show, :update, :destroy, :remove,
-                                                  :start, :stop, :execute,
-                                                  :types, :functions, :metadata]
-
-    before_action :ensure_json, only: [:create, :update, :update_alt, :execute]
-    before_action :body, only: [:create, :execute, :update, :update_alt]
-
-    # Params
-    ###############################################################################################
-
-    getter control_system_id : String do
-      route_params["sys_id"]
-    end
-
-    getter module_id : String do
-      route_params["module_id"]
-    end
-
-    getter module_slug : String do
-      route_params["module_slug"]
-    end
-
-    getter method : String do
-      route_params["method"]
-    end
-
-    getter key : String do
-      route_params["key"]
-    end
-
-    getter name : String? do
-      params["name"]?.presence
-    end
-
-    getter in : Array(String)? do
-      params["in"]?.presence.try &.split(',').map(&.strip).reject(&.empty?).uniq!
-    end
-
-    getter? complete : Bool do
-      boolean_param("complete")
-    end
-
-    getter version : Int32? do
-      params["version"]?.presence.try &.to_i
-    end
-
-    ###############################################################################################
-
-    getter current_control_system : Model::ControlSystem do
-      Log.context.set(control_system_id: control_system_id)
+    @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy, :sys_zones, :settings, :add_module, :remove_module, :start, :stop])]
+    def find_current_control_system(
+      sys_id : String
+    )
+      Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
-      Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
+      @current_control_system = Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"})
+    end
+
+    getter! current_control_system : Model::ControlSystem
+
+    # Response helpers
+    ###############################################################################################
+
+    # extend the ControlSystem model to handle our return values
+    class Model::ControlSystem
+      @[JSON::Field(key: "zone_data")]
+      property zone_data_details : Array(Model::Zone)? = nil
+
+      @[JSON::Field(key: "module_data")]
+      property module_data_details : Array(Model::Module)? = nil
     end
 
     ###############################################################################################
@@ -100,39 +68,36 @@ module PlaceOS::Api
     # Websocket API session manager
     class_getter session_manager : WebSocket::Manager { WebSocket::Manager.new(core_discovery) }
 
-    # Strong params for index method
-    class IndexParams < Params
-      attribute bookable : Bool?
-      attribute capacity : Int32?
-      attribute email : String?
-      attribute features : String?
-      attribute module_id : String?
-      attribute trigger_id : String?
-      attribute zone_id : String?
-    end
-
     # Query ControlSystem resources
-    def index
+    @[AC::Route::GET("/", converters: {features: ConvertStringArray, email: ConvertStringArray})]
+    def index(
+      bookable : Bool? = nil,
+      capacity : Int32? = nil,
+      email : Array(String)? = nil,
+      features : Array(String)? = nil,
+      module_id : String? = nil,
+      trigger_id : String? = nil,
+      zone_id : String? = nil,
+    ) : Array(Model::ControlSystem)
       elastic = Model::ControlSystem.elastic
-      query = Model::ControlSystem.elastic.query(params)
-      args = IndexParams.new(params)
+      query = Model::ControlSystem.elastic.query(search_params)
 
       # Filter systems by zone_id
-      if zone_id = args.zone_id
+      if zone_id
         query.must({
           "zones" => [zone_id],
         })
       end
 
       # Filter by module_id
-      if module_id = args.module_id
+      if module_id
         query.must({
           "modules" => [module_id],
         })
       end
 
       # Filter by trigger_id
-      if trigger_id = args.trigger_id
+      if trigger_id
         query.has_child(Model::TriggerInstance)
         query.must({
           "trigger_id" => [trigger_id],
@@ -140,15 +105,14 @@ module PlaceOS::Api
       end
 
       # Filter by features
-      if features = args.features
-        features = features.split(',').uniq.reject! &.empty?
+      if features
         query.must({
           "features" => features,
         })
       end
 
       # filter by capacity
-      if capacity = args.capacity
+      if capacity
         query.range({
           "capacity" => {
             :gte => capacity,
@@ -157,80 +121,103 @@ module PlaceOS::Api
       end
 
       # filter by bookable
-      unless (bookable = args.bookable).nil?
+      unless bookable.nil?
         query.must({
           "bookable" => [bookable],
         })
       end
 
       # filter by emails
-      if email = args.email
-        emails = email.split(',').uniq.reject! &.empty?
+      if email
         query.should({
-          "email" => emails,
+          "email" => email,
         })
       end
 
       query.search_field "name"
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
     # Finds all the systems with the specified email address
-    get "/with_emails", :find_by_email do
-      emails = required_param(in)
+    @[AC::Route::GET("/with_emails", converters: {emails: ConvertStringArray})]
+    def find_by_email(
+      @[AC::Param::Info(name: "in", description: "comma seperated list of emails", example: "room1@org.com,room2@org.com")]
+      emails : Array(String)
+    ) : Array(Model::ControlSystem)
       systems = Model::ControlSystem.find_all(emails, index: :email).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
-      render json: systems
+      systems
     end
 
     # Renders a control system
-    def show
+    @[AC::Route::GET("/:sys_id")]
+    def show(
+      complete : Bool = false
+    ) : Model::ControlSystem
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
-        head :forbidden unless user_token.user.roles.includes?(current_control_system.id)
-        render json: current_control_system
+        raise Error::Forbidden.new unless user_token.user.roles.includes?(current_control_system.id)
+        return current_control_system
       end
 
-      render json: !complete? ? current_control_system : with_fields(current_control_system, {
-        :module_data => current_control_system.module_data,
-        :zone_data   => current_control_system.zone_data,
-      })
+      if complete
+        sys = current_control_system
+        sys.zone_data_details = Model::Zone.find_all(current_control_system.zones).to_a
+
+        # extend the module details with the driver details
+        modules = Model::Module.find_all(current_control_system.modules).to_a.map do |mod|
+          # Pick off driver name, and module_name from associated driver
+          mod.driver_details = mod.driver.try do |driver|
+            Api::Modules::DriverDetails.new(driver.name, driver.description, driver.module_name)
+          end
+          mod
+        end
+        sys.module_data_details = modules
+
+        sys
+      else
+        current_control_system
+      end
     end
 
     # Updates a control system
-    def update
-      system_version = required_param(version)
-
-      if system_version != current_control_system.version
-        return render_error(HTTP::Status::CONFLICT, "Attempting to edit an old System version")
+    @[AC::Route::PATCH("/:sys_id", body: :sys)]
+    @[AC::Route::PUT("/:sys_id", body: :sys)]
+    def update(
+      sys : Model::ControlSystem,
+      version : Int32
+    ) : Model::ControlSystem
+      if version != current_control_system.version
+        raise Error::Conflict.new("Attempting to edit an old System version")
       end
 
-      current_control_system.assign_attributes_from_json(self.body)
-      current_control_system.version = system_version + 1
-
-      save_and_respond(current_control_system)
+      current = current_control_system
+      current.assign_attributes(sys)
+      current.version = version + 1
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      save_and_respond Model::ControlSystem.from_json(self.body)
+    @[AC::Route::POST("/", body: :sys, status_code: HTTP::Status::CREATED)]
+    def create(sys : Model::ControlSystem) : Model::ControlSystem
+      raise Error::ModelValidation.new(sys.errors) unless sys.save
+      sys
     end
 
-    def destroy
+    @[AC::Route::DELETE("/:sys_id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       cs_id = current_control_system.id
       current_control_system.destroy
       spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: cs_id}) }
-      head :ok
     end
 
     # Return all zones for this system
-    #
-    get "/:sys_id/zones", :sys_zones do
+    @[AC::Route::GET("/:sys_id/zones")]
+    def sys_zones : Array(Model::Zone)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
-        return head :forbidden unless user_token.user.roles.includes?(control_system_id)
+        raise Error::Forbidden.new unless user_token.user.roles.includes?(current_control_system.id)
       end
 
       # Save the DB hit if there are no zones on the system
@@ -242,65 +229,64 @@ module PlaceOS::Api
 
       set_collection_headers(documents.size, Model::Zone.table_name)
 
-      render json: documents
+      documents
     end
 
     # Return metadata for the system
-    #
-    get "/:sys_id/metadata", :metadata do
-      parent_id = current_control_system.id.not_nil!
-      render json: Model::Metadata.build_metadata(parent_id, name)
+    @[AC::Route::GET("/:sys_id/metadata")]
+    def metadata(
+      sys_id : String,
+      name : String? = nil
+    ) : Hash(String, PlaceOS::Model::Metadata::Interface)
+      Model::Metadata.build_metadata(sys_id, name)
     end
 
     # Receive the collated settings for a system
-    #
-    get("/:sys_id/settings", :settings) do
-      render json: Api::Settings.collated_settings(current_user, current_control_system)
+    @[AC::Route::GET("/:sys_id/settings")]
+    def settings : Array(PlaceOS::Model::Settings)
+      Api::Settings.collated_settings(current_user, current_control_system)
     end
 
     # Adds the module from the system if it doesn't already exist
-    #
-    put("/:sys_id/module/:module_id", :add_module) do
-      head :not_found unless Model::Module.exists?(module_id)
+    @[AC::Route::PUT("/:sys_id/module/:module_id")]
+    def add_module(
+      module_id : String
+    ) : Model::ControlSystem
+      raise Error::NotFound.new unless Model::Module.exists?(module_id)
 
-      module_present = current_control_system.modules.includes?(module_id) || Model::ControlSystem.add_module(control_system_id, module_id)
-
-      unless module_present
-        render text: "Failed to add ControlSystem Module", status: :internal_server_error
-      end
+      module_present = current_control_system.modules.includes?(module_id) || Model::ControlSystem.add_module(current_control_system.id.as(String), module_id)
+      raise "Failed to add ControlSystem Module" unless module_present
 
       # Return the latest version of the control system
-      render json: Model::ControlSystem.find!(control_system_id, runopts: {"read_mode" => "majority"})
+      Model::ControlSystem.find!(current_control_system.id.as(String), runopts: {"read_mode" => "majority"})
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
-    #
-    delete("/:sys_id/module/:module_id", :remove_module) do
+    @[AC::Route::DELETE("/:sys_id/module/:module_id", status_code: HTTP::Status::ACCEPTED)]
+    def remove_module(
+      module_id : String
+    ) : Model::ControlSystem
       if current_control_system.modules.includes?(module_id)
         current_control_system.remove_module(module_id)
-        current_control_system.save!
+        raise Error::ModelValidation.new(current_control_system.errors) unless current_control_system.save
       end
 
-      render json: current_control_system
+      current_control_system
     end
 
     # Module Functions
     ###########################################################################
 
     # Start modules
-    #
-    post("/:sys_id/start", :start) do
+    @[AC::Route::POST("/:sys_id/start")]
+    def start : Nil
       Systems.module_running_state(running: true, control_system: current_control_system)
-
-      head :ok
     end
 
     # Stop modules
-    #
-    post("/:sys_id/stop", :stop) do
+    @[AC::Route::POST("/:sys_id/stop")]
+    def stop : Nil
       Systems.module_running_state(running: false, control_system: current_control_system)
-
-      head :ok
     end
 
     # Toggle the running state of ControlSystem's Module
@@ -318,15 +304,18 @@ module PlaceOS::Api
     ###########################################################################
 
     # Runs a function in a system module
-    #
-    post("/:sys_id/:module_slug/:method", :execute) do
+    @[AC::Route::POST("/:sys_id/:module_slug/:method", body: :args)]
+    def execute(
+      sys_id : String,
+      module_slug : String,
+      method : String,
+      args : Array(JSON::Any)
+    ) : Nil
       module_name, index = RemoteDriver.get_parts(module_slug)
       Log.context.set(module_name: module_name, index: index, method: method)
 
-      args = Array(JSON::Any).from_json(self.body)
-
       remote_driver = RemoteDriver.new(
-        sys_id: control_system_id,
+        sys_id: sys_id,
         module_name: module_name,
         index: index,
         discovery: self.class.core_discovery,
@@ -346,43 +335,56 @@ module PlaceOS::Api
     end
 
     # Look-up a module types in a system, returning a count of each type
-    #
-    get("/:sys_id/types", :types) do
-      types = Model::Module
-        .in_control_system(current_control_system.id.as(String))
+    @[AC::Route::GET("/:sys_id/types")]
+    def types(sys_id : String) : Hash(String, Int32)
+      Model::Module
+        .in_control_system(sys_id)
         .tally_by(&.resolved_name)
-      render json: types
     end
 
     # Returns the state of an associated module
-    #
-    get("/:sys_id/:module_slug", :state) do
+    @[AC::Route::GET("/:sys_id/:module_slug")]
+    def state(
+      sys_id : String,
+      module_slug : String,
+    ) : Hash(String, String)
       module_name, index = RemoteDriver.get_parts(module_slug)
-
-      render json: self.class.module_state(control_system_id, module_name, index)
+      self.class.module_state(sys_id, module_name, index) || {} of String => String
     end
 
     # Returns the state lookup for a given key on a module
-    #
-    get("/:sys_id/:module_slug/:key", :state_lookup) do
+    @[AC::Route::GET("/:sys_id/:module_slug/:key")]
+    def state_lookup(
+      sys_id : String,
+      module_slug : String,
+      key : String,
+    ) : String?
       module_name, index = RemoteDriver.get_parts(module_slug)
+      self.class.module_state(sys_id, module_name, index, key).as(String?)
+    end
 
-      render json: self.class.module_state(control_system_id, module_name, index, key)
+    record FunctionDetails, arity : Int32, params : Hash(String, JSON::Any), order : Array(String) do
+      include JSON::Serializable
     end
 
     # Lists functions available on the driver
     # Filters higher privilege functions.
-    get("/:sys_id/functions/:module_slug", :functions) do
+    @[AC::Route::GET("/:sys_id/functions/:module_slug")]
+    def functions(
+      sys_id : String,
+      module_slug : String,
+    ) : Hash(String, FunctionDetails)
       module_name, index = RemoteDriver.get_parts(module_slug)
       metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(
-        system_id: control_system_id,
+        system_id: sys_id,
         module_name: module_name,
         index: index,
       )
 
       unless metadata
-        Log.debug { "metadata not found for #{module_slug} on #{control_system_id}" }
-        head :not_found
+        message = "metadata not found for #{module_slug} on #{sys_id}"
+        Log.debug { message }
+        raise Error::NotFound.new(message)
       end
 
       hidden_functions = if user_token.is_admin?
@@ -400,15 +402,13 @@ module PlaceOS::Api
       functions = metadata.interface.reject!(hidden_functions)
 
       # Transform function metadata
-      response = functions.transform_values do |arguments|
-        {
+      functions.transform_values do |arguments|
+        FunctionDetails.new(
           arity:  arguments.size,
           params: arguments,
           order:  arguments.keys,
-        }
+        )
       end
-
-      render json: response
     end
 
     def self.module_state(sys_id : String, module_name : String, index : Int32, key : String? = nil)
@@ -425,9 +425,10 @@ module PlaceOS::Api
     # Websocket API
     ###########################################################################
 
-    ws("/control", :control) do |ws|
+    @[AC::Route::WebSocket("/control")]
+    def control(ws, fixed_device : Bool = false) : Nil
       Log.trace { "WebSocket API request" }
-      Log.context.set(fixed_device: boolean_param("fixed_device"))
+      Log.context.set(fixed_device: fixed_device)
       Systems.session_manager.create_session(
         ws: ws,
         request_id: request_id,

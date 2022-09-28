@@ -183,6 +183,13 @@ module PlaceOS::Api
       end
     end
 
+    # CONFLICT if there is a version clash
+    @[AC::Route::Exception(Error::Conflict, status_code: HTTP::Status::CONFLICT)]
+    def resource_requires_authentication(error) : CommonError
+      Log.debug { error.message }
+      CommonError.new(error, false)
+    end
+
     # 401 if no bearer token
     @[AC::Route::Exception(Error::Unauthorized, status_code: HTTP::Status::UNAUTHORIZED)]
     def resource_requires_authentication(error) : CommonError
