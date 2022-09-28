@@ -29,7 +29,7 @@ x-search-ingest-client-env: &search-ingest-client-env
 
 services:
   test: # Rest API
-    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.4.1}
+    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.5.0}
     volumes:
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
