@@ -62,6 +62,14 @@ module PlaceOS::Api
       end
     end
 
+    # for converting comma seperated lists
+    # i.e. `"id-1,id-2,id-3"`
+    struct ConvertStringArray
+      def convert(raw : String)
+        raw.split(',').map!(&.strip).reject(&.empty?).uniq!
+      end
+    end
+
     def paginate_results(elastic, query, route = base_route)
       data = elastic.search(query)
       range_start = query.offset

@@ -12,62 +12,40 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, except: [:index]
 
-    # Callbacks
+    # Response helpers
     ###############################################################################################
 
-    before_action :current_zone, only: [:show, :update, :update_alt, :destroy, :metadata]
-    before_action :body, only: [:create, :update, :update_alt, :zone_execute]
-
-    # Params
-    ###############################################################################################
-
-    getter name : String? do
-      params["name"]?.presence
-    end
-
-    getter zone_id : String do
-      params["id"]
-    end
-
-    getter module_slug : String do
-      params["module_slug"]
-    end
-
-    getter method : String do
-      params["method"]
-    end
-
-    getter? complete : Bool do
-      boolean_param("complete", allow_empty: true)
-    end
-
-    getter parent_id : String? do
-      params["parent_id"]?.presence || params["parent"]?.presence
-    end
-
-    getter tags : Array(String)? do
-      params["tags"]?.presence.try &.gsub(/[^0-9a-z ]/i, "").split(',').reject(&.empty?).uniq!
+    # extend the Zone model for the show function
+    class Model::Zone
+      @[JSON::Field(key: "trigger_data")]
+      property trigger_data_details : Array(Model::Trigger)? = nil
     end
 
     ###############################################################################################
 
-    getter current_zone : Model::Zone do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :metadata])]
+    def current_zone(id : String)
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
+      @current_zone = Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_zone : Model::Zone
 
     ###############################################################################################
 
-    def index
+    @[AC::Route::GET("/", converters: {tags: ConvertStringArray})]
+    def index(
+      parent_id : String? = nil,
+      tags : Array(String)? = nil
+    ) : Array(Model::Zone)
       elastic = Model::Zone.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
       # Limit results to the children of this parent
@@ -83,46 +61,50 @@ module PlaceOS::Api
           "tags" => filter_tags,
         })
       else
-        return head :forbidden unless is_support? || is_admin?
-
+        raise Error::Forbidden.new unless is_support? || is_admin?
         query.search_field "name"
       end
 
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      if complete?
-        # Include trigger data in response
-        render json: with_fields(current_zone, {
-          :trigger_data => current_zone.trigger_data,
-        })
-      else
-        render json: current_zone
-      end
+    @[AC::Route::GET("/:id")]
+    def show(
+      complete : Bool = false
+    ) : Model::Zone
+      # Include trigger data in response
+      current_zone.trigger_data_details = current_zone.trigger_data if complete
+      current_zone
     end
 
-    def update
-      current_zone.assign_attributes_from_json(self.body)
-      save_and_respond current_zone
+    @[AC::Route::PATCH("/:id", body: :zone)]
+    @[AC::Route::PUT("/:id", body: :zone)]
+    def update(zone : Model::Zone) : Model::Zone
+      current = current_zone
+      current.assign_attributes(zone)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      save_and_respond Model::Zone.from_json(self.body)
+    @[AC::Route::POST("/", body: :zone, status_code: HTTP::Status::CREATED)]
+    def create(zone : Model::Zone) : Model::Zone
+      raise Error::ModelValidation.new(zone.errors) unless zone.save
+      zone
     end
 
-    def destroy
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       zone_id = current_zone.id
       current_zone.destroy
       spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: zone_id}) }
-      head :ok
     end
 
-    get "/:id/metadata", :metadata do
-      parent_id = current_zone.id.not_nil!
-      render json: Model::Metadata.build_metadata(parent_id, name)
+    @[AC::Route::GET("/:id/metadata")]
+    def metadata(
+      id : String,
+      name : String? = nil
+    ) : Hash(String, PlaceOS::Model::Metadata::Interface)
+      Model::Metadata.build_metadata(id, name)
     end
 
     private enum ExecStatus
@@ -132,11 +114,11 @@ module PlaceOS::Api
     end
 
     # Return triggers attached to current zone
-    #
-    get "/:id/triggers", :trigger_instances do
+    @[AC::Route::GET("/:id/triggers")]
+    def trigger_instances : Array(Model::Trigger)
       triggers = current_zone.trigger_data
       set_collection_headers(triggers.size, Model::Trigger.table_name)
-      render json: triggers
+      triggers
     end
 
     record(
@@ -147,9 +129,13 @@ module PlaceOS::Api
     ) { include JSON::Serializable }
 
     # Execute a method on a module across all systems in a Zone
-    post "/:id/exec/:module_slug/:method", :zone_execute do
-      args = Array(JSON::Any).from_json(self.body)
-
+    @[AC::Route::POST("/:id/exec/:module_slug/:method", body: :args)]
+    def zone_execute(
+      args : Array(JSON::Any),
+      id : String,
+      module_slug : String,
+      method : String
+    ) : ZoneExecResponse
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
 
       results = Promise.map(current_zone.systems) do |system|
@@ -180,24 +166,22 @@ module PlaceOS::Api
         end
       end.get.not_nil!.to_a.compact
 
-      response_object = results.each_with_object(ZoneExecResponse.new) do |(id, status), obj|
+      results.each_with_object(ZoneExecResponse.new) do |(id, status), obj|
         case status
         in ExecStatus::Success then obj.success
         in ExecStatus::Failure then obj.failure
         in ExecStatus::Missing then obj.module_missing
         end << id
       end
-
-      render json: response_object
     rescue e
       Log.error(exception: e) { {
         message:     "core execute request failed",
-        zone_id:     zone_id,
+        zone_id:     id,
         module_name: module_name,
         index:       index,
         method:      method,
       } }
-      render text: "#{e.message}\n#{e.inspect_with_backtrace}", status: :internal_server_error
+      raise e
     end
   end
 end

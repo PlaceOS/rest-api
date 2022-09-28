@@ -13,16 +13,6 @@ module PlaceOS::Api
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    # Params
-    ###############################################################################################
-
-    struct ConvertStringArray
-      # i.e. `"id-1,id-2,id-3"`
-      def convert(raw : String)
-        raw.split(',').map!(&.strip)
-      end
-    end
-
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
