@@ -207,7 +207,7 @@ shards:
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
-    version: 1.0.1
+    version: 1.0.2
 
   placeos-driver:
     git: https://github.com/placeos/driver.git

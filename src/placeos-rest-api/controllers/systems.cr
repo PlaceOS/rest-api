@@ -345,6 +345,8 @@ module PlaceOS::Api
       render text: response_text, status: status_code
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
+    rescue e
+      render_error(HTTP::Status::INTERNAL_SERVER_ERROR, e.message, backtrace: e.backtrace)
     end
 
     # Look-up a module types in a system, returning a count of each type
