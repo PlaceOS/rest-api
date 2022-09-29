@@ -13,7 +13,7 @@ module PlaceOS::Api
     generate_scope_check(::PlaceOS::Model::Edge::CONTROL_SCOPE)
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy]
 
     before_action :check_admin, except: [:index, :show, :edge_control]
     before_action :check_support, only: [:index, :show]
@@ -23,61 +23,74 @@ module PlaceOS::Api
     # Callbacks
     ###############################################################################################
 
-    before_action :current_edge, only: [:destroy, :drivers, :show, :update, :update_alt, :token]
-    before_action :body, only: [:create, :update, :update_alt]
-
     skip_action :set_user_id, only: [:edge_control]
 
     ###############################################################################################
 
-    getter current_edge : Model::Edge do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :edge_control])]
+    def find_current_edge(id : String)
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
+      @current_edge = Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_edge : Model::Edge
 
     ###############################################################################################
 
     class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
 
     # Validate the present of the id and check the secret before routing to core
-    ws("/control", :edge_control) do |socket|
+
+    # the websocket endpoint that edge devices use to connect to the cluster
+    @[AC::Route::WebSocket("/control")]
+    def edge_control(socket) : Nil
       edge_id = Model::Edge.jwt_edge_id?(user_token)
 
       if edge_id.nil? || !Model::Edge.exists?(edge_id)
-        head status: :unauthorized
+        raise Error::Forbidden.new("not an edge lord")
       else
         Log.info { {edge_id: edge_id, message: "new edge connection"} }
         Edges.connection_manager.add_edge(edge_id, socket)
       end
     end
 
-    get("/:id/token", :token) do
-      head :forbidden unless is_admin?
-      render json: {token: current_edge.x_api_key}
+    # admins can obtain the token edge nodes will use to connect to the cluster
+    @[AC::Route::GET("/:id/token")]
+    def token : NamedTuple(token: String)
+      raise Error::Forbidden.new("not an admin") unless is_admin?
+      {token: current_edge.x_api_key}
     end
 
-    def index
+    # list the edges in the system.
+    # an edge can be thought of as a location and each edge location can have multiple nodes servicing it
+    @[AC::Route::GET("/")]
+    def index : Array(Model::Edge)
       elastic = Model::Edge.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      render json: current_edge
+    # return the details of an edge location
+    @[AC::Route::GET("/:id")]
+    def show : Model::Edge
+      current_edge
     end
 
-    def update
-      current_edge.assign_attributes_from_json(self.body)
-      save_and_respond current_edge
+    # update the details of an edge location
+    @[AC::Route::PATCH("/:id", body: :edge)]
+    @[AC::Route::PUT("/:id", body: :edge)]
+    def update(edge : Model::Edge) : Model::Edge
+      current = current_edge
+      current.assign_attributes(edge)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      create_body = Model::Edge::CreateBody.from_json(self.body)
+    # add a new edge location
+    @[AC::Route::POST("/", body: :create_body, status_code: HTTP::Status::CREATED)]
+    def create(create_body : Model::Edge::CreateBody) : Model::Edge::KeyResponse
       user = Model::User.find!(create_body.user_id || current_user.id.as(String))
       new_edge = Model::Edge.for_user(
         user: user,
@@ -88,15 +101,14 @@ module PlaceOS::Api
       # Ensure instance variable initialised
       new_edge.x_api_key
 
-      _result, status = save_and_status(new_edge)
-      render_json(status) do |json|
-        new_edge.to_key_json(json)
-      end
+      raise Error::ModelValidation.new(new_edge.errors) unless new_edge.save
+      new_edge.to_key_struct
     end
 
-    def destroy
+    # remove an edge location
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_edge.destroy
-      head :ok
     end
   end
 end

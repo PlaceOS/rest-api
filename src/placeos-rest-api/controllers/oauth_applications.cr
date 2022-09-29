@@ -9,35 +9,29 @@ module PlaceOS::Api
 
     before_action :check_admin
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt]
-
-    # Callbacks
-    ###############################################################################################
-
-    before_action :current_app, only: [:show, :update, :update_alt, :destroy]
-    before_action :body, only: [:create, :update, :update_alt]
-
-    # Params
-    ###############################################################################################
-
-    getter authority_id : String? do
-      params["authority_id"]?.presence || params["authority"]?.presence
-    end
+    before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     ###############################################################################################
 
-    getter current_app : Model::DoorkeeperApplication do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    def find_current_app(id : String)
       Log.context.set(application_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
+      @current_app = Model::DoorkeeperApplication.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_app : Model::DoorkeeperApplication
 
     ###############################################################################################
 
-    def index
+    # lists the frontend applications enabled on the domains
+    @[AC::Route::GET("/")]
+    def index(
+      @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
+      authority_id : String? = nil
+    ) : Array(Model::DoorkeeperApplication)
       elastic = Model::DoorkeeperApplication.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
       # Filter by authority_id
@@ -47,27 +41,36 @@ module PlaceOS::Api
         })
       end
 
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      render json: current_app
+    # show the details of the applications
+    @[AC::Route::GET("/:id")]
+    def show : Model::DoorkeeperApplication
+      current_app
     end
 
-    def update
-      current_app.assign_attributes_from_json(self.body)
-      save_and_respond current_app
+    # udpate an application
+    @[AC::Route::PATCH("/:id", body: :app)]
+    @[AC::Route::PUT("/:id", body: :app)]
+    def update(app : Model::DoorkeeperApplication) : Model::DoorkeeperApplication
+      current = current_app
+      current.assign_attributes(app)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      save_and_respond(Model::DoorkeeperApplication.from_json(self.body))
+    # add a new user interface application
+    @[AC::Route::POST("/", body: :app, status_code: HTTP::Status::CREATED)]
+    def create(app : Model::DoorkeeperApplication) : Model::DoorkeeperApplication
+      raise Error::ModelValidation.new(app.errors) unless app.save
+      app
     end
 
-    def destroy
+    # remove an application
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_app.destroy
-      head :ok
     end
   end
 end

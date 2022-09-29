@@ -120,7 +120,7 @@ module PlaceOS::Api
         path = SystemTriggers.base_route.gsub(/:sys_id/, sys.id) + id
 
         result = client.delete(path: path, headers: Spec::Authentication.headers)
-        result.status_code.should eq 200
+        result.success?.should be_true
 
         Model::TriggerInstance.find(id.as(String)).should be_nil
       end

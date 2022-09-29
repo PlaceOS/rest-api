@@ -13,44 +13,57 @@ module PlaceOS::Api
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:show]
 
-    before_action :ensure_json, only: [:create]
-
     ###########################################################################
 
-    getter current_instance : Model::AssetInstance do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    def find_current_instance(id : String)
       Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::AssetInstance.find!(id, runopts: {"read_mode" => "majority"})
+      @current_instance = Model::AssetInstance.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_instance : Model::AssetInstance
 
     ###########################################################################
 
-    def index
+    # return a list of the assets in the database
+    @[AC::Route::GET("/")]
+    def index : Array(Model::AssetInstance)
       elastic = Model::AssetInstance.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      render json: current_instance
+    # return the details of an asset
+    @[AC::Route::GET("/:id")]
+    def show : Model::AssetInstance
+      current_instance
     end
 
-    def create
-      model = Model::AssetInstance.from_json(self.body)
-      save_and_respond(model)
+    # add a new asset to the database
+    @[AC::Route::POST("/", body: :instance, status_code: HTTP::Status::CREATED)]
+    def create(instance : Model::AssetInstance) : Model::AssetInstance
+      raise Error::ModelValidation.new(instance.errors) unless instance.save
+      instance
     end
 
-    def update
-      current_instance.assign_attributes_from_json(self.body)
-      save_and_respond(current_instance)
+    # update an assets details
+    @[AC::Route::PATCH("/:id", body: :instance)]
+    @[AC::Route::PUT("/:id", body: :instance)]
+    def update(instance : Model::AssetInstance) : Model::AssetInstance
+      current = current_instance
+      current.assign_attributes(instance)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    def destroy
-      current_instance.destroy # expires the cache in after callback
-      head :ok
+    # remove an asset
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
+      # expires the cache in after callback
+      current_instance.destroy
     end
   end
 end

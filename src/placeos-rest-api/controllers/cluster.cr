@@ -11,30 +11,20 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :check_admin
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:nodes, :show]
     before_action :can_write, only: [:destroy]
 
-    # Params
     ###############################################################################################
 
-    getter? include_status : Bool do
-      boolean_param("include_status")
-    end
-
-    getter driver : String do
-      params["driver"]
-    end
-
-    getter core_id : String do
-      params["id"]
-    end
-
-    ###############################################################################################
-
-    def index
+    # returns the list of core nodes running in the cluster
+    @[AC::Route::GET("/")]
+    def nodes(
+      @[AC::Param::Info(description: "return the detailed status of the node including memory and CPU usage?", example: "true")]
+      include_status : Bool = false
+    ) : Array(NodeStatus)
       details = self.class.core_discovery.node_hash
 
-      if include_status?
+      if include_status
         promises = details.map do |core_id, uri|
           Promise.defer {
             Cluster.node_status(core_id, uri, request_id)
@@ -57,33 +47,38 @@ module PlaceOS::Api
         #   },
         #   ...
         # ]
-        render json: Promise.all(promises).get.compact
+        Promise.all(promises).get.compact
       else
         # [ { "uri": <uri>, "id": <id> }, ... ]
-        details = details.map { |id, uri| {id: id, uri: uri} }
-        render json: details
+        details.map do |id, uri|
+          NodeStatus.new(
+            id: id,
+            uri: uri,
+            load: nil.as(PlaceOS::Core::Client::Load?),
+            status: nil.as(PlaceOS::Core::Client::CoreStatus?),
+          )
+        end
       end
     end
 
-    alias NodeStatus = NamedTuple(
-      id: String,
-      uri: URI,
+    record NodeStatus,
+      id : String,
+      uri : URI,
       # Get the cluster load
-      load: PlaceOS::Core::Client::Load?,
+      load : PlaceOS::Core::Client::Load?,
       # Get the cluster details (number of drivers running, errors etc)
-      status: PlaceOS::Core::Client::CoreStatus?,
-    )
+      status : PlaceOS::Core::Client::CoreStatus? { include JSON::Serializable }
 
     def self.node_status(core_id : String, uri : URI, request_id : String) : NodeStatus?
       Core::Client.client(uri, request_id) do |client|
-        {
-          id:  core_id,
+        NodeStatus.new(
+          id: core_id,
           uri: uri,
           # Get the cluster load
           load: client.core_load,
           # Get the cluster details (number of drivers running, errors etc)
           status: client.core_status,
-        }
+        )
       end
     rescue e
       Log.warn(exception: e) { {message: "failed to request core status", uri: uri.to_s, core_id: core_id} }
@@ -100,14 +95,21 @@ module PlaceOS::Api
         .to_set
     end
 
-    def show
+    # return the details of a particular core node
+    @[AC::Route::GET("/:id")]
+    def show(
+      @[AC::Param::Info(name: "id", description: "specifies the core node we want to send the request to")]
+      core_id : String,
+      @[AC::Param::Info(description: "return the detailed status of the drivers running on the node?", example: "true")]
+      include_status : Bool = false
+    ) : Array(DriverStatus)
       uri = self.class.core_discovery.node_hash[core_id]?
 
-      Log.context.set(core_id: core_id, uri: uri.try &.to_s, include_status: include_status?)
+      Log.context.set(core_id: core_id, uri: uri.try &.to_s, include_status: include_status)
 
       if uri.nil?
         Log.debug { "core not registered" }
-        head :not_found
+        raise Error::NotFound.new("core not registered: #{core_id}")
       end
 
       Core::Client.client(uri, request_id) do |client|
@@ -118,7 +120,7 @@ module PlaceOS::Api
 
         Log.debug { {loaded: loaded.to_json} }
 
-        if include_status?
+        if include_status
           promises = driver_keys.map do |key|
             Promise.defer(timeout: 1.second) do
               driver_status = begin
@@ -144,7 +146,7 @@ module PlaceOS::Api
           #     }
           #   }
           # ]
-          render json: Promise.all(promises).get.compact
+          Promise.all(promises).get.compact
         else
           # [
           #   {
@@ -155,13 +157,13 @@ module PlaceOS::Api
           #     }
           #   }
           # ]
-          render json: driver_keys.map { |key| Cluster.driver_status(key, loaded) }
+          driver_keys.map { |key| Cluster.driver_status(key, loaded) }
         end
       end
     end
 
-    alias Driver = NamedTuple(modules: Array(String), status: PlaceOS::Core::Client::DriverStatus::Metadata?)
-    alias DriverStatus = NamedTuple(driver: String, local: Driver, edge: Hash(String, Driver))
+    record Driver, modules : Array(String), status : PlaceOS::Core::Client::DriverStatus::Metadata? { include JSON::Serializable }
+    record DriverStatus, driver : String, local : Driver, edge : Hash(String, Driver) { include JSON::Serializable }
 
     def self.driver_status(
       key : String,
@@ -173,30 +175,33 @@ module PlaceOS::Api
 
       edges = edge_modules.map do |edge_id, processes|
         {
-          edge_id, {
+          edge_id, Driver.new(
             modules: processes[key]? || [] of String,
-            status:  status.try(&.edge[edge_id]?),
-          }.as(Driver),
+            status: status.try(&.edge[edge_id]?),
+          ),
         }
       end.to_h
 
-      {
+      DriverStatus.new(
         driver: key,
-        local:  {
+        local: Driver.new(
           modules: local_modules[key]? || [] of String,
-          status:  status.try(&.local),
-        }.as(Driver),
+          status: status.try(&.local),
+        ),
         edge: edges,
-      }
+      )
     end
 
-    def destroy
+    # terminates a driver on the node selected
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy(
+      @[AC::Param::Info(name: "id", description: "specifies the core node we want to send the request to")]
+      core_id : String,
+      @[AC::Param::Info(description: "the name of the driver to terminate")]
+      driver : String
+    ) : Nil
       uri = self.class.core_discovery.node_hash[core_id]
-      if Core::Client.client(uri, request_id, &.terminate(driver))
-        head :ok
-      else
-        head :not_found
-      end
+      raise Error::NotFound.new("driver not found: #{driver}") unless Core::Client.client(uri, request_id, &.terminate(driver))
     end
   end
 end

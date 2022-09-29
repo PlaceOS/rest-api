@@ -8,74 +8,73 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :update_alt]
+    before_action :can_write, only: [:create, :update, :destroy]
 
     before_action :check_admin, except: :inspect_key
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :body, only: [:create, :update, :update_alt]
-
-    # Params
-    ###############################################################################################
-
-    getter authority_id : String? do
-      params["authority_id"]?.presence
-    end
-
-    ###############################################################################################
-
-    getter current_api_key : Model::ApiKey do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :inspect_key])]
+    def find_current_api_key(id : String)
       Log.context.set(api_key: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
+      @current_api_key = Model::ApiKey.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_api_key : Model::ApiKey
 
     ###############################################################################################
 
-    def index
+    # returns a list of the API keys associated with the provided domain, otherwise all domains
+    @[AC::Route::GET("/")]
+    def index(
+      @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
+      authority_id : String? = nil
+    ) : Array(Model::ApiKey::PublicResponse)
       elastic = Model::ApiKey.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
 
       if authority = authority_id
         query.filter({"authority_id" => [authority]})
       end
 
       query.sort(NAME_SORT_ASC)
-
-      render_json do |json|
-        json.array do
-          paginate_results(elastic, query).each &.to_public_json(json)
-        end
-      end
+      paginate_results(elastic, query).map(&.to_public_struct)
     end
 
-    def show
-      render_json { |json| current_api_key.to_public_json(json) }
+    # returns the requested API key details
+    @[AC::Route::GET("/:id")]
+    def show : Model::ApiKey::PublicResponse
+      current_api_key.to_public_struct
     end
 
-    def update
-      current_api_key.assign_attributes_from_json(self.body)
-      save_and_respond(current_api_key) { show }
+    # updates an API key name, description user or scopes
+    @[AC::Route::PATCH("/:id", body: :api_key)]
+    @[AC::Route::PUT("/:id", body: :api_key)]
+    def update(api_key : Model::ApiKey) : Model::ApiKey::PublicResponse
+      current = current_api_key
+      current.assign_attributes(api_key)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current.to_public_struct
     end
 
-    put_redirect
-
-    def create
-      save_and_respond(Model::ApiKey.from_json(self.body)) do |key|
-        render_json(status: :created) { |json| key.to_public_json(json) }
-      end
+    # create a new API key
+    @[AC::Route::POST("/", body: :api_key, status_code: HTTP::Status::CREATED)]
+    def create(api_key : Model::ApiKey) : Model::ApiKey::PublicResponse
+      raise Error::ModelValidation.new(api_key.errors) unless api_key.save
+      api_key.to_public_struct
     end
 
-    def destroy
+    # remove an API key
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_api_key.destroy
-      head :ok
     end
 
-    get "/inspect", :inspect_key do
-      render json: authorize!
+    # obtain the a JSON JWT representation of the API key permissions
+    @[AC::Route::GET("/inspect")]
+    def inspect_key : Model::UserJWT
+      authorize!
     end
   end
 end

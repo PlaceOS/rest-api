@@ -13,29 +13,36 @@ module PlaceOS::Api
     before_action :check_admin, only: [:create, :update, :destroy]
     before_action :check_support, only: [:index, :show]
 
-    before_action :ensure_json, only: [:create]
-
-    # Params
     ###############################################################################################
 
-    getter parent_id : String? do
-      params["parent_id"]?.presence || params["parent"]?.presence
-    end
-
-    ###############################################################################################
-
-    getter current_asset : Model::Asset do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    def current_asset(id : String)
       Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::Asset.find!(id, runopts: {"read_mode" => "majority"})
+      @current_asset = Model::Asset.find!(id, runopts: {"read_mode" => "majority"})
+    end
+
+    getter! current_asset : Model::Asset
+
+    # Response helpers
+    ###############################################################################################
+
+    # extend the ControlSystem model to handle our return values
+    class Model::Asset
+      @[JSON::Field(key: "asset_instances")]
+      property asset_instances_details : Array(PlaceOS::Model::AssetInstance)? = nil
     end
 
     ###############################################################################################
 
-    def index
+    # return a list of the asset types
+    @[AC::Route::GET("/")]
+    def index(
+      @[AC::Param::Info(description: "return assets that are a subset of this asset", example: "asset-12345")]
+      parent_id : String? = nil
+    ) : Array(Model::Asset)
       elastic = Model::Asset.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
       # Limit results to the children of this parent
@@ -45,35 +52,49 @@ module PlaceOS::Api
         })
       end
 
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      include_instances = boolean_param("instances")
-      render json: !include_instances ? current_asset : with_fields(current_asset, {
-        :asset_instances => current_asset.asset_instances.to_a,
-      })
+    # grab the details of a particular asset type
+    @[AC::Route::GET("/:id")]
+    def show(
+      @[AC::Param::Info(name: "instances", description: "return the list of assets of this type", example: "true")]
+      include_instances : Bool = false
+    ) : Model::Asset | Hash(String, Array(PlaceOS::Model::AssetInstance) | JSON::Any)
+      current_asset.asset_instances_details = current_asset.asset_instances.to_a if include_instances
+      current_asset
     end
 
-    def update
-      current_asset.assign_attributes_from_json(self.body)
-      save_and_respond(current_asset)
+    # update the details of this asset type
+    @[AC::Route::PATCH("/:id", body: :asset)]
+    @[AC::Route::PUT("/:id", body: :asset)]
+    def update(asset : Model::Asset) : Model::Asset
+      current = current_asset
+      current.assign_attributes(asset)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    def create
-      save_and_respond Model::Asset.from_json(self.body)
+    # create a new asset category
+    @[AC::Route::POST("/", body: :asset, status_code: HTTP::Status::CREATED)]
+    def create(asset : Model::Asset) : Model::Asset
+      raise Error::ModelValidation.new(asset.errors) unless asset.save
+      asset
     end
 
-    def destroy
+    # remove a category of assets
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_asset.destroy # expires the cache in after callback
-      head :ok
     end
 
-    get "/:id/asset_instances", :asset_instances do
+    # return the assest of the selected type
+    @[AC::Route::GET("/:id/asset_instances")]
+    def asset_instances : Array(Model::AssetInstance)
       instances = current_asset.asset_instances.to_a
       set_collection_headers(instances.size, Model::AssetInstance.table_name)
 
-      render json: instances
+      instances
     end
   end
 end

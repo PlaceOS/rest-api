@@ -28,7 +28,7 @@ module PlaceOS::Api
       headers: headers,
     )
 
-    result.status_code.should eq 200
+    result.success?.should be_true
     system = Model::ControlSystem.from_trusted_json(result.body)
     system.modules.should_not contain mod_id
     system

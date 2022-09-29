@@ -28,8 +28,10 @@ module PlaceOS::Api
     # Healthcheck
     ###############################################################################################
 
-    get "/", :root do
-      head self.class.healthcheck? ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR
+    # returns 200 OK when the service is healthy (can connect to the databases etc)
+    @[AC::Route::GET("/")]
+    def root : Nil
+      raise "not healthy" unless self.class.healthcheck?
     end
 
     def self.healthcheck? : Bool
@@ -84,8 +86,10 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
-    get "/platform", :platform_info do
-      render json: Root.platform_info
+    # provides release details of the platform
+    @[AC::Route::GET("/platform")]
+    def platform_info : PlatformInfo
+      Root.platform_info
     end
 
     class_getter platform_info : PlatformInfo = PlatformInfo.new
@@ -93,19 +97,25 @@ module PlaceOS::Api
     # Versions
     ###############################################################################################
 
-    get "/version", :version do
-      render json: Root.version
+    # provides the version of this service
+    @[AC::Route::GET("/version")]
+    def version : PlaceOS::Model::Version
+      Root.version
     end
 
-    get "/cluster/versions", :cluster_version do
-      render json: Root.construct_versions
+    # provides the core node versions
+    @[AC::Route::GET("/cluster/versions")]
+    def cluster_version : Array(PlaceOS::Model::Version)
+      Root.construct_versions
     end
 
     # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
     class_getter(scopes) { SCOPES }
 
-    get "/scopes", :scopes do
-      render json: Root.scopes
+    # returns a list of introspected scopes available for use against the API
+    @[AC::Route::GET("/scopes")]
+    def scopes : Array(String)
+      Root.scopes
     end
 
     ###############################################################################################
@@ -175,19 +185,18 @@ module PlaceOS::Api
       PlaceOS::Model::Version.from_json(response.body)
     end
 
-    class SignalParams < Params
-      attribute channel : String, presence: true
-    end
-
     # Can be used in a similar manner to a webhook for drivers
-    post "/signal", :signal do
-      args = SignalParams.new(params).validate!
-      channel = args.channel
-
+    # pushes arbitrary data to channels in redis
+    @[AC::Route::POST("/signal")]
+    def signal(
+      @[AC::Param::Info(description: "the path we would like to send data to", example: "/my/data/channel")]
+      channel : String
+    ) : Nil
       if user_token.guest_scope?
-        head :forbidden unless channel.includes?("/guest/")
+        raise Error::Forbidden.new("guest scopes can only signal paths that include '/guest/'") unless channel.includes?("/guest/")
       end
 
+      # NOTE:: we don't describe the body in the params as it could be anything
       payload = if body = request.body
                   body.gets_to_end
                 else
@@ -198,21 +207,23 @@ module PlaceOS::Api
       Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
 
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
-      head :ok
     end
 
-    getter? backfill : Bool do
-      boolean_param("backfill")
+    # maps the database tables to indexes in elasticsearch
+    @[AC::Route::POST("/reindex")]
+    def reindex(
+      @[AC::Param::Info(description: "backfill the database after re-indexing?", example: "true")]
+      backfill : Bool = false
+    ) : Nil
+      success = SearchIngest::Client.client &.reindex(backfill: backfill)
+      raise "reindex failed" unless success
     end
 
-    post "/reindex", :reindex do
-      success = SearchIngest::Client.client &.reindex(backfill: backfill?)
-      head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
-    end
-
-    post "/backfill", :backfill do
+    # pushes all the data from the database into elasticsearch
+    @[AC::Route::POST("/backfill")]
+    def backfill
       success = SearchIngest::Client.client &.backfill
-      head(success ? HTTP::Status::OK : HTTP::Status::INTERNAL_SERVER_ERROR)
+      raise "backfill failed" unless success
     end
   end
 end

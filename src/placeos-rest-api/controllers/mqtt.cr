@@ -4,43 +4,28 @@ module PlaceOS::Api
   class MQTT < Application
     base "/api/engine/v2/mqtt/"
 
-    # Params
-    ###############################################################################################
-
-    getter mqtt_client_id_param : String? do
-      params["clientid"]?
-    end
-
-    getter mqtt_topic_parma : String? do
-      params["topic"]?
-    end
-
-    getter mqtt_access_param : Int32? do
-      params["acc"]?.try(&.to_i?)
-    end
-
-    ###############################################################################################
-
     # For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
     # jwt_response_mode: status, jwt_params_mode: form
-    post "/user", :mqtt_user do
+    @[AC::Route::POST("/user")]
+    def mqtt_user : Nil
       mqtt_parse_jwt
-      head :ok
     end
 
     # Sends a form with the following params: topic, clientid, acc (1: read, 2: write, 3: readwrite, 4: subscribe)
     # example payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A
-    post "/access", :mqtt_access do
+    @[AC::Route::POST("/access")]
+    def mqtt_access(
+      topic : String,
+      @[AC::Param::Info(name: "acc", description: "access level required")]
+      access : MqttAcl,
+      clientid : String? = nil
+    ) : Nil
       # Skip validation of the JWT as it may have expired.
       # This is acceptable as this route is a permission check for an established connection.
       mqtt_parse_jwt validate: false
 
-      client_id = mqtt_client_id_param
-      topic = required_param(mqtt_topic_parma)
-      access = MqttAcl.from_value(required_param(mqtt_access_param))
-
       Log.context.set(
-        mqtt_client: client_id,
+        mqtt_client: clientid,
         mqtt_topic: topic,
         mqtt_access: access.to_s,
       )

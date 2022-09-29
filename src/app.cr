@@ -46,6 +46,15 @@ OptionParser.parse(ARGV.dup) do |parser|
     end
   end
 
+  parser.on("-d", "--docs", "Outputs OpenAPI documentation for this service") do
+    puts ActionController::OpenAPI.generate_open_api_docs(
+      title: PlaceOS::Api::APP_NAME,
+      version: PlaceOS::Api::API_VERSION,
+      description: "PlaceOS REST-API description"
+    ).to_yaml
+    exit 0
+  end
+
   parser.on("-h", "--help", "Show this help") do
     puts parser
     exit 0

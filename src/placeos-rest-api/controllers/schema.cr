@@ -14,40 +14,53 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter current_schema : Model::JsonSchema do
-      id = params["id"]
+    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    def find_current_schema(id : String)
       Log.context.set(schema_id: id)
       # Find will raise a 404 (not found) if there is an error
-      Model::JsonSchema.find!(id, runopts: {"read_mode" => "majority"})
+      @current_schema = Model::JsonSchema.find!(id, runopts: {"read_mode" => "majority"})
     end
+
+    getter! current_schema : Model::JsonSchema
 
     ###############################################################################################
 
-    def index
+    # return the list of schemas
+    # schemas can be used to ensure metadata conforms to the desired state
+    @[AC::Route::GET("/")]
+    def index : Array(Model::JsonSchema)
       elastic = Model::JsonSchema.elastic
-      query = elastic.query(params)
-      render json: paginate_results(elastic, query)
+      query = elastic.query(search_params)
+      paginate_results(elastic, query)
     end
 
-    def show
-      render json: current_schema
+    # return the details of a schema
+    @[AC::Route::GET("/:id")]
+    def show : Model::JsonSchema
+      current_schema
     end
 
-    def update
-      current_schema.assign_attributes_from_json(self.body)
-      save_and_respond(current_schema)
+    # update a schema details
+    @[AC::Route::PATCH("/:id", body: :schema)]
+    @[AC::Route::PUT("/:id", body: :schema)]
+    def update(schema : Model::JsonSchema) : Model::JsonSchema
+      current = current_schema
+      current.assign_attributes(schema)
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      schema = Model::JsonSchema.from_json(self.body)
-      save_and_respond(schema)
+    # add a new schema
+    @[AC::Route::POST("/", body: :schema, status_code: HTTP::Status::CREATED)]
+    def create(schema : Model::JsonSchema) : Model::JsonSchema
+      raise Error::ModelValidation.new(schema.errors) unless schema.save
+      schema
     end
 
-    def destroy
+    # remove a schema
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_schema.destroy
-      head :ok
     end
   end
 end

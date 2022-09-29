@@ -10,94 +10,85 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :branches, :commits]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :update_alt] # brances, commits?
+    before_action :can_write, only: [:create, :update, :destroy, :remove] # brances, commits?
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :current_repo, only: [:branches, :commits, :destroy, :details, :drivers, :show, :update, :update_alt]
-    before_action :body, only: [:create, :update, :update_alt]
-    before_action :drivers_only, only: [:drivers, :details]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :loaded_interfaces])]
+    def find_current_repo(id : String)
+      Log.context.set(repository_id: id)
+      # Find will raise a 404 (not found) if there is an error
+      @current_repo = Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
+    end
 
+    @[AC::Route::Filter(:before_action, only: [:drivers, :details])]
     private def drivers_only
       unless current_repo.repo_type.driver?
         render_error(:bad_request, "not a driver repository")
       end
     end
 
-    # Params
-    ###############################################################################################
-
-    getter limit : Int32? do
-      params["limit"]?.try &.to_i?
-    end
-
-    getter driver : String? do
-      params["driver"]?.presence
-    end
-
-    getter commit : String do
-      params["commit"]
-    end
+    getter! current_repo : Model::Repository
 
     ###############################################################################################
 
-    getter current_repo : Model::Repository do
-      id = params["id"]
-      Log.context.set(repository_id: id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
-    end
-
-    ###############################################################################################
-
-    def index
+    # lists the repositories added to the system
+    @[AC::Route::GET("/")]
+    def index : Array(Model::Repository)
       elastic = Model::Repository.elastic
-      query = elastic.query(params)
+      query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
-      render json: paginate_results(elastic, query)
+      paginate_results(elastic, query)
     end
 
-    def show
-      render json: current_repo
+    # returns the details of a saved repository
+    @[AC::Route::GET("/:id")]
+    def show : Model::Repository
+      current_repo
     end
 
-    def update
-      current_repo.assign_attributes_from_json(self.body)
+    # updates a repositories details
+    @[AC::Route::PATCH("/:id", body: :repo)]
+    @[AC::Route::PUT("/:id", body: :repo)]
+    def update(repo : Model::Repository) : Model::Repository
+      current = current_repo
+      current.assign_attributes(repo)
 
       # Must destroy and re-add to change driver repository URIs
-      if current_repo.uri_changed? && current_repo.repo_type.driver?
-        return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, "`uri` of Driver repositories cannot change")
+      if current.uri_changed? && current.repo_type.driver?
+        raise Error::ModelValidation.new({Error::Field.new(:uri, "`uri` of Driver repositories cannot change")})
       end
 
-      save_and_respond current_repo
+      raise Error::ModelValidation.new(current.errors) unless current.save
+      current
     end
 
-    put_redirect
-
-    def create
-      save_and_respond(Model::Repository.from_json(self.body))
+    # adds a new repository, either a frontends or driver repository
+    @[AC::Route::POST("/", body: :repo, status_code: HTTP::Status::CREATED)]
+    def create(repo : Model::Repository) : Model::Repository
+      raise Error::ModelValidation.new(repo.errors) unless repo.save
+      repo
     end
 
-    def destroy
+    # removes a repository from the server
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy : Nil
       current_repo.destroy
-      head :ok
     end
 
-    post "/:id/pull", :pull do
+    # checks the remote for any new commits and pulls them locally
+    @[AC::Route::POST("/:id/pull")]
+    def pull : NamedTuple(commit_hash: String)
       result = Repositories.pull_repository(current_repo)
       if result
         destroyed, commit_hash = result
-        if destroyed
-          head :not_found
-        else
-          render json: {commit_hash: commit_hash}
-        end
+        raise Error::NotFound.new("repository has been deleted") if destroyed
+        {commit_hash: commit_hash.as(String)}
       else
-        return render_error(HTTP::Status::REQUEST_TIMEOUT, "Pull timed out")
+        raise IO::TimeoutError.new("Pull timed out")
       end
     end
 
@@ -123,11 +114,14 @@ module PlaceOS::Api
     # Determine loaded interfaces and their current commit
     #
     # Returns a hash of folder_name to commit
-    get "/interfaces", :loaded_interfaces do
-      render json: PlaceOS::FrontendLoader::Client.client(&.loaded)
+    @[AC::Route::GET("/interfaces")]
+    def loaded_interfaces : Hash(String, String)
+      PlaceOS::FrontendLoader::Client.client(&.loaded)
     end
 
-    get "/:id/drivers", :drivers do
+    # lists the drivers in a repository
+    @[AC::Route::GET("/:id/drivers")]
+    def drivers : Array(String)
       repository_folder = current_repo.folder_name
 
       # Request to core:
@@ -137,11 +131,18 @@ module PlaceOS::Api
         core_client.drivers(repository_folder)
       end
 
-      render json: drivers
+      drivers
     end
 
-    get "/:id/commits", :commits do
-      render json: Api::Repositories.commits(
+    # Returns the commits for a repository or file
+    @[AC::Route::GET("/:id/commits")]
+    def commits(
+      @[AC::Param::Info(description: "the maximum number of commits to return", example: "50")]
+      limit : Int32? = nil,
+      @[AC::Param::Info(description: "the path to the file we want commits for", example: "path/to/file.cr")]
+      driver : String? = nil
+    ) : Array(GitRepository::Commit)
+      Api::Repositories.commits(
         repository: current_repo,
         request_id: request_id,
         number_of_commits: limit,
@@ -157,28 +158,33 @@ module PlaceOS::Api
       end
     end
 
-    get "/:id/details", :details do
-      driver_filename = required_param(driver)
-
+    # Returns the metadata of the driver
+    # For payload information, look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
+    @[AC::Route::GET("/:id/details")]
+    def details(
+      @[AC::Param::Info(name: "driver", description: "the file we would like metadata for", example: "path/to/file.cr")]
+      driver_filename : String,
+      @[AC::Param::Info(description: "the commit level of the file", example: "3f67a66")]
+      commit : String
+    ) : Nil
       # Request to core:
-      # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&count=#{number_of_commits}"
-      # Returns: https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
+      # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&commit=#{commit_hash}"
       details = Api::Systems.core_for(driver_filename, request_id) do |core_client|
         core_client.driver_details(driver_filename, commit, current_repo.folder_name)
       end
 
-      # The raw JSON string is returned
+      # The raw JSON string is returned and we proxy that (no need to encode and decode)
       response.headers["Content-Type"] = "application/json"
       render text: details
     end
 
-    get "/:id/branches", :branches do
-      branches = Api::Repositories.branches(
+    # returns the list of branches in the repository
+    @[AC::Route::GET("/:id/branches")]
+    def branches : Array(String)
+      Api::Repositories.branches(
         repository: current_repo,
         request_id: request_id,
       )
-
-      render json: branches
     end
 
     def self.branches(repository : Model::Repository, request_id : String)
@@ -189,14 +195,13 @@ module PlaceOS::Api
       end
     end
 
-    get "/:id/releases", :releases do
-      render_error(HTTP::Status::BAD_REQUEST, "can only get releases for interface repositories") unless current_repo.repo_type.interface?
-      releases = Api::Repositories.releases(
+    # returns the list of releases in the repository, i.e. github releases
+    @[AC::Route::GET("/:id/releases")]
+    def releases : Array(String)
+      Api::Repositories.releases(
         repository: current_repo,
         request_id: request_id,
       )
-
-      render json: releases
     end
 
     def self.releases(repository : Model::Repository, request_id : String)

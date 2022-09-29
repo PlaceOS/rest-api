@@ -12,13 +12,19 @@ module PlaceOS::Api
     class Forbidden < Error
     end
 
-    class NoBody < Error
+    class NotFound < Error
     end
 
-    class InvalidParams < Error
-      getter params
+    class Conflict < Error
+    end
 
-      def initialize(@params : Params, message = "")
+    record Field, field : Symbol, message : String
+
+    class ModelValidation < Error
+      getter failures : Array(NamedTuple(field: Symbol, reason: String))
+
+      def initialize(failures : Enumerable, message : String = "validation failed")
+        @failures = failures.map { |fail| {field: fail.field, reason: fail.message} }.to_a
         super(message)
       end
     end

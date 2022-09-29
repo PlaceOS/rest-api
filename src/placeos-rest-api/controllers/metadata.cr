@@ -11,46 +11,19 @@ module PlaceOS::Api
 
     before_action :can_read, only: [:history]
     before_action :can_read_guest, only: [:show, :children_metadata]
-    before_action :can_write, only: [:update, :destroy, :update_alt]
+    before_action :can_write, only: [:update, :destroy]
 
     # Callbacks
     ###############################################################################################
 
-    before_action :check_delete_permissions, only: :destroy
-
-    before_action :current_zone, only: :children
-
-    before_action :body, only: [:update, :update_alt]
-
-    # Params
-    ###############################################################################################
-
-    getter parent_id : String do
-      route_params["id"]
-    end
-
-    getter name : String? do
-      params["name"]?.presence
-    end
-
-    getter offset : Int32 do
-      params["offset"]?.try(&.to_i?) || 0
-    end
-
-    getter limit : Int32 do
-      params["limit"]?.try(&.to_i?) || 100
-    end
-
-    getter? include_parent : Bool do
-      boolean_param("include_parent", default: true)
-    end
-
-    ###############################################################################################
-
-    getter current_zone : Model::Zone do
-      Log.context.set(zone_id: parent_id)
-      # Find will raise a 404 (not found) if there is an error
-      Model::Zone.find!(parent_id)
+    # Does the user making the request have permissions to modify the data
+    @[AC::Route::Filter(:before_action, only: [:destroy])]
+    def check_delete_permissions(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be destroyed")]
+      parent_id : String
+    )
+      # NOTE: Will the user token ever be assigned a zone id?
+      raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
     end
 
     ###############################################################################################
@@ -58,13 +31,19 @@ module PlaceOS::Api
     # Fetch metadata for a model
     #
     # Filter for a specific metadata by name via `name` param
-    def show
+    @[AC::Route::GET("/:id")]
+    def show(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
+      parent_id : String,
+      @[AC::Param::Info(description: "the name of the metadata key", example: "config")]
+      name : String? = nil
+    ) : Hash(String, Model::Metadata::Interface)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
-        head :forbidden unless name && guest_ids.includes?(parent_id)
+        raise Error::Forbidden.new unless name && guest_ids.includes?(parent_id)
       end
 
-      render json: Model::Metadata.build_metadata(parent_id, name)
+      Model::Metadata.build_metadata(parent_id, name)
     end
 
     record Children, zone : Model::Zone, metadata : Hash(String, Model::Metadata::Interface) do
@@ -79,27 +58,47 @@ module PlaceOS::Api
     #
     # Filter for a specific metadata by name via `name` param.
     # Includes the parent metadata by default via `include_parent` param.
-    get "/:id/children", :children_metadata do
+    @[AC::Route::GET("/:id/children")]
+    def children_metadata(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
+      parent_id : String,
+      @[AC::Param::Info(description: "the parent metadata is included in the results by default", example: "false")]
+      include_parent : Bool = true,
+      @[AC::Param::Info(description: "filter for a particular metadata key", example: "config")]
+      name : String? = nil
+    ) : Array(Children)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
-        head :forbidden unless name && guest_ids.includes?(parent_id)
+        raise Error::Forbidden.new unless name && guest_ids.includes?(parent_id)
       end
 
-      render_json do |json|
-        json.array do
-          current_zone.children.all.each do |zone|
-            Children.new(zone, name).to_json(json) if include_parent? || zone.id != parent_id
-          end
-        end
+      Log.context.set(zone_id: parent_id)
+      current_zone = Model::Zone.find!(parent_id)
+      current_zone.children.all.compact_map do |zone|
+        Children.new(zone, name) if include_parent || zone.id != parent_id
       end
     end
 
-    patch "/:id", :merge do
-      mutate(merge: true)
+    # update only the keys provided on the selected metadata
+    # udpates are signalled on the `placeos/metadata/changed` channel
+    @[AC::Route::PATCH("/:id", body: :meta)]
+    def merge(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be updated")]
+      parent_id : String,
+      meta : Model::Metadata::Interface
+    ) : Model::Metadata::Interface
+      mutate(parent_id, meta, merge: true)
     end
 
-    put "/:id", :update do
-      mutate(merge: false)
+    # replace the metadata with this new metadata
+    # udpates are signalled on the `placeos/metadata/changed` channel
+    @[AC::Route::PUT("/:id", body: :meta)]
+    def update(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be replaced")]
+      parent_id : String,
+      meta : Model::Metadata::Interface
+    ) : Model::Metadata::Interface
+      mutate(parent_id, meta, merge: false)
     end
 
     SIGNAL_CHANNEL = "placeos/metadata/changed"
@@ -116,30 +115,29 @@ module PlaceOS::Api
     end
 
     # Find (otherwise create) then update (or patch) the Metadata.
-    protected def mutate(merge : Bool)
-      metadata = Model::Metadata::Interface.from_json(self.body)
-
+    protected def mutate(parent_id : String, metadata : Model::Metadata::Interface, merge : Bool)
       # A name is required to lookup the metadata
-      return head :bad_request if metadata.name.empty?
+      raise Error::ModelValidation.new({Error::Field.new(:name, "Name must not be empty")}) unless metadata.name.presence
 
-      metadata = create_or_update(metadata, merge: merge)
-      response, status = save_and_status(metadata)
+      metadata = create_or_update(parent_id, metadata, merge: merge)
+      raise Error::ModelValidation.new(metadata.errors) unless metadata.save
+      metadata
 
-      if status.ok? && response.is_a?(Model::Metadata)
-        payload = response.interface
-        spawn { self.class.signal_metadata(:update, payload) }
-        render json: payload, status: status
-      else
-        render json: response, status: status
-      end
+      payload = metadata.interface
+      spawn { self.class.signal_metadata(:update, payload) }
+      payload
     end
 
-    def destroy
-      if (metadata_name = name).nil?
-        head :bad_request
-      end
-
+    # remove a metadata entry from the database
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
+      parent_id : String,
+      @[AC::Param::Info(name: "name", description: "the name of the metadata key", example: "config")]
+      metadata_name : String
+    ) : Nil
       Model::Metadata.for(parent_id, metadata_name).each &.destroy
+
       spawn do
         if metadata_name.empty?
           self.class.signal_metadata(:destroy_all, {
@@ -152,13 +150,20 @@ module PlaceOS::Api
           })
         end
       end
-
-      head :ok
     end
 
     # Returns the version history for a Settings model
-    #
-    get "/:id/history", :history do
+    @[AC::Route::GET("/:id/history")]
+    def history(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
+      parent_id : String,
+      @[AC::Param::Info(description: "the name of the metadata key", example: "config")]
+      name : String? = nil,
+      @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
+      limit : Int32 = 100,
+      @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
+      offset : Int32 = 0
+    ) : Hash(String, Array(Model::Metadata::Interface))
       history = Model::Metadata.build_history(parent_id, name, offset: offset, limit: limit)
 
       total = Model::Metadata.for(parent_id, name).max_of?(&.history_count) || 0
@@ -176,13 +181,13 @@ module PlaceOS::Api
         response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
       end
 
-      render json: history
+      history
     end
 
     # Helpers
     ###########################################################################
 
-    def create_or_update(interface : Model::Metadata::Interface, merge : Bool) : Model::Metadata
+    def create_or_update(parent_id : String, interface : Model::Metadata::Interface, merge : Bool) : Model::Metadata
       if metadata = Model::Metadata.for(parent_id, interface.name).first?
         # Check if the current user has access
         raise Error::Forbidden.new unless metadata.user_can_update?(user_token)
@@ -206,12 +211,6 @@ module PlaceOS::Api
     def guest_ids
       sys_id = user_token.user.roles.last
       Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"}).zones + [sys_id]
-    end
-
-    # Does the user making the request have permissions to modify the data
-    def check_delete_permissions
-      # NOTE: Will the user token ever be assigned a zone id?
-      raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
     end
   end
 end

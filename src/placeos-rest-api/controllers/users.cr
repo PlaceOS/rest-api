@@ -12,47 +12,17 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove, :revive, :update_alt]
-
-    before_action :user, only: [:destroy, :update, :revive, :show, :delete_resource_token]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :revive]
 
     before_action :check_admin, only: [:destroy, :create, :revive, :delete_resource_token]
 
-    # Callbacks
     ###############################################################################################
 
-    before_action :check_authorization, only: [:update, :update_alt]
-    before_action :ensure_json, only: [:update, :update_alt]
-    before_action :body, only: [:create, :update, :update_alt]
-
-    # Params
-    ###############################################################################################
-
-    getter name : String? do
-      params["name"]?.presence
-    end
-
-    getter emails : Array(String)? do
-      params["emails"]?.presence.try &.split(',')
-    end
-
-    getter authority_id : String? do
-      params["authority_id"]?.presence || params["authority"]?.presence
-    end
-
-    getter? include_deleted : Bool do
-      boolean_param("include_deleted")
-    end
-
-    getter? include_metadata : Bool do
-      boolean_param("include_metadata")
-    end
-
-    ###############################################################################################
-
-    getter user : Model::User do
-      lookup = params["id"]
-
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :current, :resource_token, :groups])]
+    def find_user(
+      @[AC::Param::Info(name: "id", description: "the id of the user", example: "user-1234")]
+      lookup : String
+    )
       # Index ordering to use for resolving the user.
       ordering = if lookup.is_email?
                    {:email, :login_name}
@@ -62,7 +32,7 @@ module PlaceOS::Api
 
       authority = current_user.authority_id.as(String)
 
-      ordering.each.compact_map do |id_type|
+      ordering.each.compact_map { |id_type|
         case id_type
         when :id
           # TODO: Remove user id query prefixing.
@@ -76,49 +46,60 @@ module PlaceOS::Api
         when :staff_id
           Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
         end
-      end.first do
+      }.first {
         # 404 if the `User` was not found
         raise RethinkORM::Error::DocumentNotFound.new
-      end.tap do |user|
-        Log.context.set(user_id: user.id)
+      }.tap do |found|
+        Log.context.set(user_id: found.id)
+        @user = found
       end
+    end
+
+    getter! user : Model::User
+
+    # Check the user has access to the model
+    @[AC::Route::Filter(:before_action, only: [:update])]
+    protected def check_authorization
+      # Does the current user have permission to perform the current action
+      raise Error::Forbidden.new unless user.id == current_user.id || is_admin?
     end
 
     ###############################################################################################
 
     # Render the current user
-    get("/current", :current) do
-      render_json do |json|
-        current_user.to_admin_json(json)
-      end
+    @[AC::Route::GET("/current")]
+    def current : Model::User::AdminResponse
+      current_user.to_admin_struct
     rescue e : RethinkORM::Error::DocumentNotFound
-      head :unauthorized
+      raise Error::Unauthorized.new("user not found")
     end
 
-    # Obtain a token to the current users SSO resource
-    post("/resource_token", :resource_token) do
+    record AccessToken, token : String, expires : Int64? { include JSON::Serializable }
+
+    # Obtain a token to the current users SSO resources
+    # this token is used for delegated access to things like MS Graph API or Google API in the context of the user
+    # we only make this token available to the current user (admin users don't have access)
+    @[AC::Route::POST("/resource_token")]
+    def resource_token : AccessToken
       expired = true
 
       if access_token = current_user.access_token.presence
         if current_user.expires
           expires_at = Time.unix(current_user.expires_at.not_nil!)
           if 5.minutes.from_now < expires_at
-            render json: {
-              token:   access_token,
-              expires: expires_at.to_unix,
-            }
+            return AccessToken.new(access_token.as(String), expires_at.to_unix)
           end
 
           # Allow for clock drift
           expired = 15.seconds.from_now > expires_at
         else
-          render json: {token: access_token}
+          return AccessToken.new(access_token.as(String), nil)
         end
       end
 
-      head :not_found unless current_user.refresh_token.presence
+      raise Error::NotFound.new("no refresh token available") unless current_user.refresh_token.presence
       authority = current_authority
-      head :not_found unless authority
+      raise Error::NotFound.new("no valid authority") unless authority
 
       begin
         internals = authority.internals
@@ -129,7 +110,8 @@ module PlaceOS::Api
                         table.get_all(authority.id, index: :authority_id)
                       end.first?
                     end
-        render(:not_found, text: "no oauth configuration found") unless sso_strat
+
+        raise Error::NotFound.new("no oauth configuration found") unless sso_strat
 
         client_id = sso_strat.client_id
         client_secret = sso_strat.client_secret
@@ -145,42 +127,50 @@ module PlaceOS::Api
         current_user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
         current_user.save!
 
-        render json: {
-          token:   current_user.access_token,
-          expires: current_user.expires_at,
-        }
+        AccessToken.new(current_user.access_token.as(String), current_user.expires_at)
       rescue error
         Log.warn(exception: error) { "failed refresh access token" }
         if !expired
-          render json: {
-            token:   current_user.access_token,
-            expires: current_user.expires_at,
-          }
+          AccessToken.new(current_user.access_token.as(String), current_user.expires_at)
         else
           raise error
         end
       end
     end
 
-    delete("/:id/resource_token", :delete_resource_token) do
+    # removes the saved resource token of a user
+    # a new one can be obtained via SSO authentication
+    @[AC::Route::DELETE("/:id/resource_token", status_code: HTTP::Status::ACCEPTED)]
+    def delete_resource_token : Nil
       user.access_token = nil
       user.refresh_token = nil
       user.expires_at = nil
       user.expires = false
       user.save!
-      head :ok
     end
 
     # CRUD
     ###############################################################################################
 
-    def index
+    alias UserDetails = Model::User::AdminResponse | Model::User::PublicResponse | Model::User::AdminMetadataResponse | Model::User::PublicMetadataResponse
+
+    # returns a list of users
+    @[AC::Route::GET("/")]
+    def index(
+      @[AC::Param::Info(description: "include soft deleted users in the results", example: "true")]
+      include_deleted : Bool = false,
+      @[AC::Param::Info(description: "include user metadata in the response", example: "true")]
+      include_metadata : Bool = false,
+      @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
+      authority_id : String? = nil
+    ) : Array(UserDetails)
       elastic = Model::User.elastic
-      params["q"] = %("#{params["q"]}") if params["q"]?.to_s.is_email?
-      query = elastic.query(params)
+      search_query = search_params
+      search_query["q"] = %("#{search_query["q"]}") if search_query["q"]?.to_s.is_email?
+      query = elastic.query(search_query)
       query.sort(NAME_SORT_ASC)
 
-      query.must_not({"deleted" => [true]}) unless include_deleted?
+      query.must_not({"deleted" => [true]}) unless include_deleted
 
       if !is_admin?
         # regular users can only see their own domain
@@ -189,124 +179,119 @@ module PlaceOS::Api
         query.filter({"authority_id" => [authority]})
       end
 
-      render_json do |json|
-        json.array do
-          if is_admin?
-            if include_metadata?
-              paginate_results(elastic, query).each &.to_admin_metadata_json(json)
-            else
-              paginate_results(elastic, query).each &.to_admin_json(json)
-            end
-          else
-            if include_metadata?
-              paginate_results(elastic, query).each &.to_public_metadata_json(json)
-            else
-              paginate_results(elastic, query).each &.to_public_json(json)
-            end
-          end
-        end
-      end
-    end
-
-    def show
-      # We only want to provide limited "public" information
-      render_json do |json|
-        if is_admin?
-          include_metadata? ? user.to_admin_metadata_json(json) : user.to_admin_json(json)
+      if is_admin?
+        if include_metadata
+          paginate_results(elastic, query).map &.to_admin_metadata_struct.as(UserDetails)
         else
-          include_metadata? ? user.to_public_metadata_json(json) : user.to_public_json(json)
+          paginate_results(elastic, query).map &.to_admin_struct.as(UserDetails)
+        end
+      else
+        if include_metadata
+          paginate_results(elastic, query).map &.to_public_metadata_struct.as(UserDetails)
+        else
+          paginate_results(elastic, query).map &.to_public_struct.as(UserDetails)
         end
       end
     end
 
-    def create
-      body = self.body.gets_to_end
+    # returns the profile of the selected user
+    @[AC::Route::GET("/:id")]
+    def show(
+      @[AC::Param::Info(description: "include user metadata in the response", example: "true")]
+      include_metadata : Bool = false
+    ) : UserDetails
+      # We only want to provide limited "public" information
+      if is_admin?
+        include_metadata ? user.to_admin_metadata_struct : user.to_admin_struct
+      else
+        include_metadata ? user.to_public_metadata_struct : user.to_public_struct
+      end
+    end
+
+    # add a new local user
+    @[AC::Route::POST("/", body: :new_user, status_code: HTTP::Status::CREATED)]
+    def create(new_user : JSON::Any) : Model::User
+      body = new_user.to_json
       new_user = Model::User.from_json(body)
       new_user.assign_admin_attributes_from_json(body)
 
       # allow sys-admins to create users on other domains
       new_user.authority ||= current_authority.as(Model::Authority)
 
-      save_and_respond new_user
+      raise Error::ModelValidation.new(new_user.errors) unless new_user.save
+      new_user
     end
 
-    def update
+    # udpate a users profile
+    @[AC::Route::PATCH("/:id", body: :new_user)]
+    @[AC::Route::PUT("/:id", body: :new_user)]
+    def update(new_user : JSON::Any) : Model::User
       # Allow additional attributes to be applied by admins
       # (the users themselves should not have access to these)
-      # TODO:: Use scopes.
-      body = self.body.gets_to_end
+      body = new_user.to_json
+      the_user = user
       if is_admin?
-        user.assign_admin_attributes_from_json(body)
+        the_user.assign_admin_attributes_from_json(body)
       end
-      user.assign_attributes_from_json(body)
+      the_user.assign_attributes_from_json(body)
 
-      save_and_respond user
+      raise Error::ModelValidation.new(the_user.errors) unless the_user.save
+      the_user
     end
 
-    put_redirect
-
     # Destroy user, revoke authentication.
-    def destroy
-      force_removal = params["force_removal"]? == "true"
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
+    def destroy(
+      force_removal : Bool = false
+    ) : Nil
       if !force_removal && current_authority.try &.internals["soft_delete"]? == true
         user.deleted = true
-        user.save
+        raise Error::ModelValidation.new(user.errors) unless user.save
       else
         user_id = user.id
         user.destroy
         spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: user_id}) }
       end
-      head :ok
-    rescue e : Model::Error
-      render_error(HTTP::Status::BAD_REQUEST, e.message)
     end
 
-    post "/:id/revive", :revive do
+    # undelete a user
+    @[AC::Route::POST("/:id/revive")]
+    def revive
       user.deleted = false
-      save_and_respond(user)
-    rescue e : Model::Error
-      render_error(HTTP::Status::BAD_REQUEST, e.message)
+      raise Error::ModelValidation.new(user.errors) unless user.save
     end
 
     ###############################################################################################
 
-    get "/:id/metadata", :metadata do
+    # return a users metadata
+    @[AC::Route::GET("/:id/metadata")]
+    def metadata(
+      @[AC::Param::Info(description: "filter metadata by a particular entry", example: "department")]
+      name : String? = nil
+    ) : Hash(String, PlaceOS::Model::Metadata::Interface)
       parent_id = user.id.not_nil!
-      render json: Model::Metadata.build_metadata(parent_id, name)
+      Model::Metadata.build_metadata(parent_id, name)
     end
 
-    # # Params
-    # - `emails`: comma-seperated list of emails *required*
-    # # Returns
-    # - `[{id: "<user-id>", groups: ["<group>"]}]`
-    get("/groups", :groups) do
-      emails_param = required_param(emails)
-
-      unless (errors = self.class.validate_emails(emails_param)).empty?
-        return render_error(HTTP::Status::UNPROCESSABLE_ENTITY, errors.join(", "))
+    # Returns the groups these users are in
+    @[AC::Route::GET("/groups", converters: {emails: ConvertStringArray})]
+    def groups(
+      @[AC::Param::Info(description: "the user emails whos group membership we are interested", example: "user1@org.com,user2@org.com")]
+      emails : Array(String)
+    ) : Array(Model::User::GroupResponse)
+      unless (errors = self.class.validate_emails(emails)).empty?
+        raise Error::ModelValidation.new(errors, "not all provided emails were valid")
       end
 
-      render_json do |json|
-        json.array do
-          Model::User
-            .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails_param)
-            .each &.to_group_json(json)
-        end
-      end
+      Model::User
+        .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails)
+        .map &.to_group_struct
     end
 
-    def self.validate_emails(emails) : Array(String)
-      emails.each_with_object([] of String) do |email, errors|
-        errors << "#{email} is an invalid email" unless email.is_email?
+    def self.validate_emails(emails) : Array(Error::Field)
+      emails.each_with_object([] of Error::Field) do |email, errors|
+        errors << Error::Field.new(:emails, "#{email} is an invalid email") unless email.is_email?
       end
-    end
-
-    # Helpers
-    ###############################################################################################
-
-    protected def check_authorization
-      # Does the current user have permission to perform the current action
-      head :forbidden unless user.id == current_user.id || is_admin?
     end
   end
 end
