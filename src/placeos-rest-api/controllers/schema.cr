@@ -25,6 +25,8 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # return the list of schemas
+    # schemas can be used to ensure metadata conforms to the desired state
     @[AC::Route::GET("/")]
     def index : Array(Model::JsonSchema)
       elastic = Model::JsonSchema.elastic
@@ -32,11 +34,13 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # return the details of a schema
     @[AC::Route::GET("/:id")]
     def show : Model::JsonSchema
       current_schema
     end
 
+    # update a schema details
     @[AC::Route::PATCH("/:id", body: :schema)]
     @[AC::Route::PUT("/:id", body: :schema)]
     def update(schema : Model::JsonSchema) : Model::JsonSchema
@@ -46,12 +50,14 @@ module PlaceOS::Api
       current
     end
 
+    # add a new schema
     @[AC::Route::POST("/", body: :schema, status_code: HTTP::Status::CREATED)]
     def create(schema : Model::JsonSchema) : Model::JsonSchema
       raise Error::ModelValidation.new(schema.errors) unless schema.save
       schema
     end
 
+    # remove a schema
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_schema.destroy

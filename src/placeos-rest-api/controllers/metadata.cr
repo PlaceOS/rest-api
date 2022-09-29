@@ -79,6 +79,8 @@ module PlaceOS::Api
       end
     end
 
+    # update only the keys provided on the selected metadata
+    # udpates are signalled on the `placeos/metadata/changed` channel
     @[AC::Route::PATCH("/:id", body: :meta)]
     def merge(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be updated")]
@@ -88,6 +90,8 @@ module PlaceOS::Api
       mutate(parent_id, meta, merge: true)
     end
 
+    # replace the metadata with this new metadata
+    # udpates are signalled on the `placeos/metadata/changed` channel
     @[AC::Route::PUT("/:id", body: :meta)]
     def update(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be replaced")]
@@ -124,6 +128,7 @@ module PlaceOS::Api
       payload
     end
 
+    # remove a metadata entry from the database
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]

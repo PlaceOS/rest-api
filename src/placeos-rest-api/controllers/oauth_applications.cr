@@ -24,6 +24,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # lists the frontend applications enabled on the domains
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
@@ -43,11 +44,13 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # show the details of the applications
     @[AC::Route::GET("/:id")]
     def show : Model::DoorkeeperApplication
       current_app
     end
 
+    # udpate an application
     @[AC::Route::PATCH("/:id", body: :app)]
     @[AC::Route::PUT("/:id", body: :app)]
     def update(app : Model::DoorkeeperApplication) : Model::DoorkeeperApplication
@@ -57,12 +60,14 @@ module PlaceOS::Api
       current
     end
 
+    # add a new user interface application
     @[AC::Route::POST("/", body: :app, status_code: HTTP::Status::CREATED)]
     def create(app : Model::DoorkeeperApplication) : Model::DoorkeeperApplication
       raise Error::ModelValidation.new(app.errors) unless app.save
       app
     end
 
+    # remove an application
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_app.destroy

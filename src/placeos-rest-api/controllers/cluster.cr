@@ -16,6 +16,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # returns the list of core nodes running in the cluster
     @[AC::Route::GET("/")]
     def nodes(
       @[AC::Param::Info(description: "return the detailed status of the node including memory and CPU usage?", example: "true")]
@@ -46,39 +47,38 @@ module PlaceOS::Api
         #   },
         #   ...
         # ]
-        Promise.all(promises).get.compact.map(&.as(NodeStatus))
+        Promise.all(promises).get.compact
       else
         # [ { "uri": <uri>, "id": <id> }, ... ]
         details.map do |id, uri|
-          {
-            id:     id,
-            uri:    uri,
-            load:   nil.as(PlaceOS::Core::Client::Load?),
+          NodeStatus.new(
+            id: id,
+            uri: uri,
+            load: nil.as(PlaceOS::Core::Client::Load?),
             status: nil.as(PlaceOS::Core::Client::CoreStatus?),
-          }.as(NodeStatus)
+          )
         end
       end
     end
 
-    alias NodeStatus = NamedTuple(
-      id: String,
-      uri: URI,
+    record NodeStatus,
+      id : String,
+      uri : URI,
       # Get the cluster load
-      load: PlaceOS::Core::Client::Load?,
+      load : PlaceOS::Core::Client::Load?,
       # Get the cluster details (number of drivers running, errors etc)
-      status: PlaceOS::Core::Client::CoreStatus?,
-    )
+      status : PlaceOS::Core::Client::CoreStatus? { include JSON::Serializable }
 
     def self.node_status(core_id : String, uri : URI, request_id : String) : NodeStatus?
       Core::Client.client(uri, request_id) do |client|
-        {
-          id:  core_id,
+        NodeStatus.new(
+          id: core_id,
           uri: uri,
           # Get the cluster load
           load: client.core_load,
           # Get the cluster details (number of drivers running, errors etc)
           status: client.core_status,
-        }
+        )
       end
     rescue e
       Log.warn(exception: e) { {message: "failed to request core status", uri: uri.to_s, core_id: core_id} }
@@ -95,6 +95,7 @@ module PlaceOS::Api
         .to_set
     end
 
+    # return the details of a particular core node
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(name: "id", description: "specifies the core node we want to send the request to")]
@@ -161,8 +162,8 @@ module PlaceOS::Api
       end
     end
 
-    alias Driver = NamedTuple(modules: Array(String), status: PlaceOS::Core::Client::DriverStatus::Metadata?)
-    alias DriverStatus = NamedTuple(driver: String, local: Driver, edge: Hash(String, Driver))
+    record Driver, modules : Array(String), status : PlaceOS::Core::Client::DriverStatus::Metadata? { include JSON::Serializable }
+    record DriverStatus, driver : String, local : Driver, edge : Hash(String, Driver) { include JSON::Serializable }
 
     def self.driver_status(
       key : String,
@@ -174,21 +175,21 @@ module PlaceOS::Api
 
       edges = edge_modules.map do |edge_id, processes|
         {
-          edge_id, {
+          edge_id, Driver.new(
             modules: processes[key]? || [] of String,
-            status:  status.try(&.edge[edge_id]?),
-          }.as(Driver),
+            status: status.try(&.edge[edge_id]?),
+          ),
         }
       end.to_h
 
-      {
+      DriverStatus.new(
         driver: key,
-        local:  {
+        local: Driver.new(
           modules: local_modules[key]? || [] of String,
-          status:  status.try(&.local),
-        }.as(Driver),
+          status: status.try(&.local),
+        ),
         edge: edges,
-      }
+      )
     end
 
     # terminates a driver on the node selected

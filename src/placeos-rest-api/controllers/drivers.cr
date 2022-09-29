@@ -35,6 +35,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # list the drivers available on a cluster
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "filter by the type of driver", example: "Logic")]
@@ -54,6 +55,7 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # view the details of a driver
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(name: "compilation_status", description: "check if the driver is compiled?", example: "false")]
@@ -63,6 +65,7 @@ module PlaceOS::Api
       current_driver
     end
 
+    # udpate a drivers details
     @[AC::Route::PATCH("/:id", body: :driver)]
     @[AC::Route::PUT("/:id", body: :driver)]
     def update(driver : Model::Driver) : Model::Driver
@@ -73,17 +76,20 @@ module PlaceOS::Api
       current
     end
 
+    # add a new driver to the cluster
     @[AC::Route::POST("/", body: :driver, status_code: HTTP::Status::CREATED)]
     def create(driver : Model::Driver) : Model::Driver
       raise Error::ModelValidation.new(driver.errors) unless driver.save
       driver
     end
 
+    # remove a driver and its modules from a cluster
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_driver.destroy
     end
 
+    # force recompile a driver, useful if libraries and supporting files have been updated
     @[AC::Route::POST("/:id/recompile", status: {
       Nil => HTTP::Status::ALREADY_REPORTED,
     })]
@@ -114,7 +120,7 @@ module PlaceOS::Api
       end
     end
 
-    # Check if the core responsible for the driver has finished compilation
+    # Check if the driver is available on the cluster
     @[AC::Route::GET("/:id/compiled", status: {
       NamedTuple(compilation_output: String) => HTTP::Status::SERVICE_UNAVAILABLE,
     })]

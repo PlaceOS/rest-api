@@ -26,6 +26,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # returns the list of available triggers
     @[AC::Route::GET("/")]
     def index : Array(Model::Trigger)
       elastic = Model::Trigger.elastic
@@ -40,6 +41,7 @@ module PlaceOS::Api
       property trigger_instances_details : Array(Model::TriggerInstance)? = nil
     end
 
+    # returns the details of a trigger
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(name: "instances", description: "return the instances associated with this trigger", example: "true")]
@@ -50,6 +52,7 @@ module PlaceOS::Api
       trig
     end
 
+    # updates a trigger details
     @[AC::Route::PATCH("/:id", body: :trig)]
     @[AC::Route::PUT("/:id", body: :trig)]
     def update(trig : Model::Trigger) : Model::Trigger
@@ -59,18 +62,20 @@ module PlaceOS::Api
       current
     end
 
+    # adds a new trigger
     @[AC::Route::POST("/", body: :trig, status_code: HTTP::Status::CREATED)]
     def create(trig : Model::Trigger) : Model::Trigger
       raise Error::ModelValidation.new(trig.errors) unless trig.save
       trig
     end
 
+    # removes a trigger
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_trigger.destroy # expires the cache in after callback
     end
 
-    # Get instances associated with
+    # Get instances of a trigger, how many systems are using a trigger
     @[AC::Route::GET("/:id/instances")]
     def instances : Array(Model::TriggerInstance)
       instances = current_trigger.trigger_instances.to_a

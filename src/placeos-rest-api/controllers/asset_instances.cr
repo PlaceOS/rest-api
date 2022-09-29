@@ -26,6 +26,7 @@ module PlaceOS::Api
 
     ###########################################################################
 
+    # return a list of the assets in the database
     @[AC::Route::GET("/")]
     def index : Array(Model::AssetInstance)
       elastic = Model::AssetInstance.elastic
@@ -35,17 +36,20 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # return the details of an asset
     @[AC::Route::GET("/:id")]
     def show : Model::AssetInstance
       current_instance
     end
 
+    # add a new asset to the database
     @[AC::Route::POST("/", body: :instance, status_code: HTTP::Status::CREATED)]
     def create(instance : Model::AssetInstance) : Model::AssetInstance
       raise Error::ModelValidation.new(instance.errors) unless instance.save
       instance
     end
 
+    # update an assets details
     @[AC::Route::PATCH("/:id", body: :instance)]
     @[AC::Route::PUT("/:id", body: :instance)]
     def update(instance : Model::AssetInstance) : Model::AssetInstance
@@ -55,6 +59,7 @@ module PlaceOS::Api
       current
     end
 
+    # remove an asset
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       # expires the cache in after callback

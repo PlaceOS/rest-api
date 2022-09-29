@@ -42,6 +42,7 @@ module PlaceOS::Api
 
     # Validate the present of the id and check the secret before routing to core
 
+    # the websocket endpoint that edge devices use to connect to the cluster
     @[AC::Route::WebSocket("/control")]
     def edge_control(socket) : Nil
       edge_id = Model::Edge.jwt_edge_id?(user_token)
@@ -54,12 +55,15 @@ module PlaceOS::Api
       end
     end
 
+    # admins can obtain the token edge nodes will use to connect to the cluster
     @[AC::Route::GET("/:id/token")]
     def token : NamedTuple(token: String)
       raise Error::Forbidden.new("not an admin") unless is_admin?
       {token: current_edge.x_api_key}
     end
 
+    # list the edges in the system.
+    # an edge can be thought of as a location and each edge location can have multiple nodes servicing it
     @[AC::Route::GET("/")]
     def index : Array(Model::Edge)
       elastic = Model::Edge.elastic
@@ -68,11 +72,13 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # return the details of an edge location
     @[AC::Route::GET("/:id")]
     def show : Model::Edge
       current_edge
     end
 
+    # update the details of an edge location
     @[AC::Route::PATCH("/:id", body: :edge)]
     @[AC::Route::PUT("/:id", body: :edge)]
     def update(edge : Model::Edge) : Model::Edge
@@ -82,6 +88,7 @@ module PlaceOS::Api
       current
     end
 
+    # add a new edge location
     @[AC::Route::POST("/", body: :create_body, status_code: HTTP::Status::CREATED)]
     def create(create_body : Model::Edge::CreateBody) : Model::Edge::KeyResponse
       user = Model::User.find!(create_body.user_id || current_user.id.as(String))
@@ -98,6 +105,7 @@ module PlaceOS::Api
       new_edge.to_key_struct
     end
 
+    # remove an edge location
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_edge.destroy

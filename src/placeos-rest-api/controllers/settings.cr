@@ -26,6 +26,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # list the settings associated with the provided parent object
     @[AC::Route::GET("/", converters: {parent_id: ConvertStringArray})]
     def index(
       parent_id : Array(String)? = nil
@@ -43,11 +44,13 @@ module PlaceOS::Api
       end
     end
 
+    # return the requested setting details
     @[AC::Route::GET("/:id")]
     def show : Model::Settings
       current_settings.decrypt_for!(current_user)
     end
 
+    # udpate a setting
     @[AC::Route::PATCH("/:id", body: :setting)]
     @[AC::Route::PUT("/:id", body: :setting)]
     def update(setting : Model::Settings) : Model::Settings
@@ -58,6 +61,7 @@ module PlaceOS::Api
       current.decrypt_for!(current_user)
     end
 
+    # add a new setting
     @[AC::Route::POST("/", body: :setting, status_code: HTTP::Status::CREATED)]
     def create(setting : Model::Settings) : Model::Settings
       setting.modified_by = current_user
@@ -65,6 +69,7 @@ module PlaceOS::Api
       setting.decrypt_for!(current_user)
     end
 
+    # remove a setting
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_settings.destroy

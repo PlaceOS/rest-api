@@ -42,14 +42,20 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # return the list of triggers associated with the system specified
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(name: "sys_id", description: "the system to filter on", example: "sys-1234")]
       control_system_id : String,
+      @[AC::Param::Info(description: "provide the control system details?", example: "false")]
       complete : Bool = true,
+      @[AC::Param::Info(description: "only return triggers marked as important?", example: "true")]
       important : Bool = false,
+      @[AC::Param::Info(description: "only return triggers that have recently been triggered?", example: "true")]
       triggered : Bool = false,
+      @[AC::Param::Info(description: "filter by a particular trigger type", example: "trig-1234")]
       trigger_id : String? = nil,
+      @[AC::Param::Info(description: "return triggers updated before the time specified, unix epoch", example: "123456")]
       as_of : Int64? = nil
     ) : Array(Model::TriggerInstance)
       elastic = Model::TriggerInstance.elastic
@@ -89,6 +95,7 @@ module PlaceOS::Api
       trigger_instances
     end
 
+    # return a particular trigger instance
     @[AC::Route::GET("/:trig_id")]
     def show(complete : Bool = true) : Model::TriggerInstance
       # Default to render extra association fields
@@ -99,6 +106,7 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
+    # update the details of a trigger instance
     @[AC::Route::PATCH("/:trig_id", body: :args)]
     @[AC::Route::PUT("/:trig_id", body: :args)]
     def update(args : UpdateParams) : Model::TriggerInstance
@@ -110,12 +118,14 @@ module PlaceOS::Api
       current
     end
 
+    # add a trigger to a system
     @[AC::Route::POST("/", body: :trig_inst, status_code: HTTP::Status::CREATED)]
     def create(trig_inst : Model::TriggerInstance) : Model::TriggerInstance
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save
       trig_inst
     end
 
+    # remove a trigger from a system
     @[AC::Route::DELETE("/:trig_id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_sys_trig.destroy # Expires the cache in after callback

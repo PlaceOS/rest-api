@@ -39,9 +39,12 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # list the configured zones
     @[AC::Route::GET("/", converters: {tags: ConvertStringArray})]
     def index(
+      @[AC::Param::Info(description: "only return zones who have this zone as a parent", example: "zone-1234")]
       parent_id : String? = nil,
+      @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
       tags : Array(String)? = nil
     ) : Array(Model::Zone)
       elastic = Model::Zone.elastic
@@ -68,8 +71,10 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # return the details of the zone
     @[AC::Route::GET("/:id")]
     def show(
+      @[AC::Param::Info(description: "also return any triggers associated with the zone", example: "true")]
       complete : Bool = false
     ) : Model::Zone
       # Include trigger data in response
@@ -77,6 +82,7 @@ module PlaceOS::Api
       current_zone
     end
 
+    # update the details of a zone
     @[AC::Route::PATCH("/:id", body: :zone)]
     @[AC::Route::PUT("/:id", body: :zone)]
     def update(zone : Model::Zone) : Model::Zone
@@ -86,12 +92,14 @@ module PlaceOS::Api
       current
     end
 
+    # add a new zone
     @[AC::Route::POST("/", body: :zone, status_code: HTTP::Status::CREATED)]
     def create(zone : Model::Zone) : Model::Zone
       raise Error::ModelValidation.new(zone.errors) unless zone.save
       zone
     end
 
+    # remove a zone and any children zones
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       zone_id = current_zone.id
@@ -99,9 +107,11 @@ module PlaceOS::Api
       spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: zone_id}) }
     end
 
+    # return metadata associcated with the selected zone
     @[AC::Route::GET("/:id/metadata")]
     def metadata(
       id : String,
+      @[AC::Param::Info(description: "only return the metadata key we are interested in", example: "workplace-config")]
       name : String? = nil
     ) : Hash(String, PlaceOS::Model::Metadata::Interface)
       Model::Metadata.build_metadata(id, name)
@@ -133,7 +143,9 @@ module PlaceOS::Api
     def zone_execute(
       args : Array(JSON::Any),
       id : String,
+      @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
       module_slug : String,
+      @[AC::Param::Info(description: "the method to execute on the module", example: "power")]
       method : String
     ) : ZoneExecResponse
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)

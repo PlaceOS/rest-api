@@ -28,6 +28,7 @@ module PlaceOS::Api
     # Healthcheck
     ###############################################################################################
 
+    # returns 200 OK when the service is healthy (can connect to the databases etc)
     @[AC::Route::GET("/")]
     def root : Nil
       raise "not healthy" unless self.class.healthcheck?
@@ -85,6 +86,7 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
+    # provides release details of the platform
     @[AC::Route::GET("/platform")]
     def platform_info : PlatformInfo
       Root.platform_info
@@ -95,11 +97,13 @@ module PlaceOS::Api
     # Versions
     ###############################################################################################
 
+    # provides the version of this service
     @[AC::Route::GET("/version")]
     def version : PlaceOS::Model::Version
       Root.version
     end
 
+    # provides the core node versions
     @[AC::Route::GET("/cluster/versions")]
     def cluster_version : Array(PlaceOS::Model::Version)
       Root.construct_versions
@@ -108,6 +112,7 @@ module PlaceOS::Api
     # NOTE: Lazy getter ensures SCOPES array is referenced after all scopes have been appended
     class_getter(scopes) { SCOPES }
 
+    # returns a list of introspected scopes available for use against the API
     @[AC::Route::GET("/scopes")]
     def scopes : Array(String)
       Root.scopes
@@ -181,6 +186,7 @@ module PlaceOS::Api
     end
 
     # Can be used in a similar manner to a webhook for drivers
+    # pushes arbitrary data to channels in redis
     @[AC::Route::POST("/signal")]
     def signal(
       @[AC::Param::Info(description: "the path we would like to send data to", example: "/my/data/channel")]
@@ -203,6 +209,7 @@ module PlaceOS::Api
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
     end
 
+    # maps the database tables to indexes in elasticsearch
     @[AC::Route::POST("/reindex")]
     def reindex(
       @[AC::Param::Info(description: "backfill the database after re-indexing?", example: "true")]
@@ -212,6 +219,7 @@ module PlaceOS::Api
       raise "reindex failed" unless success
     end
 
+    # pushes all the data from the database into elasticsearch
     @[AC::Route::POST("/backfill")]
     def backfill
       success = SearchIngest::Client.client &.backfill

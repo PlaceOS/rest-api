@@ -53,6 +53,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # return a list of modules configured on the cluster
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "only return modules updated before this time (unix epoch)")]
@@ -140,6 +141,7 @@ module PlaceOS::Api
       end
     end
 
+    # return the details of a module
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(description: "return the driver details along with the module?", example: "true")]
@@ -153,6 +155,7 @@ module PlaceOS::Api
       end
     end
 
+    # update the details of a module
     @[AC::Route::PATCH("/:id", body: :mod)]
     @[AC::Route::PUT("/:id", body: :mod)]
     def update(mod : Model::Module) : Model::Module
@@ -166,12 +169,15 @@ module PlaceOS::Api
       current
     end
 
+    # add a new module / instance of a driver
     @[AC::Route::POST("/", body: :mod, status_code: HTTP::Status::CREATED)]
     def create(mod : Model::Module) : Model::Module
       raise Error::ModelValidation.new(mod.errors) unless mod.save
       mod
     end
 
+    # remove a module
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_module.destroy
     end
@@ -209,8 +215,15 @@ module PlaceOS::Api
     end
 
     # Executes a command on a module
+    # The `/systems/` route can be used to introspect modules for the list of methods and argument requirements
     @[AC::Route::POST("/:id/exec/:method", body: :args)]
-    def execute(id : String, method : String, args : Array(JSON::Any)) : Nil
+    def execute(
+      id : String,
+      @[AC::Param::Info(description: "the name of the methodm we want to execute")]
+      method : String,
+      @[AC::Param::Info(description: "the arguments we want to provide to the method")]
+      args : Array(JSON::Any)
+    ) : Nil
       sys_id = current_module.control_system_id || ""
 
       result, status_code = Driver::Proxy::RemoteDriver.new(

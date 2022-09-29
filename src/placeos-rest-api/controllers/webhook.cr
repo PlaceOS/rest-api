@@ -63,6 +63,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # returns the details of a webhook trigger
     @[AC::Route::GET("/:id")]
     def show : Model::Trigger
       current_trigger

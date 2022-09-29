@@ -76,7 +76,9 @@ module PlaceOS::Api
 
     record AccessToken, token : String, expires : Int64? { include JSON::Serializable }
 
-    # Obtain a token to the current users SSO resource
+    # Obtain a token to the current users SSO resources
+    # this token is used for delegated access to things like MS Graph API or Google API in the context of the user
+    # we only make this token available to the current user (admin users don't have access)
     @[AC::Route::POST("/resource_token")]
     def resource_token : AccessToken
       expired = true
@@ -136,6 +138,8 @@ module PlaceOS::Api
       end
     end
 
+    # removes the saved resource token of a user
+    # a new one can be obtained via SSO authentication
     @[AC::Route::DELETE("/:id/resource_token", status_code: HTTP::Status::ACCEPTED)]
     def delete_resource_token : Nil
       user.access_token = nil
@@ -148,9 +152,12 @@ module PlaceOS::Api
     # CRUD
     ###############################################################################################
 
+    # returns a list of users
     @[AC::Route::GET("/")]
     def index(
+      @[AC::Param::Info(description: "include soft deleted users in the results", example: "true")]
       include_deleted : Bool = false,
+      @[AC::Param::Info(description: "include user metadata in the response", example: "true")]
       include_metadata : Bool = false,
       @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
       authority_id : String? = nil
@@ -185,8 +192,10 @@ module PlaceOS::Api
       end
     end
 
+    # returns the profile of the selected user
     @[AC::Route::GET("/:id")]
     def show(
+      @[AC::Param::Info(description: "include user metadata in the response", example: "true")]
       include_metadata : Bool = false
     ) : Model::User::AdminResponse | Model::User::PublicResponse | Model::User::AdminMetadataResponse | Model::User::PublicMetadataResponse
       # We only want to provide limited "public" information
@@ -197,6 +206,7 @@ module PlaceOS::Api
       end
     end
 
+    # add a new local user
     @[AC::Route::POST("/", body: :new_user, status_code: HTTP::Status::CREATED)]
     def create(new_user : JSON::Any) : Model::User
       body = new_user.to_json
@@ -210,6 +220,7 @@ module PlaceOS::Api
       new_user
     end
 
+    # udpate a users profile
     @[AC::Route::PATCH("/:id", body: :new_user)]
     @[AC::Route::PUT("/:id", body: :new_user)]
     def update(new_user : JSON::Any) : Model::User
@@ -241,6 +252,7 @@ module PlaceOS::Api
       end
     end
 
+    # undelete a user
     @[AC::Route::POST("/:id/revive")]
     def revive
       user.deleted = false
@@ -249,20 +261,20 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # return a users metadata
     @[AC::Route::GET("/:id/metadata")]
     def metadata(
+      @[AC::Param::Info(description: "filter metadata by a particular entry", example: "department")]
       name : String? = nil
     ) : Hash(String, PlaceOS::Model::Metadata::Interface)
       parent_id = user.id.not_nil!
       Model::Metadata.build_metadata(parent_id, name)
     end
 
-    # # Params
-    # - `emails`: comma-seperated list of emails *required*
-    # # Returns
-    # - `[{id: "<user-id>", groups: ["<group>"]}]`
+    # Returns the groups these users are in
     @[AC::Route::GET("/groups", converters: {emails: ConvertStringArray})]
     def groups(
+      @[AC::Param::Info(description: "the user emails whos group membership we are interested", example: "user1@org.com,user2@org.com")]
       emails : Array(String)
     ) : Array(Model::User::GroupResponse)
       unless (errors = self.class.validate_emails(emails)).empty?

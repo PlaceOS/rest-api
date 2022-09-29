@@ -68,15 +68,22 @@ module PlaceOS::Api
     # Websocket API session manager
     class_getter session_manager : WebSocket::Manager { WebSocket::Manager.new(core_discovery) }
 
-    # Query ControlSystem resources
+    # list the systems in a cluster
     @[AC::Route::GET("/", converters: {features: ConvertStringArray, email: ConvertStringArray})]
     def index(
+      @[AC::Param::Info(description: "return only bookable or non-bookable rooms (returns both when not specified)", example: "true")]
       bookable : Bool? = nil,
+      @[AC::Param::Info(description: "return only rooms with capacity equal or greater than that provided", example: "5")]
       capacity : Int32? = nil,
+      @[AC::Param::Info(description: "return only systems whos resource address match one of the emails provided", example: "room@org.com,room2@org.com")]
       email : Array(String)? = nil,
+      @[AC::Param::Info(description: "return only rooms who have all of the features requested", example: "whiteboard,vidconf,display")]
       features : Array(String)? = nil,
+      @[AC::Param::Info(description: "return only systems which have the module id provided", example: "mod-1234")]
       module_id : String? = nil,
+      @[AC::Param::Info(description: "return systems which are using the trigger id provided", example: "trig-1234")]
       trigger_id : String? = nil,
+      @[AC::Param::Info(description: "return systems which are in the zone provided", example: "zone-1234")]
       zone_id : String? = nil
     ) : Array(Model::ControlSystem)
       elastic = Model::ControlSystem.elastic
@@ -153,6 +160,7 @@ module PlaceOS::Api
     # Renders a control system
     @[AC::Route::GET("/:sys_id")]
     def show(
+      @[AC::Param::Info(description: "return the system with the zone, module and driver information collected", example: "true")]
       complete : Bool = false
     ) : Model::ControlSystem
       # Guest JWTs include the control system id that they have access to
@@ -186,6 +194,7 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:sys_id", body: :sys)]
     def update(
       sys : Model::ControlSystem,
+      @[AC::Param::Info(description: "must be provided to prevent overwriting newer config with old, in the case where multiple people might be editing a system", example: "3")]
       version : Int32
     ) : Model::ControlSystem
       if version != current_control_system.version
@@ -199,12 +208,14 @@ module PlaceOS::Api
       current
     end
 
+    # adds a new system
     @[AC::Route::POST("/", body: :sys, status_code: HTTP::Status::CREATED)]
     def create(sys : Model::ControlSystem) : Model::ControlSystem
       raise Error::ModelValidation.new(sys.errors) unless sys.save
       sys
     end
 
+    # removes a system, also destroys all the modules in the system that are not in any other systems
     @[AC::Route::DELETE("/:sys_id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       cs_id = current_control_system.id
@@ -307,7 +318,9 @@ module PlaceOS::Api
     @[AC::Route::POST("/:sys_id/:module_slug/:method", body: :args)]
     def execute(
       sys_id : String,
+      @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
       module_slug : String,
+      @[AC::Param::Info(description: "the method to execute on the module", example: "power")]
       method : String,
       args : Array(JSON::Any)
     ) : Nil
@@ -346,6 +359,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:sys_id/:module_slug")]
     def state(
       sys_id : String,
+      @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
       module_slug : String
     ) : Hash(String, String)
       module_name, index = RemoteDriver.get_parts(module_slug)
@@ -356,7 +370,9 @@ module PlaceOS::Api
     @[AC::Route::GET("/:sys_id/:module_slug/:key")]
     def state_lookup(
       sys_id : String,
+      @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
       module_slug : String,
+      @[AC::Param::Info(description: "the status key we are interested in", example: "power_state")]
       key : String
     ) : JSON::Any
       module_name, index = RemoteDriver.get_parts(module_slug)
@@ -372,6 +388,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:sys_id/functions/:module_slug")]
     def functions(
       sys_id : String,
+      @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
       module_slug : String
     ) : Hash(String, FunctionDetails)
       module_name, index = RemoteDriver.get_parts(module_slug)

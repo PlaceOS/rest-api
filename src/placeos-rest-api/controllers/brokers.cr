@@ -28,6 +28,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # returns the list of MQTT brokers receiving state information
     @[AC::Route::GET("/")]
     def collection : Array(Model::Broker)
       # named collection, not index as we don't support query params on this route
@@ -36,11 +37,13 @@ module PlaceOS::Api
       brokers
     end
 
+    # returns the details of the selected broker
     @[AC::Route::GET("/:id")]
     def show : Model::Broker
       current_broker
     end
 
+    # updates the details of a broker
     @[AC::Route::PATCH("/:id", body: :broker)]
     @[AC::Route::PUT("/:id", body: :broker)]
     def update(broker : Model::Broker) : Model::Broker
@@ -50,12 +53,14 @@ module PlaceOS::Api
       current
     end
 
+    # adds a new broker
     @[AC::Route::POST("/", body: :broker, status_code: HTTP::Status::CREATED)]
     def create(broker : Model::Broker) : Model::Broker
       raise Error::ModelValidation.new(broker.errors) unless broker.save
       broker
     end
 
+    # removes a broker
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_broker.destroy

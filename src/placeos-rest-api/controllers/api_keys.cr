@@ -42,11 +42,13 @@ module PlaceOS::Api
       paginate_results(elastic, query).map(&.to_public_struct)
     end
 
+    # returns the requested API key details
     @[AC::Route::GET("/:id")]
     def show : Model::ApiKey::PublicResponse
       current_api_key.to_public_struct
     end
 
+    # updates an API key name, description user or scopes
     @[AC::Route::PATCH("/:id", body: :api_key)]
     @[AC::Route::PUT("/:id", body: :api_key)]
     def update(api_key : Model::ApiKey) : Model::ApiKey::PublicResponse
@@ -56,17 +58,20 @@ module PlaceOS::Api
       current.to_public_struct
     end
 
+    # create a new API key
     @[AC::Route::POST("/", body: :api_key, status_code: HTTP::Status::CREATED)]
     def create(api_key : Model::ApiKey) : Model::ApiKey::PublicResponse
       raise Error::ModelValidation.new(api_key.errors) unless api_key.save
       api_key.to_public_struct
     end
 
+    # remove an API key
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_api_key.destroy
     end
 
+    # obtain the a JSON JWT representation of the API key permissions
     @[AC::Route::GET("/inspect")]
     def inspect_key : Model::UserJWT
       authorize!

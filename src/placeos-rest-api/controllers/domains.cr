@@ -26,6 +26,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    # list the domains
     @[AC::Route::GET("/")]
     def index : Array(Model::Authority)
       elastic = Model::Authority.elastic
@@ -34,11 +35,13 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # show the selected domain
     @[AC::Route::GET("/:id")]
     def show : Model::Authority
       current_domain
     end
 
+    # udpate a domains details
     @[AC::Route::PATCH("/:id", body: :domain)]
     @[AC::Route::PUT("/:id", body: :domain)]
     def update(domain : Model::Authority) : Model::Authority
@@ -48,12 +51,14 @@ module PlaceOS::Api
       current
     end
 
+    # add a new domain
     @[AC::Route::POST("/", body: :domain, status_code: HTTP::Status::CREATED)]
     def create(domain : Model::Authority) : Model::Authority
       raise Error::ModelValidation.new(domain.errors) unless domain.save
       domain
     end
 
+    # remove a domain
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_domain.destroy
