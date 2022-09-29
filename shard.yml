@@ -44,7 +44,6 @@ dependencies:
   # For core client
   placeos-core-client:
     github: placeos/core-client
-    version: ~> 0.5
 
   # For driver state helpers
   placeos-driver:
