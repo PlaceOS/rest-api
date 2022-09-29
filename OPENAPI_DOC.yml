@@ -7673,6 +7673,10 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/control:
     get:
+      summary: the websocket API endpoint
+      description: 'the websocket API endpoint
+
+        use this to interact with systems and modules efficiently'
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems#control
@@ -11572,9 +11576,11 @@ paths:
       parameters:
       - name: sys_id
         in: path
+        description: the id of the system
+        example: sys-1234
         required: true
         schema:
-          type: "null"
+          type: string
       responses:
         201:
           description: Created
@@ -12749,7 +12755,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/_Array_PlaceOS__Model__User__AdminMetadataResponse____Array_PlaceOS__Model__User__AdminResponse____Array_PlaceOS__Model__User__PublicMetadataResponse____Array_PlaceOS__Model__User__PublicResponse__'
+                type: array
+                items:
+                  $ref: '#/components/schemas/_PlaceOS__Model__User__AdminMetadataResponse___PlaceOS__Model__User__AdminResponse___PlaceOS__Model__User__PublicMetadataResponse___PlaceOS__Model__User__PublicResponse_'
         409:
           description: Conflict
           content:
@@ -18045,8 +18053,6 @@ components:
           nullable: true
       required:
       - token
-    ? _Array_PlaceOS__Model__User__AdminMetadataResponse____Array_PlaceOS__Model__User__AdminResponse____Array_PlaceOS__Model__User__PublicMetadataResponse____Array_PlaceOS__Model__User__PublicResponse__
-    : type: array
     ? _PlaceOS__Model__User__AdminMetadataResponse___PlaceOS__Model__User__AdminResponse___PlaceOS__Model__User__PublicMetadataResponse___PlaceOS__Model__User__PublicResponse_
     : anyOf:
       - type: object

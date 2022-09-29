@@ -152,6 +152,8 @@ module PlaceOS::Api
     # CRUD
     ###############################################################################################
 
+    alias UserDetails = Model::User::AdminResponse | Model::User::PublicResponse | Model::User::AdminMetadataResponse | Model::User::PublicMetadataResponse
+
     # returns a list of users
     @[AC::Route::GET("/")]
     def index(
@@ -161,7 +163,7 @@ module PlaceOS::Api
       include_metadata : Bool = false,
       @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
       authority_id : String? = nil
-    ) : Array(PlaceOS::Model::User::AdminMetadataResponse) | Array(PlaceOS::Model::User::AdminResponse) | Array(PlaceOS::Model::User::PublicMetadataResponse) | Array(PlaceOS::Model::User::PublicResponse)
+    ) : Array(UserDetails)
       elastic = Model::User.elastic
       search_query = search_params
       search_query["q"] = %("#{search_query["q"]}") if search_query["q"]?.to_s.is_email?
@@ -179,15 +181,15 @@ module PlaceOS::Api
 
       if is_admin?
         if include_metadata
-          paginate_results(elastic, query).map &.to_admin_metadata_struct
+          paginate_results(elastic, query).map &.to_admin_metadata_struct.as(UserDetails)
         else
-          paginate_results(elastic, query).map &.to_admin_struct
+          paginate_results(elastic, query).map &.to_admin_struct.as(UserDetails)
         end
       else
         if include_metadata
-          paginate_results(elastic, query).map &.to_public_metadata_struct
+          paginate_results(elastic, query).map &.to_public_metadata_struct.as(UserDetails)
         else
-          paginate_results(elastic, query).map &.to_public_struct
+          paginate_results(elastic, query).map &.to_public_struct.as(UserDetails)
         end
       end
     end
@@ -197,7 +199,7 @@ module PlaceOS::Api
     def show(
       @[AC::Param::Info(description: "include user metadata in the response", example: "true")]
       include_metadata : Bool = false
-    ) : Model::User::AdminResponse | Model::User::PublicResponse | Model::User::AdminMetadataResponse | Model::User::PublicMetadataResponse
+    ) : UserDetails
       # We only want to provide limited "public" information
       if is_admin?
         include_metadata ? user.to_admin_metadata_struct : user.to_admin_struct

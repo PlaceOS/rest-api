@@ -30,12 +30,12 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_system(
-      @[AC::Param::Info(name: "sys_id", description: "the id of the system", example: "sys-1234")]
-      id : String
+      @[AC::Param::Info(description: "the id of the system", example: "sys-1234")]
+      sys_id : String
     )
-      Log.context.set(control_system_id: id)
+      Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
-      @current_system = Model::ControlSystem.find!(id, runopts: {"read_mode" => "majority"})
+      @current_system = Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"})
     end
 
     getter! current_system : Model::ControlSystem
@@ -120,7 +120,12 @@ module PlaceOS::Api
 
     # add a trigger to a system
     @[AC::Route::POST("/", body: :trig_inst, status_code: HTTP::Status::CREATED)]
-    def create(trig_inst : Model::TriggerInstance) : Model::TriggerInstance
+    def create(
+      trig_inst : Model::TriggerInstance,
+      @[AC::Param::Info(description: "the id of the system", example: "sys-1234")]
+      sys_id : String
+    ) : Model::TriggerInstance
+      trig_inst.control_system_id = sys_id
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save
       trig_inst
     end
