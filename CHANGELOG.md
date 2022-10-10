@@ -12,6 +12,7 @@
 
 ### Fix
 
+- **domains**: before action must set instance variable ([#310](https://github.com/PlaceOS/rest-api/pull/310))
 - **Dockerfile**: include application dependencies in build
 - **Dockerfile**: don't use edge libraries ([#298](https://github.com/PlaceOS/rest-api/pull/298))
 - **websocket**: close write_channel on cleanup ([#291](https://github.com/PlaceOS/rest-api/pull/291))
