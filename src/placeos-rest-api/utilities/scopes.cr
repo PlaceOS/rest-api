@@ -61,7 +61,7 @@ module PlaceOS::Api
       {% end %}
     end
 
-    SCOPES = [] of String
+    SCOPES = ["public"]
 
     macro can_scope_access?(scope, access)
       {% SCOPES << scope unless SCOPES.includes? scope %}
