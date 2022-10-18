@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **utilities/current-user**: log when an API key is being used ([#312](https://github.com/PlaceOS/rest-api/pull/312))
 - **Dockerfile**: add support for ARM64 builds ([#297](https://github.com/PlaceOS/rest-api/pull/297))
 - **users**: allow any authenticated user to list users ([#296](https://github.com/PlaceOS/rest-api/pull/296))
 - **webhook**: add additional routes ([#293](https://github.com/PlaceOS/rest-api/pull/293))
