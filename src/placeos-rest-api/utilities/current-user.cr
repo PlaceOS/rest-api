@@ -20,7 +20,9 @@ module PlaceOS::Api
       # check for X-API-Key use
       if (token = request.headers["X-API-Key"]? || params["api-key"]? || cookies["api-key"]?.try(&.value))
         begin
-          @user_token = user_token = Model::ApiKey.find_key!(token).build_jwt
+          api_key = Model::ApiKey.find_key!(token)
+          @user_token = user_token = api_key.build_jwt
+          Log.context.set(api_key_id: api_key.id, api_key_name: api_key.name)
           return user_token
         rescue e
           Log.warn(exception: e) { {message: "bad or unknown X-API-Key", action: "authorize!"} }
