@@ -13,9 +13,9 @@ function trap_ctrlc ()
 # when signal 2 (SIGINT) is received
 trap "trap_ctrlc" 2
 
-docker-compose pull -q
+docker-compose pull
 
-docker-compose build -q
+docker-compose build
 
 exit_code="0"
 

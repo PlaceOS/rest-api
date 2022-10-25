@@ -102,7 +102,6 @@ development_dependencies:
   # Linter
   ameba:
     github: crystal-ameba/ameba
-    version: ">= 0.14"
 
   crystal-kcov:
     github: Vici37/crystal-kcov

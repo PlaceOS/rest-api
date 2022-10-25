@@ -29,14 +29,14 @@ x-search-ingest-client-env: &search-ingest-client-env
 
 services:
   test: # Rest API
-    image: placeos/service-spec-runner:${CRYSTAL_VERSION:-1.5.0}
+    image: placeos/service-spec-runner:latest
     volumes:
       - ${PWD}/spec:/app/spec
       - ${PWD}/src:/app/src
       - ${PWD}/lib:/app/lib
       - ${PWD}/shard.lock:/app/shard.lock
       - ${PWD}/shard.override.yml:/app/shard.override.yml
-      - ${PWD}/shard.yml:/app/shard.yml
+      - ${PWD}/shard.yml:/app/shard.yml.input
       - ${PWD}/coverage:/app/coverage
     depends_on:
       - auth
