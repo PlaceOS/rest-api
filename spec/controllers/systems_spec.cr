@@ -103,6 +103,66 @@ module PlaceOS::Api
           found.should be_true
         end
 
+        it "should return systems by email" do
+          Model::ControlSystem.clear
+          num_systems = 5
+
+          systems = Array.new(size: num_systems) do
+            sys = Model::Generator.control_system
+            sys.email = PlaceOS::Model::Email.new(Random.rand(9999).to_s + Faker::Internet.email)
+            sys
+          end
+
+          # select a subset of systems
+          systems.each &.save!
+          expected_emails = systems.compact_map(&.email.to_s).sample(2)
+
+          total_ids = expected_emails.size
+          params = HTTP::Params.encode({"in" => expected_emails.join(',')})
+          path = "#{Systems.base_route}with_emails?#{params}"
+
+          result = client.get(
+            path: path,
+            headers: Spec::Authentication.headers,
+          )
+          returned_emails = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["email"].as_s)
+          found = (returned_emails | expected_emails).size == total_ids
+          found.should be_true
+        end
+
+        it "should return a systems by email or id" do
+          Model::ControlSystem.clear
+          num_systems = 5
+
+          systems = Array.new(size: num_systems) do
+            sys = Model::Generator.control_system
+            sys.email = PlaceOS::Model::Email.new(Random.rand(9999).to_s + Faker::Internet.email)
+            sys
+          end
+
+          # select a subset of systems
+          systems.each &.save!
+          system = systems.sample
+          sys_id = system.id.not_nil!
+          email = system.email.not_nil!.to_s
+
+          path = "#{Systems.base_route}#{sys_id}/"
+          result = client.get(
+            path: path,
+            headers: Spec::Authentication.headers,
+          )
+          id = Hash(String, JSON::Any).from_json(result.body)["id"].as_s
+          id.should eq sys_id
+
+          path = "#{Systems.base_route}#{email}/"
+          result = client.get(
+            path: path,
+            headers: Spec::Authentication.headers,
+          )
+          id = Hash(String, JSON::Any).from_json(result.body)["email"].as_s
+          id.should eq email
+        end
+
         it "module_id filters systems by modules" do
           Model::ControlSystem.clear
           num_systems = 5
