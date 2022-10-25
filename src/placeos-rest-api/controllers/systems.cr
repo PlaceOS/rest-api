@@ -46,7 +46,16 @@ module PlaceOS::Api
     )
       Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
-      @current_control_system = Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"})
+      if sys_id.includes?('@')
+        systems = find_by_email([sys_id])
+        if systems.size > 0
+          @current_control_system = systems.first
+        else
+          raise Error::NotFound.new("no system with email: #{sys_id}")
+        end
+      else
+        @current_control_system = Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"})
+      end
     end
 
     getter! current_control_system : Model::ControlSystem
@@ -152,7 +161,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "in", description: "comma seperated list of emails", example: "room1@org.com,room2@org.com")]
       emails : Array(String)
     ) : Array(Model::ControlSystem)
-      systems = Model::ControlSystem.find_all(emails, index: :email).to_a
+      systems = Model::ControlSystem.find_all(emails.map(&.strip.downcase), index: :email).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
       systems
     end
