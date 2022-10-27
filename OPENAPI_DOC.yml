@@ -10453,6 +10453,516 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/repositories/{id}/tags:
+    get:
+      summary: Returns an array of tags for the repository
+      tags:
+      - Repositories
+      operationId: PlaceOS::Api::Repositories#tags
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/String'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/repositories/{id}/default_branch:
+    get:
+      summary: returns the default branch of the specified repository
+      tags:
+      - Repositories
+      operationId: PlaceOS::Api::Repositories#default_branch
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/String'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/repositories/remote_default_branch:
+    get:
+      summary: returns the default branch of the specified repository
+      tags:
+      - Repositories
+      operationId: PlaceOS::Api::Repositories#remote_default_branch
+      parameters:
+      - name: repository_url
+        in: query
+        description: the git url that represents the repository
+        example: https://github.com/PlaceOS/drivers.git
+        required: true
+        schema:
+          type: string
+      - name: username
+        in: query
+        description: a username for access if required
+        example: steve
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: password
+        in: query
+        description: the password or access token as required
+        example: ab34cfe4567
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/String'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/repositories/remote_branches:
+    get:
+      summary: lists the branches of the specified repository
+      tags:
+      - Repositories
+      operationId: PlaceOS::Api::Repositories#remote_branches
+      parameters:
+      - name: repository_url
+        in: query
+        description: the git url that represents the repository
+        example: https://github.com/PlaceOS/drivers.git
+        required: true
+        schema:
+          type: string
+      - name: username
+        in: query
+        description: a username for access if required
+        example: steve
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: password
+        in: query
+        description: the password or access token as required
+        example: ab34cfe4567
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/String'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/repositories/remote_commits:
+    get:
+      summary: lists the commits of the specified repository
+      tags:
+      - Repositories
+      operationId: PlaceOS::Api::Repositories#remote_commits
+      parameters:
+      - name: branch
+        in: query
+        description: the branch to grab commits from
+        example: main
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: depth
+        in: query
+        description: the number of commits to return
+        example: "50"
+        required: false
+        schema:
+          type: integer
+          format: Int32
+      - name: repository_url
+        in: query
+        description: the git url that represents the repository
+        example: https://github.com/PlaceOS/drivers.git
+        required: true
+        schema:
+          type: string
+      - name: username
+        in: query
+        description: a username for access if required
+        example: steve
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: password
+        in: query
+        description: the password or access token as required
+        example: ab34cfe4567
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GitRepository__Commit'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/repositories/remote_tags:
+    get:
+      summary: Returns an array of tags for the specified repository
+      tags:
+      - Repositories
+      operationId: PlaceOS::Api::Repositories#remote_tags
+      parameters:
+      - name: repository_url
+        in: query
+        description: the git url that represents the repository
+        example: https://github.com/PlaceOS/drivers.git
+        required: true
+        schema:
+          type: string
+      - name: username
+        in: query
+        description: a username for access if required
+        example: steve
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: password
+        in: query
+        description: the password or access token as required
+        example: ab34cfe4567
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/String'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2:
     get:
       summary: returns 200 OK when the service is healthy (can connect to the databases
@@ -14228,7 +14738,8 @@ components:
               type: string
               nullable: true
             email:
-              type: object
+              type: string
+              format: email
               nullable: true
             phone:
               type: string
@@ -15117,38 +15628,24 @@ components:
         status:
           type: object
           properties:
-            available_repositories:
-              type: array
-              items:
-                type: string
-            unavailable_repositories:
+            driver_binaries:
               type: array
               items:
                 type: object
                 properties:
-                  name:
+                  entrypoint:
                     type: string
-                  reason:
+                  commit:
                     type: string
+                  digest:
+                    type: string
+                  crystal_version:
+                    type: object
                 required:
-                - name
-                - reason
-            compiled_drivers:
-              type: array
-              items:
-                type: string
-            unavailable_drivers:
-              type: array
-              items:
-                type: object
-                properties:
-                  name:
-                    type: string
-                  reason:
-                    type: string
-                required:
-                - name
-                - reason
+                - entrypoint
+                - commit
+                - digest
+                - crystal_version
             run_count:
               type: object
               properties:
@@ -15182,10 +15679,7 @@ components:
               - local
               - edge
           required:
-          - available_repositories
-          - unavailable_repositories
-          - compiled_drivers
-          - unavailable_drivers
+          - driver_binaries
           - run_count
           nullable: true
       required:
@@ -15898,6 +16392,7 @@ components:
           nullable: true
         email:
           type: string
+          format: email
           nullable: true
         bookable:
           type: boolean
@@ -17974,7 +18469,8 @@ components:
         nickname:
           type: string
         email:
-          type: object
+          type: string
+          format: email
         phone:
           type: string
         country:
@@ -18065,7 +18561,8 @@ components:
           nickname:
             type: string
           email:
-            type: object
+            type: string
+            format: email
           phone:
             type: string
           country:
@@ -18143,7 +18640,8 @@ components:
           nickname:
             type: string
           email:
-            type: object
+            type: string
+            format: email
           phone:
             type: string
           country:
@@ -18340,7 +18838,8 @@ components:
           type: string
           nullable: true
         email:
-          type: object
+          type: string
+          format: email
           nullable: true
         phone:
           type: string
