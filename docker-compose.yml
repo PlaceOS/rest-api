@@ -106,7 +106,7 @@ services:
       <<: *deployment-env
 
   auth: # Authentication Service
-    image: placeos/auth:nightly
+    image: placeos/auth:latest
     restart: always
     hostname: auth
     depends_on:
@@ -120,7 +120,7 @@ services:
       PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
-    image: placeos/core:${PLACE_CORE_TAG:-nightly}
+    image: placeos/core:${PLACE_CORE_TAG:-latest}
     restart: always
     hostname: core
     depends_on:

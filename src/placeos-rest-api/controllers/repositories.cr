@@ -1,4 +1,5 @@
 require "placeos-frontend-loader/client"
+require "git-repository"
 
 require "./application"
 
@@ -17,7 +18,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :loaded_interfaces])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :loaded_interfaces, :remote_branches, :remote_commits, :remote_default_branch, :remote_tags])]
     def find_current_repo(id : String)
       Log.context.set(repository_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -181,35 +182,89 @@ module PlaceOS::Api
     # returns the list of branches in the repository
     @[AC::Route::GET("/:id/branches")]
     def branches : Array(String)
-      Api::Repositories.branches(
-        repository: current_repo,
-        request_id: request_id,
-      )
-    end
-
-    def self.branches(repository : Model::Repository, request_id : String)
-      # Dial the frontends service which can provide all the details
-      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
-        password = repository.decrypt_password if repository.password.presence
-        frontends_client.remote_branches(repository.uri, repository.username, password)
-      end
+      password = current_repo.decrypt_password if current_repo.password.presence
+      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
+      repo.branches.keys
     end
 
     # returns the list of releases in the repository, i.e. github releases
     @[AC::Route::GET("/:id/releases")]
     def releases : Array(String)
-      Api::Repositories.releases(
-        repository: current_repo,
-        request_id: request_id,
-      )
+      password = current_repo.decrypt_password if current_repo.password.presence
+      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
+      if repo.is_a?(GitRepository::Releases)
+        repo.releases
+      else
+        [] of String
+      end
     end
 
-    def self.releases(repository : Model::Repository, request_id : String)
-      # Dial the frontends service which can provide all the details
-      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
-        password = repository.decrypt_password if repository.password.presence
-        frontends_client.releases(repository.uri, repository.username, password)
-      end
+    # Returns an array of tags for the repository
+    @[AC::Route::GET("/:id/tags")]
+    def tags : Array(String)
+      password = current_repo.decrypt_password if current_repo.password.presence
+      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
+      repo.tags.keys
+    end
+
+    # returns the default branch of the specified repository
+    @[AC::Route::GET("/:id/default_branch")]
+    def default_branch : String
+      password = current_repo.decrypt_password if current_repo.password.presence
+      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
+      repo.default_branch
+    end
+
+    # Remote repository queries
+    ###############################################################################################
+
+    @[AC::Route::Filter(:before_action, only: [:remote_branches, :remote_commits, :remote_default_branch, :remote_tags])]
+    protected def get_repository_url(
+      @[AC::Param::Info(description: "the git url that represents the repository", example: "https://github.com/PlaceOS/drivers.git")]
+      @repository_url : String,
+      @[AC::Param::Info(description: "a username for access if required", example: "steve")]
+      @username : String? = nil,
+      @[AC::Param::Info(description: "the password or access token as required", example: "ab34cfe4567")]
+      @password : String? = nil
+    )
+    end
+
+    getter! repository_url : String
+    getter username : String? = nil
+    getter password : String? = nil
+
+    # returns the default branch of the specified repository
+    @[AC::Route::GET("/remote_default_branch")]
+    def remote_default_branch : String
+      repo = GitRepository.new(repository_url, username, password)
+      repo.default_branch
+    end
+
+    # lists the branches of the specified repository
+    @[AC::Route::GET("/remote_branches")]
+    def remote_branches : Array(String)
+      repo = GitRepository.new(repository_url, username, password)
+      repo.branches.keys
+    end
+
+    # lists the commits of the specified repository
+    @[AC::Route::GET("/remote_commits")]
+    def remote_commits(
+      @[AC::Param::Info(description: "the branch to grab commits from", example: "main")]
+      branch : String? = nil,
+      @[AC::Param::Info(description: "the number of commits to return", example: "50")]
+      depth : Int32 = 50
+    ) : Array(GitRepository::Commit)
+      repo = GitRepository.new(repository_url, username, password)
+      branch = branch || repo.default_branch
+      repo.commits(branch, depth)
+    end
+
+    # Returns an array of tags for the specified repository
+    @[AC::Route::GET("/remote_tags")]
+    def remote_tags : Array(String)
+      repo = GitRepository.new(repository_url, username, password)
+      repo.tags.keys
     end
   end
 end
