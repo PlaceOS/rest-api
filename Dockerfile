@@ -73,7 +73,7 @@ COPY --from=build /bin/ping6 /ping6
 # git for querying remote repositories
 COPY --from=build /usr/bin/git /git
 COPY --from=build /usr/share/git-core /usr/share/git-core
-COPY --from=/usr/libexec/git-core /usr/libexec/git-core
+COPY --from=build /usr/libexec/git-core /usr/libexec/git-core
 
 # Copy the app into place
 COPY --from=build /app/deps /
