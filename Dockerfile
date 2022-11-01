@@ -44,7 +44,7 @@ RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/* /usr/libexe
         ldd "$binary" | \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
-        xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'; \
+        xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;' || true; \
       done
 
 # Build a minimal docker image
@@ -72,8 +72,8 @@ COPY --from=build /bin/ping6 /ping6
 
 # git for querying remote repositories
 COPY --from=build /usr/bin/git /git
-COPY --from=build /usr/share/git-core /usr/share/git-core
-COPY --from=build /usr/libexec/git-core /usr/libexec/git-core
+COPY --from=build /usr/share/git-core/ /usr/share/git-core/
+COPY --from=build /usr/libexec/git-core/ /usr/libexec/git-core/
 
 # Copy the app into place
 COPY --from=build /app/deps /
