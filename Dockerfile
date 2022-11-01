@@ -40,7 +40,7 @@ RUN UNAME_AT_COMPILE_TIME=true \
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
-RUN for binary in "/bin/ping" "/bin/ping6" /app/bin/*; do \
+RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/*; do \
         ldd "$binary" | \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
@@ -69,6 +69,7 @@ COPY --from=build /usr/share/zoneinfo/ /usr/share/zoneinfo/
 # this is required to ping things
 COPY --from=build /bin/ping /ping
 COPY --from=build /bin/ping6 /ping6
+COPY --from=build /usr/bin/git /git
 
 # Copy the app into place
 COPY --from=build /app/deps /
