@@ -69,7 +69,10 @@ COPY --from=build /usr/share/zoneinfo/ /usr/share/zoneinfo/
 # this is required to ping things
 COPY --from=build /bin/ping /ping
 COPY --from=build /bin/ping6 /ping6
+
+# git for querying remote repositories
 COPY --from=build /usr/bin/git /git
+COPY --from=build /usr/share/git-core /usr/share/git-core
 
 # Copy the app into place
 COPY --from=build /app/deps /
