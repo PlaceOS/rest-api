@@ -40,7 +40,7 @@ RUN UNAME_AT_COMPILE_TIME=true \
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
-RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/*; do \
+RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/* /usr/libexec/git-core/*; do \
         ldd "$binary" | \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
@@ -73,6 +73,7 @@ COPY --from=build /bin/ping6 /ping6
 # git for querying remote repositories
 COPY --from=build /usr/bin/git /git
 COPY --from=build /usr/share/git-core /usr/share/git-core
+COPY --from=/usr/libexec/git-core /usr/libexec/git-core
 
 # Copy the app into place
 COPY --from=build /app/deps /
