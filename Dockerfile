@@ -40,11 +40,11 @@ RUN UNAME_AT_COMPILE_TIME=true \
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
-RUN for binary in "/bin/ping" "/bin/ping6" /app/bin/*; do \
+RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/* /usr/libexec/git-core/*; do \
         ldd "$binary" | \
         tr -s '[:blank:]' '\n' | \
         grep '^/' | \
-        xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;'; \
+        xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;' || true; \
       done
 
 # Build a minimal docker image
@@ -69,6 +69,11 @@ COPY --from=build /usr/share/zoneinfo/ /usr/share/zoneinfo/
 # this is required to ping things
 COPY --from=build /bin/ping /ping
 COPY --from=build /bin/ping6 /ping6
+
+# git for querying remote repositories
+COPY --from=build /usr/bin/git /git
+COPY --from=build /usr/share/git-core/ /usr/share/git-core/
+COPY --from=build /usr/libexec/git-core/ /usr/libexec/git-core/
 
 # Copy the app into place
 COPY --from=build /app/deps /
