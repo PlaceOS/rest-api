@@ -15,6 +15,7 @@
 
 ### Fix
 
+- **repositories**: use frontend-loader to grab commits
 - **Dockerfile**: add git to the image for querying remotes ([#318](https://github.com/PlaceOS/rest-api/pull/318))
 - **utilities/scopes**: add `public` scope to scope list API ([#311](https://github.com/PlaceOS/rest-api/pull/311))
 - **domains**: before action must set instance variable ([#310](https://github.com/PlaceOS/rest-api/pull/310))
