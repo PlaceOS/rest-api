@@ -255,9 +255,10 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the number of commits to return", example: "50")]
       depth : Int32 = 50
     ) : Array(GitRepository::Commit)
-      repo = GitRepository.new(repository_url, username, password)
-      branch = branch || repo.default_branch
-      repo.commits(branch, depth)
+      query_branch = branch || remote_default_branch
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        frontends_client.remote_commits(repository_url, query_branch, nil, depth, username, password)
+      end
     end
 
     # Returns an array of tags for the specified repository

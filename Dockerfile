@@ -32,8 +32,6 @@ RUN shards install --production --ignore-crystal-version --skip-postinstall --sk
 
 # Add src
 COPY ./src /app/src
-RUN mkdir -p /app/tmp
-RUN chown appuser -R /app/tmp
 
 # Build application
 RUN UNAME_AT_COMPILE_TIME=true \
@@ -82,7 +80,6 @@ COPY --from=build /usr/libexec/git-core/ /usr/libexec/git-core/
 # Copy the app into place
 COPY --from=build /app/deps /
 COPY --from=build /app/bin /
-COPY --from=build /app/tmp /tmp
 
 # Use an unprivileged user.
 USER appuser:appuser
