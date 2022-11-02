@@ -31,6 +31,7 @@ RUN shards install --production --ignore-crystal-version --skip-postinstall --sk
 # Add src
 COPY ./src /app/src
 RUN mkdir -p /app/tmp
+RUN chown appuser -R /app/tmp
 
 # Build application
 RUN UNAME_AT_COMPILE_TIME=true \
