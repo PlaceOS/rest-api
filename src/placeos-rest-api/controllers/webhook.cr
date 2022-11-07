@@ -16,6 +16,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, except: [:show])]
     def check_body
       @body_data = request.body.try(&.gets_to_end) || ""
+      request.body = nil
     end
 
     @[AC::Route::Filter(:before_action)]
