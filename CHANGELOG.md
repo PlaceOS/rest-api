@@ -15,6 +15,7 @@
 
 ### Fix
 
+- **webhook**: obtain body data before parsing params ([#320](https://github.com/PlaceOS/rest-api/pull/320))
 - **repositories**: use frontend-loader to grab commits
 - **Dockerfile**: add git to the image for querying remotes ([#318](https://github.com/PlaceOS/rest-api/pull/318))
 - **utilities/scopes**: add `public` scope to scope list API ([#311](https://github.com/PlaceOS/rest-api/pull/311))
