@@ -13,6 +13,11 @@ module PlaceOS::Api
     # Find the trigger details that represent this webhook
     ###############################################################################################
 
+    @[AC::Route::Filter(:before_action, except: [:show])]
+    def check_body
+      @body_data = request.body.try(&.gets_to_end) || ""
+    end
+
     @[AC::Route::Filter(:before_action)]
     def find_hook(
       id : String,
@@ -39,6 +44,7 @@ module PlaceOS::Api
 
     getter! current_trigger_instance : Model::TriggerInstance
     getter! current_trigger : Model::Trigger
+    getter body_data : String = ""
 
     # Check if there are any execute params
     ###############################################################################################
@@ -94,7 +100,6 @@ module PlaceOS::Api
             index
           )
 
-          body_data = request.body.try(&.gets_to_end) || ""
           header_data = request.headers.try(&.to_h) || Hash(String, Array(String)).new
           header_data["pos-query-params"] = [query_params.to_s]
 
