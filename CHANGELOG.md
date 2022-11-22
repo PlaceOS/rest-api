@@ -15,6 +15,7 @@
 
 ### Fix
 
+- **shard.lock**: bump core-client to fix cluster listing ([#323](https://github.com/PlaceOS/rest-api/pull/323))
 - **webhook**: obtain body data before parsing params ([#320](https://github.com/PlaceOS/rest-api/pull/320))
 - **repositories**: use frontend-loader to grab commits
 - **Dockerfile**: add git to the image for querying remotes ([#318](https://github.com/PlaceOS/rest-api/pull/318))
