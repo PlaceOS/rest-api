@@ -35,17 +35,13 @@ module PlaceOS::Api
         if existing_socket
           link_edge(socket, edge_id)
         else
-          Log.debug { "SELECTING CORE NODE" }
           node_found = core_discovery.find(edge_id)
-          Log.debug { "ADDING CODE SOCKET" }
           add_core(edge_id, current_node: node_found)
-          Log.debug { "CONFIGURING PING" }
           ping_tasks[edge_id] = Tasker.every(30.seconds) do
             socket.ping rescue nil
             core_sockets[edge_id].ping rescue nil
             nil
           end
-          Log.debug { "FINISHED" }
         end
       end
 
