@@ -43,7 +43,7 @@ module PlaceOS::Api
         end
       end
 
-      socket.on_close { remove(edge_id) }
+      socket.on_close { edge_lock.synchronize { remove(edge_id) if socket == edge_sockets[edge_id] } }
     rescue e
       Log.error(exception: e) { {edge_id: edge_id, message: "while adding edge socket"} }
       remove(edge_id)
@@ -152,7 +152,20 @@ module PlaceOS::Api
 
     def rebalance(nodes : Array(HoundDog::Service::Node))
       Log.info { "rebalancing edge connections" }
-      edge_sockets.values.each { |socket| socket.close }
+      edge_lock.synchronize do
+        sockets = edge_sockets.values + core_sockets.values
+        pings = ping_tasks.values
+
+        @edge_sockets = {} of String => HTTP::WebSocket
+        @core_sockets = {} of String => HTTP::WebSocket
+        @ping_tasks = {} of String => Tasker::Repeat(Nil)
+
+        pings.each &.cancel
+        sockets.each do |socket|
+          socket.on_close { }
+          socket.close
+        end
+      end
     end
   end
 end
