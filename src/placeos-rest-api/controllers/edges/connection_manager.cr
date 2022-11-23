@@ -57,11 +57,13 @@ module PlaceOS::Api
         end
 
         if socket = core_sockets.delete(edge_id)
+          socket.on_close { }
           socket.close rescue nil
           Log.info { {message: "closed socket to core", edge_id: edge_id} }
         end
 
         if socket = edge_sockets.delete(edge_id)
+          socket.on_close { }
           socket.close rescue nil
           Log.info { {message: "closed socket to edge", edge_id: edge_id} }
         end
