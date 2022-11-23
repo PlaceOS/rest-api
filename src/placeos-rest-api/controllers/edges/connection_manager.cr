@@ -11,7 +11,6 @@ module PlaceOS::Api
   class Edges::ConnectionManager
     Log = ::Log.for(self)
 
-    private getter edge_mapping = {} of String => HoundDog::Service::Node
     private getter edge_sockets = {} of String => HTTP::WebSocket
     private getter core_sockets = {} of String => HTTP::WebSocket
     private getter ping_tasks : Hash(String, Tasker::Repeat(Nil)) = {} of String => Tasker::Repeat(Nil)
@@ -53,21 +52,18 @@ module PlaceOS::Api
 
     def remove(edge_id : String)
       edge_lock.synchronize do
-        mapping = edge_mapping.delete(edge_id)
-        uri = mapping.try &.[:uri].to_s
-
         if task = ping_tasks.delete(edge_id)
           task.cancel
         end
 
         if socket = core_sockets.delete(edge_id)
           socket.close rescue nil
-          Log.info { {message: "closed socket to core", edge_id: edge_id, core_uri: uri} }
+          Log.info { {message: "closed socket to core", edge_id: edge_id} }
         end
 
         if socket = edge_sockets.delete(edge_id)
           socket.close rescue nil
-          Log.info { {message: "closed socket to edge", edge_id: edge_id, core_uri: uri} }
+          Log.info { {message: "closed socket to edge", edge_id: edge_id} }
         end
       end
     end
@@ -104,13 +100,13 @@ module PlaceOS::Api
               on_retry: ->(error : Exception, _i : Int32, _e : Time::Span, _p : Time::Span) {
                 Log.warn { {error: error.to_s, edge_id: edge_id, message: "reconnecting edge to core"} }
               }) do
-              add_core(edge_id, reconnect: true) if edge_mapping.has_key?(edge_id)
+              add_core(edge_id, reconnect: true)
             end
           rescue error
             Log.error { {
               message:  "failed to reconnect to core",
               edge_id:  edge_id,
-              core_uri: edge_mapping[edge_id]?.try &.[:uri].to_s,
+              core_uri: uri.to_s,
             } }
             remove(edge_id)
           end
@@ -156,24 +152,7 @@ module PlaceOS::Api
 
     def rebalance(nodes : Array(HoundDog::Service::Node))
       Log.info { "rebalancing edge connections" }
-
-      rendezvous = RendezvousHash.new(nodes.map(&->HoundDog::Discovery.to_hash_value(HoundDog::Service::Node)))
-
-      edge_lock.synchronize do
-        # Asynchronously refresh core connections
-        Promise.map(edge_mapping) do |(edge_id, core_node)|
-          begin
-            Retriable.retry(max_interval: 1.seconds, max_elapsed_time: 20.seconds, on_retry: ->(e : Exception, _i : Int32, _e : Time::Span, _p : Time::Span) {
-              Log.warn { {error: e.to_s, edge_id: edge_id, message: "retrying connection to core"} }
-            }) do
-              add_core(edge_id, current_node: core_node, rendezvous: rendezvous)
-            end
-          rescue error
-            Log.error(exception: error) { {message: "failed to connect to core", edge_id: edge_id} }
-            remove(edge_id)
-          end
-        end.get
-      end
+      edge_sockets.values.each { |socket| socket.close }
     end
   end
 end
