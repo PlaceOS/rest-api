@@ -37,7 +37,10 @@ module PlaceOS::Api
           link_edge(socket, edge_id)
         else
           add_core(edge_id, current_node: core_discovery.find(edge_id))
-          ping_tasks[edge_id] = Tasker.every(30.seconds) { edge_sockets[edge_id].ping rescue nil }
+          ping_tasks[edge_id] = Tasker.every(30.seconds) do
+            edge_sockets[edge_id].ping rescue nil
+            core_sockets[edge_id].ping rescue nil
+          end
         end
       end
 
