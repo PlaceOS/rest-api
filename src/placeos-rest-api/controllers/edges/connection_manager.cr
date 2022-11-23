@@ -43,7 +43,7 @@ module PlaceOS::Api
         end
       end
 
-      socket.on_close { edge_lock.synchronize { remove(edge_id) if socket == edge_sockets[edge_id] } }
+      socket.on_close { edge_lock.synchronize { remove(edge_id) if socket == edge_sockets[edge_id]? } }
     rescue e
       Log.error(exception: e) { {edge_id: edge_id, message: "while adding edge socket"} }
       remove(edge_id)
