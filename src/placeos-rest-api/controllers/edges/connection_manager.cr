@@ -72,22 +72,17 @@ module PlaceOS::Api
 
     def add_core(
       edge_id : String,
-      rendezvous : RendezvousHash = core_discovery.rendezvous,
-      current_node : HoundDog::Service::Node? = nil,
+      current_node : HoundDog::Service::Node,
       reconnect : Bool = false
     )
-      node = rendezvous[edge_id]?.try &->HoundDog::Discovery.from_hash_value(String)
-
-      raise "no core found" if node.nil?
-
       # No need to change connection
-      if !reconnect && core_sockets.has_key?(edge_id) && current_node && node[:name] == current_node[:name]
+      if !reconnect && core_sockets.has_key?(edge_id)
         return
       end
 
       Log.debug { {edge_id: edge_id, message: "adding core socket"} }
 
-      uri = node[:uri]
+      uri = current_node[:uri]
       uri.query = "edge_id=#{edge_id}"
       uri.path = "/api/core/v1/edge/control"
 
@@ -102,7 +97,7 @@ module PlaceOS::Api
               on_retry: ->(error : Exception, _i : Int32, _e : Time::Span, _p : Time::Span) {
                 Log.warn { {error: error.to_s, edge_id: edge_id, message: "reconnecting edge to core"} }
               }) do
-              add_core(edge_id, reconnect: true)
+              add_core(edge_id, core_discovery.find(edge_id), reconnect: true) if core_sockets[edge_id]? == core_socket
             end
           rescue error
             Log.error { {
