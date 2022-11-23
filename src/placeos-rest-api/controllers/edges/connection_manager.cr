@@ -1,4 +1,5 @@
 require "hound-dog"
+require "tasker"
 
 module PlaceOS::Api
   ###########################################################################
@@ -13,6 +14,7 @@ module PlaceOS::Api
     private getter edge_mapping = {} of String => HoundDog::Service::Node
     private getter edge_sockets = {} of String => HTTP::WebSocket
     private getter core_sockets = {} of String => HTTP::WebSocket
+    private getter ping_tasks : Hash(String, Tasker::Repeat(Nil)) = {} of String => Tasker::Repeat(Nil)
 
     private getter edge_lock = Mutex.new(protection: :reentrant)
 
@@ -25,14 +27,17 @@ module PlaceOS::Api
     def add_edge(edge_id : String, socket : HTTP::WebSocket)
       Log.debug { {edge_id: edge_id, message: "adding edge socket"} }
       edge_lock.synchronize do
-        edge_sockets[edge_id] = socket
-        add_core(edge_id, current_node: core_discovery.find(edge_id))
-      end
+        if existing_socket = edge_sockets[edge_id]?
+          existing_socket.on_close { }
+          existing_socket.close
+        end
 
-      spawn(same_thread: true) do
-        loop do
-          socket.ping rescue break
-          sleep 30
+        edge_sockets[edge_id] = socket
+        if existing_socket
+          link_edge(socket, edge_id)
+        else
+          add_core(edge_id, current_node: core_discovery.find(edge_id))
+          ping_tasks[edge_id] = Tasker.every(30.seconds) { edge_sockets[edge_id].ping rescue nil }
         end
       end
 
@@ -47,6 +52,10 @@ module PlaceOS::Api
       edge_lock.synchronize do
         mapping = edge_mapping.delete(edge_id)
         uri = mapping.try &.[:uri].to_s
+
+        if task = ping_tasks.delete(edge_id)
+          task.cancel
+        end
 
         if socket = core_sockets.delete(edge_id)
           socket.close rescue nil
@@ -107,17 +116,12 @@ module PlaceOS::Api
         # Link core to edge
         core_socket.on_message { |message|
           Log.debug { {message: "from core", packet: message} }
-          edge_socket.send(message)
+          edge_sockets[edge_id].send(message)
         }
-        core_socket.on_binary { |bytes| edge_socket.stream &.write(bytes) }
+        core_socket.on_binary { |bytes| edge_sockets[edge_id].stream &.write(bytes) }
 
         # Link edge to core
-        edge_socket.on_message { |message|
-          Log.debug { {message: "from edge", packet: message} }
-          core_socket.send(message)
-        }
-
-        edge_socket.on_binary { |bytes| core_socket.stream &.write(bytes) }
+        link_edge(edge_socket, edge_id)
 
         core_sockets[edge_id]?.try(&.close) rescue nil
         core_sockets[edge_id] = core_socket
@@ -136,6 +140,15 @@ module PlaceOS::Api
 
       Fiber.yield
       socket
+    end
+
+    def link_edge(edge_socket, edge_id)
+      edge_socket.on_message { |message|
+        Log.debug { {message: "from edge", packet: message} }
+        core_sockets[edge_id].send(message)
+      }
+
+      edge_socket.on_binary { |bytes| core_sockets[edge_id].stream &.write(bytes) }
     end
 
     def rebalance(nodes : Array(HoundDog::Service::Node))
