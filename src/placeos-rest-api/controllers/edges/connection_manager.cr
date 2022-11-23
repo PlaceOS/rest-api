@@ -122,7 +122,10 @@ module PlaceOS::Api
         # Link edge to core
         link_edge(edge_socket, edge_id)
 
-        core_sockets[edge_id]?.try(&.close) rescue nil
+        if existing_sock = core_sockets[edge_id]?
+          existing_sock.on_close { }
+          existing_sock.close
+        end
         core_sockets[edge_id] = core_socket
         core_socket
       end
