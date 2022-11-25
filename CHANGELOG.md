@@ -15,6 +15,7 @@
 
 ### Fix
 
+- **webhook**: resolve 404 on friendly webhook URI ([#325](https://github.com/PlaceOS/rest-api/pull/325))
 - **edge/connection**: refactor how connections are handled ([#324](https://github.com/PlaceOS/rest-api/pull/324))
 - **shard.lock**: bump core-client to fix cluster listing ([#323](https://github.com/PlaceOS/rest-api/pull/323))
 - **webhook**: obtain body data before parsing params ([#320](https://github.com/PlaceOS/rest-api/pull/320))
