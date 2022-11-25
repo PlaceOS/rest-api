@@ -1,6 +1,5 @@
 require "./application"
 
-{% begin %}
 module PlaceOS::Api
   class Webhook < Application
     base "/api/engine/v2/webhook/"
@@ -82,7 +81,6 @@ module PlaceOS::Api
     # Triggers the webhook
     def notify(method_type : String) # ameba:disable Metrics/CyclomaticComplexity
       # Notify the trigger service
-      # TODO: Triggers service should expose a versioned client
       trigger_uri = TRIGGERS_URI.dup
       trigger_uri.path = "/api/triggers/v2/webhook?id=#{current_trigger_instance.id}&secret=#{current_trigger_instance.webhook_secret}"
       trigger_response = HTTP::Client.post(
@@ -147,12 +145,14 @@ module PlaceOS::Api
 
     {% for http_method in ActionController::Router::HTTP_METHODS.reject &.==("head") %}
       {{http_method.id}} "/:id/notify" do
+        Log.info { "\n\nOLD SCHOOL NOTIFY\n\n" }
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
         head :not_found
       end
 
       {{http_method.id}} "/:id/notify/:secret" do
+        Log.info { "\n\nSIMPLE SECRET\n\n" }
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
         head :not_found
@@ -160,6 +160,7 @@ module PlaceOS::Api
 
       {{http_method.id}} "/:id/notify/:secret/:mod/:index/:method" do
         params["exec"] = "true"
+        Log.info { "\n\nEXEC DIRECT\n\n" }
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
         head :not_found
@@ -167,4 +168,3 @@ module PlaceOS::Api
     {% end %}
   end
 end
-{% end %}
