@@ -1,5 +1,6 @@
 require "./application"
 
+{% begin %}
 module PlaceOS::Api
   class Webhook < Application
     base "/api/engine/v2/webhook/"
@@ -166,3 +167,4 @@ module PlaceOS::Api
     {% end %}
   end
 end
+{% end %}
