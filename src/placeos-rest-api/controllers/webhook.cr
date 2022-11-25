@@ -81,9 +81,8 @@ module PlaceOS::Api
     # Triggers the webhook
     def notify(method_type : String) # ameba:disable Metrics/CyclomaticComplexity
       # Notify the trigger service
-      # TODO: Triggers service should expose a versioned client
       trigger_uri = TRIGGERS_URI.dup
-      trigger_uri.path = "/api/triggers/v2/webhook?id=#{current_trigger_instance.id}&secret=#{current_trigger_instance.webhook_secret}"
+      trigger_uri.path = "/api/triggers/v2/webhook/#{current_trigger_instance.id}?secret=#{current_trigger_instance.webhook_secret}"
       trigger_response = HTTP::Client.post(
         trigger_uri,
         headers: HTTP::Headers{"X-Request-ID" => request_id}
@@ -158,7 +157,7 @@ module PlaceOS::Api
       end
 
       {{http_method.id}} "/:id/notify/:secret/:mod/:index/:method" do
-        params["exec"] = "true"
+        @exec = true
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
         head :not_found
