@@ -16,10 +16,6 @@ dependencies:
     github: place-labs/CrystalEmail
     version: ~> 0.2
 
-  opentelemetry-instrumentation:
-    github: stakach/opentelemetry-instrumentation.cr
-    branch: patch-1
-
   opentelemetry-sdk:
     github: wyhaines/opentelemetry-sdk.cr
     branch: main

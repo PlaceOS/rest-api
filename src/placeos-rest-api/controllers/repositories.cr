@@ -171,7 +171,7 @@ module PlaceOS::Api
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&commit=#{commit_hash}"
       details = Api::Systems.core_for(driver_filename, request_id) do |core_client|
-        core_client.driver_details(driver_filename, commit, current_repo.folder_name)
+        core_client.driver_details(driver_filename, commit, current_repo.folder_name, current_repo.branch)
       end
 
       # The raw JSON string is returned and we proxy that (no need to encode and decode)
