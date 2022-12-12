@@ -19,7 +19,7 @@ module PlaceOS::Api
     def find_current_domain(id : String)
       Log.context.set(authority_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_domain = Model::Authority.find!(id, runopts: {"read_mode" => "majority"})
+      @current_domain = Model::Authority.find!(id)
     end
 
     getter! current_domain : Model::Authority

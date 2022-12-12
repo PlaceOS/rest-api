@@ -48,7 +48,7 @@ def setup_system(repository_folder_name = "private-drivers")
     module_name: driver_module_name,
     file_name: driver_file_name,
   )
-  driver._new_flag = true
+  # driver._new_flag = true
   driver.id = PRIVATE_DRIVER_ID
   driver.repository = repository
   driver.save!

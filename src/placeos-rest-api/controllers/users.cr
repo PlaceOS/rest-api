@@ -38,7 +38,7 @@ module PlaceOS::Api
           # TODO: Remove user id query prefixing.
           # Remove after June 2023, added to help with 2022 user id migration
           id_lookup = lookup.starts_with?("#{Model::User.table_name}-") ? lookup : "#{Model::User.table_name}-#{lookup}"
-          Model::User.find(id_lookup)
+          Model::User.find?(id_lookup)
         when :email
           Model::User.find_by_email(authority_id: authority, email: lookup)
         when :login_name
@@ -48,7 +48,7 @@ module PlaceOS::Api
         end
       }.first {
         # 404 if the `User` was not found
-        raise RethinkORM::Error::DocumentNotFound.new
+        raise PgORM::Error::RecordNotFound.new
       }.tap do |found|
         Log.context.set(user_id: found.id)
         @user = found
@@ -70,7 +70,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/current")]
     def current : Model::User::AdminResponse
       current_user.to_admin_struct
-    rescue e : RethinkORM::Error::DocumentNotFound
+    rescue e : PgORM::Error::RecordNotFound
       raise Error::Unauthorized.new("user not found")
     end
 
@@ -106,9 +106,10 @@ module PlaceOS::Api
         sso_strat = if sso_strat_id = internals["oauth-strategy"]?.try(&.as_s?) # (i.e. oauth_strat-FNsaSj6bp-M)
                       ::PlaceOS::Model::OAuthAuthentication.find(sso_strat_id)
                     else
-                      ::PlaceOS::Model::OAuthAuthentication.collection_query do |table|
-                        table.get_all(authority.id, index: :authority_id)
-                      end.first?
+                      ::PlaceOS::Model::OAuthAuthentication.where(authority_id: authority.id).first?
+                      # ::PlaceOS::Model::OAuthAuthentication.collection_query do |table|
+                      #   table.get_all(authority.id, index: :authority_id)
+                      # end.first?
                     end
 
         raise Error::NotFound.new("no oauth configuration found") unless sso_strat

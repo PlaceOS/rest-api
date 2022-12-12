@@ -5,12 +5,17 @@ dependencies:
   secrets-env:
     github: spider-gazelle/secrets-env
 
-  rethinkdb-orm:
-    github: spider-gazelle/rethinkdb-orm
+  placeos-models:
+    github: placeos/models
+    branch: refactor/pg-migration
 
-  rethinkdb:
-    github: kingsleyh/crystal-rethinkdb
-    version: ~> 0.3
+  search-ingest:
+    github: placeos/search-ingest
+    branch: refactor/pg-migration
+
+  placeos-frontend-loader:
+    github: placeos/frontend-loader
+    branch: refactor/pg-migration
 
   CrystalEmail:
     github: place-labs/CrystalEmail
@@ -27,7 +32,7 @@ dependencies:
   # For core client
   placeos-core-client:
     github: placeos/core-client
-    version: ~> 1.0
+    branch: refactor/pg-migration
 
   # TODO:: remove
   http-params-serializable:

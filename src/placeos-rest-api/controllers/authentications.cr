@@ -21,7 +21,7 @@ module PlaceOS::Api
       def find_current_auth(id : String)
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
-        @current_auth = Model::{{auth_type.id}}Authentication.find!(id, runopts: {"read_mode" => "majority"})
+        @current_auth = Model::{{auth_type.id}}Authentication.find!(id)
       end
 
       getter! current_auth : Model::{{auth_type.id}}Authentication

@@ -284,7 +284,7 @@ module PlaceOS::Api
 
         spec_delete_module(cs, mod, Spec::Authentication.headers)
 
-        Model::Module.find(mod_id).should be_nil
+        Model::Module.find?(mod_id).should be_nil
         {mod, cs}.each &.try &.destroy
       end
 
@@ -309,7 +309,7 @@ module PlaceOS::Api
         cs2 = Model::ControlSystem.find!(cs2.id.as(String))
         cs2.modules.should contain mod_id
 
-        Model::Module.find(mod_id).should_not be_nil
+        Model::Module.find!(mod_id).should_not be_nil
 
         {mod, cs1, cs2}.each &.destroy
       end

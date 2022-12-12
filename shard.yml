@@ -31,11 +31,11 @@ dependencies:
     github: crystal-community/jwt
     version: ~> 1
 
-  # Elasticsearch extension for RethinkORM
+  # Elasticsearch extension for PgORM
   neuroplastic:
     github: spider-gazelle/neuroplastic
-    version: ~> 1.11
-
+    version: ~> 1.12.1
+ 
   # Performs ping requests
   pinger:
     github: spider-gazelle/pinger
@@ -74,16 +74,11 @@ dependencies:
     github: Sija/raven.cr
     branch: master
 
-  # RethinkDB client
-  rethinkdb:
-    github: kingsleyh/crystal-rethinkdb
-    version: ~> 0.2
+  # ORM for PostgreSQL built on active-model
+  pg-orm:
+    github: spider-gazelle/pg-orm
 
-  # ORM for RethinkDB built on active-model
-  rethinkdb-orm:
-    github: spider-gazelle/rethinkdb-orm
-
-  # Client for Search Ingest RethinkDB Elasticsearch indexer
+  # Client for Search Ingest PostgreSQL Elasticsearch indexer
   search-ingest:
     github: placeos/search-ingest
     version: ~> 2.0
@@ -126,4 +121,4 @@ development_dependencies:
 
   placeos-core:
     github: placeos/core
-    branch: master
+    branch: refactor/pg-migration

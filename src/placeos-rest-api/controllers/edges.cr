@@ -31,7 +31,7 @@ module PlaceOS::Api
     def find_current_edge(id : String)
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_edge = Model::Edge.find!(id, runopts: {"read_mode" => "majority"})
+      @current_edge = Model::Edge.find!(id)
     end
 
     getter! current_edge : Model::Edge

@@ -22,7 +22,7 @@ module PlaceOS::Api
     def find_current_repo(id : String)
       Log.context.set(repository_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_repo = Model::Repository.find!(id, runopts: {"read_mode" => "majority"})
+      @current_repo = Model::Repository.find!(id)
     end
 
     @[AC::Route::Filter(:before_action, only: [:drivers, :details])]

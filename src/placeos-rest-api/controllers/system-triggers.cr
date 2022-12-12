@@ -23,7 +23,7 @@ module PlaceOS::Api
     )
       Log.context.set(trigger_instance_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_sys_trig = Model::TriggerInstance.find!(id, runopts: {"read_mode" => "majority"})
+      @current_sys_trig = Model::TriggerInstance.find!(id)
     end
 
     getter! current_sys_trig : Model::TriggerInstance
@@ -35,7 +35,7 @@ module PlaceOS::Api
     )
       Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
-      @current_system = Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"})
+      @current_system = Model::ControlSystem.find!(sys_id)
     end
 
     getter! current_system : Model::ControlSystem

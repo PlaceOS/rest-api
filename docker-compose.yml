@@ -19,10 +19,14 @@ x-etcd-client-env: &etcd-client-env
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
-x-rethinkdb-client-env: &rethinkdb-client-env
-  RETHINKDB_HOST: ${RETHINKDB_HOST:-rethink}
-  RETHINKDB_PORT: ${RETHINKDB_PORT:-28015}
-  RETHINKDB_DB: ${RETHINKDB_DB:-place_development}
+x-postgresdb-client-env: &postgresdb-client-env
+  PG_HOST: ${PG_HOST:-postgres}
+  PG_PORT: ${PG_PORT:-5432}
+  PG_DB: ${PG_DB:-place_development}
+  PG_USER: ${PG_USER:-postgres}
+  PG_PASSWORD: ${PG_PASSWORD:-password}
+  PG_DATABASE: ${PG_DATABASE:-place_development}
+  PG_DATABASE_URL: ${PG_DATABASE_URL:-postgresql://postgres:password@postgres:5432/place_development}
 
 x-search-ingest-client-env: &search-ingest-client-env
   SEARCH_INGEST_URI: ${SEARCH_INGEST_URI:-http://search-ingest:3000}
@@ -44,7 +48,8 @@ services:
       - elastic
       - etcd
       - redis
-      - rethink
+      - postgres
+      - migrator
       - search-ingest
     security_opt:
       - seccomp:unconfined
@@ -56,77 +61,114 @@ services:
       <<: *elastic-client-env
       <<: *etcd-client-env
       <<: *redis-client-env
-      <<: *rethinkdb-client-env
+      <<: *postgresdb-client-env
 
   elastic:
-    image: blacktop/elasticsearch:${ELASTIC_VERSION:-7.9.1}
+    image: elasticsearch:${ELASTIC_VERSION:-7.17.6}
     restart: always
+    hostname: elastic
     healthcheck:
       test: wget -q --no-verbose --tries=1 --spider http://localhost:9200/_cat/health
     environment:
       discovery.type: single-node
+    ports:
+      - 9200:9200
 
   etcd:
-    image: bitnami/etcd:${ETCD_VERSION:-3.5.1}
+    image: quay.io/coreos/etcd:${ETCD_VERSION:-v3.5.4}
     restart: always
     hostname: etcd
     healthcheck:
       test: etcdctl endpoint health
     environment:
       ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_NAME: "etcd"
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: "http://etcd:2380"
+      ETCD_LISTEN_PEER_URLS: "http://0.0.0.0:2380"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+      ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
+      ETCD_INITIAL_CLUSTER_TOKEN: "etcd-cluster"
+      ETCD_INITIAL_CLUSTER=etcd: "http://etcd:2380"
+      ETCD_INITIAL_CLUSTER_STATE: "new"
+      TZ: $TZ
+    ports:
+      - 2379:2379
 
   redis:
-    image: eqalpha/keydb:alpine
+    image: eqalpha/keydb
     restart: always
     hostname: redis
     healthcheck:
       test: redis-cli ping
+    ports:
+      - 6379:6379
 
-  rethink:
-    image: rethinkdb:${RETHINKDB_VERSION:-2.4}
-    restart: always
-    hostname: rethink
+  postgres:
+    hostname: postgres
+    image: postgres
     healthcheck:
-      # Check if the DB's port is open
-      test: "bash -c ': &>/dev/null </dev/tcp/127.0.0.1/28015'"
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: place_development
+    ports:
+      - 5432:5432
+  migrator:
+    build:
+      context: ${PWD}/spec/migration
+    container_name: migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GITHUB_ACTION: ${GITHUB_ACTION:-}
+      PG_DATABASE_URL: ${PG_DATABASE_URL:-postgresql://postgres:password@postgres:5432/place_development}
 
-  search-ingest: # RethinkDB to Elasticsearch Service
-    image: placeos/search-ingest:nightly
+
+  search-ingest: # PostgreSQL to Elasticsearch Service
+    image: ghcr.io/placeos/search-ingest:refactor-pg-migration
     restart: always
     hostname: search-ingest
     depends_on:
       - elastic
-      - rethink
+      - migrator
+      - postgres
     environment:
       LOG_LEVEL: trace
       # Service Hosts
-      <<: *rethinkdb-client-env
+      <<: *postgresdb-client-env
       <<: *elastic-client-env
       # Environment
       <<: *deployment-env
 
   auth: # Authentication Service
-    image: placeos/auth:latest
+    image: ghcr.io/placeos/auth:refactor-pg-migration
     restart: always
     hostname: auth
     depends_on:
       - redis
-      - rethink
+      - migrator
+      - postgres
     environment:
-      <<: *rethinkdb-client-env
+      <<: *postgresdb-client-env
       <<: *redis-client-env
       COAUTH_NO_SSL: "true"
       TZ: $TZ
       PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
-    image: placeos/core:${PLACE_CORE_TAG:-latest}
+    image: ghcr.io/placeos/core:refactor-pg-migration
     restart: always
     hostname: core
     depends_on:
       - etcd
       - redis
-      - rethink
+      - migrator
+      - postgres
     ulimits:
       nofile: 40000
       core:
@@ -138,6 +180,6 @@ services:
       # Service Hosts
       <<: *etcd-client-env
       <<: *redis-client-env
-      <<: *rethinkdb-client-env
+      <<: *postgresdb-client-env
       # Environment
       <<: *deployment-env

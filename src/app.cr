@@ -74,6 +74,14 @@ end
 # we attempt to connect to redis etc.
 require "./config"
 
+# Configure the database connection. First check if PG_DATABASE_URL environment variable
+# is set. If not, assume database configuration are set via individual environment variables
+if pg_url = ENV["PG_DATABASE_URL"]?
+  PgORM::Database.parse(pg_url)
+else
+  PgORM::Database.configure { |_| }
+end
+
 # Load the routes
 PlaceOS::Api::Log.info { "launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME.strip})" }
 

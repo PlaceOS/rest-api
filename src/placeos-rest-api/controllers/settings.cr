@@ -19,7 +19,7 @@ module PlaceOS::Api
     def find_current_settings(id : String)
       Log.context.set(settings_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_settings = Model::Settings.find!(id, runopts: {"read_mode" => "majority"})
+      @current_settings = Model::Settings.find!(id)
     end
 
     getter! current_settings : Model::Settings

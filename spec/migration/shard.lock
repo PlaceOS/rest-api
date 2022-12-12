@@ -1,0 +1,14 @@
+version: 2.0
+shards:
+  db:
+    git: https://github.com/crystal-lang/crystal-db.git
+    version: 0.10.1
+
+  micrate:
+    git: https://github.com/amberframework/micrate.git
+    version: 0.12.0
+
+  pg:
+    git: https://github.com/will/crystal-pg.git
+    version: 0.25.0
+

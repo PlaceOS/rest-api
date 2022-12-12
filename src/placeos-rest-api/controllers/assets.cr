@@ -19,7 +19,7 @@ module PlaceOS::Api
     def current_asset(id : String)
       Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_asset = Model::Asset.find!(id, runopts: {"read_mode" => "majority"})
+      @current_asset = Model::Asset.find!(id)
     end
 
     getter! current_asset : Model::Asset

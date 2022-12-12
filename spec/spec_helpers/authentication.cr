@@ -66,7 +66,7 @@ module PlaceOS::Api::Spec::Authentication
       scope_list = scopes.try &.join('-', &.to_s)
       test_user_email = PlaceOS::Model::Email.new("test-#{"admin-" if sys_admin}#{"supp-" if support}scope-#{scope_list}-rest-api@place.tech")
 
-      PlaceOS::Model::User.where(email: test_user_email, authority_id: authority.id.as(String)).first? || PlaceOS::Model::Generator.user(authority, support: support, admin: sys_admin).tap do |user|
+      PlaceOS::Model::User.where(email: test_user_email.to_s, authority_id: authority.id.as(String)).first? || PlaceOS::Model::Generator.user(authority, support: support, admin: sys_admin).tap do |user|
         user.email = test_user_email
         user.save!
       end

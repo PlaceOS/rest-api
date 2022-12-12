@@ -169,7 +169,7 @@ module PlaceOS::Api
 
     # 404 if resource not present
     @[AC::Route::Exception(Error::NotFound, status_code: HTTP::Status::NOT_FOUND)]
-    @[AC::Route::Exception(RethinkORM::Error::DocumentNotFound, status_code: HTTP::Status::NOT_FOUND)]
+    @[AC::Route::Exception(PgORM::Error::RecordNotFound, status_code: HTTP::Status::NOT_FOUND)]
     def resource_not_found(error) : CommonError
       Log.debug(exception: error) { error.message }
       CommonError.new(error, false)
@@ -185,7 +185,7 @@ module PlaceOS::Api
     # when a client request fails validation
     @[AC::Route::Exception(JSON::ParseException, status_code: HTTP::Status::BAD_REQUEST)]
     @[AC::Route::Exception(JSON::SerializableError, status_code: HTTP::Status::BAD_REQUEST)]
-    @[AC::Route::Exception(RethinkORM::Error::DocumentInvalid, status_code: HTTP::Status::UNPROCESSABLE_ENTITY)]
+    @[AC::Route::Exception(PgORM::Error::RecordInvalid, status_code: HTTP::Status::UNPROCESSABLE_ENTITY)]
     def validation_failed(error) : CommonError
       Log.debug(exception: error) { error.message }
       CommonError.new(error, Api.production?)
