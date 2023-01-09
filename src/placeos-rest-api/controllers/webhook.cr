@@ -98,7 +98,9 @@ module PlaceOS::Api
             current_trigger_instance.control_system_id.as(String),
             mod,
             index
-          )
+          ) { |module_id|
+            Model::Module.find!(module_id).edge_id.as(String)
+          }
 
           header_data = request.headers.try(&.to_h) || Hash(String, Array(String)).new
           header_data["pos-query-params"] = [query_params.to_s]

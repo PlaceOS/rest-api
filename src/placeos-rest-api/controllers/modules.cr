@@ -232,7 +232,9 @@ module PlaceOS::Api
         module_name: current_module.name,
         discovery: self.class.core_discovery,
         user_id: current_user.id,
-      ).exec(
+      ) { |module_id|
+        Model::Module.find!(module_id).edge_id.as(String)
+      }.exec(
         security: driver_clearance(user_token),
         function: method,
         args: args,
