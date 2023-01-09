@@ -16,6 +16,7 @@
 
 ### Fix
 
+- edge exec lookup ([#329](https://github.com/PlaceOS/rest-api/pull/329))
 - **repositories**: driver details when not using master branch ([#327](https://github.com/PlaceOS/rest-api/pull/327))
 - **webhook**: resolve 404 on friendly webhook URI ([#325](https://github.com/PlaceOS/rest-api/pull/325))
 - **edge/connection**: refactor how connections are handled ([#324](https://github.com/PlaceOS/rest-api/pull/324))
