@@ -88,7 +88,9 @@ module PlaceOS::Api::WebSocket
         index: index,
         discovery: @discovery,
         user_id: user.id,
-      ).exec(
+      ) { |module_id|
+        Model::Module.find!(module_id).edge_id.as(String)
+      }.exec(
         security: @security_level,
         function: name,
         args: args,
@@ -209,7 +211,9 @@ module PlaceOS::Api::WebSocket
           module_name: module_name,
           discovery: @discovery,
           user_id: user.id,
-        )
+        ) { |module_id|
+          Model::Module.find!(module_id).edge_id.as(String)
+        }
 
         ws = driver.debug
         ws.on_message do |message|

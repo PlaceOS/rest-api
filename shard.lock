@@ -203,7 +203,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.8.2+git.commit.a515dcf30b969442a09ddb73fa3f5b44c7e1513e
+    version: 4.8.3+git.commit.55f6337db75a2f7d99ab1eba955f0f594e9b1ff9
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.6.3
+    version: 6.7.0
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
