@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS "oauth_applications"(
     redirect_uri text NOT NULL,
     scopes character varying DEFAULT ''::character varying NOT NULL,
     confidential boolean DEFAULT true NOT NULL,
+    owner_id text NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL
 );

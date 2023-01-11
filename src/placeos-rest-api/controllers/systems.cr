@@ -337,7 +337,9 @@ module PlaceOS::Api
         index: index,
         discovery: self.class.core_discovery,
         user_id: current_user.id,
-      )
+      ) { |module_id|
+        Model::Module.find!(module_id).edge_id.as(String)
+      }
 
       response_text, status_code = remote_driver.exec(
         security: driver_clearance(user_token),

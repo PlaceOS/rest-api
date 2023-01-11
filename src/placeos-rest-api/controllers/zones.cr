@@ -158,7 +158,9 @@ module PlaceOS::Api
             sys_id: system_id,
             module_name: module_name,
             index: index
-          )
+          ) { |module_id|
+            Model::Module.find!(module_id).edge_id.as(String)
+          }
 
           output, status_code = remote_driver.exec(
             security: driver_clearance(user_token),
