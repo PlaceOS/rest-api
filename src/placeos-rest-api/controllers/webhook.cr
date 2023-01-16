@@ -1,3 +1,4 @@
+require "base64"
 require "./application"
 
 module PlaceOS::Api
@@ -55,7 +56,8 @@ module PlaceOS::Api
       @exec : Bool = false,
       @mod : String? = nil,
       @index : Int32 = 1,
-      @method : String? = nil
+      @method : String? = nil,
+      @binary : Bool = false
     )
     end
 
@@ -63,6 +65,7 @@ module PlaceOS::Api
     getter! mod : String
     getter index : Int32 = 1
     getter! method : String
+    getter? binary : Bool = false
 
     def mod_friendly_name
       "#{mod}_#{index}.#{method}"
@@ -105,7 +108,11 @@ module PlaceOS::Api
           header_data = request.headers.try(&.to_h) || Hash(String, Array(String)).new
           header_data["pos-query-params"] = [query_params.to_s]
 
-          args = {method_type, header_data, body_data}
+          args = if binary?
+                   {method_type, header_data, Base64.encode(body_data)}
+                 else
+                   {method_type, header_data, body_data}
+                 end
 
           exec_response, _status_code = driver.exec(
             security: RemoteDriver::Clearance::Support,
@@ -158,7 +165,7 @@ module PlaceOS::Api
         head :not_found
       end
 
-      {{http_method.id}} "/:id/notify/:secret/:mod/:index/:method" do
+      {{http_method.id}} "/:id/notify/:secret/:mod/:index/:method/?:binary" do
         @exec = true
         return notify({{http_method.id.stringify.upcase}}) if current_trigger.supported_method? {{http_method.id.stringify.upcase}}
         Log.warn { "attempt to notify trigger #{current_trigger_instance.id} with unsupported method #{{{http_method.id.stringify}}}" }
