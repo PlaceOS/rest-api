@@ -15628,24 +15628,38 @@ components:
         status:
           type: object
           properties:
-            driver_binaries:
+            available_repositories:
+              type: array
+              items:
+                type: string
+            unavailable_repositories:
               type: array
               items:
                 type: object
                 properties:
-                  entrypoint:
+                  name:
                     type: string
-                  commit:
+                  reason:
                     type: string
-                  digest:
-                    type: string
-                  crystal_version:
-                    type: object
                 required:
-                - entrypoint
-                - commit
-                - digest
-                - crystal_version
+                - name
+                - reason
+            compiled_drivers:
+              type: array
+              items:
+                type: string
+            unavailable_drivers:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  reason:
+                    type: string
+                required:
+                - name
+                - reason
             run_count:
               type: object
               properties:
@@ -15679,7 +15693,10 @@ components:
               - local
               - edge
           required:
-          - driver_binaries
+          - available_repositories
+          - unavailable_repositories
+          - compiled_drivers
+          - unavailable_drivers
           - run_count
           nullable: true
       required:
@@ -16085,7 +16102,15 @@ components:
                   map_id:
                     type: string
                     nullable: true
+                  timezone:
+                    type: object
+                    nullable: true
                   triggers:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+                  images:
                     type: array
                     items:
                       type: string
@@ -16502,7 +16527,15 @@ components:
               map_id:
                 type: string
                 nullable: true
+              timezone:
+                type: object
+                nullable: true
               triggers:
+                type: array
+                items:
+                  type: string
+                nullable: true
+              images:
                 type: array
                 items:
                   type: string
@@ -16897,7 +16930,15 @@ components:
                         map_id:
                           type: string
                           nullable: true
+                        timezone:
+                          type: object
+                          nullable: true
                         triggers:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        images:
                           type: array
                           items:
                             type: string
@@ -17202,7 +17243,15 @@ components:
         map_id:
           type: string
           nullable: true
+        timezone:
+          type: object
+          nullable: true
         triggers:
+          type: array
+          items:
+            type: string
+          nullable: true
+        images:
           type: array
           items:
             type: string
@@ -17635,7 +17684,15 @@ components:
             map_id:
               type: string
               nullable: true
+            timezone:
+              type: object
+              nullable: true
             triggers:
+              type: array
+              items:
+                type: string
+              nullable: true
+            images:
               type: array
               items:
                 type: string
