@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 5.5.3
+    version: 5.5.4
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -203,7 +203,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.8.3+git.commit.55f6337db75a2f7d99ab1eba955f0f594e9b1ff9
+    version: 4.8.4+git.commit.e6cd1f726404b3f128a598dcab0a8b8dcdcbd7cc
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
