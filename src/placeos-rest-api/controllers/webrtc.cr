@@ -45,8 +45,11 @@ module PlaceOS::Api
       # the type of message
       property type : SignalType
 
-      # the id of the current user
-      property! user_id : String
+      # the chat user identifier, globally unique
+      getter user_id : String
+
+      @[JSON::Field(ignore: true)]
+      property place_user_id : String? = nil
 
       # the id of the user we want to communicate with
       getter to_user : String?
@@ -68,7 +71,6 @@ module PlaceOS::Api
 
       # authority_id => config string
       private getter ice_config : Hash(String, String)
-      private getter lock : Mutex = Mutex.new
       private getter calls = {} of String => CallDetails
       private getter sockets = {} of HTTP::WebSocket => SessionSignal
 
@@ -78,13 +80,13 @@ module PlaceOS::Api
           Log.trace { {frame: "TEXT", text: message} }
 
           signal = SessionSignal.from_json(message)
-          signal.user_id = user_id
+          signal.place_user_id = user_id
 
           case signal.type
           when .join?
             on_join_signal(websocket, signal, auth_id)
           when .offer?, .answer?, .candidate?
-            forward_signal(signal)
+            forward_signal(websocket, signal)
           else
             Log.warn { "user #{user_id} sent unsupported signal #{signal.type}" }
           end
@@ -122,8 +124,18 @@ module PlaceOS::Api
         # we'll ignore websocket send failures, the user will be cleaned up
       end
 
-      def on_join_signal(websocket, signal, auth_id)
+      def on_join_signal(websocket, signal, auth_id) : Nil
         call = calls[signal.session_id]? || create_new_call(signal)
+        # check the current user can take over the
+        if existing_peer_ws = call.peers[signal.user_id]?
+          if existing_user = sockets[existing_peer_ws]?
+            if existing_user.place_user_id != signal.place_user_id
+              Log.warn { "possible hacking attempt by #{signal.place_user_id}, attempting to spoof #{existing_user.place_user_id}" }
+              websocket.close
+              return
+            end
+          end
+        end
         call.peers[signal.user_id] = websocket
         sockets[websocket] = signal
 
@@ -148,8 +160,23 @@ module PlaceOS::Api
         ))
       end
 
-      def forward_signal(signal)
+      def forward_signal(websocket, signal) : Nil
         if call = calls[signal.session_id]?
+          # check the current user is in the call
+          if existing_peer_ws = call.peers[signal.user_id]?
+            if existing_user = sockets[existing_peer_ws]?
+              if existing_user.place_user_id != signal.place_user_id
+                Log.warn { "possible hacking attempt by #{signal.place_user_id}, attempting to spoof #{existing_user.place_user_id}" }
+                websocket.close
+                return
+              end
+            end
+          else
+            Log.warn { "possible hacking attempt by #{signal.place_user_id}, attempting to signal a call they are not in" }
+            websocket.close
+            return
+          end
+
           if to_user = call.peers[signal.to_user]?
             send_signal(to_user, signal)
           end
