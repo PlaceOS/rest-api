@@ -141,21 +141,24 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the maximum number of commits to return", example: "50")]
       limit : Int32? = nil,
       @[AC::Param::Info(description: "the path to the file we want commits for", example: "path/to/file.cr")]
-      driver : String? = nil
+      driver : String? = nil,
+      @[AC::Param::Info(description: "the branch to grab commits from", example: "main")]
+      branch : String? = nil
     ) : Array(GitRepository::Commit)
       Api::Repositories.commits(
         repository: current_repo,
         request_id: request_id,
         number_of_commits: limit,
         file_name: driver,
+        branch: branch,
       )
     end
 
-    def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil)
+    def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil, branch : String? = nil)
       # Dial the frontends service which can provide all the details
       FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
         password = repository.decrypt_password if repository.password.presence
-        frontends_client.remote_commits(repository.uri, repository.branch, file_name, number_of_commits, repository.username, password)
+        frontends_client.remote_commits(repository.uri, branch || repository.branch, file_name, number_of_commits, repository.username, password)
       end
     end
 
