@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 5.5.4
+    version: 5.6.1
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -203,7 +203,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.8.4+git.commit.e6cd1f726404b3f128a598dcab0a8b8dcdcbd7cc
+    version: 4.9.0+git.commit.e5450a48ed8b4ebaf7b1d78774261025ea1f654d
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.7.0
+    version: 6.7.3
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -223,7 +223,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 8.13.1
+    version: 8.13.2
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -231,7 +231,7 @@ shards:
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
-    version: 0.2.4
+    version: 0.3.0
 
   promise:
     git: https://github.com/spider-gazelle/promise.git

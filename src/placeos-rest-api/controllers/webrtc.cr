@@ -89,6 +89,7 @@ module PlaceOS::Api
       }.to_json)
     end
 
+    # for authorised users to move people from one chat to another
     @[AC::Route::POST("/transfer/:user_id/?:session_id", body: body, status: {
       Nil  => HTTP::Status::OK,
       Bool => HTTP::Status::PRECONDITION_REQUIRED,
@@ -122,8 +123,9 @@ module PlaceOS::Api
     # * create a permalink entry for systems
     # * system public flag for grabbing metadata
     # *
+
     # this route provides a guest access to an anonymous chat room
-    @[AC::Route::GET("/system/:system_id")]
+    @[AC::Route::GET("/room/:system_id")]
     def public_room(
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
       system_id : String

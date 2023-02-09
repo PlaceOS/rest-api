@@ -14058,6 +14058,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/transfer/{user_id}/{session_id}:
     post:
+      summary: for authorised users to move people from one chat to another
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#transfer_guest
@@ -14138,16 +14139,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/webrtc/system/{system_id}:
+  /api/engine/v2/webrtc/room/{system_id}:
     get:
-      summary: '* create a permalink entry for systems'
-      description: '* create a permalink entry for systems
-
-        * system public flag for grabbing metadata
-
-        *
-
-        this route provides a guest access to an anonymous chat room'
+      summary: this route provides a guest access to an anonymous chat room
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#public_room
