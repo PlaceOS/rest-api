@@ -13983,6 +13983,299 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/webrtc/guest_entry/{system_id}:
+    post:
+      summary: this route provides a guest access to an anonymous chat room
+      tags:
+      - WebRTC
+      operationId: PlaceOS::Api::WebRTC#guest_entry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__GuestParticipant'
+        required: true
+      parameters:
+      - name: system_id
+        in: path
+        description: either a system id or a unique permalink
+        example: sys-12345
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/webrtc/transfer/{user_id}/?:session_id:
+    post:
+      tags:
+      - WebRTC
+      operationId: PlaceOS::Api::WebRTC#transfer_guest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/_JSON__Any___Nil_'
+        required: true
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: session_id
+        in: path
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+        428:
+          description: Precondition Required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bool'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/webrtc/system/{system_id}:
+    get:
+      summary: '* create a permalink entry for systems'
+      description: '* create a permalink entry for systems
+
+        * system public flag for grabbing metadata
+
+        *
+
+        this route provides a guest access to an anonymous chat room'
+      tags:
+      - WebRTC
+      operationId: PlaceOS::Api::WebRTC#public_room
+      parameters:
+      - name: system_id
+        in: path
+        description: either a system id or a unique permalink
+        example: sys-12345
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__WebRTC__RoomDetails'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/webrtc/signaller:
+    get:
+      summary: WebRTC signaller endpoint, managing call participants
+      tags:
+      - WebRTC
+      operationId: PlaceOS::Api::WebRTC#signaller
+      parameters: []
+      responses:
+        101:
+          description: Switching Protocols
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/zones:
     get:
       summary: list the configured zones
@@ -18775,6 +19068,11 @@ components:
             type: string
           nickname:
             type: string
+          email:
+            type: string
+            format: email
+          phone:
+            type: string
           country:
             type: string
           image:
@@ -18816,6 +19114,8 @@ components:
         - created_at
         - name
         - nickname
+        - email
+        - phone
         - country
         - image
         - deleted
@@ -18829,6 +19129,11 @@ components:
             type: string
           nickname:
             type: string
+          email:
+            type: string
+            format: email
+          phone:
+            type: string
           country:
             type: string
           image:
@@ -18870,6 +19175,8 @@ components:
         - created_at
         - name
         - nickname
+        - email
+        - phone
         - country
         - image
         - deleted
@@ -19005,6 +19312,885 @@ components:
           nullable: true
       required:
       - groups
+    PlaceOS__Api__GuestParticipant:
+      type: object
+      properties:
+        captcha:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        chat_to_user_id:
+          type: string
+          nullable: true
+        user_id:
+          type: string
+        session_id:
+          type: string
+      required:
+      - captcha
+      - name
+      - user_id
+      - session_id
+    _JSON__Any___Nil_:
+      type: object
+      nullable: true
+    PlaceOS__Api__WebRTC__RoomDetails:
+      type: object
+      properties:
+        system:
+          type: object
+          properties:
+            id:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+            name:
+              type: string
+              nullable: true
+            description:
+              type: string
+              nullable: true
+            features:
+              type: array
+              items:
+                type: string
+              nullable: true
+            email:
+              type: string
+              format: email
+              nullable: true
+            bookable:
+              type: boolean
+              nullable: true
+            display_name:
+              type: string
+              nullable: true
+            code:
+              type: string
+              nullable: true
+            type:
+              type: string
+              nullable: true
+            capacity:
+              type: integer
+              format: Int32
+              nullable: true
+            map_id:
+              type: string
+              nullable: true
+            images:
+              type: array
+              items:
+                type: string
+              nullable: true
+            timezone:
+              type: object
+              nullable: true
+            support_url:
+              type: string
+              nullable: true
+            version:
+              type: integer
+              format: Int32
+              nullable: true
+            installed_ui_devices:
+              type: integer
+              format: Int32
+              nullable: true
+            zones:
+              type: array
+              items:
+                type: string
+              nullable: true
+            modules:
+              type: array
+              items:
+                type: string
+              nullable: true
+            remove_zones:
+              type: array
+              items:
+                type: string
+              nullable: true
+            add_zones:
+              type: array
+              items:
+                type: string
+              nullable: true
+            zone_data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  updated_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  name:
+                    type: string
+                    nullable: true
+                  description:
+                    type: string
+                    nullable: true
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+                  location:
+                    type: string
+                    nullable: true
+                  display_name:
+                    type: string
+                    nullable: true
+                  code:
+                    type: string
+                    nullable: true
+                  type:
+                    type: string
+                    nullable: true
+                  count:
+                    type: integer
+                    format: Int32
+                    nullable: true
+                  capacity:
+                    type: integer
+                    format: Int32
+                    nullable: true
+                  map_id:
+                    type: string
+                    nullable: true
+                  timezone:
+                    type: object
+                    nullable: true
+                  triggers:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+                  images:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+                  parent_id:
+                    type: string
+                    nullable: true
+                  remove_triggers:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+                  add_triggers:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+                  trigger_data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          nullable: true
+                        created_at:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        updated_at:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        name:
+                          type: string
+                          nullable: true
+                        description:
+                          type: string
+                          nullable: true
+                        actions:
+                          type: object
+                          properties:
+                            functions:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  mod:
+                                    type: string
+                                    nullable: true
+                                  method:
+                                    type: string
+                                    nullable: true
+                                  args:
+                                    type: object
+                                    additionalProperties:
+                                      type: object
+                                    nullable: true
+                              nullable: true
+                            mailers:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  emails:
+                                    type: array
+                                    items:
+                                      type: string
+                                    nullable: true
+                                  content:
+                                    type: string
+                                    nullable: true
+                              nullable: true
+                          nullable: true
+                        conditions:
+                          type: object
+                          properties:
+                            comparisons:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  left:
+                                    anyOf:
+                                    - type: boolean
+                                    - type: number
+                                      format: Float64
+                                    - type: integer
+                                      format: Int64
+                                    - type: object
+                                      properties:
+                                        mod:
+                                          type: string
+                                        status:
+                                          type: string
+                                        keys:
+                                          type: array
+                                          items:
+                                            type: string
+                                      required:
+                                      - mod
+                                      - status
+                                      - keys
+                                    - type: string
+                                    nullable: true
+                                  operator:
+                                    type: string
+                                    enum:
+                                    - and
+                                    - equal
+                                    - exclusive_or
+                                    - greater_than
+                                    - greater_than_or_equal
+                                    - less_than
+                                    - less_than_or_equal
+                                    - not_equal
+                                    - or
+                                    nullable: true
+                                  right:
+                                    anyOf:
+                                    - type: boolean
+                                    - type: number
+                                      format: Float64
+                                    - type: integer
+                                      format: Int64
+                                    - type: object
+                                      properties:
+                                        mod:
+                                          type: string
+                                        status:
+                                          type: string
+                                        keys:
+                                          type: array
+                                          items:
+                                            type: string
+                                      required:
+                                      - mod
+                                      - status
+                                      - keys
+                                    - type: string
+                                    nullable: true
+                              nullable: true
+                            time_dependents:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                    enum:
+                                    - at
+                                    - cron
+                                    nullable: true
+                                  time:
+                                    type: string
+                                    format: date-time
+                                    nullable: true
+                                  cron:
+                                    type: string
+                                    nullable: true
+                                  timezone:
+                                    type: string
+                                    nullable: true
+                              nullable: true
+                          nullable: true
+                        debounce_period:
+                          type: integer
+                          format: Int32
+                          nullable: true
+                        important:
+                          type: boolean
+                          nullable: true
+                        enable_webhook:
+                          type: boolean
+                          nullable: true
+                        supported_methods:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        control_system_id:
+                          type: string
+                          nullable: true
+                        trigger_instances:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                nullable: true
+                              created_at:
+                                type: string
+                                format: date-time
+                                nullable: true
+                              updated_at:
+                                type: string
+                                format: date-time
+                                nullable: true
+                              enabled:
+                                type: boolean
+                                nullable: true
+                              triggered:
+                                type: boolean
+                                nullable: true
+                              important:
+                                type: boolean
+                                nullable: true
+                              exec_enabled:
+                                type: boolean
+                                nullable: true
+                              webhook_secret:
+                                type: string
+                                nullable: true
+                              trigger_count:
+                                type: integer
+                                format: Int32
+                                nullable: true
+                              control_system_id:
+                                type: string
+                                nullable: true
+                              trigger_id:
+                                type: string
+                                nullable: true
+                              zone_id:
+                                type: string
+                                nullable: true
+                              name:
+                                type: string
+                                nullable: true
+                              control_system:
+                                type: object
+                                properties:
+                                  name:
+                                    type: string
+                                  id:
+                                    type: string
+                                required:
+                                - name
+                                - id
+                                nullable: true
+                          nullable: true
+                    nullable: true
+                  update_systems:
+                    type: boolean
+                required:
+                - update_systems
+              nullable: true
+            module_data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  updated_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  ip:
+                    type: string
+                    nullable: true
+                  port:
+                    type: integer
+                    format: Int32
+                    nullable: true
+                  tls:
+                    type: boolean
+                    nullable: true
+                  udp:
+                    type: boolean
+                    nullable: true
+                  makebreak:
+                    type: boolean
+                    nullable: true
+                  uri:
+                    type: string
+                    nullable: true
+                  name:
+                    type: string
+                    nullable: true
+                  custom_name:
+                    type: string
+                    nullable: true
+                  role:
+                    type: string
+                    enum:
+                    - ssh
+                    - device
+                    - service
+                    - websocket
+                    - logic
+                    nullable: true
+                  connected:
+                    type: boolean
+                    nullable: true
+                  running:
+                    type: boolean
+                    nullable: true
+                  notes:
+                    type: string
+                    nullable: true
+                  ignore_connected:
+                    type: boolean
+                    nullable: true
+                  ignore_startstop:
+                    type: boolean
+                    nullable: true
+                  control_system_id:
+                    type: string
+                    nullable: true
+                  driver_id:
+                    type: string
+                    nullable: true
+                  edge_id:
+                    type: string
+                    nullable: true
+                  driver:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      description:
+                        type: string
+                        nullable: true
+                      module_name:
+                        type: string
+                        nullable: true
+                    required:
+                    - name
+                    nullable: true
+                  compiled:
+                    type: boolean
+                    nullable: true
+                  control_system:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      zone_data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              nullable: true
+                            created_at:
+                              type: string
+                              format: date-time
+                              nullable: true
+                            updated_at:
+                              type: string
+                              format: date-time
+                              nullable: true
+                            name:
+                              type: string
+                              nullable: true
+                            description:
+                              type: string
+                              nullable: true
+                            tags:
+                              type: array
+                              items:
+                                type: string
+                              nullable: true
+                            location:
+                              type: string
+                              nullable: true
+                            display_name:
+                              type: string
+                              nullable: true
+                            code:
+                              type: string
+                              nullable: true
+                            type:
+                              type: string
+                              nullable: true
+                            count:
+                              type: integer
+                              format: Int32
+                              nullable: true
+                            capacity:
+                              type: integer
+                              format: Int32
+                              nullable: true
+                            map_id:
+                              type: string
+                              nullable: true
+                            timezone:
+                              type: object
+                              nullable: true
+                            triggers:
+                              type: array
+                              items:
+                                type: string
+                              nullable: true
+                            images:
+                              type: array
+                              items:
+                                type: string
+                              nullable: true
+                            parent_id:
+                              type: string
+                              nullable: true
+                            remove_triggers:
+                              type: array
+                              items:
+                                type: string
+                              nullable: true
+                            add_triggers:
+                              type: array
+                              items:
+                                type: string
+                              nullable: true
+                            trigger_data:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                    nullable: true
+                                  created_at:
+                                    type: string
+                                    format: date-time
+                                    nullable: true
+                                  updated_at:
+                                    type: string
+                                    format: date-time
+                                    nullable: true
+                                  name:
+                                    type: string
+                                    nullable: true
+                                  description:
+                                    type: string
+                                    nullable: true
+                                  actions:
+                                    type: object
+                                    properties:
+                                      functions:
+                                        type: array
+                                        items:
+                                          type: object
+                                          properties:
+                                            mod:
+                                              type: string
+                                              nullable: true
+                                            method:
+                                              type: string
+                                              nullable: true
+                                            args:
+                                              type: object
+                                              additionalProperties:
+                                                type: object
+                                              nullable: true
+                                        nullable: true
+                                      mailers:
+                                        type: array
+                                        items:
+                                          type: object
+                                          properties:
+                                            emails:
+                                              type: array
+                                              items:
+                                                type: string
+                                              nullable: true
+                                            content:
+                                              type: string
+                                              nullable: true
+                                        nullable: true
+                                    nullable: true
+                                  conditions:
+                                    type: object
+                                    properties:
+                                      comparisons:
+                                        type: array
+                                        items:
+                                          type: object
+                                          properties:
+                                            left:
+                                              anyOf:
+                                              - type: boolean
+                                              - type: number
+                                                format: Float64
+                                              - type: integer
+                                                format: Int64
+                                              - type: object
+                                                properties:
+                                                  mod:
+                                                    type: string
+                                                  status:
+                                                    type: string
+                                                  keys:
+                                                    type: array
+                                                    items:
+                                                      type: string
+                                                required:
+                                                - mod
+                                                - status
+                                                - keys
+                                              - type: string
+                                              nullable: true
+                                            operator:
+                                              type: string
+                                              enum:
+                                              - and
+                                              - equal
+                                              - exclusive_or
+                                              - greater_than
+                                              - greater_than_or_equal
+                                              - less_than
+                                              - less_than_or_equal
+                                              - not_equal
+                                              - or
+                                              nullable: true
+                                            right:
+                                              anyOf:
+                                              - type: boolean
+                                              - type: number
+                                                format: Float64
+                                              - type: integer
+                                                format: Int64
+                                              - type: object
+                                                properties:
+                                                  mod:
+                                                    type: string
+                                                  status:
+                                                    type: string
+                                                  keys:
+                                                    type: array
+                                                    items:
+                                                      type: string
+                                                required:
+                                                - mod
+                                                - status
+                                                - keys
+                                              - type: string
+                                              nullable: true
+                                        nullable: true
+                                      time_dependents:
+                                        type: array
+                                        items:
+                                          type: object
+                                          properties:
+                                            type:
+                                              type: string
+                                              enum:
+                                              - at
+                                              - cron
+                                              nullable: true
+                                            time:
+                                              type: string
+                                              format: date-time
+                                              nullable: true
+                                            cron:
+                                              type: string
+                                              nullable: true
+                                            timezone:
+                                              type: string
+                                              nullable: true
+                                        nullable: true
+                                    nullable: true
+                                  debounce_period:
+                                    type: integer
+                                    format: Int32
+                                    nullable: true
+                                  important:
+                                    type: boolean
+                                    nullable: true
+                                  enable_webhook:
+                                    type: boolean
+                                    nullable: true
+                                  supported_methods:
+                                    type: array
+                                    items:
+                                      type: string
+                                    nullable: true
+                                  control_system_id:
+                                    type: string
+                                    nullable: true
+                                  trigger_instances:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        id:
+                                          type: string
+                                          nullable: true
+                                        created_at:
+                                          type: string
+                                          format: date-time
+                                          nullable: true
+                                        updated_at:
+                                          type: string
+                                          format: date-time
+                                          nullable: true
+                                        enabled:
+                                          type: boolean
+                                          nullable: true
+                                        triggered:
+                                          type: boolean
+                                          nullable: true
+                                        important:
+                                          type: boolean
+                                          nullable: true
+                                        exec_enabled:
+                                          type: boolean
+                                          nullable: true
+                                        webhook_secret:
+                                          type: string
+                                          nullable: true
+                                        trigger_count:
+                                          type: integer
+                                          format: Int32
+                                          nullable: true
+                                        control_system_id:
+                                          type: string
+                                          nullable: true
+                                        trigger_id:
+                                          type: string
+                                          nullable: true
+                                        zone_id:
+                                          type: string
+                                          nullable: true
+                                        name:
+                                          type: string
+                                          nullable: true
+                                        control_system:
+                                          type: object
+                                          properties:
+                                            name:
+                                              type: string
+                                            id:
+                                              type: string
+                                          required:
+                                          - name
+                                          - id
+                                          nullable: true
+                                    nullable: true
+                              nullable: true
+                            update_systems:
+                              type: boolean
+                          required:
+                          - update_systems
+                    required:
+                    - name
+                    - zone_data
+                    nullable: true
+              nullable: true
+            update_triggers:
+              type: boolean
+          required:
+          - update_triggers
+        metadata:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              details:
+                type: object
+              parent_id:
+                type: string
+                nullable: true
+              schema_id:
+                type: string
+                nullable: true
+              editors:
+                type: array
+                items:
+                  type: string
+              modified_by_id:
+                type: string
+                nullable: true
+              updated_at:
+                type: string
+                format: date-time
+              created_at:
+                type: string
+                format: date-time
+            required:
+            - name
+            - description
+            - details
+            - editors
+            - updated_at
+            - created_at
+      required:
+      - system
+      - metadata
     PlaceOS__Api__Zones__ZoneExecResponse:
       type: object
       properties:
