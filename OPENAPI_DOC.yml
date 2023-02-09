@@ -14056,7 +14056,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/webrtc/transfer/{user_id}/?:session_id:
+  /api/engine/v2/webrtc/transfer/{user_id}/{session_id}:
     post:
       tags:
       - WebRTC
