@@ -92,7 +92,7 @@ module PlaceOS::Api
 
       jwt = JWT.encode(payload, jwt_secret, JWT::Algorithm::RS256)
       response.cookies << HTTP::Cookie.new(
-        name: "api-key",
+        name: "bearer_token",
         value: jwt,
         path: "/api/engine/v2/webrtc",
         expires: expires,
