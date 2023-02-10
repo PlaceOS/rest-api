@@ -6,6 +6,10 @@ module PlaceOS::Api
   class WebRTC < Application
     base "/api/engine/v2/webrtc/"
 
+    # skip authentication for guest_entry and 
+    skip_action :authorize!, only: [:guest_entry, :public_room]
+    skip_action :set_user_id, only: [:guest_entry, :public_room]
+
     struct CaptchaResponse
       include JSON::Serializable
 
@@ -63,7 +67,7 @@ module PlaceOS::Api
           end
         end
       else
-        raise Error::RecaptchaFailed.new("recaptcha not configured")
+        raise Error::RecaptchaFailed.new("recaptcha not configured") unless authority.internals["recaptcha_skip"]? == true
       end
 
       payload = {

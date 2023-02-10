@@ -4,6 +4,10 @@ module PlaceOS::Api
   class MQTT < Application
     base "/api/engine/v2/mqtt/"
 
+    # skip authentication for the healthcheck
+    skip_action :authorize!, only: [:mqtt_user, :mqtt_access]
+    skip_action :set_user_id, only: [:mqtt_user, :mqtt_access]
+
     # For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
     # jwt_response_mode: status, jwt_params_mode: form
     @[AC::Route::POST("/user")]
