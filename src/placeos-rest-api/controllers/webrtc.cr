@@ -6,9 +6,12 @@ module PlaceOS::Api
   class WebRTC < Application
     base "/api/engine/v2/webrtc/"
 
-    # skip authentication for guest_entry and 
+    # skip authentication for guest_entry and room details
     skip_action :authorize!, only: [:guest_entry, :public_room]
     skip_action :set_user_id, only: [:guest_entry, :public_room]
+
+    # allow guest access to the signalling route
+    before_action :can_read_guest, only: [:signaller]
 
     struct CaptchaResponse
       include JSON::Serializable
@@ -70,10 +73,11 @@ module PlaceOS::Api
         raise Error::RecaptchaFailed.new("recaptcha not configured") unless authority.internals["recaptcha_skip"]? == true
       end
 
+      expires = 12.hours.from_now
       payload = {
         iss:   "POS",
         iat:   1.minute.ago.to_unix,
-        exp:   12.hours.from_now.to_unix,
+        exp:   expires.to_unix,
         jti:   UUID.random.to_s,
         aud:   authority.domain,
         scope: ["guest"],
@@ -87,7 +91,16 @@ module PlaceOS::Api
       }
 
       jwt = JWT.encode(payload, jwt_secret, JWT::Algorithm::RS256)
-      cookies["api-key"] = jwt
+      response.cookies << HTTP::Cookie.new(
+        name: "api-key",
+        value: jwt,
+        path: "/api/engine/v2/webrtc",
+        expires: expires,
+        secure: true,
+        http_only: true,
+        samesite: :strict
+      )
+
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.domain}/guest/entry", {
         system_id => guest,
       }.to_json)
