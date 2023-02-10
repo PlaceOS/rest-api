@@ -180,10 +180,14 @@ module PlaceOS::Api
       remove_from_call(connect_details)
 
       # send the user a Transfer signal
-      connect_details.session_id = session_id || connect_details.session_id
-      connect_details.value = payload
-      connect_details.type = :transfer
-      send_signal(websocket, connect_details)
+      send_signal(websocket, SessionSignal.new(
+        id: "SIGNAL::#{Time.utc.to_unix_ms}+#{Random::Secure.hex(6)}",
+        type: :transfer,
+        session_id: session_id || connect_details.session_id,
+        user_id: "SERVER::DATA",
+        to_user: user_id,
+        value: payload
+      ))
       TransferResult::SignalSent
     end
   end

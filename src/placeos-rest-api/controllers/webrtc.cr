@@ -81,7 +81,7 @@ module PlaceOS::Api
         jti:   UUID.random.to_s,
         aud:   authority.domain,
         scope: ["guest"],
-        sub:   guest.user_id,
+        sub:   "guest-#{UUID.random}",
         u:     {
           n: guest.name,
           e: guest.email || "#{guest.phone}@phone" || "#{guest.name}@unknown",
