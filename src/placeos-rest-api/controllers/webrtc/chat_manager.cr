@@ -167,6 +167,13 @@ module PlaceOS::Api
       SignalSent
     end
 
+    # the user has exited chat
+    def end_call(user_id : String)
+      # find the users websocket
+      websocket = user_lookup[user_id]?
+      websocket.try &.close
+    end
+
     # transfer a user to a new chat room
     def transfer(user_id : String, session_id : String? = nil, payload : String? = nil) : TransferResult
       # find the users websocket

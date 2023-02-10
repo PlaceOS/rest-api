@@ -11,7 +11,7 @@ module PlaceOS::Api
     skip_action :set_user_id, only: [:guest_entry, :public_room]
 
     # allow guest access to the signalling route
-    before_action :can_read_guest, only: [:signaller]
+    before_action :can_read_guest, only: [:signaller, guest_exit]
 
     struct CaptchaResponse
       include JSON::Serializable
@@ -104,6 +104,25 @@ module PlaceOS::Api
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.domain}/guest/entry", {
         system_id => guest,
       }.to_json)
+    end
+
+    @[AC::Route::POST("/guest_exit")]
+    def guest_exit : Nil
+      response.cookies << HTTP::Cookie.new(
+        name: "bearer_token",
+        value: "",
+        path: "/api/engine/v2/webrtc",
+        expires: Time.utc,
+        secure: true,
+        http_only: true,
+        samesite: :strict
+      )
+
+      token = user_token
+      if token.scope.first == "guest" && token.id.starts_with?("guest-")
+        user_id = token.user.roles.first
+        MANAGER.end_call(user_id)
+      end
     end
 
     # for authorised users to move people from one chat to another
