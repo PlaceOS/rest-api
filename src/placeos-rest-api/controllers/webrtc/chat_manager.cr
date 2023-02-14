@@ -42,7 +42,7 @@ module PlaceOS::Api
         case signal.type
         when .join?
           on_join_signal(websocket, signal, auth_id)
-        when .offer?, .answer?, .candidate?
+        when .offer?, .answer?, .candidate?, .leave?
           forward_signal(websocket, signal)
         else
           Log.warn { "user #{user_id} sent unsupported signal #{signal.type}" }
@@ -67,19 +67,17 @@ module PlaceOS::Api
       call = calls[connect_details.session_id]?
       return unless call
 
-      if call.peers.size == 1
-        # call is empty so we just delete
-        calls.delete connect_details.session_id
-      else
-        # inform the call peers that the user is gone
-        call.peers.delete connect_details.user_id
-        call.updated_at = Time.utc
+      # inform the call peers that the user is gone
+      call.peers.delete connect_details.user_id
+      call.updated_at = Time.utc
 
-        connect_details.type = :leave
-        call.peers.each_value do |ws|
-          send_signal(ws, connect_details)
-        end
+      connect_details.type = :leave
+      call.peers.each_value do |ws|
+        send_signal(ws, connect_details)
       end
+
+      # cleanup empty sessions
+      calls.delete(connect_details.session_id) if call.peers.empty?
     end
 
     def create_new_call(signal) : CallDetails
@@ -172,6 +170,28 @@ module PlaceOS::Api
       # find the users websocket
       websocket = user_lookup[user_id]?
       websocket.try &.close
+    end
+
+    def kick_user(user_id : String, session_id : String)
+      # find the users websocket
+      websocket = user_lookup[user_id]?
+      return unless websocket
+
+      connect_details = sockets[websocket]?
+      return unless connect_details
+
+      # remove the user from the current call
+      remove_from_call(connect_details)
+
+      # send the kicked user a leave signal
+      send_signal(websocket, SessionSignal.new(
+        id: "SIGNAL::#{Time.utc.to_unix_ms}+#{Random::Secure.hex(6)}",
+        type: :leave,
+        session_id: session_id,
+        user_id: user_id,
+        to_user: user_id,
+        value: nil
+      ))
     end
 
     # transfer a user to a new chat room

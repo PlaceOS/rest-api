@@ -106,7 +106,7 @@ module PlaceOS::Api
       }.to_json)
     end
 
-    @[AC::Route::POST("/guest_exit")]
+    @[AC::Route::POST("/guest/exit")]
     def guest_exit : Nil
       response.cookies << HTTP::Cookie.new(
         name: "bearer_token",
@@ -123,6 +123,13 @@ module PlaceOS::Api
         user_id = token.user.roles.first
         MANAGER.end_call(user_id)
       end
+    end
+
+    # Call ended for user
+    # send a leave signal to the user from the user (no value)
+    @[AC::Route::POST("/kick/:user_id/:session_id")]
+    def kick_user(user_id : String, session_id : String) : Nil
+      MANAGER.kick_user(user_id, session_id)
     end
 
     # for authorised users to move people from one chat to another

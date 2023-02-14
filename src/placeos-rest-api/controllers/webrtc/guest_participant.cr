@@ -3,6 +3,7 @@ require "json"
 module PlaceOS::Api
   class GuestParticipant
     include JSON::Serializable
+    include JSON::Serializable::Unmapped
 
     property captcha : String
     property name : String
