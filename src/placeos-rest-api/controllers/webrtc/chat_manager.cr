@@ -204,7 +204,7 @@ module PlaceOS::Api
       return TransferResult::NoSession unless connect_details
 
       # remove the user from the current call
-      remove_from_call(connect_details)
+      remove_from_call(connect_details) if session_id && session_id != connect_details.session_id
 
       # send the user a Transfer signal
       send_signal(websocket, SessionSignal.new(
