@@ -35,6 +35,9 @@ module PlaceOS::Api
     @[JSON::Field(ignore: true)]
     property place_user_id : String? = nil
 
+    @[JSON::Field(ignore: true)]
+    property place_auth_id : String? = nil
+
     # the id of the user we want to communicate with
     getter to_user : String?
 

@@ -102,7 +102,7 @@ module PlaceOS::Api
       )
 
       # signals routed to the system id that represents the application managing the chat
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.domain}/chat/#{system_id}/guest/entry", {
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.id}/chat/#{system_id}/guest/entry", {
         system_id => guest,
       }.to_json)
     end
@@ -128,9 +128,16 @@ module PlaceOS::Api
 
     # Call ended for user
     # send a leave signal to the user from the user (no value)
-    @[AC::Route::POST("/kick/:user_id/:session_id")]
-    def kick_user(user_id : String, session_id : String) : Nil
-      MANAGER.kick_user(user_id, session_id)
+    @[AC::Route::POST("/kick/:user_id/:session_id", body: details)]
+    def kick_user(user_id : String, session_id : String, details : KickReason) : Nil
+      MANAGER.kick_user(user_id, session_id, details)
+    end
+
+    # Call ended for user
+    # send a leave signal to the user from the user (no value)
+    @[AC::Route::GET("/members/:session_id")]
+    def members(session_id : String) : Array(String)
+      MANAGER.member_list(session_id)
     end
 
     # for authorised users to move people from one chat to another
