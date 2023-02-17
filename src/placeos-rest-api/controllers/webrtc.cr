@@ -101,7 +101,8 @@ module PlaceOS::Api
         samesite: :strict
       )
 
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.domain}/guest/entry", {
+      # signals routed to the system id that represents the application managing the chat
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.domain}/chat/#{system_id}/guest/entry", {
         system_id => guest,
       }.to_json)
     end
