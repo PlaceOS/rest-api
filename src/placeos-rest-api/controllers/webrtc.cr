@@ -133,8 +133,7 @@ module PlaceOS::Api
       MANAGER.kick_user(user_id, session_id, details)
     end
 
-    # Call ended for user
-    # send a leave signal to the user from the user (no value)
+    # Obtain a list of the connected users in chat session provided
     @[AC::Route::GET("/members/:session_id")]
     def members(session_id : String) : Array(String)
       MANAGER.member_list(session_id)
@@ -182,7 +181,13 @@ module PlaceOS::Api
       system_id : String
     ) : RoomDetails
       # TODO:: check the system is public
-      system = Model::ControlSystem.find!(system_id, runopts: {"read_mode" => "majority"})
+      system = if system_id.starts_with? "sys-"
+        Model::ControlSystem.find!(system_id, runopts: {"read_mode" => "majority"})
+      else
+        res = Model::ControlSystem.where(name: system_id).first?
+        raise Error::NotFound.new("could not find room #{system_id}") unless res
+        res
+      end
       meta = Model::Metadata.build_metadata(system_id, nil)
       RoomDetails.new(system, meta)
     end
