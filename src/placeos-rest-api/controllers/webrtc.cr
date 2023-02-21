@@ -13,6 +13,30 @@ module PlaceOS::Api
     # allow guest access to the signalling route
     before_action :can_read_guest, only: [:signaller, guest_exit]
 
+    ###############################################################################################
+
+    @[AC::Route::Filter(:before_action, only: [:guest_entry, :public_room])]
+    def find_current_control_system(
+      @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
+      system_id : String
+    )
+      system = if system_id.starts_with? "sys-"
+        Model::ControlSystem.find!(system_id, runopts: {"read_mode" => "majority"})
+      else
+        res = Model::ControlSystem.where(name: system_id).first?
+        raise Error::NotFound.new("could not find room #{system_id}") unless res
+        res
+      end
+
+      Log.context.set(control_system_id: system.id.not_nil!)
+      @current_control_system = system
+    end
+
+    getter! current_control_system : Model::ControlSystem
+
+    # Response helpers
+    ###############################################################################################
+
     struct CaptchaResponse
       include JSON::Serializable
 
@@ -26,6 +50,8 @@ module PlaceOS::Api
       class GuestAccessDisabled < Error
       end
     end
+
+    ###############################################################################################
 
     # 401 if recaptcha fails
     @[AC::Route::Exception(Error::RecaptchaFailed, status_code: HTTP::Status::UNAUTHORIZED)]
@@ -101,9 +127,22 @@ module PlaceOS::Api
         samesite: :strict
       )
 
+      # check if there is alternative room handling the chat members
+      system = current_control_system
+      chat_system = system.id
+      system.zones.each do |zone_id|
+        meta = Model::Metadata.build_metadata(zone_id, "bindings")
+        if payload = meta["bindings"]?.try(&.details)
+          if chat_room = payload["chat_room"]?.try(&.as_s?)
+            chat_system = chat_room
+            break
+          end
+        end
+      end
+
       # signals routed to the system id that represents the application managing the chat
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.id}/chat/#{system_id}/guest/entry", {
-        system_id => guest,
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.id}/chat/#{chat_system}/guest/entry", {
+        system.id.not_nil! => guest,
       }.to_json)
     end
 
@@ -181,14 +220,8 @@ module PlaceOS::Api
       system_id : String
     ) : RoomDetails
       # TODO:: check the system is public
-      system = if system_id.starts_with? "sys-"
-        Model::ControlSystem.find!(system_id, runopts: {"read_mode" => "majority"})
-      else
-        res = Model::ControlSystem.where(name: system_id).first?
-        raise Error::NotFound.new("could not find room #{system_id}") unless res
-        res
-      end
-      meta = Model::Metadata.build_metadata(system_id, nil)
+      system = current_control_system
+      meta = Model::Metadata.build_metadata(system.id.not_nil!, nil)
       RoomDetails.new(system, meta)
     end
 
