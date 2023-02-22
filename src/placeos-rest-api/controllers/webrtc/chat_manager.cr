@@ -26,6 +26,33 @@ module PlaceOS::Api
     Log = ::Log.for(self)
 
     def initialize(@ice_config)
+      spawn { ping_sockets }
+    end
+
+    protected def ping_sockets
+      loop do
+        begin
+          sleep 30
+          connections = sockets.dup
+          id = "SIGNAL::#{Time.utc.to_unix_ms}+#{Random::Secure.hex(6)}"
+          connections.each do |websocket, session|
+            perform_ping(id, websocket, session)
+          end
+        rescue
+        end
+      end
+    end
+
+    protected def perform_ping(id, websocket, session)
+      send_signal(websocket, SessionSignal.new(
+        id: id,
+        type: :ping,
+        session_id: session.session_id,
+        user_id: "SERVER::DATA",
+        to_user: session.user_id,
+        value: "{}"
+      ))
+    rescue
     end
 
     # authority_id => config string
