@@ -180,7 +180,7 @@ end
 
 # Binds to the system websocket endpoint
 #
-def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) {})
+def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) {}, &)
   host = "localhost"
   bearer = auth["Authorization"].split(' ').last
   path = File.join(base, "control?bearer_token=#{bearer}")
@@ -200,7 +200,7 @@ end
 # Binds to the websocket API
 # Yields API websocket, and a control system + module
 # Cleans up the websocket and models
-def test_websocket_api(base, headers)
+def test_websocket_api(base, headers, &)
   # Create a System
   control_system = PlaceOS::Model::Generator.control_system.save!
 
@@ -228,7 +228,7 @@ def test_websocket_api(base, headers)
   {updates, control_system, mod}
 end
 
-def test_websocket_exec(base, headers)
+def test_websocket_exec(base, headers, &)
   control_system = PlaceOS::Model::Generator.control_system.save!
   mod = PlaceOS::Model::Generator.module(control_system: control_system).save!
 

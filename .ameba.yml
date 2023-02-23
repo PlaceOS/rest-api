@@ -1,0 +1,12 @@
+Lint/NotNil:
+  Enabled: false
+Style/PredicateName:
+  Enabled: false
+Style/QueryBoolMethods:
+  Enabled: false
+Lint/LiteralInInterpolation:
+  Enabled: false
+Style/ParenthesesAroundCondition:
+  Enabled: false
+  ExcludeTernary: true
+  AllowSafeAssignment: true
