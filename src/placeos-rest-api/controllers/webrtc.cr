@@ -23,10 +23,13 @@ module PlaceOS::Api
       system = if system_id.starts_with? "sys-"
                  Model::ControlSystem.find!(system_id, runopts: {"read_mode" => "majority"})
                else
-                 res = Model::ControlSystem.where(name: system_id).first?
+                 res = Model::ControlSystem.where(code: system_id).first?
                  raise Error::NotFound.new("could not find room #{system_id}") unless res
                  res
                end
+
+      # ensure the system is public
+      raise Error::NotFound.new("could not find room #{system_id}") unless system.public
 
       Log.context.set(control_system_id: system.id.not_nil!)
       @current_control_system = system
@@ -71,10 +74,6 @@ module PlaceOS::Api
     ) : Nil
       jwt_secret = JWT_SECRET
       raise Error::GuestAccessDisabled.new("guest access not enabled") unless jwt_secret
-
-      # TODO:: ensure the system is valid and exists
-      # the system id that defines the name and rules for a collection of chats
-      # note, this is not a chat, it represents a collection of chats
 
       # captcha, name, phone, type, chat_to_user_id, room_id, guest_chat_id (user_id), session_id
       authority = current_authority.not_nil!
@@ -161,6 +160,14 @@ module PlaceOS::Api
       token = user_token
       if token.scope.first == "guest" && token.id.starts_with?("guest-")
         user_id = token.user.roles.first
+        self.class.end_call(user_id)
+      end
+    end
+
+    def self.end_call(user_id)
+      spawn do
+        # give the browser a moment to update its cookie
+        sleep 1
         MANAGER.end_call(user_id)
       end
     end
@@ -209,17 +216,12 @@ module PlaceOS::Api
       end
     end
 
-    # * create a permalink entry for systems
-    # * system public flag for grabbing metadata
-    # *
-
     # this route provides a guest access to an anonymous chat room
     @[AC::Route::GET("/room/:system_id")]
     def public_room(
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
       system_id : String
     ) : RoomDetails
-      # TODO:: check the system is public
       system = current_control_system
       meta = Model::Metadata.build_metadata(system.id.not_nil!, nil)
       RoomDetails.new(system, meta)

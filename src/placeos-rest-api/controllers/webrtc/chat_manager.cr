@@ -2,7 +2,17 @@ require "http"
 require "./kick_reason"
 
 module PlaceOS::Api
-  # TODO:: this will live in redis once testing is complete
+  # this will live in redis once testing is complete
+  class PeerList
+    def initialize
+      @local_peers = Hash(String, HTTP::WebSocket).new
+    end
+
+    def []=(key : String, value : HTTP::WebSocket)
+      @local_peers[key] = value
+    end
+  end
+
   class CallDetails
     include JSON::Serializable
 
@@ -55,6 +65,10 @@ module PlaceOS::Api
     rescue
     end
 
+    protected def redis_publish(path : String, payload)
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload.to_json)
+    end
+
     # authority_id => config string
     private getter ice_config : Hash(String, String)
     private getter calls = {} of String => CallDetails
@@ -92,9 +106,9 @@ module PlaceOS::Api
           remove_from_call(connect_details)
 
           # signals routed to the system id that represents the application managing the chat
-          ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{auth_id}/chat/user/left", {
+          redis_publish("placeos/#{auth_id}/chat/user/left", {
             connect_details.session_id => connect_details.user_id,
-          }.to_json)
+          })
         end
       end
     end
@@ -172,9 +186,9 @@ module PlaceOS::Api
       ))
 
       # signals routed to the system id that represents the application managing the chat
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{signal.place_auth_id}/chat/user/joined", {
+      redis_publish("placeos/#{signal.place_auth_id}/chat/user/joined", {
         signal.session_id => signal.user_id,
-      }.to_json)
+      })
     end
 
     def forward_signal(websocket, signal) : Nil
@@ -210,7 +224,18 @@ module PlaceOS::Api
     def end_call(user_id : String)
       # find the users websocket
       websocket = user_lookup[user_id]?
-      websocket.try &.close
+      return unless websocket
+      connect_details = sockets[websocket]?
+
+      begin
+        websocket.close
+      rescue error
+      end
+
+      return unless connect_details
+      redis_publish("placeos/#{connect_details.place_auth_id}/chat/user/exited", {
+        connect_details.session_id => connect_details.user_id,
+      })
     end
 
     def kick_user(user_id : String, session_id : String, details : KickReason)
@@ -223,6 +248,10 @@ module PlaceOS::Api
 
       # remove the user from the current call
       remove_from_call(connect_details)
+
+      redis_publish("placeos/#{connect_details.place_auth_id}/chat/user/exited", {
+        connect_details.session_id => connect_details.user_id,
+      })
 
       # send the kicked user a leave signal
       send_signal(websocket, SessionSignal.new(
