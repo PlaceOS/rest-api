@@ -404,6 +404,11 @@ module PlaceOS::Api::WebSocket
       respond(response)
     end
 
+    # ensure the client is still there, we send pong as the existing clients ignore this
+    def ping
+      write("pong")
+    end
+
     # Shutdown handler
     #
     def cleanup

@@ -2,17 +2,6 @@ require "http"
 require "./kick_reason"
 
 module PlaceOS::Api
-  # this will live in redis once testing is complete
-  class PeerList
-    def initialize
-      @local_peers = Hash(String, HTTP::WebSocket).new
-    end
-
-    def []=(key : String, value : HTTP::WebSocket)
-      @local_peers[key] = value
-    end
-  end
-
   class CallDetails
     include JSON::Serializable
 
@@ -36,17 +25,27 @@ module PlaceOS::Api
     Log = ::Log.for(self)
 
     def initialize(@ice_config)
+      # grab the existing `PlaceOS::Driver::Subscriptions` instance
+      subscriber = PlaceOS::Api::WebSocket::Session.subscriptions.@subscriber
+      subscriber.channel("chat/forward_signal") do ||
+        #TODO
+      end
+
       spawn { ping_sockets }
     end
 
+    SESSIONS = ClusteredSessions.new
+
     protected def ping_sockets
       loop do
+        sleep 30
+
+        # ping the sockets to ensure connectivity
         begin
-          sleep 30
           connections = sockets.dup
           id = "SIGNAL::#{Time.utc.to_unix_ms}+#{Random::Secure.hex(6)}"
           connections.each do |websocket, session|
-            perform_ping(id, websocket, session)
+            perform_ping(id, websocket, session) rescue Exception
           end
         rescue
         end
@@ -221,20 +220,14 @@ module PlaceOS::Api
     end
 
     # the user has exited chat
-    def end_call(user_id : String)
+    def end_call(user_id : String, auth_id : String)
       # find the users websocket
       websocket = user_lookup[user_id]?
-      return unless websocket
-      connect_details = sockets[websocket]?
+      websocket.try(&.close)
 
-      begin
-        websocket.close
-      rescue error
-      end
-
-      return unless connect_details
-      redis_publish("placeos/#{connect_details.place_auth_id}/chat/user/exited", {
-        connect_details.session_id => connect_details.user_id,
+      # signal the user exited
+      redis_publish("placeos/#{auth_id}/chat/user/exited", {
+        user_id: user_id,
       })
     end
 
@@ -250,7 +243,7 @@ module PlaceOS::Api
       remove_from_call(connect_details)
 
       redis_publish("placeos/#{connect_details.place_auth_id}/chat/user/exited", {
-        connect_details.session_id => connect_details.user_id,
+        user_id: connect_details.user_id,
       })
 
       # send the kicked user a leave signal

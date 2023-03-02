@@ -160,15 +160,19 @@ module PlaceOS::Api
       token = user_token
       if token.scope.first == "guest" && token.id.starts_with?("guest-")
         user_id = token.user.roles.first
-        self.class.end_call(user_id)
+        authority = current_authority.not_nil!
+        auth_id = authority.id.as(String)
+        self.class.end_call(user_id, auth_id)
       end
     end
 
-    def self.end_call(user_id)
+    def self.end_call(user_id, auth_id)
       spawn do
         # give the browser a moment to update its cookie
+        # we don't want them reconnecting
         sleep 1
-        MANAGER.end_call(user_id)
+        Log.info { "signalling end call for #{user_id} on #{auth_id}" }
+        MANAGER.end_call(user_id, auth_id)
       end
     end
 

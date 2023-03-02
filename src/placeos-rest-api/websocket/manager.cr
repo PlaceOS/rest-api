@@ -20,6 +20,9 @@ module PlaceOS::Api::WebSocket
       spawn(name: "cleanup_sessions", same_thread: true) do
         cleanup_sessions
       end
+      spawn(name: "ping_sockets", same_thread: true) do
+        ping_sockets
+      end
     end
 
     # Creates the session and handles the cleanup
@@ -48,6 +51,19 @@ module PlaceOS::Api::WebSocket
         Log.trace { "shrinking sessions array" }
         # NOTE: As crystal arrays do not shrink, we create a new one periodically
         session_lock.synchronize { @sessions = sessions.dup }
+      end
+    end
+
+    protected def ping_sockets
+      loop do
+        sleep 80
+        begin
+          connections = session_lock.synchronize { sessions.dup }
+          connections.each do |session|
+            session.ping rescue Exception
+          end
+        rescue
+        end
       end
     end
   end
