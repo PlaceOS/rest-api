@@ -97,7 +97,7 @@ module PlaceOS::Api
       if current_driver.commit.starts_with?("RECOMPILE")
         nil
       else
-        if (recompiled = Drivers.recompile(current_driver))
+        if recompiled = Drivers.recompile(current_driver)
           if recompiled.destroyed?
             raise Error::NotFound.new("driver was deleted")
           else
@@ -114,8 +114,7 @@ module PlaceOS::Api
       driver.update_fields(commit: "RECOMPILE-#{driver.commit}")
 
       # Wait until the commit hash is not head with a timeout of 90 seconds
-      # ameba:disable Style/RedundantReturn
-      return Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
+      Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
         update.destroyed? || !update.recompile_commit?
       end
     end

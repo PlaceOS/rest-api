@@ -42,7 +42,7 @@ module PlaceOS::Api
     # - x-api-key
     # - JWTs
     protected def mqtt_parse_jwt(validate : Bool = true)
-      unless (auth = request.headers["Authorization"]?)
+      unless auth = request.headers["Authorization"]?
         raise Error::Unauthorized.new("missing mqtt token")
       end
 
@@ -50,7 +50,7 @@ module PlaceOS::Api
       when 1 # work with x-api-key
         @user_token = Model::ApiKey.find_key!(auth.lchop("Bearer ").rstrip).build_jwt
       when 2 # work with jwt-token
-        unless (token = acquire_token)
+        unless token = acquire_token
           raise Error::Unauthorized.new("missing mqtt token")
         end
 

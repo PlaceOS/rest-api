@@ -1,7 +1,7 @@
 require "../helper"
 
 module PlaceOS::Api
-  describe ClusteredSessions, focus: true do
+  describe ClusteredSessions do
     sessions = ClusteredSessions.new
     session_id = UUID.random.to_s
     user_id = UUID.random.to_s
@@ -17,6 +17,8 @@ module PlaceOS::Api
       sessions.add_user(session_id, user_id)
       sessions.local_sessions.should eq [session_id]
       sessions.user_list(session_id).should eq [user_id]
+
+      sessions.lookup_session(user_id).should eq session_id
     end
 
     it "removes a user from a session" do

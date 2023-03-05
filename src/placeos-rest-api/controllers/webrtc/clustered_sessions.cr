@@ -28,6 +28,10 @@ class PlaceOS::Api::ClusteredSessions
     "placeos:chat:session:#{Digest::SHA1.hexdigest(session_id)}"
   end
 
+  def user_key(user_id : String) : String
+    "placeos:chat:user:#{Digest::SHA1.hexdigest(user_id)}"
+  end
+
   def user_list(session_id : String) : Array(String)
     result = with_redis &.smembers(set_key(session_id))
     result.compact_map &.as?(String)
@@ -36,9 +40,18 @@ class PlaceOS::Api::ClusteredSessions
   def add_user(session_id : String, user_id : String) : Nil
     redis_key = set_key(session_id)
     @session_mutex.synchronize { @sessions[session_id] << user_id }
-    with_redis &.pipelined(redis_key, reconnect: true) do |pipeline|
-      pipeline.sadd(redis_key, user_id)
-      pipeline.expire(redis_key, TTL_SECONDS)
+    with_redis do |redis|
+      redis.pipelined(redis_key, reconnect: true) do |pipeline|
+        pipeline.sadd(redis_key, user_id)
+        pipeline.expire(redis_key, TTL_SECONDS)
+      end
+      redis.set(user_key(user_id), session_id, ex: 24.hours.total_seconds.to_i)
+    end
+  end
+
+  def lookup_session(user_id : String)
+    with_redis do |redis|
+      redis.get(user_key(user_id))
     end
   end
 
@@ -51,9 +64,12 @@ class PlaceOS::Api::ClusteredSessions
 
     # if the set above is empty then this node will let the session expire
     redis_key = set_key(session_id)
-    with_redis &.pipelined(redis_key, reconnect: true) do |pipeline|
-      pipeline.srem(redis_key, user_id)
-      pipeline.expire(redis_key, TTL_SECONDS)
+    with_redis do |redis|
+      redis.pipelined(redis_key, reconnect: true) do |pipeline|
+        pipeline.srem(redis_key, user_id)
+        pipeline.expire(redis_key, TTL_SECONDS)
+      end
+      # NOTE:: don't remove the user lookup to avoid race conditions
     end
   end
 

@@ -5,5 +5,8 @@ module PlaceOS::Api
     include JSON::Serializable
 
     getter reason : String
+
+    def initialize(@reason)
+    end
   end
 end

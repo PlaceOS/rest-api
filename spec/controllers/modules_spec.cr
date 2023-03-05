@@ -85,8 +85,9 @@ module PlaceOS::Api
         sys.save!
 
         # Call the index method of the controller
+        params = HTTP::Params{"control_system_id" => sys.id.as(String)}
         response = client.get(
-          "#{Modules.base_route}?#{HTTP::Params{"control_system_id" => sys.id.as(String)}}",
+          "#{Modules.base_route}?#{params}",
           headers: Spec::Authentication.headers,
         )
 

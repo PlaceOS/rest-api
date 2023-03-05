@@ -43,7 +43,7 @@ module PlaceOS::Api
     struct CaptchaResponse
       include JSON::Serializable
 
-      property success : Bool
+      property? success : Bool
     end
 
     class PlaceOS::Api::Error
@@ -85,7 +85,7 @@ module PlaceOS::Api
             captresp = client.post("/recaptcha/api/siteverify?secret=#{recaptcha_secret}&response=#{guest.captcha}")
             if captresp.success?
               result = CaptchaResponse.from_json(captresp.body)
-              raise Error::RecaptchaFailed.new("recaptcha rejected") unless result.success
+              raise Error::RecaptchaFailed.new("recaptcha rejected") unless result.success?
             else
               raise Error::RecaptchaFailed.new("error verifying recaptcha response")
             end
@@ -180,7 +180,9 @@ module PlaceOS::Api
     # send a leave signal to the user from the user (no value)
     @[AC::Route::POST("/kick/:user_id/:session_id", body: details)]
     def kick_user(user_id : String, session_id : String, details : KickReason) : Nil
-      MANAGER.kick_user(user_id, session_id, details)
+      authority = current_authority.not_nil!
+      auth_id = authority.id.as(String)
+      MANAGER.kick_user(auth_id, user_id, session_id, details)
     end
 
     # Obtain a list of the connected users in chat session provided
@@ -220,7 +222,7 @@ module PlaceOS::Api
       end
     end
 
-    # this route provides a guest access to an anonymous chat room
+    # this route provides the details of the chat room
     @[AC::Route::GET("/room/:system_id")]
     def public_room(
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]

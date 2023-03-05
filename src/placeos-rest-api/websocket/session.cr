@@ -283,7 +283,7 @@ module PlaceOS::Api::WebSocket
       return cached if cached
 
       # Look up value, refresh cache if value found
-      if (module_id = module_id?(system_id, module_name, index))
+      if module_id = module_id?(system_id, module_name, index)
         Driver::Proxy::System.driver_metadata?(module_id).tap do |meta|
           cache_lock.synchronize { metadata_cache[key] = meta } if meta
         end

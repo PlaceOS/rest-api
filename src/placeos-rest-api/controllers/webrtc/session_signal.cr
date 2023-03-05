@@ -39,7 +39,7 @@ module PlaceOS::Api
     property place_auth_id : String? = nil
 
     # the id of the user we want to communicate with
-    getter to_user : String?
+    property to_user : String?
 
     # the payload, if any
     @[JSON::Field(converter: String::RawConverter)]
