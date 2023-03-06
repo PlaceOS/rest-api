@@ -251,7 +251,6 @@ module PlaceOS::Api
       # find the users websocket
       redis_publish("placeos/internal/chat/kick_user", {user_id, details.reason})
 
-      # TODO:: need the auth id here!
       redis_publish("placeos/#{auth_id}/chat/user/exited", {
         user_id: user_id,
       })
