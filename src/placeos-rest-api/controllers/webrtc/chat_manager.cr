@@ -168,7 +168,7 @@ module PlaceOS::Api
 
       # add the user to the new call
       user_lookup[signal.user_id] = websocket
-      call.peers[signal.user_id] = websocket
+      call.add(signal.user_id, websocket)
       sockets[websocket] = signal
 
       # Return RTC configuration details
