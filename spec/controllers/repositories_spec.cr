@@ -32,7 +32,7 @@ module PlaceOS::Api
       end
 
       describe "mutating URIs" do
-        it "does not update Driver repositories with modified URIs" do
+        it "does update Driver repositories with modified URIs" do
           repository = Model::Generator.repository(type: Model::Repository::Type::Driver).save!
 
           id = repository.id.as(String)
@@ -43,7 +43,7 @@ module PlaceOS::Api
             headers: Spec::Authentication.headers,
           )
 
-          result.status_code.should eq 422
+          result.status_code.should eq 200
         end
 
         it "does update Interface repositories with modified URIs" do
