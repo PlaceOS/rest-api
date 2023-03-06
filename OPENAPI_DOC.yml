@@ -6240,6 +6240,14 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: public
+        in: query
+        description: return systems which are public
+        example: "true"
+        required: false
+        schema:
+          type: boolean
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -14132,6 +14140,12 @@ paths:
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#kick_user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__KickReason'
+        required: true
       parameters:
       - name: user_id
         in: path
@@ -14146,6 +14160,77 @@ paths:
       responses:
         200:
           description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/webrtc/members/{session_id}:
+    get:
+      summary: Obtain a list of the connected users in chat session provided
+      tags:
+      - WebRTC
+      operationId: PlaceOS::Api::WebRTC#members
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/String'
         409:
           description: Conflict
           content:
@@ -14281,7 +14366,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/room/{system_id}:
     get:
-      summary: this route provides a guest access to an anonymous chat room
+      summary: this route provides the details of the chat room
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#public_room
@@ -16847,6 +16932,9 @@ components:
           format: email
           nullable: true
         bookable:
+          type: boolean
+          nullable: true
+        public:
           type: boolean
           nullable: true
         display_name:
@@ -19474,6 +19562,13 @@ components:
       - name
       - user_id
       - session_id
+    PlaceOS__Api__KickReason:
+      type: object
+      properties:
+        reason:
+          type: string
+      required:
+      - reason
     _JSON__Any___Nil_:
       type: object
       nullable: true
@@ -19510,6 +19605,9 @@ components:
               format: email
               nullable: true
             bookable:
+              type: boolean
+              nullable: true
+            public:
               type: boolean
               nullable: true
             display_name:
