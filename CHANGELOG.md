@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **repositories**: add branch support ([#333](https://github.com/PlaceOS/rest-api/pull/333))
 - **webhook**: add support for binary payloads ([#330](https://github.com/PlaceOS/rest-api/pull/330))
 - **shards**: update shards ([#326](https://github.com/PlaceOS/rest-api/pull/326))
 - **repositories**: add additional helper methods ([#317](https://github.com/PlaceOS/rest-api/pull/317))

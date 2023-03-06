@@ -10170,6 +10170,14 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: branch
+        in: query
+        description: the branch to grab commits from
+        example: main
+        required: false
+        schema:
+          type: string
+          nullable: true
       responses:
         200:
           description: OK
