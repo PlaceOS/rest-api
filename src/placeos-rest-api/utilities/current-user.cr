@@ -18,7 +18,7 @@ module PlaceOS::Api
       end
 
       # check for X-API-Key use
-      if (token = request.headers["X-API-Key"]? || params["api-key"]? || cookies["api-key"]?.try(&.value))
+      if token = request.headers["X-API-Key"]? || params["api-key"]? || cookies["api-key"]?.try(&.value)
         begin
           api_key = Model::ApiKey.find_key!(token)
           @user_token = user_token = api_key.build_jwt
@@ -43,7 +43,7 @@ module PlaceOS::Api
         raise Error::Unauthorized.new "bearer malformed"
       end
 
-      unless (authority = current_authority)
+      unless authority = current_authority
         Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
         raise Error::Unauthorized.new "authority not found"
       end
@@ -81,19 +81,19 @@ module PlaceOS::Api
 
     # Read admin status from supplied request JWT
     def check_admin
-      raise Error::Forbidden.new unless is_admin?
+      raise Error::Forbidden.new unless user_admin?
     end
 
     # Read support status from supplied request JWT
     def check_support
-      raise Error::Forbidden.new unless is_support?
+      raise Error::Forbidden.new unless user_support?
     end
 
-    def is_admin?
+    def user_admin?
       user_token.is_admin?
     end
 
-    def is_support?
+    def user_support?
       token = user_token
       token.is_support? || token.is_admin?
     end
@@ -102,12 +102,12 @@ module PlaceOS::Api
     # - Authorization header
     # - "bearer_token" param
     protected def acquire_token : String?
-      if (token = request.headers["Authorization"]?)
+      if token = request.headers["Authorization"]?
         token = token.lchop("Bearer ").lchop("Token ").rstrip
         token unless token.empty?
-      elsif (token = params["bearer_token"]?)
+      elsif token = params["bearer_token"]?
         token.strip
-      elsif (token = cookies["bearer_token"]?.try(&.value))
+      elsif token = cookies["bearer_token"]?.try(&.value)
         token.strip
       end
     end

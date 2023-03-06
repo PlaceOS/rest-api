@@ -58,7 +58,7 @@ module PlaceOS::Api
     # admins can obtain the token edge nodes will use to connect to the cluster
     @[AC::Route::GET("/:id/token")]
     def token : NamedTuple(token: String)
-      raise Error::Forbidden.new("not an admin") unless is_admin?
+      raise Error::Forbidden.new("not an admin") unless user_admin?
       {token: current_edge.x_api_key}
     end
 

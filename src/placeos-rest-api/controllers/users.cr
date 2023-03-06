@@ -61,7 +61,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:update])]
     protected def check_authorization
       # Does the current user have permission to perform the current action
-      raise Error::Forbidden.new unless user.id == current_user.id || is_admin?
+      raise Error::Forbidden.new unless user.id == current_user.id || user_admin?
     end
 
     ###############################################################################################
@@ -172,14 +172,14 @@ module PlaceOS::Api
 
       query.must_not({"deleted" => [true]}) unless include_deleted
 
-      if !is_admin?
+      if !user_admin?
         # regular users can only see their own domain
         query.filter({"authority_id" => [current_user.authority_id.as(String)]})
       elsif authority = authority_id
         query.filter({"authority_id" => [authority]})
       end
 
-      if is_admin?
+      if user_admin?
         if include_metadata
           paginate_results(elastic, query).map &.to_admin_metadata_struct.as(UserDetails)
         else
@@ -201,7 +201,7 @@ module PlaceOS::Api
       include_metadata : Bool = false
     ) : UserDetails
       # We only want to provide limited "public" information
-      if is_admin?
+      if user_admin?
         include_metadata ? user.to_admin_metadata_struct : user.to_admin_struct
       else
         include_metadata ? user.to_public_metadata_struct : user.to_public_struct
@@ -230,7 +230,7 @@ module PlaceOS::Api
       # (the users themselves should not have access to these)
       body = new_user.to_json
       the_user = user
-      if is_admin?
+      if user_admin?
         the_user.assign_admin_attributes_from_json(body)
       end
       the_user.assign_attributes_from_json(body)

@@ -58,11 +58,6 @@ module PlaceOS::Api
       current = current_repo
       current.assign_attributes(repo)
 
-      # Must destroy and re-add to change driver repository URIs
-      if current.uri_changed? && current.repo_type.driver?
-        raise Error::ModelValidation.new({Error::Field.new(:uri, "`uri` of Driver repositories cannot change")})
-      end
-
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end

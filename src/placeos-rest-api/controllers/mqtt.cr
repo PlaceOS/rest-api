@@ -4,6 +4,10 @@ module PlaceOS::Api
   class MQTT < Application
     base "/api/engine/v2/mqtt/"
 
+    # skip authentication for the healthcheck
+    skip_action :authorize!, only: [:mqtt_user, :mqtt_access]
+    skip_action :set_user_id, only: [:mqtt_user, :mqtt_access]
+
     # For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
     # jwt_response_mode: status, jwt_params_mode: form
     @[AC::Route::POST("/user")]
@@ -38,7 +42,7 @@ module PlaceOS::Api
     # - x-api-key
     # - JWTs
     protected def mqtt_parse_jwt(validate : Bool = true)
-      unless (auth = request.headers["Authorization"]?)
+      unless auth = request.headers["Authorization"]?
         raise Error::Unauthorized.new("missing mqtt token")
       end
 
@@ -46,7 +50,7 @@ module PlaceOS::Api
       when 1 # work with x-api-key
         @user_token = Model::ApiKey.find_key!(auth.lchop("Bearer ").rstrip).build_jwt
       when 2 # work with jwt-token
-        unless (token = acquire_token)
+        unless token = acquire_token
           raise Error::Unauthorized.new("missing mqtt token")
         end
 

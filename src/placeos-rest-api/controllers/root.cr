@@ -28,6 +28,10 @@ module PlaceOS::Api
     # Healthcheck
     ###############################################################################################
 
+    # skip authentication for the healthcheck
+    skip_action :authorize!, only: :root
+    skip_action :set_user_id, only: :root
+
     # returns 200 OK when the service is healthy (can connect to the databases etc)
     @[AC::Route::GET("/")]
     def root : Nil
@@ -48,7 +52,7 @@ module PlaceOS::Api
       ).then(&.all?).get
     end
 
-    private def self.check_resource?(resource)
+    private def self.check_resource?(resource, &)
       Log.trace { "healthchecking #{resource}" }
       !!yield
     rescue e
