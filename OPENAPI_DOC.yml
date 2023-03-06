@@ -14001,7 +14001,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/guest_entry/{system_id}:
     post:
-      summary: this route provides a guest access to an anonymous chat room
+      summary: this route provides guest access to an anonymous chat room
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#guest_entry
@@ -14074,6 +14074,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/guest/exit:
     post:
+      summary: Guest users should call this route when ending a call gracefully
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#guest_exit
@@ -14284,6 +14285,9 @@ paths:
   /api/engine/v2/webrtc/transfer/{user_id}/{session_id}:
     post:
       summary: for authorised users to move people from one chat to another
+      description: 'for authorised users to move people from one chat to another
+
+        the body can be used to pass any custom connection details'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#transfer_guest
@@ -14366,7 +14370,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/room/{system_id}:
     get:
-      summary: this route provides the details of the chat room
+      summary: this route provides the details of public chat rooms
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#public_room
@@ -14385,6 +14389,102 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__WebRTC__RoomDetails'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/webrtc/rooms:
+    get:
+      summary: this route provides a list of public chat rooms for the current domain
+      tags:
+      - WebRTC
+      operationId: PlaceOS::Api::WebRTC#index
+      parameters:
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: deprecated, the starting offset of the result set. Used to implement
+          pagination
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__ControlSystem'
         409:
           description: Conflict
           content:

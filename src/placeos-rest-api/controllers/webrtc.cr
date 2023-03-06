@@ -11,7 +11,7 @@ module PlaceOS::Api
     skip_action :set_user_id, only: [:guest_entry, :public_room]
 
     # allow guest access to the signalling route
-    before_action :can_read_guest, only: [:signaller, guest_exit]
+    before_action :can_read_guest, only: [:signaller, :guest_exit, :index]
 
     ###############################################################################################
 
@@ -65,7 +65,7 @@ module PlaceOS::Api
 
     JWT_SECRET = ENV["JWT_SECRET"]?.try { |k| Base64.decode_string(k) }
 
-    # this route provides a guest access to an anonymous chat room
+    # this route provides guest access to an anonymous chat room
     @[AC::Route::POST("/guest_entry/:system_id", body: guest)]
     def guest_entry(
       guest : GuestParticipant,
@@ -145,6 +145,7 @@ module PlaceOS::Api
       }.to_json)
     end
 
+    # Guest users should call this route when ending a call gracefully
     @[AC::Route::POST("/guest/exit")]
     def guest_exit : Nil
       response.cookies << HTTP::Cookie.new(
@@ -192,6 +193,7 @@ module PlaceOS::Api
     end
 
     # for authorised users to move people from one chat to another
+    # the body can be used to pass any custom connection details
     @[AC::Route::POST("/transfer/:user_id/?:session_id", body: body, status: {
       Nil  => HTTP::Status::OK,
       Bool => HTTP::Status::PRECONDITION_REQUIRED,
@@ -222,7 +224,7 @@ module PlaceOS::Api
       end
     end
 
-    # this route provides the details of the chat room
+    # this route provides the details of public chat rooms
     @[AC::Route::GET("/room/:system_id")]
     def public_room(
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
@@ -231,6 +233,26 @@ module PlaceOS::Api
       system = current_control_system
       meta = Model::Metadata.build_metadata(system.id.not_nil!, nil)
       RoomDetails.new(system, meta)
+    end
+
+    # this route provides a list of public chat rooms for the current domain
+    @[AC::Route::GET("/rooms")]
+    def index : Array(Model::ControlSystem)
+      elastic = Model::ControlSystem.elastic
+      query = Model::ControlSystem.elastic.query(search_params)
+      query.must({
+        "public" => [true],
+      })
+
+      if zone_id = current_authority.not_nil!.internals["webrtc_zone"]?.try(&.as_s?)
+        query.must({
+          "zones" => [zone_id],
+        })
+      end
+
+      query.search_field "name"
+      query.sort(NAME_SORT_ASC)
+      paginate_results(elastic, query)
     end
 
     ICE_CONFIG = {} of String => String
