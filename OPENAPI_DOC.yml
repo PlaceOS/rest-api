@@ -14002,6 +14002,11 @@ paths:
   /api/engine/v2/webrtc/guest_entry/{system_id}:
     post:
       summary: this route provides guest access to an anonymous chat room
+      description: 'this route provides guest access to an anonymous chat room
+
+        the guest participant details will be forwarded to any listening systems
+
+        additional fields provided as part of the guest post will also be forwarded'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#guest_entry
@@ -14075,6 +14080,9 @@ paths:
   /api/engine/v2/webrtc/guest/exit:
     post:
       summary: Guest users should call this route when ending a call gracefully
+      description: 'Guest users should call this route when ending a call gracefully
+
+        it will remove the authentication token and close any open websockets'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#guest_exit
@@ -14134,10 +14142,12 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/kick/{user_id}/{session_id}:
     post:
-      summary: Call ended for user
-      description: 'Call ended for user
+      summary: Call ended for the user
+      description: 'Call ended for the user
 
-        send a leave signal to the user from the user (no value)'
+        similar to guest exit without the token expiration
+
+        other members of the call will stop communicating with them'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#kick_user
@@ -14370,7 +14380,10 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/room/{system_id}:
     get:
-      summary: this route provides the details of public chat rooms
+      summary: this route provides the details of a public chat room
+      description: 'this route provides the details of a public chat room
+
+        it takes either the system `id` or `code` for a more friendly lookup'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#public_room
@@ -14537,7 +14550,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/webrtc/signaller:
     get:
-      summary: WebRTC signaller endpoint, managing call participants
+      summary: WebRTC signaller websocket endpoint, managing call participants
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC#signaller

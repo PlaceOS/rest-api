@@ -66,6 +66,8 @@ module PlaceOS::Api
     JWT_SECRET = ENV["JWT_SECRET"]?.try { |k| Base64.decode_string(k) }
 
     # this route provides guest access to an anonymous chat room
+    # the guest participant details will be forwarded to any listening systems
+    # additional fields provided as part of the guest post will also be forwarded
     @[AC::Route::POST("/guest_entry/:system_id", body: guest)]
     def guest_entry(
       guest : GuestParticipant,
@@ -146,6 +148,7 @@ module PlaceOS::Api
     end
 
     # Guest users should call this route when ending a call gracefully
+    # it will remove the authentication token and close any open websockets
     @[AC::Route::POST("/guest/exit")]
     def guest_exit : Nil
       response.cookies << HTTP::Cookie.new(
@@ -177,8 +180,9 @@ module PlaceOS::Api
       end
     end
 
-    # Call ended for user
-    # send a leave signal to the user from the user (no value)
+    # Call ended for the user
+    # similar to guest exit without the token expiration
+    # other members of the call will stop communicating with them
     @[AC::Route::POST("/kick/:user_id/:session_id", body: details)]
     def kick_user(user_id : String, session_id : String, details : KickReason) : Nil
       authority = current_authority.not_nil!
@@ -224,7 +228,8 @@ module PlaceOS::Api
       end
     end
 
-    # this route provides the details of public chat rooms
+    # this route provides the details of a public chat room
+    # it takes either the system `id` or `code` for a more friendly lookup
     @[AC::Route::GET("/room/:system_id")]
     def public_room(
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
@@ -261,7 +266,7 @@ module PlaceOS::Api
     ICE_CONFIG = {} of String => String
     MANAGER    = ChatManager.new(ICE_CONFIG)
 
-    # WebRTC signaller endpoint, managing call participants
+    # WebRTC signaller websocket endpoint, managing call participants
     @[AC::Route::WebSocket("/signaller")]
     def signaller(websocket) : Nil
       Log.trace { {request_id: request_id, frame: "OPEN"} }
