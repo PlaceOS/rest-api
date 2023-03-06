@@ -102,12 +102,12 @@ module PlaceOS::Api
     # Callbacks
     ###########################################################################
 
-    # All routes are authenticated, except root
+    # All routes are authenticated
     # NOTE:: we don't need these to use strong params
-    before_action :authorize!, except: [:root, :mqtt_user, :mqtt_access]
+    before_action :authorize!
 
     # Simplifies determining user's requests in server-side logs
-    before_action :set_user_id, except: [:root, :mqtt_user, :mqtt_access]
+    before_action :set_user_id
 
     def set_user_id
       Log.context.set(user_id: user_token.id)

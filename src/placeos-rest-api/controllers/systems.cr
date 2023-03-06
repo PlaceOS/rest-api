@@ -93,7 +93,9 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return systems which are using the trigger id provided", example: "trig-1234")]
       trigger_id : String? = nil,
       @[AC::Param::Info(description: "return systems which are in the zone provided", example: "zone-1234")]
-      zone_id : String? = nil
+      zone_id : String? = nil,
+      @[AC::Param::Info(description: "return systems which are public", example: "true")]
+      public : Bool? = nil
     ) : Array(Model::ControlSystem)
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(search_params)
@@ -147,6 +149,13 @@ module PlaceOS::Api
       if email
         query.should({
           "email" => email,
+        })
+      end
+
+      # filter by public
+      if public
+        query.should({
+          "public" => [true],
         })
       end
 

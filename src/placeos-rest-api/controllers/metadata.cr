@@ -23,7 +23,7 @@ module PlaceOS::Api
       parent_id : String
     )
       # NOTE: Will the user token ever be assigned a zone id?
-      raise Error::Forbidden.new unless is_support? || parent_id == user_token.id
+      raise Error::Forbidden.new unless user_support? || parent_id == user_token.id
     end
 
     ###############################################################################################

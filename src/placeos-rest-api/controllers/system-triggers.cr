@@ -162,7 +162,7 @@ module PlaceOS::Api
         trigger_instance.control_system_details = ControlSystemDetails.new(cs.name.as(String), cs.id.as(String))
       end
       trigger_instance.name = trigger_instance.trigger.try &.name
-      trigger_instance.hide_secret unless is_admin?
+      trigger_instance.hide_secret unless user_admin?
       trigger_instance
     end
   end

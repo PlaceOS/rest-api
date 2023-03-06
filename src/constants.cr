@@ -22,6 +22,9 @@ module PlaceOS::Api
   INFLUX_HOST    = ENV["INFLUX_HOST"]?
   INFLUX_ORG     = ENV["INFLUX_ORG"]? || "placeos"
 
+  # https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer
+  WEBRTC_DEFAULT_ICE_CONFIG = ENV["WEBRTC_DEFAULT_ICE_CONFIG"]? || {urls: "stun:stun.l.google.com:19302"}.to_json
+
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
 

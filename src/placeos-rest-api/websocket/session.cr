@@ -283,7 +283,7 @@ module PlaceOS::Api::WebSocket
       return cached if cached
 
       # Look up value, refresh cache if value found
-      if (module_id = module_id?(system_id, module_name, index))
+      if module_id = module_id?(system_id, module_name, index)
         Driver::Proxy::System.driver_metadata?(module_id).tap do |meta|
           cache_lock.synchronize { metadata_cache[key] = meta } if meta
         end
@@ -402,6 +402,11 @@ module PlaceOS::Api::WebSocket
       Log.error(exception: e) { {message: "websocket request failed", data: data} }
       response = error_response(request.try(&.id), :request_failed, e.message)
       respond(response)
+    end
+
+    # ensure the client is still there, we send pong as the existing clients ignore this
+    def ping
+      write("pong")
     end
 
     # Shutdown handler

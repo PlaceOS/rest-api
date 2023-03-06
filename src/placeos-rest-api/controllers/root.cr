@@ -27,6 +27,10 @@ module PlaceOS::Api
     # Healthcheck
     ###############################################################################################
 
+    # skip authentication for the healthcheck
+    skip_action :authorize!, only: :root
+    skip_action :set_user_id, only: :root
+
     # returns 200 OK when the service is healthy (can connect to the databases etc)
     @[AC::Route::GET("/")]
     def root : Nil

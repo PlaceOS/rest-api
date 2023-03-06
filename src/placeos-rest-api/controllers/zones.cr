@@ -64,7 +64,7 @@ module PlaceOS::Api
           "tags" => filter_tags,
         })
       else
-        raise Error::Forbidden.new unless is_support? || is_admin?
+        raise Error::Forbidden.new unless user_support?
         query.search_field "name"
       end
 
