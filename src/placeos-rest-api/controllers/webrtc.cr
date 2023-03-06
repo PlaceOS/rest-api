@@ -237,7 +237,7 @@ module PlaceOS::Api
 
     # this route provides a list of public chat rooms for the current domain
     @[AC::Route::GET("/rooms")]
-    def index : Array(Model::ControlSystem)
+    def index : Array(RoomDetails)
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(search_params)
       query.must({
@@ -252,7 +252,10 @@ module PlaceOS::Api
 
       query.search_field "name"
       query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      paginate_results(elastic, query).map do |system|
+        meta = Model::Metadata.build_metadata(system.id.not_nil!, nil)
+        RoomDetails.new(system, meta)
+      end
     end
 
     ICE_CONFIG = {} of String => String

@@ -14484,7 +14484,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaceOS__Model__ControlSystem'
+                  $ref: '#/components/schemas/PlaceOS__Api__WebRTC__RoomDetails'
         409:
           description: Conflict
           content:
