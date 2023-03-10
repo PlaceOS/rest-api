@@ -19,6 +19,7 @@
 
 ### Fix
 
+- **webrtc**: make index route public ([#340](https://github.com/PlaceOS/rest-api/pull/340))
 - edge exec lookup ([#329](https://github.com/PlaceOS/rest-api/pull/329))
 - **repositories**: driver details when not using master branch ([#327](https://github.com/PlaceOS/rest-api/pull/327))
 - **webhook**: resolve 404 on friendly webhook URI ([#325](https://github.com/PlaceOS/rest-api/pull/325))
