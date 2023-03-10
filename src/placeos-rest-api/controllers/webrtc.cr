@@ -242,7 +242,7 @@ module PlaceOS::Api
 
     # this route provides a list of public chat rooms for the current domain
     @[AC::Route::GET("/rooms")]
-    def index : Array(RoomDetails)
+    def index : Array(Model::ControlSystem)
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(search_params)
       query.must({
