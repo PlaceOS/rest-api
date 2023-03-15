@@ -35,6 +35,10 @@
 - **websocket**: close write_channel on cleanup ([#291](https://github.com/PlaceOS/rest-api/pull/291))
 - **metadata**: users can create their own metadata ([#287](https://github.com/PlaceOS/rest-api/pull/287))
 
+### Refactor
+
+- migrate to postgres ([#328](https://github.com/PlaceOS/rest-api/pull/328))
+
 ### Perf
 
 - **metadata**: remove metadata querying ([#289](https://github.com/PlaceOS/rest-api/pull/289))
