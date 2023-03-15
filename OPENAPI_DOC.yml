@@ -14497,7 +14497,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaceOS__Api__WebRTC__RoomDetails'
+                  $ref: '#/components/schemas/PlaceOS__Model__ControlSystem'
         409:
           description: Conflict
           content:
@@ -15345,6 +15345,9 @@ components:
         user:
           type: object
           properties:
+            id:
+              type: string
+              nullable: true
             created_at:
               type: string
               format: date-time
@@ -15444,18 +15447,27 @@ components:
             admin_destroy_lock:
               type: object
               properties:
+                id:
+                  type: string
+                  nullable: true
                 key:
                   type: string
-              required:
-              - key
-              nullable: true
-            id:
-              type: string
+                  nullable: true
+                instance_token:
+                  type: string
+                  nullable: true
+                expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
               nullable: true
           nullable: true
         authority:
           type: object
           properties:
+            id:
+              type: string
+              nullable: true
             created_at:
               type: string
               format: date-time
@@ -15489,9 +15501,6 @@ components:
               additionalProperties:
                 type: object
               nullable: true
-            id:
-              type: string
-              nullable: true
           nullable: true
         x_api_key:
           type: string
@@ -15516,6 +15525,9 @@ components:
     PlaceOS__Model__ApiKey:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -15550,9 +15562,6 @@ components:
           type: string
           nullable: true
         authority_id:
-          type: string
-          nullable: true
-        id:
           type: string
           nullable: true
     PlaceOS__Model__UserJWT:
@@ -15607,6 +15616,9 @@ components:
     PlaceOS__Model__AssetInstance:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -15646,12 +15658,12 @@ components:
           type: string
           format: date-time
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Model__Asset:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -15714,6 +15726,9 @@ components:
           items:
             type: object
             properties:
+              id:
+                type: string
+                nullable: true
               created_at:
                 type: string
                 format: date-time
@@ -15753,12 +15768,6 @@ components:
                 type: string
                 format: date-time
                 nullable: true
-              id:
-                type: string
-                nullable: true
-          nullable: true
-        id:
-          type: string
           nullable: true
     _Hash_String__Array_PlaceOS__Model__AssetInstance____JSON__Any____PlaceOS__Model__Asset_:
       anyOf:
@@ -15769,6 +15778,9 @@ components:
             items:
               type: object
               properties:
+                id:
+                  type: string
+                  nullable: true
                 created_at:
                   type: string
                   format: date-time
@@ -15808,12 +15820,12 @@ components:
                   type: string
                   format: date-time
                   nullable: true
-                id:
-                  type: string
-                  nullable: true
           - type: object
       - type: object
         properties:
+          id:
+            type: string
+            nullable: true
           created_at:
             type: string
             format: date-time
@@ -15876,6 +15888,9 @@ components:
             items:
               type: object
               properties:
+                id:
+                  type: string
+                  nullable: true
                 created_at:
                   type: string
                   format: date-time
@@ -15915,16 +15930,13 @@ components:
                   type: string
                   format: date-time
                   nullable: true
-                id:
-                  type: string
-                  nullable: true
-            nullable: true
-          id:
-            type: string
             nullable: true
     PlaceOS__Model__LdapAuthentication:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -15964,12 +15976,12 @@ components:
         authority_id:
           type: string
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Model__SamlAuthentication:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -16042,12 +16054,12 @@ components:
         authority_id:
           type: string
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Model__OAuthAuthentication:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -16106,12 +16118,12 @@ components:
         authority_id:
           type: string
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Model__Broker:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -16159,9 +16171,6 @@ components:
           type: array
           items:
             type: string
-          nullable: true
-        id:
-          type: string
           nullable: true
     PlaceOS__Api__Cluster__NodeStatus:
       type: object
@@ -16422,6 +16431,9 @@ components:
     PlaceOS__Model__Authority:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -16455,12 +16467,12 @@ components:
           additionalProperties:
             type: object
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Model__Driver:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -16517,9 +16529,6 @@ components:
           additionalProperties:
             type: boolean
           nullable: true
-        id:
-          type: string
-          nullable: true
     NamedTuple_compilation_output__String_:
       type: object
       properties:
@@ -16530,6 +16539,9 @@ components:
     PlaceOS__Model__Settings:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -16571,12 +16583,12 @@ components:
         parent_id:
           type: string
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Model__Module:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -16670,6 +16682,9 @@ components:
               items:
                 type: object
                 properties:
+                  id:
+                    type: string
+                    nullable: true
                   created_at:
                     type: string
                     format: date-time
@@ -16743,6 +16758,9 @@ components:
                     items:
                       type: object
                       properties:
+                        id:
+                          type: string
+                          nullable: true
                         created_at:
                           type: string
                           format: date-time
@@ -16906,6 +16924,9 @@ components:
                           items:
                             type: object
                             properties:
+                              id:
+                                type: string
+                                nullable: true
                               created_at:
                                 type: string
                                 format: date-time
@@ -16956,16 +16977,7 @@ components:
                                 - name
                                 - id
                                 nullable: true
-                              id:
-                                type: string
-                                nullable: true
                           nullable: true
-                        id:
-                          type: string
-                          nullable: true
-                    nullable: true
-                  id:
-                    type: string
                     nullable: true
                   update_systems:
                     type: boolean
@@ -16974,9 +16986,6 @@ components:
           required:
           - name
           - zone_data
-          nullable: true
-        id:
-          type: string
           nullable: true
     Array_JSON__Any_:
       type: array
@@ -17009,6 +17018,9 @@ components:
     PlaceOS__Model__ControlSystem:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -17098,6 +17110,9 @@ components:
           items:
             type: object
             properties:
+              id:
+                type: string
+                nullable: true
               created_at:
                 type: string
                 format: date-time
@@ -17171,6 +17186,9 @@ components:
                 items:
                   type: object
                   properties:
+                    id:
+                      type: string
+                      nullable: true
                     created_at:
                       type: string
                       format: date-time
@@ -17334,6 +17352,9 @@ components:
                       items:
                         type: object
                         properties:
+                          id:
+                            type: string
+                            nullable: true
                           created_at:
                             type: string
                             format: date-time
@@ -17384,16 +17405,7 @@ components:
                             - name
                             - id
                             nullable: true
-                          id:
-                            type: string
-                            nullable: true
                       nullable: true
-                    id:
-                      type: string
-                      nullable: true
-                nullable: true
-              id:
-                type: string
                 nullable: true
               update_systems:
                 type: boolean
@@ -17405,6 +17417,9 @@ components:
           items:
             type: object
             properties:
+              id:
+                type: string
+                nullable: true
               created_at:
                 type: string
                 format: date-time
@@ -17498,6 +17513,9 @@ components:
                     items:
                       type: object
                       properties:
+                        id:
+                          type: string
+                          nullable: true
                         created_at:
                           type: string
                           format: date-time
@@ -17571,6 +17589,9 @@ components:
                           items:
                             type: object
                             properties:
+                              id:
+                                type: string
+                                nullable: true
                               created_at:
                                 type: string
                                 format: date-time
@@ -17734,6 +17755,9 @@ components:
                                 items:
                                   type: object
                                   properties:
+                                    id:
+                                      type: string
+                                      nullable: true
                                     created_at:
                                       type: string
                                       format: date-time
@@ -17784,16 +17808,7 @@ components:
                                       - name
                                       - id
                                       nullable: true
-                                    id:
-                                      type: string
-                                      nullable: true
                                 nullable: true
-                              id:
-                                type: string
-                                nullable: true
-                          nullable: true
-                        id:
-                          type: string
                           nullable: true
                         update_systems:
                           type: boolean
@@ -17803,12 +17818,6 @@ components:
                 - name
                 - zone_data
                 nullable: true
-              id:
-                type: string
-                nullable: true
-          nullable: true
-        id:
-          type: string
           nullable: true
         update_triggers:
           type: boolean
@@ -17817,6 +17826,9 @@ components:
     PlaceOS__Model__Zone:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -17890,6 +17902,9 @@ components:
           items:
             type: object
             properties:
+              id:
+                type: string
+                nullable: true
               created_at:
                 type: string
                 format: date-time
@@ -18053,6 +18068,9 @@ components:
                 items:
                   type: object
                   properties:
+                    id:
+                      type: string
+                      nullable: true
                     created_at:
                       type: string
                       format: date-time
@@ -18103,16 +18121,7 @@ components:
                       - name
                       - id
                       nullable: true
-                    id:
-                      type: string
-                      nullable: true
                 nullable: true
-              id:
-                type: string
-                nullable: true
-          nullable: true
-        id:
-          type: string
           nullable: true
         update_systems:
           type: boolean
@@ -18192,6 +18201,9 @@ components:
     PlaceOS__Model__Edge:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -18210,9 +18222,6 @@ components:
           type: string
           nullable: true
         user_id:
-          type: string
-          nullable: true
-        id:
           type: string
           nullable: true
     PlaceOS__Model__Edge__CreateBody:
@@ -18258,6 +18267,9 @@ components:
         zone:
           type: object
           properties:
+            id:
+              type: string
+              nullable: true
             created_at:
               type: string
               format: date-time
@@ -18331,6 +18343,9 @@ components:
               items:
                 type: object
                 properties:
+                  id:
+                    type: string
+                    nullable: true
                   created_at:
                     type: string
                     format: date-time
@@ -18494,6 +18509,9 @@ components:
                     items:
                       type: object
                       properties:
+                        id:
+                          type: string
+                          nullable: true
                         created_at:
                           type: string
                           format: date-time
@@ -18544,16 +18562,7 @@ components:
                           - name
                           - id
                           nullable: true
-                        id:
-                          type: string
-                          nullable: true
                     nullable: true
-                  id:
-                    type: string
-                    nullable: true
-              nullable: true
-            id:
-              type: string
               nullable: true
             update_systems:
               type: boolean
@@ -18676,6 +18685,9 @@ components:
     PlaceOS__Model__DoorkeeperApplication:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -18683,10 +18695,6 @@ components:
         updated_at:
           type: string
           format: date-time
-          nullable: true
-        id:
-          type: integer
-          format: Int64
           nullable: true
         name:
           type: string
@@ -18703,8 +18711,15 @@ components:
         redirect_uri:
           type: string
           nullable: true
+        skip_authorization:
+          type: boolean
+          nullable: true
         confidential:
           type: boolean
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
           nullable: true
         uid:
           type: string
@@ -18712,6 +18727,9 @@ components:
     PlaceOS__Model__Repository:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -18755,9 +18773,6 @@ components:
           enum:
           - driver
           - interface
-          nullable: true
-        id:
-          type: string
           nullable: true
     NamedTuple_commit_hash__String_:
       type: object
@@ -18817,6 +18832,9 @@ components:
     PlaceOS__Model__JsonSchema:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -18834,12 +18852,12 @@ components:
         schema:
           type: object
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Model__TriggerInstance:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -18890,9 +18908,6 @@ components:
           - name
           - id
           nullable: true
-        id:
-          type: string
-          nullable: true
     PlaceOS__Api__SystemTriggers__UpdateParams:
       type: object
       properties:
@@ -18908,6 +18923,9 @@ components:
     PlaceOS__Model__Trigger:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -19071,6 +19089,9 @@ components:
           items:
             type: object
             properties:
+              id:
+                type: string
+                nullable: true
               created_at:
                 type: string
                 format: date-time
@@ -19121,12 +19142,6 @@ components:
                 - name
                 - id
                 nullable: true
-              id:
-                type: string
-                nullable: true
-          nullable: true
-        id:
-          type: string
           nullable: true
     PlaceOS__Model__User__AdminResponse:
       type: object
@@ -19504,6 +19519,9 @@ components:
     PlaceOS__Model__User:
       type: object
       properties:
+        id:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -19603,13 +19621,19 @@ components:
         admin_destroy_lock:
           type: object
           properties:
+            id:
+              type: string
+              nullable: true
             key:
               type: string
-          required:
-          - key
-          nullable: true
-        id:
-          type: string
+              nullable: true
+            instance_token:
+              type: string
+              nullable: true
+            expires_at:
+              type: string
+              format: date-time
+              nullable: true
           nullable: true
     PlaceOS__Model__User__GroupResponse:
       type: object

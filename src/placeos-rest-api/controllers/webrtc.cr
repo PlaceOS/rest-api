@@ -7,11 +7,11 @@ module PlaceOS::Api
     base "/api/engine/v2/webrtc/"
 
     # skip authentication for guest_entry and room details
-    skip_action :authorize!, only: [:guest_entry, :public_room]
-    skip_action :set_user_id, only: [:guest_entry, :public_room]
+    skip_action :authorize!, only: [:guest_entry, :public_room, :index]
+    skip_action :set_user_id, only: [:guest_entry, :public_room, :index]
 
     # allow guest access to the signalling route
-    before_action :can_read_guest, only: [:signaller, :guest_exit, :index]
+    before_action :can_read_guest, only: [:signaller, :guest_exit]
 
     ###############################################################################################
 
@@ -242,7 +242,7 @@ module PlaceOS::Api
 
     # this route provides a list of public chat rooms for the current domain
     @[AC::Route::GET("/rooms")]
-    def index : Array(RoomDetails)
+    def index : Array(Model::ControlSystem)
       elastic = Model::ControlSystem.elastic
       query = Model::ControlSystem.elastic.query(search_params)
       query.must({
@@ -257,10 +257,7 @@ module PlaceOS::Api
 
       query.search_field "name"
       query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query).map do |system|
-        meta = Model::Metadata.build_metadata(system.id.not_nil!, nil)
-        RoomDetails.new(system, meta)
-      end
+      paginate_results(elastic, query)
     end
 
     ICE_CONFIG = {} of String => String

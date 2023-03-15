@@ -181,9 +181,9 @@ shards:
     git: https://github.com/wyhaines/opentelemetry-api.cr.git
     version: 0.5.0
 
-  opentelemetry-instrumentation: # Overridden
-    git: https://github.com/stakach/opentelemetry-instrumentation.cr.git
-    version: 0.5.0+git.commit.8dc0a4ed085ab8f928b3681990676d818ea9db6d
+  opentelemetry-instrumentation:
+    git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
+    version: 0.5.1+git.commit.30000cdca2d17db6f42db2eafc49f109f57a5afc
 
   opentelemetry-sdk: # Overridden
     git: https://github.com/wyhaines/opentelemetry-sdk.cr.git

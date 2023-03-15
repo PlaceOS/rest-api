@@ -2,6 +2,10 @@
 
 ### Feat
 
+- **webrtc**: add a call signaling controller ([#332](https://github.com/PlaceOS/rest-api/pull/332))
+- **repositories**: add branch support ([#333](https://github.com/PlaceOS/rest-api/pull/333))
+- **webhook**: add support for binary payloads ([#330](https://github.com/PlaceOS/rest-api/pull/330))
+- **shards**: update shards ([#326](https://github.com/PlaceOS/rest-api/pull/326))
 - **repositories**: add additional helper methods ([#317](https://github.com/PlaceOS/rest-api/pull/317))
 - **systems**: additional options for querying using email ([#315](https://github.com/PlaceOS/rest-api/pull/315))
 - **utilities/current-user**: log when an API key is being used ([#312](https://github.com/PlaceOS/rest-api/pull/312))
@@ -15,6 +19,9 @@
 
 ### Fix
 
+- **webrtc**: make index route public ([#340](https://github.com/PlaceOS/rest-api/pull/340))
+- edge exec lookup ([#329](https://github.com/PlaceOS/rest-api/pull/329))
+- **repositories**: driver details when not using master branch ([#327](https://github.com/PlaceOS/rest-api/pull/327))
 - **webhook**: resolve 404 on friendly webhook URI ([#325](https://github.com/PlaceOS/rest-api/pull/325))
 - **edge/connection**: refactor how connections are handled ([#324](https://github.com/PlaceOS/rest-api/pull/324))
 - **shard.lock**: bump core-client to fix cluster listing ([#323](https://github.com/PlaceOS/rest-api/pull/323))
