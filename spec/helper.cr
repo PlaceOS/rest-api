@@ -3,7 +3,7 @@ require "http"
 require "mutex"
 require "promise"
 require "random"
-require "rethinkdb-orm"
+require "pg-orm"
 require "simple_retry"
 require "spec"
 
@@ -28,7 +28,7 @@ module PlaceOS::Api
 end
 
 Spec.before_suite do
-  Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: :trace)
+  Log.builder.bind("*", backend: PlaceOS::LogBackend::STDOUT, level: :error)
   clear_tables
   PlaceOS::Api::Spec::Authentication.authenticated
 end
@@ -46,9 +46,7 @@ require "../src/config"
 require "placeos-models/spec/generator"
 
 # Configure DB
-db_name = "place_#{ENV["SG_ENV"]? || "development"}"
-
-RethinkORM.configure &.db=(db_name)
+PgORM::Database.configure { |_| }
 
 def clear_tables
   {% begin %}

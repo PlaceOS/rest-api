@@ -88,7 +88,7 @@ module PlaceOS::Api::Spec
       )
 
       result.success?.should eq true
-      {{ klass.id }}.find(id).should be_nil
+      {{ klass.id }}.find?(id).should be_nil
     end
   end
 
@@ -154,7 +154,7 @@ module PlaceOS::Api::Spec
         id = model.id.as(String)
         result = Scopes.delete({{ base }}, id, scoped_headers)
         result.status_code.should eq 403
-        Model::{{ model_name.id }}.find(id).should_not be_nil
+        Model::{{ model_name.id }}.find?(id).should_not be_nil
       end
     end
 
@@ -195,7 +195,7 @@ module PlaceOS::Api::Spec
         id = model.id.as(String)
         result = Scopes.delete({{ base }}, id, scoped_headers)
         result.success?.should be_true
-        Model::{{ model_name.id }}.find(id).should be_nil
+        Model::{{ model_name.id }}.find?(id).should be_nil
       end
     end
   end

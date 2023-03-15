@@ -26,7 +26,7 @@ module PlaceOS::Api
     def find_current_module(id : String)
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_module = Model::Module.find!(id, runopts: {"read_mode" => "majority"})
+      @current_module = Model::Module.find!(id)
     end
 
     getter! current_module : Model::Module

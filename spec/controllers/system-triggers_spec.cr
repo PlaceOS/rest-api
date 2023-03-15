@@ -122,7 +122,7 @@ module PlaceOS::Api
         result = client.delete(path: path, headers: Spec::Authentication.headers)
         result.success?.should be_true
 
-        Model::TriggerInstance.find(id.as(String)).should be_nil
+        Model::TriggerInstance.find?(id.as(String)).should be_nil
       end
     end
   end

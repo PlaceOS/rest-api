@@ -54,7 +54,7 @@ module PlaceOS::Api
           raise Error::NotFound.new("no system with email: #{sys_id}")
         end
       else
-        @current_control_system = Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"})
+        @current_control_system = Model::ControlSystem.find!(sys_id)
       end
     end
 
@@ -170,7 +170,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "in", description: "comma seperated list of emails", example: "room1@org.com,room2@org.com")]
       emails : Array(String)
     ) : Array(Model::ControlSystem)
-      systems = Model::ControlSystem.find_all(emails.map(&.strip.downcase), index: :email).to_a
+      systems = Model::ControlSystem.where(email: emails.map(&.strip.downcase)).to_a
       set_collection_headers(systems.size, Model::ControlSystem.table_name)
       systems
     end
@@ -287,7 +287,7 @@ module PlaceOS::Api
       raise "Failed to add ControlSystem Module" unless module_present
 
       # Return the latest version of the control system
-      Model::ControlSystem.find!(current_control_system.id.as(String), runopts: {"read_mode" => "majority"})
+      Model::ControlSystem.find!(current_control_system.id.as(String))
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
@@ -321,12 +321,7 @@ module PlaceOS::Api
     # Toggle the running state of ControlSystem's Module
     #
     protected def self.module_running_state(control_system : Model::ControlSystem, running : Bool)
-      Model::Module.table_query do |q|
-        q
-          .get_all(control_system.modules)
-          .filter({ignore_startstop: false})
-          .update({running: running})
-      end
+      Model::Module.where(id: control_system.modules, ignore_startstop: false).update_all(running: running)
     end
 
     # Driver Metadata, State and Status

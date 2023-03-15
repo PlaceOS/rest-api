@@ -32,7 +32,7 @@ module PlaceOS::Api
     def current_zone(id : String)
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_zone = Model::Zone.find!(id, runopts: {"read_mode" => "majority"})
+      @current_zone = Model::Zone.find!(id)
     end
 
     getter! current_zone : Model::Zone

@@ -21,7 +21,7 @@ module PlaceOS::Api
       system_id : String
     )
       system = if system_id.starts_with? "sys-"
-                 Model::ControlSystem.find!(system_id, runopts: {"read_mode" => "majority"})
+                 Model::ControlSystem.find!(system_id)
                else
                  res = Model::ControlSystem.where(code: system_id).first?
                  raise Error::NotFound.new("could not find room #{system_id}") unless res

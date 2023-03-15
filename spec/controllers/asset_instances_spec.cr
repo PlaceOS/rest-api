@@ -72,7 +72,7 @@ module PlaceOS::Api
         result = client.delete(path: path, headers: Spec::Authentication.headers)
         result.success?.should eq true
 
-        Model::AssetInstance.find(id.as(String)).should be_nil
+        Model::AssetInstance.find?(id.as(String)).should be_nil
       end
     end
   end

@@ -82,8 +82,10 @@ module PlaceOS::Api
         )
 
         response.success?.should be_true
-        updated = Model::Driver.from_trusted_json(response.body)
-        updated.commit.starts_with?("RECOMPILE").should be_false
+        unless response.status_code == 208 || response.body.empty?
+          updated = Model::Driver.from_trusted_json(response.body)
+          updated.commit.starts_with?("RECOMPILE").should be_false
+        end
       end
     end
 

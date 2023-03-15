@@ -210,7 +210,7 @@ module PlaceOS::Api
     # Fetch zones for system the current user has a role for
     def guest_ids
       sys_id = user_token.user.roles.last
-      Model::ControlSystem.find!(sys_id, runopts: {"read_mode" => "majority"}).zones + [sys_id]
+      Model::ControlSystem.find!(sys_id).zones + [sys_id]
     end
   end
 end
