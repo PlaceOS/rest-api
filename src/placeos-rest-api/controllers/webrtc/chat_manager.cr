@@ -238,13 +238,16 @@ module PlaceOS::Api
 
     # the user has exited chat
     def end_call(user_id : String, auth_id : String)
-      # find the users websocket
-      redis_publish("placeos/internal/chat/kick_user", {user_id, "call ended"})
-
       # signal the user exited
       redis_publish("placeos/#{auth_id}/chat/user/exited", {
         user_id: user_id,
       })
+
+      # find the users websocket
+      spawn do
+        sleep 1
+        redis_publish("placeos/internal/chat/kick_user", {user_id, "call ended"})
+      end
     end
 
     def kick_user(auth_id : String, user_id : String, session_id : String, details : KickReason)
