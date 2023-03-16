@@ -151,6 +151,8 @@ module PlaceOS::Api
     # it will remove the authentication token and close any open websockets
     @[AC::Route::POST("/guest/exit")]
     def guest_exit : Nil
+      token = user_token
+
       response.cookies << HTTP::Cookie.new(
         name: "bearer_token",
         value: "",
@@ -161,22 +163,15 @@ module PlaceOS::Api
         samesite: :strict
       )
 
-      token = user_token
-      if token.scope.first == "guest" && token.id.starts_with?("guest-")
+      scope = token.scope.first.resource
+      if scope == "guest" && token.id.starts_with?("guest-")
         user_id = token.user.roles.first
         authority = current_authority.not_nil!
         auth_id = authority.id.as(String)
-        self.class.end_call(user_id, auth_id)
-      end
-    end
-
-    def self.end_call(user_id, auth_id)
-      spawn do
-        # give the browser a moment to update its cookie
-        # we don't want them reconnecting
-        sleep 1
         Log.info { "signalling end call for #{user_id} on #{auth_id}" }
         MANAGER.end_call(user_id, auth_id)
+      else
+        Log.info { "not signalling end call on exit for non-guest user. scope #{scope.inspect}, id: #{token.id.inspect}" }
       end
     end
 
