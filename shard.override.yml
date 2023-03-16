@@ -5,18 +5,6 @@ dependencies:
   secrets-env:
     github: spider-gazelle/secrets-env
 
-  placeos-models:
-    github: placeos/models
-    branch: refactor/pg-migration
-
-  search-ingest:
-    github: placeos/search-ingest
-    branch: refactor/pg-migration
-
-  placeos-frontend-loader:
-    github: placeos/frontend-loader
-    branch: refactor/pg-migration
-
   CrystalEmail:
     github: place-labs/CrystalEmail
     version: ~> 0.2
@@ -28,7 +16,7 @@ dependencies:
   # For core client
   placeos-core-client:
     github: placeos/core-client
-    branch: refactor/pg-migration
+    version: ~> 1.0
 
   # TODO:: remove
   http-params-serializable:

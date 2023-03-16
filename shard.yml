@@ -53,6 +53,7 @@ dependencies:
   # For frontends client
   placeos-frontend-loader:
     github: placeos/frontend-loader
+    branch: master
 
   # Centrally defined logging configuration
   placeos-log-backend:
@@ -62,7 +63,7 @@ dependencies:
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 8.11
+    version: ~> 9.0
 
   # An abstraction over Fibers
   promise:
@@ -81,7 +82,7 @@ dependencies:
   # Client for Search Ingest PostgreSQL Elasticsearch indexer
   search-ingest:
     github: placeos/search-ingest
-    version: ~> 2.0
+    branch: master
 
   # Scheduling
   tasker:
@@ -121,4 +122,4 @@ development_dependencies:
 
   placeos-core:
     github: placeos/core
-    branch: refactor/pg-migration
+    branch: master

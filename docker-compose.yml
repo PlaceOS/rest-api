@@ -130,7 +130,7 @@ services:
 
 
   search-ingest: # PostgreSQL to Elasticsearch Service
-    image: ghcr.io/placeos/search-ingest:refactor-pg-migration
+    image: placeos/search-ingest:nightly
     restart: always
     hostname: search-ingest
     depends_on:
@@ -146,7 +146,7 @@ services:
       <<: *deployment-env
 
   auth: # Authentication Service
-    image: ghcr.io/placeos/auth:refactor-pg-migration
+    image: placeos/auth:nightly
     restart: always
     hostname: auth
     depends_on:
@@ -161,7 +161,7 @@ services:
       PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
-    image: ghcr.io/placeos/core:refactor-pg-migration
+    image: placeos/core:nightly
     restart: always
     hostname: core
     depends_on:
