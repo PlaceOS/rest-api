@@ -37,7 +37,7 @@ COPY ./src /app/src
 RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_COMMIT=$PLACE_COMMIT \
     PLACE_VERSION=$PLACE_VERSION \
-    shards build --production --release --error-trace
+    shards build --production --error-trace
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
