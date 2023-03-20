@@ -77,11 +77,17 @@ class PlaceOS::Api::ClusteredSessions
     loop do
       sleep sleep_time
       begin
+        Log.info { "[webrtc] maintaining sessions" }
         sessions = @session_mutex.synchronize { @sessions.dup }
         sessions.each_key do |session_id|
-          with_redis(&.expire(set_key(session_id), TTL_SECONDS)) rescue Exception
+          begin
+            with_redis(&.expire(set_key(session_id), TTL_SECONDS))
+          rescue error
+            Log.warn(exception: error) { "[webrtc] issue setting session expiry" }
+          end
         end
-      rescue
+      rescue error
+        Log.warn(exception: error) { "[webrtc] unknown issue touching sessions" }
       end
     end
   end
