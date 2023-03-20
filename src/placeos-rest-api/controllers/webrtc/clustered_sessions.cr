@@ -4,7 +4,7 @@ require "placeos-driver/proxy/remote_driver"
 
 # stores the session participant IDs in a set in redis
 class PlaceOS::Api::ClusteredSessions
-  def initializer
+  def initialize
     sleep_time = 60 + rand(50)
     spawn { touch_sessions(sleep_time) }
   end
@@ -75,19 +75,19 @@ class PlaceOS::Api::ClusteredSessions
 
   def touch_sessions(sleep_time : Int32)
     loop do
-      sleep sleep_time
       begin
-        Log.info { "[webrtc] maintaining sessions" }
+        sleep sleep_time
         sessions = @session_mutex.synchronize { @sessions.dup }
+        WebRTC::Log.info { "[webrtc] maintaining #{sessions.size} sessions" }
         sessions.each_key do |session_id|
           begin
             with_redis(&.expire(set_key(session_id), TTL_SECONDS))
           rescue error
-            Log.warn(exception: error) { "[webrtc] issue setting session expiry" }
+            WebRTC::Log.warn(exception: error) { "[webrtc] issue setting session expiry" }
           end
         end
       rescue error
-        Log.warn(exception: error) { "[webrtc] unknown issue touching sessions" }
+        WebRTC::Log.warn(exception: error) { "[webrtc] unknown issue touching sessions" }
       end
     end
   end
