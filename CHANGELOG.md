@@ -20,6 +20,7 @@
 
 ### Fix
 
+- **webrtc/clustered_sessions**: initializer spelling
 - **webrtc**: exit signal not firing
 - **webrtc**: make index route public ([#340](https://github.com/PlaceOS/rest-api/pull/340))
 - edge exec lookup ([#329](https://github.com/PlaceOS/rest-api/pull/329))
