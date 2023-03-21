@@ -89,7 +89,7 @@ module PlaceOS::Api
         results
       else # we use Elasticsearch
         elastic = Model::Module.elastic
-        query = elastic.query(q)
+        query = elastic.query(q || "")
 
         if driver_id
           query.filter({"driver_id" => [driver_id]})
