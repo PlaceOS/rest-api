@@ -5158,12 +5158,10 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: only return modules matching this search query
-        example: bookings
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
         required: false
         schema:
           type: string
-          nullable: true
       - name: limit
         in: query
         description: the maximum number of results to return

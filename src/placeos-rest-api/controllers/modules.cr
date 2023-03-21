@@ -67,9 +67,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "do not return logic modules (return only modules that can exist in multiple systems)", example: "true")]
       no_logic : Bool = false,
       @[AC::Param::Info(description: "return only running modules", example: "true")]
-      running : Bool? = nil,
-      @[AC::Param::Info(description: "only return modules matching this search query", example: "bookings")]
-      q : String? = nil
+      running : Bool? = nil
     ) : Array(Model::Module)
       # if a system id is present we query the database directly
       if control_system_id
@@ -89,7 +87,7 @@ module PlaceOS::Api
         results
       else # we use Elasticsearch
         elastic = Model::Module.elastic
-        query = elastic.query(q || "")
+        query = elastic.query(search_params)
 
         if driver_id
           query.filter({"driver_id" => [driver_id]})
