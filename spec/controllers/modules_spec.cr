@@ -166,6 +166,35 @@ module PlaceOS::Api
           found.should be_true
         end
       end
+
+      it "queries by parent driver and only returns matches" do
+        name_one = random_name
+        driver_one = Model::Generator.driver
+        driver_one.name = name_one
+        driver_one.save!
+        doc_one = Model::Generator.module(driver: driver_one).save!
+        doc_one.persisted?.should be_true
+
+        name_two = random_name
+        driver_two = Model::Generator.driver
+        driver_two.name = name_two
+        driver_two.save!
+        doc_two = Model::Generator.module(driver: driver_two).save!
+        doc_two.persisted?.should be_true
+
+        refresh_elastic(Model::Module.table_name)
+
+        params = HTTP::Params.encode({"q" => name_one})
+        path = "#{Modules.base_route.rstrip('/')}?#{params}"
+        header = Spec::Authentication.headers
+
+        found = until_expected("GET", path, header) do |response|
+          result = Array(Hash(String, JSON::Any)).from_json(response.body)
+          result.any? { |r| r["id"].as_s == doc_one.id } && !result.any? { |r| r["id"].as_s == doc_two.id } ? true : false
+        end
+
+        found.should be_true
+      end
     end
 
     describe "GET /modules/:id/settings" do
