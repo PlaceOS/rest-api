@@ -21,7 +21,7 @@ exit_code="0"
 
 docker-compose run \
         --rm \
-        test $@ \
+        test "$@" \
     || exit_code="$?"
 
 docker-compose down &> /dev/null

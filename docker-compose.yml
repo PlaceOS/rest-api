@@ -56,12 +56,14 @@ services:
     environment:
       # Environment
       GITHUB_ACTION: ${GITHUB_ACTION:-}
-      <<: *deployment-env
-      # Service Hosts
-      <<: *elastic-client-env
-      <<: *etcd-client-env
-      <<: *redis-client-env
-      <<: *postgresdb-client-env
+      <<: [
+        *deployment-env,
+        # Service Hosts
+        *elastic-client-env,
+        *etcd-client-env,
+        *redis-client-env,
+        *postgresdb-client-env,
+      ]
 
   elastic:
     image: elasticsearch:${ELASTIC_VERSION:-7.17.6}
@@ -140,10 +142,12 @@ services:
     environment:
       LOG_LEVEL: trace
       # Service Hosts
-      <<: *postgresdb-client-env
-      <<: *elastic-client-env
-      # Environment
-      <<: *deployment-env
+      <<: [
+        *postgresdb-client-env,
+        *elastic-client-env,
+        # Environment
+        *deployment-env,
+      ]
 
   auth: # Authentication Service
     image: placeos/auth:nightly
@@ -154,8 +158,10 @@ services:
       - migrator
       - postgres
     environment:
-      <<: *postgresdb-client-env
-      <<: *redis-client-env
+      <<: [
+        *postgresdb-client-env,
+        *redis-client-env,
+      ]
       COAUTH_NO_SSL: "true"
       TZ: $TZ
       PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
@@ -178,8 +184,10 @@ services:
       start_period: 30s
     environment:
       # Service Hosts
-      <<: *etcd-client-env
-      <<: *redis-client-env
-      <<: *postgresdb-client-env
-      # Environment
-      <<: *deployment-env
+      <<: [
+        *etcd-client-env,
+        *redis-client-env,
+        *postgresdb-client-env,
+        # Environment
+        *deployment-env,
+      ]

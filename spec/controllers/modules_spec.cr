@@ -167,7 +167,7 @@ module PlaceOS::Api
         end
       end
 
-      it "queries by parent driver and only returns matches" do
+      it "only returns matches" do
         name_one = random_name
         driver_one = Model::Generator.driver
         driver_one.name = name_one
