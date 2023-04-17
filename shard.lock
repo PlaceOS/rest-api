@@ -163,7 +163,7 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.12.2
+    version: 1.13.0
 
   open_api:
     git: https://github.com/elbywan/open_api.cr.git

@@ -34,7 +34,7 @@ dependencies:
   # Elasticsearch extension for PgORM
   neuroplastic:
     github: spider-gazelle/neuroplastic
-    version: ~> 1.12.1
+    version: ~> 1.13.0
  
   # Performs ping requests
   pinger:

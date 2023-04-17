@@ -88,6 +88,7 @@ module PlaceOS::Api
       else # we use Elasticsearch
         elastic = Model::Module.elastic
         query = elastic.query(search_params)
+        query.minimum_should_match(1)
 
         if driver_id
           query.filter({"driver_id" => [driver_id]})

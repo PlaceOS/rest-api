@@ -64,6 +64,7 @@ services:
         *redis-client-env,
         *postgresdb-client-env,
       ]
+      LOG_LEVEL: debug
 
   elastic:
     image: elasticsearch:${ELASTIC_VERSION:-7.17.6}
@@ -73,8 +74,22 @@ services:
       test: wget -q --no-verbose --tries=1 --spider http://localhost:9200/_cat/health
     environment:
       discovery.type: single-node
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+      http.cors.enabled: true
+      http.cors.allow-origin: http://localhost:8080
     ports:
       - 9200:9200
+    volumes:
+      - type: volume
+        source: elastic-data
+        target: /usr/share/elasticsearch/data
+
+  elasticvue:
+    image: cars10/elasticvue:latest
+    restart: always
+    hostname: elasticvue
+    ports:
+      - 8080:8080
 
   etcd:
     image: quay.io/coreos/etcd:${ETCD_VERSION:-v3.5.4}
@@ -191,3 +206,6 @@ services:
         # Environment
         *deployment-env,
       ]
+
+volumes:
+  elastic-data:
