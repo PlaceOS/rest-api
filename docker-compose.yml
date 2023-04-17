@@ -64,7 +64,7 @@ services:
         *redis-client-env,
         *postgresdb-client-env,
       ]
-      LOG_LEVEL: debug
+      # LOG_LEVEL: debug
 
   elastic:
     image: elasticsearch:${ELASTIC_VERSION:-7.17.6}
@@ -79,10 +79,6 @@ services:
       http.cors.allow-origin: http://localhost:8080
     ports:
       - 9200:9200
-    volumes:
-      - type: volume
-        source: elastic-data
-        target: /usr/share/elasticsearch/data
 
   elasticvue:
     image: cars10/elasticvue:latest
@@ -207,5 +203,3 @@ services:
         *deployment-env,
       ]
 
-volumes:
-  elastic-data:
