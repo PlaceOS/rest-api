@@ -75,7 +75,7 @@ services:
     environment:
       discovery.type: single-node
       ES_JAVA_OPTS: -Xms1g -Xmx1g
-      http.cors.enabled: true
+      http.cors.enabled: "true"
       http.cors.allow-origin: http://localhost:8080
     ports:
       - 9200:9200
