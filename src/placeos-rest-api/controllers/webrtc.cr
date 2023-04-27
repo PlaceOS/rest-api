@@ -231,7 +231,8 @@ module PlaceOS::Api
       system_id : String
     ) : RoomDetails
       system = current_control_system
-      meta = Model::Metadata.build_metadata(system.id.not_nil!, nil)
+      authority = current_authority.not_nil!
+      meta = Model::Metadata.build_metadata(system.id.not_nil!, authority.internals["webrtc_public_metadata"]?.try(&.as_s?))
       RoomDetails.new(system, meta)
     end
 

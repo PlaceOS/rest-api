@@ -56,12 +56,15 @@ services:
     environment:
       # Environment
       GITHUB_ACTION: ${GITHUB_ACTION:-}
-      <<: *deployment-env
-      # Service Hosts
-      <<: *elastic-client-env
-      <<: *etcd-client-env
-      <<: *redis-client-env
-      <<: *postgresdb-client-env
+      <<: [
+        *deployment-env,
+        # Service Hosts
+        *elastic-client-env,
+        *etcd-client-env,
+        *redis-client-env,
+        *postgresdb-client-env,
+      ]
+      # LOG_LEVEL: debug
 
   elastic:
     image: elasticsearch:${ELASTIC_VERSION:-7.17.6}
@@ -71,8 +74,18 @@ services:
       test: wget -q --no-verbose --tries=1 --spider http://localhost:9200/_cat/health
     environment:
       discovery.type: single-node
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+      http.cors.enabled: "true"
+      http.cors.allow-origin: http://localhost:8080
     ports:
       - 9200:9200
+
+  elasticvue:
+    image: cars10/elasticvue:latest
+    restart: always
+    hostname: elasticvue
+    ports:
+      - 8080:8080
 
   etcd:
     image: quay.io/coreos/etcd:${ETCD_VERSION:-v3.5.4}
@@ -140,10 +153,12 @@ services:
     environment:
       LOG_LEVEL: trace
       # Service Hosts
-      <<: *postgresdb-client-env
-      <<: *elastic-client-env
-      # Environment
-      <<: *deployment-env
+      <<: [
+        *postgresdb-client-env,
+        *elastic-client-env,
+        # Environment
+        *deployment-env,
+      ]
 
   auth: # Authentication Service
     image: placeos/auth:nightly
@@ -154,8 +169,10 @@ services:
       - migrator
       - postgres
     environment:
-      <<: *postgresdb-client-env
-      <<: *redis-client-env
+      <<: [
+        *postgresdb-client-env,
+        *redis-client-env,
+      ]
       COAUTH_NO_SSL: "true"
       TZ: $TZ
       PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
@@ -178,8 +195,11 @@ services:
       start_period: 30s
     environment:
       # Service Hosts
-      <<: *etcd-client-env
-      <<: *redis-client-env
-      <<: *postgresdb-client-env
-      # Environment
-      <<: *deployment-env
+      <<: [
+        *etcd-client-env,
+        *redis-client-env,
+        *postgresdb-client-env,
+        # Environment
+        *deployment-env,
+      ]
+
