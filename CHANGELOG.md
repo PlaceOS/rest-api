@@ -20,6 +20,7 @@
 
 ### Fix
 
+- **modules**: [PPT-32] search query ([#341](https://github.com/PlaceOS/rest-api/pull/341))
 - **webrtc/clustered_sessions**: initializer spelling
 - **webrtc**: exit signal not firing
 - **webrtc**: make index route public ([#340](https://github.com/PlaceOS/rest-api/pull/340))
@@ -679,6 +680,7 @@
 - **controllers**: add `../drivers/:id/compiled` and `../modules/:id/load`
 - **dockerfile**: bump crystal version
 - add support for crystal 0.34
+- **dockerfile**: don't run process as root
 
 ### Fix
 
@@ -686,10 +688,6 @@
 - displaying cluster details in various states
 
 ## v1.4.1 (2020-04-08)
-
-### Feat
-
-- **dockerfile**: don't run process as root
 
 ## v1.4.0 (2020-04-06)
 
