@@ -21,8 +21,10 @@ module PlaceOS::Api
       if token = request.headers["X-API-Key"]? || params["api-key"]? || cookies["api-key"]?.try(&.value)
         begin
           api_key = Model::ApiKey.find_key!(token)
-          @user_token = user_token = api_key.build_jwt
+          user_token = api_key.build_jwt
           Log.context.set(api_key_id: api_key.id, api_key_name: api_key.name)
+          ensure_matching_domain(user_token)
+          @user_token = user_token
           return user_token
         rescue e
           Log.warn(exception: e) { {message: "bad or unknown X-API-Key", action: "authorize!"} }
@@ -30,9 +32,8 @@ module PlaceOS::Api
         end
       end
 
-      token = acquire_token
-
       # Request must have a bearer token
+      token = acquire_token
       raise Error::Unauthorized.new unless token
 
       begin
@@ -43,6 +44,15 @@ module PlaceOS::Api
         raise Error::Unauthorized.new "bearer malformed"
       end
 
+      ensure_matching_domain(user_token)
+      user_token
+    rescue e
+      # ensure that the user token is nil if this function ever errors.
+      @user_token = nil
+      raise e
+    end
+
+    protected def ensure_matching_domain(user_token)
       unless authority = current_authority
         Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
         raise Error::Unauthorized.new "authority not found"
@@ -55,11 +65,6 @@ module PlaceOS::Api
         Log.warn { {message: "authority domain does not match token's", action: "authorize!", token_domain: user_token.domain, authority_domain: authority.domain} }
         raise Error::Unauthorized.new "authority domain does not match token's"
       end
-      user_token
-    rescue e
-      # ensure that the user token is nil if this function ever errors.
-      @user_token = nil
-      raise e
     end
 
     def check_oauth_scope
