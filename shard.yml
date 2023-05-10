@@ -63,7 +63,7 @@ dependencies:
   # Database view
   placeos-models:
     github: placeos/models
-    version: ~> 9.0
+    version: ">= 9.3"
 
   # An abstraction over Fibers
   promise:
