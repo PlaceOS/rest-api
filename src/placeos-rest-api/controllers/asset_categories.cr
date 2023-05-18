@@ -19,7 +19,7 @@ module PlaceOS::Api
     def find_current_asset_category(id : String)
       Log.context.set(asset_category_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_asset_category = Model::Authority.find!(id)
+      @current_asset_category = Model::AssetCategory.find!(id)
     end
 
     getter! current_asset_category : Model::AssetCategory
