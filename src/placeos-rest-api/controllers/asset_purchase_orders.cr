@@ -1,7 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
-  class Assetpurchase_orders < Application
+  class AssetPurchaseOrders < Application
     base "/api/engine/v2/asset_purchase_orders/"
 
     # Scopes

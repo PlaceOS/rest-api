@@ -8,15 +8,15 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy]
+    before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, only: [:create, :update, :destroy]
+    before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
-    def current_asset(id : String)
+    def find_current_asset(id : String)
       Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
       @current_asset = Model::Asset.find!(id)
@@ -24,48 +24,24 @@ module PlaceOS::Api
 
     getter! current_asset : Model::Asset
 
-    # Response helpers
     ###############################################################################################
 
-    # extend the ControlSystem model to handle our return values
-    class Model::Asset
-      @[JSON::Field(key: "asset_instances")]
-      property asset_instances_details : Array(PlaceOS::Model::AssetInstance)? = nil
-    end
-
-    ###############################################################################################
-
-    # return a list of the asset types
+    # list the assets
     @[AC::Route::GET("/")]
-    def index(
-      @[AC::Param::Info(description: "return assets that are a subset of this asset", example: "asset-12345")]
-      parent_id : String? = nil
-    ) : Array(Model::Asset)
+    def index : Array(Model::Asset)
       elastic = Model::Asset.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
-
-      # Limit results to the children of this parent
-      if parent = parent_id
-        query.must({
-          "parent_id" => [parent],
-        })
-      end
-
       paginate_results(elastic, query)
     end
 
-    # grab the details of a particular asset type
+    # show the selected asset
     @[AC::Route::GET("/:id")]
-    def show(
-      @[AC::Param::Info(name: "instances", description: "return the list of assets of this type", example: "true")]
-      include_instances : Bool = false
-    ) : Model::Asset | Hash(String, Array(PlaceOS::Model::AssetInstance) | JSON::Any)
-      current_asset.asset_instances_details = current_asset.asset_instances.to_a if include_instances
+    def show : Model::Asset
       current_asset
     end
 
-    # update the details of this asset type
+    # udpate asset details
     @[AC::Route::PATCH("/:id", body: :asset)]
     @[AC::Route::PUT("/:id", body: :asset)]
     def update(asset : Model::Asset) : Model::Asset
@@ -75,26 +51,17 @@ module PlaceOS::Api
       current
     end
 
-    # create a new asset category
+    # add new asset
     @[AC::Route::POST("/", body: :asset, status_code: HTTP::Status::CREATED)]
     def create(asset : Model::Asset) : Model::Asset
       raise Error::ModelValidation.new(asset.errors) unless asset.save
       asset
     end
 
-    # remove a category of assets
+    # remove asset
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
-      current_asset.destroy # expires the cache in after callback
-    end
-
-    # return the assest of the selected type
-    @[AC::Route::GET("/:id/asset_instances")]
-    def asset_instances : Array(Model::AssetInstance)
-      instances = current_asset.asset_instances.to_a
-      set_collection_headers(instances.size, Model::AssetInstance.table_name)
-
-      instances
+      current_asset.destroy
     end
   end
 end
