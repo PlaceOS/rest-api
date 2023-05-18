@@ -700,7 +700,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -774,7 +775,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -842,7 +844,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         202:
           description: Accepted
@@ -912,7 +915,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1146,7 +1150,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1220,7 +1225,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1288,7 +1294,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         202:
           description: Accepted
@@ -1358,7 +1365,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1592,7 +1600,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1666,7 +1675,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1734,7 +1744,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         202:
           description: Accepted
@@ -1804,7 +1815,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -2038,7 +2050,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -2112,7 +2125,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -2180,7 +2194,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         202:
           description: Accepted
@@ -2250,7 +2265,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -16428,7 +16444,8 @@ components:
           type: string
           nullable: true
         parent_category_id:
-          type: string
+          type: integer
+          format: Int64
           nullable: true
         id:
           type: integer
@@ -16503,7 +16520,8 @@ components:
             type: string
           nullable: true
         category_id:
-          type: string
+          type: integer
+          format: Int64
           nullable: true
         id:
           type: integer
@@ -16530,10 +16548,12 @@ components:
           type: object
           nullable: true
         asset_type_id:
-          type: string
+          type: integer
+          format: Int64
           nullable: true
         purchase_order_id:
-          type: string
+          type: integer
+          format: Int64
           nullable: true
         id:
           type: integer
