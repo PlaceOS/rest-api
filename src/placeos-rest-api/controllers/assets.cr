@@ -18,7 +18,8 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_asset(id : String)
       Log.context.set(asset_id: id)
-      @current_asset = Model::Asset.find_by(id: id)
+      # Find will raise a 404 (not found) if there is an error
+      @current_asset = Model::Asset.find!(id)
     end
 
     getter! current_asset : Model::Asset

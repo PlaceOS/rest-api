@@ -18,7 +18,8 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_asset_purchase_order(id : String)
       Log.context.set(asset_purchase_order_id: id)
-      @current_asset_purchase_order = Model::AssetPurchaseOrder.find_by(id: id)
+      # Find will raise a 404 (not found) if there is an error
+      @current_asset_purchase_order = Model::AssetPurchaseOrder.find!(id)
     end
 
     getter! current_asset_purchase_order : Model::AssetPurchaseOrder
