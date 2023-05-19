@@ -55,15 +55,15 @@ module PlaceOS::Api::Spec
     end
   end
 
-  macro test_show(klass, controller_klass)
+  macro test_show(klass, controller_klass, id_type = String)
     {% klass_name = klass.stringify.split("::").last.underscore %}
 
     it "show" do
       model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
       model.persisted?.should be_true
-      id = model.id.as(String)
+      id = model.id.as({{ id_type.id }})
       result = client.get(
-        path: File.join({{ controller_klass }}.base_route, id),
+        path: File.join({{ controller_klass }}.base_route, id.to_s),
         headers: Spec::Authentication.headers,
       )
 
@@ -75,15 +75,15 @@ module PlaceOS::Api::Spec
     end
   end
 
-  macro test_destroy(klass, controller_klass)
+  macro test_destroy(klass, controller_klass, id_type = String)
     {% klass_name = klass.stringify.split("::").last.underscore %}
 
     it "destroy" do
       model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
       model.persisted?.should be_true
-      id = model.id.as(String)
+      id = model.id.as({{ id_type.id }})
       result = client.delete(
-        path: File.join({{ controller_klass }}.base_route, id),
+        path: File.join({{ controller_klass }}.base_route, id.to_s),
         headers: Spec::Authentication.headers
       )
 
@@ -92,13 +92,13 @@ module PlaceOS::Api::Spec
     end
   end
 
-  macro test_crd(klass, controller_klass)
+  macro test_crd(klass, controller_klass, id_type = String)
     Spec.test_create({{ klass }}, {{ controller_klass }})
-    Spec.test_show({{ klass }}, {{ controller_klass }})
-    Spec.test_destroy({{ klass }}, {{ controller_klass }})
+    Spec.test_show({{ klass }}, {{ controller_klass }}, {{ id_type }})
+    Spec.test_destroy({{ klass }}, {{ controller_klass }}, {{ id_type }})
   end
 
-  macro test_controller_scope(klass)
+  macro test_controller_scope(klass, id_type = String)
     {% base = klass.resolve.constant(:NAMESPACE).first %}
 
     {% if klass.stringify == "Repositories" %}
@@ -110,6 +110,9 @@ module PlaceOS::Api::Spec
     {% elsif klass.stringify == "Settings" %}
       {% model_name = "Settings" %}
       {% model_gen = "settings" %}
+    {% elsif klass.stringify == "AssetCategories" %}
+      {% model_name = "AssetCategory" %}
+      {% model_gen = "asset_category" %}
     {% else %}
       {% model_name = klass.stringify.gsub(/[s]$/, " ").strip %}
       {% model_gen = model_name.underscore %}
@@ -123,7 +126,7 @@ module PlaceOS::Api::Spec
 
         model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
-        id = model.id.as(String)
+        id = model.id.as({{ id_type.id }})
         result = Scopes.show({{ base }}, id, scoped_headers)
         result.status_code.should eq 200
         response_model = Model::{{ model_name.id }}.from_trusted_json(result.body)
@@ -151,7 +154,7 @@ module PlaceOS::Api::Spec
 
         model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
-        id = model.id.as(String)
+        id = model.id.as({{ id_type.id }})
         result = Scopes.delete({{ base }}, id, scoped_headers)
         result.status_code.should eq 403
         Model::{{ model_name.id }}.find?(id).should_not be_nil
@@ -164,7 +167,7 @@ module PlaceOS::Api::Spec
 
         model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
-        id = model.id.as(String)
+        id = model.id.as({{ id_type.id }})
         result = Scopes.show({{ base }}, id, scoped_headers)
         result.status_code.should eq 403
         model.destroy
@@ -192,7 +195,7 @@ module PlaceOS::Api::Spec
         _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new({{scope_name}}, :write)])
         model = PlaceOS::Model::Generator.{{ model_gen.id }}.save!
         model.persisted?.should be_true
-        id = model.id.as(String)
+        id = model.id.as({{ id_type.id }})
         result = Scopes.delete({{ base }}, id, scoped_headers)
         result.success?.should be_true
         Model::{{ model_name.id }}.find?(id).should be_nil

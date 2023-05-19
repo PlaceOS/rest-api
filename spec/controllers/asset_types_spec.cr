@@ -9,11 +9,11 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      Spec.test_crd(Model::AssetType, AssetTypes)
+      Spec.test_crd(Model::AssetType, AssetTypes, id_type: Int64)
     end
 
     describe "scopes" do
-      Spec.test_controller_scope(AssetTypes)
+      Spec.test_controller_scope(AssetTypes, id_type: Int64)
     end
   end
 end

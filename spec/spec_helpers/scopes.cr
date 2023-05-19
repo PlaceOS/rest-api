@@ -5,7 +5,7 @@ module PlaceOS::Api::Scopes
 
   def show(base, id, scoped_headers)
     client.get(
-      path: File.join(base, id),
+      path: File.join(base, id.to_s),
       headers: scoped_headers,
     )
   end
@@ -27,7 +27,7 @@ module PlaceOS::Api::Scopes
 
   def delete(base, id, scoped_headers)
     client.delete(
-      path: File.join(base, id),
+      path: File.join(base, id.to_s),
       headers: scoped_headers,
     )
   end
