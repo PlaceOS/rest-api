@@ -8,14 +8,14 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy, :remove]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :bulk_create, :bulk_update, :bulk_destroy]
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :bulk_create, :bulk_update, :bulk_destroy])]
     def find_current_asset(id : Int64)
       Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -62,6 +62,43 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_asset.destroy
+    end
+
+    # Bulk actions
+    ###############################################################################################
+
+    # add new assets
+    @[AC::Route::POST("/bulk", body: :assets, status_code: HTTP::Status::CREATED)]
+    def bulk_create(assets : Array(Model::Asset)) : Array(Model::Asset)
+      raise Error::ModelValidation.new(assets.map(&.errors)) unless assets.map(&.save).all?
+      assets
+    end
+
+    # udpate asset details
+    # @[AC::Route::PATCH("/bulk", body: :assets)]
+    # @[AC::Route::PUT("/bulk", body: :assets)]
+    # def bulk_update(assets : Array(Model::Asset)) : Array(Model::Asset)
+    #   ids = assets.map(&.id)
+    #   Log.context.set(asset_ids: ids)
+
+    #   current = Model::Asset.query(where: {id: ids}).all
+    #   current = current.zip(assets).map do |(c, a)|
+    #     c.assign_attributes(a)
+    #     c
+    #   end
+
+    #   raise Error::ModelValidation.new(current.map(&.errors)) unless current.map(&.save).all?
+    #   current
+    # end
+
+    # remove assets
+    @[AC::Route::DELETE("/bulk", status_code: HTTP::Status::ACCEPTED)]
+    def bulk_destroy : Nil
+      ids = assets.map(&.id)
+      Log.context.set(asset_ids: ids)
+
+      current = Model::Asset.query(where: {id: ids}).all
+      current.each(&.destroy)
     end
   end
 end
