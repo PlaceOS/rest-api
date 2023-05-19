@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.5.2+git.commit.4cc155b2121ae490430b83f9082d787e787a5440
+    version: 2.6.0+git.commit.a38a599e211e8f62c618778fa754e70b98724b8b
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
