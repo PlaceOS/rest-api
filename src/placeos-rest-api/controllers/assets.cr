@@ -91,13 +91,11 @@ module PlaceOS::Api
     end
 
     # remove assets
-    @[AC::Route::DELETE("/bulk", body: :assets, status_code: HTTP::Status::ACCEPTED)]
-    def bulk_destroy(assets : Array(Model::Asset)) : Nil
-      assets.each do |asset|
-        if asset_id = asset.id
-          current = find_current_asset(asset_id)
-          current.destroy
-        end
+    @[AC::Route::DELETE("/bulk", body: :asset_ids, status_code: HTTP::Status::ACCEPTED)]
+    def bulk_destroy(asset_ids : Array(Int64)) : Nil
+      asset_ids.each do |asset_id|
+        current = find_current_asset(asset_id)
+        current.destroy
       end
     end
   end
