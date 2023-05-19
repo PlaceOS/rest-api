@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Assets do
-    Spec.test_404(Assets.base_route, model_name: Model::Asset.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Assets.base_route, model_name: Model::Asset.table_name, headers: Spec::Authentication.headers, clz: Int64)
 
     describe "index", tags: "search" do
       it "queries Asset", tags: "search" do
@@ -21,7 +21,7 @@ module PlaceOS::Api
         found = until_expected("GET", path, headers) do |response|
           Array(Hash(String, JSON::Any))
             .from_json(response.body)
-            .map(&.["id"].as_s)
+            .map(&.["id"].as_i64)
             .any?(doc.id)
         end
         found.should be_true

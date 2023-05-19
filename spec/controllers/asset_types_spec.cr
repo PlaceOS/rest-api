@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe AssetTypes do
-    Spec.test_404(AssetTypes.base_route, model_name: Model::AssetType.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(AssetTypes.base_route, model_name: Model::AssetType.table_name, headers: Spec::Authentication.headers, clz: Int64)
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::AssetType, AssetTypes)

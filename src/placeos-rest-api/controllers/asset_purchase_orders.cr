@@ -31,7 +31,7 @@ module PlaceOS::Api
     def index : Array(Model::AssetPurchaseOrder)
       elastic = Model::AssetPurchaseOrder.elastic
       query = elastic.query(search_params)
-      query.sort(NAME_SORT_ASC)
+      # query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
     end
 

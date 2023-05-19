@@ -2,11 +2,12 @@ require "./authentication"
 
 module PlaceOS::Api::Spec
   # Check application responds with 404 when model not present
-  def self.test_404(base, model_name, headers : HTTP::Headers)
+  def self.test_404(base, model_name, headers : HTTP::Headers, clz : Class = String)
     it "404s if #{model_name} isn't present in database", tags: "search" do
-      id = "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
+      id = (clz < Int) ? Random.rand(9999).to_s : "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
       path = File.join(base, id)
       result = client.get(path, headers: headers)
+
       result.status_code.should eq 404
     end
   end
@@ -31,7 +32,7 @@ module PlaceOS::Api::Spec
       found = until_expected("GET", path, headers) do |response|
         Array(Hash(String, JSON::Any))
           .from_json(response.body)
-          .map(&.["id"].as_s)
+          .map{|v| v.["id"].as_i64? || v.["id"].as_s?}
           .any?(doc.id)
       end
       found.should be_true
