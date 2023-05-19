@@ -70,35 +70,35 @@ module PlaceOS::Api
     # add new assets
     @[AC::Route::POST("/bulk", body: :assets, status_code: HTTP::Status::CREATED)]
     def bulk_create(assets : Array(Model::Asset)) : Array(Model::Asset)
-      raise Error::ModelValidation.new(assets.map(&.errors)) unless assets.map(&.save).all?
-      assets
+      assets.map do |asset|
+        raise Error::ModelValidation.new(asset.errors) unless asset.save
+        asset
+      end
     end
 
     # udpate asset details
-    # @[AC::Route::PATCH("/bulk", body: :assets)]
-    # @[AC::Route::PUT("/bulk", body: :assets)]
-    # def bulk_update(assets : Array(Model::Asset)) : Array(Model::Asset)
-    #   ids = assets.map(&.id)
-    #   Log.context.set(asset_ids: ids)
-
-    #   current = Model::Asset.query(where: {id: ids}).all
-    #   current = current.zip(assets).map do |(c, a)|
-    #     c.assign_attributes(a)
-    #     c
-    #   end
-
-    #   raise Error::ModelValidation.new(current.map(&.errors)) unless current.map(&.save).all?
-    #   current
-    # end
+    @[AC::Route::PATCH("/bulk", body: :assets)]
+    @[AC::Route::PUT("/bulk", body: :assets)]
+    def bulk_update(assets : Array(Model::Asset)) : Array(Model::Asset)
+      assets.compact_map do |asset|
+        if asset_id = asset.id
+          current = find_current_asset(asset_id)
+          current.assign_attributes(asset)
+          raise Error::ModelValidation.new(current.errors) unless current.save
+          current
+        end
+      end
+    end
 
     # remove assets
-    @[AC::Route::DELETE("/bulk", status_code: HTTP::Status::ACCEPTED)]
-    def bulk_destroy : Nil
-      ids = assets.map(&.id)
-      Log.context.set(asset_ids: ids)
-
-      current = Model::Asset.query(where: {id: ids}).all
-      current.each(&.destroy)
+    @[AC::Route::DELETE("/bulk", body: :assets, status_code: HTTP::Status::ACCEPTED)]
+    def bulk_destroy(assets : Array(Model::Asset)) : Nil
+      assets.each do |asset|
+        if asset_id = asset.id
+          current = find_current_asset(asset_id)
+          current.destroy
+        end
+      end
     end
   end
 end
