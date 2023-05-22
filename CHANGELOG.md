@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **asset_manager**: [PPT-335] new asset manager endpoints ([#343](https://github.com/PlaceOS/rest-api/pull/343))
 - **Dockerfile**: improve compile times and backtraces
 - **webrtc**: add a call signaling controller ([#332](https://github.com/PlaceOS/rest-api/pull/332))
 - **repositories**: add branch support ([#333](https://github.com/PlaceOS/rest-api/pull/333))
