@@ -524,12 +524,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/asset-instances:
+  /api/engine/v2/asset_categories:
     get:
-      summary: return a list of the assets in the database
+      summary: list the asset categories
       tags:
-      - AssetInstances
-      operationId: PlaceOS::Api::AssetInstances#index
+      - AssetCategories
+      operationId: PlaceOS::Api::AssetCategories#index
       parameters:
       - name: q
         in: query
@@ -569,7 +569,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+                  $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
         409:
           description: Conflict
           content:
@@ -621,15 +621,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     post:
-      summary: add a new asset to the database
+      summary: add new asset category
       tags:
-      - AssetInstances
-      operationId: PlaceOS::Api::AssetInstances#create
+      - AssetCategories
+      operationId: PlaceOS::Api::AssetCategories#create
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+              $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
         required: true
       parameters: []
       responses:
@@ -638,7 +638,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+                $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
         409:
           description: Conflict
           content:
@@ -689,25 +689,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/asset-instances/{id}:
+  /api/engine/v2/asset_categories/{id}:
     get:
-      summary: return the details of an asset
+      summary: show the selected asset category
       tags:
-      - AssetInstances
-      operationId: PlaceOS::Api::AssetInstances#show
+      - AssetCategories
+      operationId: PlaceOS::Api::AssetCategories#show
       parameters:
       - name: id
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+                $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
         409:
           description: Conflict
           content:
@@ -759,29 +760,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     put:
-      summary: update an assets details
+      summary: udpate asset category details
       tags:
-      - AssetInstances
-      operationId: PlaceOS::Api::AssetInstances#update
+      - AssetCategories
+      operationId: PlaceOS::Api::AssetCategories#update
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+              $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
         required: true
       parameters:
       - name: id
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+                $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
         409:
           description: Conflict
           content:
@@ -833,16 +835,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
-      summary: remove an asset
+      summary: remove asset category
       tags:
-      - AssetInstances
-      operationId: PlaceOS::Api::AssetInstances#destroy
+      - AssetCategories
+      operationId: PlaceOS::Api::AssetCategories#destroy
       parameters:
       - name: id
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         202:
           description: Accepted
@@ -897,29 +900,930 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     patch:
-      summary: update an assets details
+      summary: udpate asset category details
       tags:
-      - AssetInstances
-      operationId: PlaceOS::Api::AssetInstances#update{2}
+      - AssetCategories
+      operationId: PlaceOS::Api::AssetCategories#update{2}
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+              $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
         required: true
       parameters:
       - name: id
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+                $ref: '#/components/schemas/PlaceOS__Model__AssetCategory'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/asset_purchase_orders:
+    get:
+      summary: list the asset purchase_orders
+      tags:
+      - AssetPurchaseOrders
+      operationId: PlaceOS::Api::AssetPurchaseOrders#index
+      parameters:
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: deprecated, the starting offset of the result set. Used to implement
+          pagination
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      summary: add new asset purchase_order
+      tags:
+      - AssetPurchaseOrders
+      operationId: PlaceOS::Api::AssetPurchaseOrders#create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        required: true
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/asset_purchase_orders/{id}:
+    get:
+      summary: show the selected asset purchase_order
+      tags:
+      - AssetPurchaseOrders
+      operationId: PlaceOS::Api::AssetPurchaseOrders#show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    put:
+      summary: udpate asset purchase_order details
+      tags:
+      - AssetPurchaseOrders
+      operationId: PlaceOS::Api::AssetPurchaseOrders#update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: remove asset purchase_order
+      tags:
+      - AssetPurchaseOrders
+      operationId: PlaceOS::Api::AssetPurchaseOrders#destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: udpate asset purchase_order details
+      tags:
+      - AssetPurchaseOrders
+      operationId: PlaceOS::Api::AssetPurchaseOrders#update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetPurchaseOrder'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/asset_types:
+    get:
+      summary: list the asset types
+      tags:
+      - AssetTypes
+      operationId: PlaceOS::Api::AssetTypes#index
+      parameters:
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: deprecated, the starting offset of the result set. Used to implement
+          pagination
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__AssetType'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      summary: add new asset type
+      tags:
+      - AssetTypes
+      operationId: PlaceOS::Api::AssetTypes#create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__AssetType'
+        required: true
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetType'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/asset_types/{id}:
+    get:
+      summary: show the selected asset type
+      tags:
+      - AssetTypes
+      operationId: PlaceOS::Api::AssetTypes#show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetType'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    put:
+      summary: udpate asset type details
+      tags:
+      - AssetTypes
+      operationId: PlaceOS::Api::AssetTypes#update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__AssetType'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetType'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: remove asset type
+      tags:
+      - AssetTypes
+      operationId: PlaceOS::Api::AssetTypes#destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: udpate asset type details
+      tags:
+      - AssetTypes
+      operationId: PlaceOS::Api::AssetTypes#update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__AssetType'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__AssetType'
         409:
           description: Conflict
           content:
@@ -972,19 +1876,11 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/assets:
     get:
-      summary: return a list of the asset types
+      summary: list the assets
       tags:
       - Assets
       operationId: PlaceOS::Api::Assets#index
       parameters:
-      - name: parent_id
-        in: query
-        description: return assets that are a subset of this asset
-        example: asset-12345
-        required: false
-        schema:
-          type: string
-          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -1075,7 +1971,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     post:
-      summary: create a new asset category
+      summary: add new asset
       tags:
       - Assets
       operationId: PlaceOS::Api::Assets#create
@@ -1145,7 +2041,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/assets/{id}:
     get:
-      summary: grab the details of a particular asset type
+      summary: show the selected asset
       tags:
       - Assets
       operationId: PlaceOS::Api::Assets#show
@@ -1154,21 +2050,15 @@ paths:
         in: path
         required: true
         schema:
-          type: string
-      - name: instances
-        in: query
-        description: return the list of assets of this type
-        example: "true"
-        required: false
-        schema:
-          type: boolean
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/_Hash_String__Array_PlaceOS__Model__AssetInstance____JSON__Any____PlaceOS__Model__Asset_'
+                $ref: '#/components/schemas/PlaceOS__Model__Asset'
         409:
           description: Conflict
           content:
@@ -1220,7 +2110,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     put:
-      summary: update the details of this asset type
+      summary: udpate asset details
       tags:
       - Assets
       operationId: PlaceOS::Api::Assets#update
@@ -1235,7 +2125,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1294,7 +2185,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
-      summary: remove a category of assets
+      summary: remove asset
       tags:
       - Assets
       operationId: PlaceOS::Api::Assets#destroy
@@ -1303,7 +2194,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         202:
           description: Accepted
@@ -1358,7 +2250,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     patch:
-      summary: update the details of this asset type
+      summary: udpate asset details
       tags:
       - Assets
       operationId: PlaceOS::Api::Assets#update{2}
@@ -1373,7 +2265,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         200:
           description: OK
@@ -1431,18 +2324,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/assets/{id}/asset_instances:
-    get:
-      summary: return the assest of the selected type
+  /api/engine/v2/assets/bulk:
+    put:
+      summary: udpate asset details
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#asset_instances
-      parameters:
-      - name: id
-        in: path
+      operationId: PlaceOS::Api::Assets#bulk_update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Array_PlaceOS__Model__Asset_'
         required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         200:
           description: OK
@@ -1451,7 +2345,214 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaceOS__Model__AssetInstance'
+                  $ref: '#/components/schemas/PlaceOS__Model__Asset'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      summary: add new assets
+      tags:
+      - Assets
+      operationId: PlaceOS::Api::Assets#bulk_create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Array_PlaceOS__Model__Asset_'
+        required: true
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Asset'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: remove assets
+      tags:
+      - Assets
+      operationId: PlaceOS::Api::Assets#bulk_destroy
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Array_Int64_'
+        required: true
+      parameters: []
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: udpate asset details
+      tags:
+      - Assets
+      operationId: PlaceOS::Api::Assets#bulk_update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Array_PlaceOS__Model__Asset_'
+        required: true
+      parameters: []
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Asset'
         409:
           description: Conflict
           content:
@@ -15604,7 +16705,7 @@ components:
       - sub
       - scope
       - u
-    PlaceOS__Model__AssetInstance:
+    PlaceOS__Model__AssetCategory:
       type: object
       properties:
         created_at:
@@ -15618,36 +16719,92 @@ components:
         name:
           type: string
           nullable: true
-        tracking:
-          type: string
-          enum:
-          - in_storage
-          - on_the_way
-          - in_room
-          - returned
-          nullable: true
-        approval:
-          type: boolean
-          nullable: true
-        asset_id:
+        description:
           type: string
           nullable: true
-        requester_id:
-          type: string
-          nullable: true
-        zone_id:
-          type: string
-          nullable: true
-        usage_start:
-          type: integer
-          format: Int64
-          nullable: true
-        usage_end:
+        parent_category_id:
           type: integer
           format: Int64
           nullable: true
         id:
+          type: integer
+          format: Int64
+          nullable: true
+    PlaceOS__Model__AssetPurchaseOrder:
+      type: object
+      properties:
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
+          nullable: true
+        purchase_order_number:
           type: string
+          nullable: true
+        invoice_number:
+          type: string
+          nullable: true
+        supplier_details:
+          type: object
+          nullable: true
+        purchase_date:
+          type: string
+          format: date-time
+          nullable: true
+        unit_price:
+          type: integer
+          format: Int64
+          nullable: true
+        expected_service_start_date:
+          type: string
+          format: date-time
+          nullable: true
+        expected_service_end_date:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: integer
+          format: Int64
+          nullable: true
+    PlaceOS__Model__AssetType:
+      type: object
+      properties:
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        model_number:
+          type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        category_id:
+          type: integer
+          format: Int64
+          nullable: true
+        id:
+          type: integer
+          format: Int64
           nullable: true
     PlaceOS__Model__Asset:
       type: object
@@ -15660,159 +16817,31 @@ components:
           type: integer
           format: Int64
           nullable: true
-        name:
-          type: string
-          nullable: true
-        category:
-          type: string
-          nullable: true
-        description:
-          type: string
-          nullable: true
-        purchase_date:
-          type: integer
-          format: Int64
-          nullable: true
-        good_until_date:
-          type: integer
-          format: Int64
-          nullable: true
         identifier:
           type: string
           nullable: true
-        brand:
+        serial_number:
           type: string
-          nullable: true
-        purchase_price:
-          type: integer
-          format: Int32
-          nullable: true
-        images:
-          type: array
-          items:
-            type: string
-          nullable: true
-        invoice:
-          type: string
-          nullable: true
-        quantity:
-          type: integer
-          format: Int32
-          nullable: true
-        in_use:
-          type: integer
-          format: Int32
           nullable: true
         other_data:
           type: object
           nullable: true
-        parent_id:
-          type: string
+        asset_type_id:
+          type: integer
+          format: Int64
           nullable: true
-        asset_instances:
-          type: array
-          items:
-            type: object
-            properties:
-              created_at:
-                type: integer
-                format: Int64
-                nullable: true
-              updated_at:
-                type: integer
-                format: Int64
-                nullable: true
-              name:
-                type: string
-                nullable: true
-              tracking:
-                type: string
-                enum:
-                - in_storage
-                - on_the_way
-                - in_room
-                - returned
-                nullable: true
-              approval:
-                type: boolean
-                nullable: true
-              asset_id:
-                type: string
-                nullable: true
-              requester_id:
-                type: string
-                nullable: true
-              zone_id:
-                type: string
-                nullable: true
-              usage_start:
-                type: integer
-                format: Int64
-                nullable: true
-              usage_end:
-                type: integer
-                format: Int64
-                nullable: true
-              id:
-                type: string
-                nullable: true
+        purchase_order_id:
+          type: integer
+          format: Int64
           nullable: true
         id:
-          type: string
+          type: integer
+          format: Int64
           nullable: true
-    _Hash_String__Array_PlaceOS__Model__AssetInstance____JSON__Any____PlaceOS__Model__Asset_:
-      anyOf:
-      - type: object
-        additionalProperties:
-          anyOf:
-          - type: array
-            items:
-              type: object
-              properties:
-                created_at:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                updated_at:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                name:
-                  type: string
-                  nullable: true
-                tracking:
-                  type: string
-                  enum:
-                  - in_storage
-                  - on_the_way
-                  - in_room
-                  - returned
-                  nullable: true
-                approval:
-                  type: boolean
-                  nullable: true
-                asset_id:
-                  type: string
-                  nullable: true
-                requester_id:
-                  type: string
-                  nullable: true
-                zone_id:
-                  type: string
-                  nullable: true
-                usage_start:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                usage_end:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                id:
-                  type: string
-                  nullable: true
-          - type: object
-      - type: object
+    Array_PlaceOS__Model__Asset_:
+      type: array
+      items:
+        type: object
         properties:
           created_at:
             type: integer
@@ -15822,106 +16851,32 @@ components:
             type: integer
             format: Int64
             nullable: true
-          name:
-            type: string
-            nullable: true
-          category:
-            type: string
-            nullable: true
-          description:
-            type: string
-            nullable: true
-          purchase_date:
-            type: integer
-            format: Int64
-            nullable: true
-          good_until_date:
-            type: integer
-            format: Int64
-            nullable: true
           identifier:
             type: string
             nullable: true
-          brand:
+          serial_number:
             type: string
-            nullable: true
-          purchase_price:
-            type: integer
-            format: Int32
-            nullable: true
-          images:
-            type: array
-            items:
-              type: string
-            nullable: true
-          invoice:
-            type: string
-            nullable: true
-          quantity:
-            type: integer
-            format: Int32
-            nullable: true
-          in_use:
-            type: integer
-            format: Int32
             nullable: true
           other_data:
             type: object
             nullable: true
-          parent_id:
-            type: string
+          asset_type_id:
+            type: integer
+            format: Int64
             nullable: true
-          asset_instances:
-            type: array
-            items:
-              type: object
-              properties:
-                created_at:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                updated_at:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                name:
-                  type: string
-                  nullable: true
-                tracking:
-                  type: string
-                  enum:
-                  - in_storage
-                  - on_the_way
-                  - in_room
-                  - returned
-                  nullable: true
-                approval:
-                  type: boolean
-                  nullable: true
-                asset_id:
-                  type: string
-                  nullable: true
-                requester_id:
-                  type: string
-                  nullable: true
-                zone_id:
-                  type: string
-                  nullable: true
-                usage_start:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                usage_end:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                id:
-                  type: string
-                  nullable: true
+          purchase_order_id:
+            type: integer
+            format: Int64
             nullable: true
           id:
-            type: string
+            type: integer
+            format: Int64
             nullable: true
+    Array_Int64_:
+      type: array
+      items:
+        type: integer
+        format: Int64
     PlaceOS__Model__LdapAuthentication:
       type: object
       properties:
@@ -18676,18 +19631,6 @@ components:
     PlaceOS__Model__DoorkeeperApplication:
       type: object
       properties:
-        created_at:
-          type: integer
-          format: Int64
-          nullable: true
-        updated_at:
-          type: integer
-          format: Int64
-          nullable: true
-        id:
-          type: integer
-          format: Int64
-          nullable: true
         name:
           type: string
           nullable: true
@@ -18708,6 +19651,18 @@ components:
           nullable: true
         uid:
           type: string
+          nullable: true
+        id:
+          type: integer
+          format: Int64
+          nullable: true
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
           nullable: true
     PlaceOS__Model__Repository:
       type: object
