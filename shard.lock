@@ -59,7 +59,7 @@ shards:
 
   crystar:
     git: https://github.com/naqvis/crystar.git
-    version: 0.3.0
+    version: 0.3.1
 
   csuuid:
     git: https://github.com/wyhaines/csuuid.cr.git
@@ -253,9 +253,9 @@ shards:
     git: https://github.com/place-labs/log-backend.git
     version: 0.11.4
 
-  placeos-models: # Overridden
+  placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.6.0+git.commit.79a90cdada719e183b20585767c1041464ec3992
+    version: 9.7.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.6.0+git.commit.a38a599e211e8f62c618778fa754e70b98724b8b
+    version: 2.7.0+git.commit.dd6415d05cb5fcb2cee49d8b1b957fe96097b9f3
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
