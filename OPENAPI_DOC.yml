@@ -700,8 +700,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -775,8 +774,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -844,8 +842,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         202:
           description: Accepted
@@ -915,8 +912,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -1150,8 +1146,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -1225,8 +1220,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -1294,8 +1288,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         202:
           description: Accepted
@@ -1365,8 +1358,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -1600,8 +1592,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -1675,8 +1666,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -1744,8 +1734,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         202:
           description: Accepted
@@ -1815,8 +1804,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -2050,8 +2038,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -2125,8 +2112,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -2194,8 +2180,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         202:
           description: Accepted
@@ -2265,8 +2250,7 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: Int64
+          type: string
       responses:
         200:
           description: OK
@@ -2476,7 +2460,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Array_Int64_'
+              $ref: '#/components/schemas/Array_String_'
         required: true
       parameters: []
       responses:
@@ -16723,12 +16707,10 @@ components:
           type: string
           nullable: true
         parent_category_id:
-          type: integer
-          format: Int64
+          type: string
           nullable: true
         id:
-          type: integer
-          format: Int64
+          type: string
           nullable: true
     PlaceOS__Model__AssetPurchaseOrder:
       type: object
@@ -16751,24 +16733,23 @@ components:
           type: object
           nullable: true
         purchase_date:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
           nullable: true
         unit_price:
           type: integer
           format: Int64
           nullable: true
         expected_service_start_date:
-          type: string
-          format: date-time
-          nullable: true
-        expected_service_end_date:
-          type: string
-          format: date-time
-          nullable: true
-        id:
           type: integer
           format: Int64
+          nullable: true
+        expected_service_end_date:
+          type: integer
+          format: Int64
+          nullable: true
+        id:
+          type: string
           nullable: true
     PlaceOS__Model__AssetType:
       type: object
@@ -16799,12 +16780,10 @@ components:
             type: string
           nullable: true
         category_id:
-          type: integer
-          format: Int64
+          type: string
           nullable: true
         id:
-          type: integer
-          format: Int64
+          type: string
           nullable: true
     PlaceOS__Model__Asset:
       type: object
@@ -16827,16 +16806,13 @@ components:
           type: object
           nullable: true
         asset_type_id:
-          type: integer
-          format: Int64
+          type: string
           nullable: true
         purchase_order_id:
-          type: integer
-          format: Int64
+          type: string
           nullable: true
         id:
-          type: integer
-          format: Int64
+          type: string
           nullable: true
     Array_PlaceOS__Model__Asset_:
       type: array
@@ -16861,22 +16837,18 @@ components:
             type: object
             nullable: true
           asset_type_id:
-            type: integer
-            format: Int64
+            type: string
             nullable: true
           purchase_order_id:
-            type: integer
-            format: Int64
+            type: string
             nullable: true
           id:
-            type: integer
-            format: Int64
+            type: string
             nullable: true
-    Array_Int64_:
+    Array_String_:
       type: array
       items:
-        type: integer
-        format: Int64
+        type: string
     PlaceOS__Model__LdapAuthentication:
       type: object
       properties:

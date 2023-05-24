@@ -21,7 +21,7 @@ module PlaceOS::Api
         found = until_expected("GET", path, headers) do |response|
           Array(Hash(String, JSON::Any))
             .from_json(response.body)
-            .map(&.["id"].as_i64)
+            .map(&.["id"].to_s)
             .any?(doc.id)
         end
         found.should be_true
@@ -29,11 +29,11 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      Spec.test_crd(Model::AssetPurchaseOrder, AssetPurchaseOrders, id_type: Int64)
+      Spec.test_crd(Model::AssetPurchaseOrder, AssetPurchaseOrders)
     end
 
     describe "scopes" do
-      Spec.test_controller_scope(AssetPurchaseOrders, id_type: Int64)
+      Spec.test_controller_scope(AssetPurchaseOrders)
     end
   end
 end
