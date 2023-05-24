@@ -16,7 +16,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create, :bulk_create, :bulk_update, :bulk_destroy])]
-    def find_current_asset(id : Int64)
+    def find_current_asset(id : String)
       Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
       @current_asset = Model::Asset.find!(id)
@@ -92,7 +92,7 @@ module PlaceOS::Api
 
     # remove assets
     @[AC::Route::DELETE("/bulk", body: :asset_ids, status_code: HTTP::Status::ACCEPTED)]
-    def bulk_destroy(asset_ids : Array(Int64)) : Nil
+    def bulk_destroy(asset_ids : Array(String)) : Nil
       asset_ids.each do |asset_id|
         current = find_current_asset(asset_id)
         current.destroy
