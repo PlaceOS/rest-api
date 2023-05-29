@@ -41,6 +41,7 @@ module PlaceOS::Api
     def to_payload
       [{
         "event_type":      resource_state.to_payload,
+        "resource_id":     resource_id,
         "resource_uri":    resource_uri,
         "subscription_id": channel_id,
         "client_secret":   channel_token,

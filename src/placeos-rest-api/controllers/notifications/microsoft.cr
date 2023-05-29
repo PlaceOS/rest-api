@@ -111,6 +111,7 @@ module PlaceOS::Api
       def to_payload
         {
           "event_type":      (event.try &.to_payload) || type.to_s,
+          "resource_id":     resource_data.try &.id,
           "resource_uri":    resource,
           "subscription_id": subscription_id,
           "client_secret":   client_state,

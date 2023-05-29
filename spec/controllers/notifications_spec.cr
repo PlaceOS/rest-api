@@ -51,6 +51,7 @@ module PlaceOS::Api
           when message = channel.receive
             [{
               "event_type":      "updated",
+              "resource_id":     "ret08u3rv24htgh289g",
               "resource_uri":    "https://www.googleapis.com/calendar/v3/calendars/my_calendar@gmail.com/events",
               "subscription_id": "4ba78bf0-6a47-11e2-bcfd-0800200c9a66",
               "client_secret":   "398348u3tu83ut8uu38",
@@ -121,6 +122,7 @@ module PlaceOS::Api
           when message = channel.receive
             [{
               "event_type":      "created",
+              "resource_id":     "AAMkADlhNjJjN2M1LTJiYWUtNGVhMS04ODEzLTRjNDlmYmZkYWMyYQBGAAAAAAA2241OoLZoSZGqNr4MvSZJBwAXxlVK8zI-TZLFIn9D86hXAAAAAAENAAAXxlVK8zI-TZLFIn9D86hXAAAECHE1AAA=",
               "resource_uri":    "Users/2189c720-90d5-44ff-818b-fe585706ee90/Events/AAMkADlhNjJjN2M1LTJiYWUtNGVhMS04ODEzLTRjNDlmYmZkYWMyYQBGAAAAAAA2241OoLZoSZGqNr4MvSZJBwAXxlVK8zI-TZLFIn9D86hXAAAAAAENAAAXxlVK8zI-TZLFIn9D86hXAAAECHE1AAA=",
               "subscription_id": "f37536ac-b308-4bc7-b239-b2b51cd2ff24",
               "client_secret":   "secretClientState",
@@ -170,6 +172,7 @@ module PlaceOS::Api
           when message = channel.receive
             [{
               "event_type":      "reauthorize",
+              "resource_id":     nil,
               "resource_uri":    nil,
               "subscription_id": "f37536ac-b308-4bc7-b239-b2b51cd2ff24",
               "client_secret":   "secretClientState",
