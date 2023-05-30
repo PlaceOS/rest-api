@@ -227,7 +227,7 @@ shards:
 
   place_calendar:
     git: https://github.com/placeos/calendar.git
-    version: 4.17.0
+    version: 4.17.2
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -235,7 +235,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.10.0+git.commit.400c5d1f987851e29139c29bf9973d2e735f6a9f
+    version: 4.10.0+git.commit.ab693a0967e65e77b954cf4398ec2016c4a1fd5d
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git

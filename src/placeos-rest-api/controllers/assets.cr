@@ -11,7 +11,6 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove, :bulk_create, :bulk_update, :bulk_destroy]
 
     before_action :check_admin, except: [:index, :show]
-    before_action :check_support, only: [:index, :show]
 
     ###############################################################################################
 
