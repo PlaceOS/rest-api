@@ -175,7 +175,7 @@ shards:
 
   office365:
     git: https://github.com/placeos/office365.git
-    version: 1.19.0
+    version: 1.19.2
 
   open_api:
     git: https://github.com/elbywan/open_api.cr.git
@@ -255,7 +255,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.8.0
+    version: 9.9.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.7.0+git.commit.e60916e3be91d729ceb8cf966a4472dc4f0409a9
+    version: 2.7.0+git.commit.3f03f267bef0fee371805d1ea7986201a9d2e8ff
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
