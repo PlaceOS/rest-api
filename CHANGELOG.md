@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **assets**: add zone_id filtering
 - PPT-520 ([#346](https://github.com/PlaceOS/rest-api/pull/346))
 - **asset_manager**: change ids to strings ([#345](https://github.com/PlaceOS/rest-api/pull/345))
 - **asset_manager**: [PPT-335] new asset manager endpoints ([#343](https://github.com/PlaceOS/rest-api/pull/343))
