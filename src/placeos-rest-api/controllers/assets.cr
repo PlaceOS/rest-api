@@ -27,10 +27,19 @@ module PlaceOS::Api
 
     # list the assets
     @[AC::Route::GET("/")]
-    def index : Array(Model::Asset)
+    def index(
+      @[AC::Param::Info(description: "return assets which are in the zone provided", example: "zone-1234")]
+      zone_id : String? = nil
+    ) : Array(Model::Asset)
       elastic = Model::Asset.elastic
       query = elastic.query(search_params)
-      # query.sort(NAME_SORT_ASC)
+
+      if zone_id
+        query.must({
+          "zone_id" => [zone_id],
+        })
+      end
+
       paginate_results(elastic, query)
     end
 

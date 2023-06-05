@@ -1869,6 +1869,14 @@ paths:
       - Assets
       operationId: PlaceOS::Api::Assets#index
       parameters:
+      - name: zone_id
+        in: query
+        description: return assets which are in the zone provided
+        example: zone-1234
+        required: false
+        schema:
+          type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -10126,6 +10134,130 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/notifications/google:
+    post:
+      tags:
+      - PushNotifications
+      operationId: PlaceOS::Api::PushNotifications#google
+      parameters: []
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/notifications/office365:
+    post:
+      tags:
+      - PushNotifications
+      operationId: PlaceOS::Api::PushNotifications#microsoft
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__MicrosoftNotification'
+        required: true
+      parameters: []
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/oauth_apps:
     get:
       summary: lists the frontend applications enabled on the domains
@@ -16811,6 +16943,9 @@ components:
         purchase_order_id:
           type: string
           nullable: true
+        zone_id:
+          type: string
+          nullable: true
         id:
           type: string
           nullable: true
@@ -16840,6 +16975,9 @@ components:
             type: string
             nullable: true
           purchase_order_id:
+            type: string
+            nullable: true
+          zone_id:
             type: string
             nullable: true
           id:
@@ -19600,6 +19738,82 @@ components:
           - editors
           - updated_at
           - created_at
+    PlaceOS__Api__MicrosoftNotification:
+      type: object
+      properties:
+        validationTokens:
+          type: array
+          items:
+            type: string
+          nullable: true
+        value:
+          type: array
+          items:
+            type: object
+            properties:
+              changeType:
+                type: string
+                enum:
+                - created
+                - updated
+                - deleted
+                nullable: true
+              clientState:
+                type: string
+                nullable: true
+              encryptedContent:
+                type: object
+                properties:
+                  data:
+                    type: string
+                    nullable: true
+                  dataKey:
+                    type: string
+                    nullable: true
+                  dataSignature:
+                    type: string
+                    nullable: true
+                  encryptionCertificateId:
+                    type: string
+                    nullable: true
+                  encryptionCertificateThumbprint:
+                    type: string
+                    nullable: true
+                nullable: true
+              id:
+                type: string
+                nullable: true
+              lifecycleEvent:
+                type: string
+                enum:
+                - missed
+                - subscription_removed
+                - reauthorization_required
+                - unexpected_value
+                nullable: true
+              resource:
+                type: string
+                nullable: true
+              resourceData:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                nullable: true
+              subscriptionExpirationDateTime:
+                type: string
+                format: date-time
+              subscriptionId:
+                type: string
+              tenantId:
+                type: string
+            required:
+            - subscriptionExpirationDateTime
+            - subscriptionId
+            - tenantId
+      required:
+      - value
     PlaceOS__Model__DoorkeeperApplication:
       type: object
       properties:
