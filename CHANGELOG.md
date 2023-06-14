@@ -24,6 +24,7 @@
 
 ### Fix
 
+- **assets**: sort by id
 - **assets**: authenticated users can view
 - domain check skipped for x-api-keys ([#342](https://github.com/PlaceOS/rest-api/pull/342))
 - **modules**: [PPT-32] search query ([#341](https://github.com/PlaceOS/rest-api/pull/341))
