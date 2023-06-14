@@ -127,7 +127,7 @@ shards:
 
   hot_topic:
     git: https://github.com/jgaskins/hot_topic.git
-    version: 0.1.0+git.commit.c4577d949221d535f29162343bf503b578308954
+    version: 0.1.0+git.commit.3c901e77b6e000930398738260a2944b6f5785dc
 
   hound-dog:
     git: https://github.com/place-labs/hound-dog.git
@@ -235,7 +235,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.10.0+git.commit.ab693a0967e65e77b954cf4398ec2016c4a1fd5d
+    version: 4.10.0+git.commit.a18ad4613246224fb56072bc72d09f45e7204830
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -255,7 +255,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.10.2
+    version: 9.11.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -275,7 +275,7 @@ shards:
 
   raven:
     git: https://github.com/sija/raven.cr.git
-    version: 1.9.3+git.commit.f328bfdafe335f31e476c275fd434ac16049adea
+    version: 1.9.3+git.commit.2fa8a119cfa15d6fb98f0d8e3924d8175e974103
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.7.0+git.commit.e3abc2ae6afe98de2c6c3b08afc063f6a607fdbc
+    version: 2.7.0+git.commit.773d00bd8e1bf1c33288946407dbc6e20fe5699f
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

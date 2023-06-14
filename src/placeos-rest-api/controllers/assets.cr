@@ -40,6 +40,7 @@ module PlaceOS::Api
         })
       end
 
+      query.sort({"id" => {order: :asc}})
       paginate_results(elastic, query)
     end
 
