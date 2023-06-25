@@ -67,7 +67,7 @@ shards:
 
   db:
     git: https://github.com/crystal-lang/crystal-db.git
-    version: 0.11.0
+    version: 0.12.0
 
   debug:
     git: https://github.com/sija/debug.cr.git
@@ -215,7 +215,7 @@ shards:
 
   pg:
     git: https://github.com/will/crystal-pg.git
-    version: 0.26.0
+    version: 0.27.0
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
@@ -255,7 +255,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.11.1
+    version: 9.12.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.7.0+git.commit.773d00bd8e1bf1c33288946407dbc6e20fe5699f
+    version: 2.8.0+git.commit.2c3df21fe21c486693033e8a149ebaa59a60e57a
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
