@@ -195,7 +195,7 @@ shards:
 
   opentelemetry-instrumentation:
     git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.5.2+git.commit.327d335104d3bafd08426a0afb3755f50bafe13f
+    version: 0.5.3+git.commit.5c0323d0046719bae4a7a325ca5ce0e7405bf803
 
   opentelemetry-sdk: # Overridden
     git: https://github.com/wyhaines/opentelemetry-sdk.cr.git
@@ -235,7 +235,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.10.0+git.commit.a18ad4613246224fb56072bc72d09f45e7204830
+    version: 4.11.0+git.commit.bfc740369489d256e42d754849a215674bcae118
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -247,7 +247,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.36c8e1717d410ef79f8a29923982b939b9e84121
+    version: 2.7.1+git.commit.2622403f6176b25487113ff542de3cfb8edfde1c
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.8.0+git.commit.2c3df21fe21c486693033e8a149ebaa59a60e57a
+    version: 2.9.0+git.commit.2c27ea39d02b964fcebcd1f99b957a3a359d3bd4
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
