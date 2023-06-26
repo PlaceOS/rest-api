@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **shard.lock**: bump opentelemetry-instrumentation.cr
 - **assets**: add zone_id filtering
 - PPT-520 ([#346](https://github.com/PlaceOS/rest-api/pull/346))
 - **asset_manager**: change ids to strings ([#345](https://github.com/PlaceOS/rest-api/pull/345))
