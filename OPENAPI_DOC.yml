@@ -1877,6 +1877,22 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: type_id
+        in: query
+        description: return assets that match the asset type id provided
+        example: asset_type-1234
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: order_id
+        in: query
+        description: return assets that match the purchase order id provided
+        example: asset_purchase_order-1234
+        required: false
+        schema:
+          type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -16937,6 +16953,9 @@ components:
         other_data:
           type: object
           nullable: true
+        barcode:
+          type: string
+          nullable: true
         asset_type_id:
           type: string
           nullable: true
@@ -16970,6 +16989,9 @@ components:
             nullable: true
           other_data:
             type: object
+            nullable: true
+          barcode:
+            type: string
             nullable: true
           asset_type_id:
             type: string

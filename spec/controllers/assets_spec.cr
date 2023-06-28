@@ -13,8 +13,9 @@ module PlaceOS::Api
         doc.save!
 
         refresh_elastic(Model::Asset.table_name)
-
         doc.persisted?.should be_true
+
+        # search for the asset directly
         params = HTTP::Params.encode({"q" => identifier})
         path = "#{Assets.base_route.rstrip('/')}?#{params}"
 
@@ -25,6 +26,27 @@ module PlaceOS::Api
             .any?(doc.id)
         end
         found.should be_true
+
+        # search for asset using the asset type name
+        type_name = doc.asset_type.name
+        params = HTTP::Params.encode({"q" => type_name})
+        found = until_expected("GET", path, headers) do |response|
+          Array(Hash(String, JSON::Any))
+            .from_json(response.body)
+            .map(&.["id"].to_s)
+            .any?(doc.id)
+        end
+        found.should be_true
+
+        # search for something else
+        params = HTTP::Params.encode({"q" => "xxxxxxxxxx"})
+        found = until_expected("GET", path, headers) do |response|
+          Array(Hash(String, JSON::Any))
+            .from_json(response.body)
+            .map(&.["id"].to_s)
+            .any?(doc.id)
+        end
+        found.should be_false
       end
     end
 
