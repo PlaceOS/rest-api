@@ -18,7 +18,6 @@ module PlaceOS::Api
         # search for the asset directly
         params = HTTP::Params.encode({"q" => identifier})
         path = "#{Assets.base_route.rstrip('/')}?#{params}"
-
         found = until_expected("GET", path, headers) do |response|
           Array(Hash(String, JSON::Any))
             .from_json(response.body)
@@ -40,7 +39,7 @@ module PlaceOS::Api
         found.should be_true
 
         # search for something else
-        params = HTTP::Params.encode({"q" => "xxxxxxxxxx"})
+        params = HTTP::Params.encode({"q" => %("steveavtd")})
         path = "#{Assets.base_route.rstrip('/')}?#{params}"
         found = until_expected("GET", path, headers) do |response|
           Array(Hash(String, JSON::Any))
