@@ -56,7 +56,7 @@ module PlaceOS::Api
         })
       end
 
-      query.has_parent(parent: Model::AssetType, parent_index: Model::AssetType.table_name)
+      # query.has_parent(parent: Model::AssetType, parent_index: Model::AssetType.table_name)
 
       query.sort({"id" => {order: :asc}})
       paginate_results(elastic, query)

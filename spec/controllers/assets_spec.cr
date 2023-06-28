@@ -29,6 +29,38 @@ module PlaceOS::Api
         # don't use until expected once the doc is indexed
         client = ActionController::SpecHelper.client
 
+        # search for asset using asset type
+        type_id = doc.asset_type_id.to_s
+        params = HTTP::Params.encode({"type_id" => type_id})
+        path = "#{Assets.base_route.rstrip('/')}?#{params}"
+        response = client.exec(method: "GET", path: path, headers: headers)
+        found = Array(Hash(String, JSON::Any))
+          .from_json(response.body)
+          .map(&.["id"].to_s)
+          .any?(doc.id)
+        found.should be_true
+
+        # search for asset using asset type
+        type_id = doc.asset_type_id.to_s
+        params = HTTP::Params.encode({"type_id" => "invalid_id"})
+        path = "#{Assets.base_route.rstrip('/')}?#{params}"
+        response = client.exec(method: "GET", path: path, headers: headers)
+        found = Array(Hash(String, JSON::Any))
+          .from_json(response.body)
+          .map(&.["id"].to_s)
+          .any?(doc.id)
+        found.should be_false
+
+        # search for something else
+        params = HTTP::Params.encode({"q" => "xxxxxxxxxx"})
+        path = "#{Assets.base_route.rstrip('/')}?#{params}"
+        response = client.exec(method: "GET", path: path, headers: headers)
+        found = Array(Hash(String, JSON::Any))
+          .from_json(response.body)
+          .map(&.["id"].to_s)
+          .any?(doc.id)
+        found.should be_false
+
         # search for asset using the asset type name
         type_name = doc.asset_type.not_nil!.name
         params = HTTP::Params.encode({"q" => type_name})
@@ -39,16 +71,6 @@ module PlaceOS::Api
           .map(&.["id"].to_s)
           .any?(doc.id)
         found.should be_true
-
-        # search for something else
-        params = HTTP::Params.encode({"q" => %("steveavtd")})
-        path = "#{Assets.base_route.rstrip('/')}?#{params}"
-        response = client.exec(method: "GET", path: path, headers: headers)
-        found = Array(Hash(String, JSON::Any))
-          .from_json(response.body)
-          .map(&.["id"].to_s)
-          .any?(doc.id)
-        found.should be_false
       end
     end
 
