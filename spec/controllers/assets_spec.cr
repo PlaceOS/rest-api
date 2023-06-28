@@ -30,6 +30,7 @@ module PlaceOS::Api
         # search for asset using the asset type name
         type_name = doc.asset_type.not_nil!.name
         params = HTTP::Params.encode({"q" => type_name})
+        path = "#{Assets.base_route.rstrip('/')}?#{params}"
         found = until_expected("GET", path, headers) do |response|
           Array(Hash(String, JSON::Any))
             .from_json(response.body)
@@ -40,6 +41,7 @@ module PlaceOS::Api
 
         # search for something else
         params = HTTP::Params.encode({"q" => "xxxxxxxxxx"})
+        path = "#{Assets.base_route.rstrip('/')}?#{params}"
         found = until_expected("GET", path, headers) do |response|
           Array(Hash(String, JSON::Any))
             .from_json(response.body)
