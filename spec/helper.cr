@@ -101,13 +101,13 @@ def until_expected(method, path, headers : HTTP::Headers, timeout : Time::Span =
     end
   end
 
-  spawn do
-    sleep timeout
+  select
+  when found = channel.receive?
     channel.close
-  rescue
+    !!found
+  when timeout(timeout)
+    false
   end
-
-  !!channel.receive?.tap { channel.close }
 end
 
 def random_name
