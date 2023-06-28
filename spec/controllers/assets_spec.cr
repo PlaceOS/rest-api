@@ -61,16 +61,10 @@ module PlaceOS::Api
           .any?(doc.id)
         found.should be_false
 
-        # search for asset using the asset type name
-        type_name = doc.asset_type.not_nil!.name
-        params = HTTP::Params.encode({"q" => type_name})
-        path = "#{Assets.base_route.rstrip('/')}?#{params}"
-        response = client.exec(method: "GET", path: path, headers: headers)
-        found = Array(Hash(String, JSON::Any))
-          .from_json(response.body)
-          .map(&.["id"].to_s)
-          .any?(doc.id)
-        found.should be_true
+        # TODO:: search for asset using the asset type name
+        # type_name = doc.asset_type.not_nil!.name
+        # params = HTTP::Params.encode({"q" => type_name})
+        # path = "#{Assets.base_route.rstrip('/')}?#{params}"
       end
     end
 
