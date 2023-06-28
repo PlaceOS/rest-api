@@ -28,7 +28,7 @@ module PlaceOS::Api
         found.should be_true
 
         # search for asset using the asset type name
-        type_name = doc.asset_type.name
+        type_name = doc.asset_type.not_nil!.name
         params = HTTP::Params.encode({"q" => type_name})
         found = until_expected("GET", path, headers) do |response|
           Array(Hash(String, JSON::Any))
