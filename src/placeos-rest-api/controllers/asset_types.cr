@@ -26,18 +26,19 @@ module PlaceOS::Api
     ###############################################################################################
 
     def self.apply_counts(results : Array(Model::AssetType)) : Hash(String, Int64)
-      sql_query = <<-SQL
+      counts = {} of String => Int64
+      return counts if results.empty?
+
+      sql_query = %{
         SELECT asset_type_id, COUNT(*) as child_count
         FROM asset
-        WHERE asset_type_id IN $1
+        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}')
         GROUP BY asset_type_id
-      SQL
+      }
 
-      counts = {} of String => Int64
       PgORM::Database.connection do |db|
         db.query_all(
           sql_query,
-          args: results.map(&.id),
           as: Tuple(String, Int64)
         ).each { |(id, count)| counts[id] = count }
       end
