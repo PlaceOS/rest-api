@@ -39,8 +39,8 @@ module PlaceOS::Api
       PgORM::Database.connection do |db|
         db.query_all(
           sql_query,
-          as: Tuple(String, Int64)
-        ).each { |(id, count)| counts[id] = count }
+          as: NamedTuple(asset_type_id: String, child_count: Int64)
+        ).each { |count| counts[count[:asset_type_id]] = count[:child_count] }
       end
 
       results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }
