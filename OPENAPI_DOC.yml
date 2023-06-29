@@ -1423,6 +1423,30 @@ paths:
       - AssetTypes
       operationId: PlaceOS::Api::AssetTypes#index
       parameters:
+      - name: brand
+        in: query
+        description: return assets with the provided brand name
+        example: Ford
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: model_number
+        in: query
+        description: return assets with the provided model number
+        example: Model 2
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: category_id
+        in: query
+        description: return asset types in the category provided
+        example: category_id-1234
+        required: false
+        schema:
+          type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -1889,6 +1913,22 @@ paths:
         in: query
         description: return assets that match the purchase order id provided
         example: asset_purchase_order-1234
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: barcode
+        in: query
+        description: return assets that have a matchng barcode
+        example: "1234567"
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: serial_number
+        in: query
+        description: return assets that have a matchng serial number
+        example: "1234567"
         required: false
         schema:
           type: string

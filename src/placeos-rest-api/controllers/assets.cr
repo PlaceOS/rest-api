@@ -33,7 +33,11 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return assets that match the asset type id provided", example: "asset_type-1234")]
       type_id : String? = nil,
       @[AC::Param::Info(description: "return assets that match the purchase order id provided", example: "asset_purchase_order-1234")]
-      order_id : String? = nil
+      order_id : String? = nil,
+      @[AC::Param::Info(description: "return assets that have a matchng barcode", example: "1234567")]
+      barcode : String? = nil,
+      @[AC::Param::Info(description: "return assets that have a matchng serial number", example: "1234567")]
+      serial_number : String? = nil
     ) : Array(Model::Asset)
       elastic = Model::Asset.elastic
       query = elastic.query(search_params)
@@ -53,6 +57,18 @@ module PlaceOS::Api
       if order_id
         query.must({
           "purchase_order_id" => [order_id],
+        })
+      end
+
+      if barcode
+        query.must({
+          "barcode" => [barcode],
+        })
+      end
+
+      if serial_number
+        query.must({
+          "serial_number" => [serial_number],
         })
       end
 
