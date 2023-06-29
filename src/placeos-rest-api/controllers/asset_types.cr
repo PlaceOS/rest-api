@@ -33,15 +33,14 @@ module PlaceOS::Api
         SELECT asset_type_id, COUNT(*) as child_count
         FROM asset
         WHERE asset_type_id IN ('#{results.map(&.id).join("','")}')
-        GROUP BY asset_type_id;
+        GROUP BY asset_type_id
       }
 
       PgORM::Database.connection do |db|
-        db.query(sql_query) do |rs|
-          asset_type_id = rs.read(String)
-          count = rs.read(Int64)
-          counts[asset_type_id] = count
-        end
+        db.query_all(
+          sql_query,
+          as: {String, Int64}
+        ).each { |(id, count)| counts[id] = count }
       end
 
       results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }
