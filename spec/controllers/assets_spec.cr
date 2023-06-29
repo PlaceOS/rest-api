@@ -41,7 +41,6 @@ module PlaceOS::Api
         found.should be_true
 
         # search for asset using asset type
-        type_id = doc.asset_type_id.to_s
         params = HTTP::Params.encode({"type_id" => "invalid_id"})
         path = "#{Assets.base_route.rstrip('/')}?#{params}"
         response = client.exec(method: "GET", path: path, headers: headers)
