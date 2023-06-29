@@ -25,13 +25,64 @@ module PlaceOS::Api
 
     ###############################################################################################
 
+    def self.apply_counts(results : Array(Model::AssetType)) : Hash(String, Int64)
+      counts = {} of String => Int64
+      return counts if results.empty?
+
+      sql_query = %{
+        SELECT asset_type_id, COUNT(*) as child_count
+        FROM asset
+        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}')
+        GROUP BY asset_type_id
+      }
+
+      PgORM::Database.connection do |db|
+        db.query_all(
+          sql_query,
+          as: {String, Int64}
+        ).each { |(id, count)| counts[id] = count }
+      end
+
+      results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }
+      counts
+    end
+
     # list the asset types
     @[AC::Route::GET("/")]
-    def index : Array(Model::AssetType)
+    def index(
+      @[AC::Param::Info(description: "return assets with the provided brand name", example: "Ford")]
+      brand : String? = nil,
+      @[AC::Param::Info(description: "return assets with the provided model number", example: "Model 2")]
+      model_number : String? = nil,
+      @[AC::Param::Info(description: "return asset types in the category provided", example: "category_id-1234")]
+      category_id : String? = nil
+    ) : Array(Model::AssetType)
       elastic = Model::AssetType.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      results = paginate_results(elastic, query)
+
+      if brand
+        query.must({
+          "brand" => [brand],
+        })
+      end
+
+      if model_number
+        query.must({
+          "model_number" => [model_number],
+        })
+      end
+
+      if category_id
+        query.must({
+          "category_id" => [category_id],
+        })
+      end
+
+      # optimise the rendering of the counts, avoid the N + 1 problem
+      self.class.apply_counts(results)
+      results
     end
 
     # show the selected asset type

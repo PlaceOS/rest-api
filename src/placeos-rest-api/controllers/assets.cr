@@ -29,7 +29,15 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "return assets which are in the zone provided", example: "zone-1234")]
-      zone_id : String? = nil
+      zone_id : String? = nil,
+      @[AC::Param::Info(description: "return assets that match the asset type id provided", example: "asset_type-1234")]
+      type_id : String? = nil,
+      @[AC::Param::Info(description: "return assets that match the purchase order id provided", example: "asset_purchase_order-1234")]
+      order_id : String? = nil,
+      @[AC::Param::Info(description: "return assets that have a matchng barcode", example: "1234567")]
+      barcode : String? = nil,
+      @[AC::Param::Info(description: "return assets that have a matchng serial number", example: "1234567")]
+      serial_number : String? = nil
     ) : Array(Model::Asset)
       elastic = Model::Asset.elastic
       query = elastic.query(search_params)
@@ -39,6 +47,32 @@ module PlaceOS::Api
           "zone_id" => [zone_id],
         })
       end
+
+      if type_id
+        query.must({
+          "asset_type_id" => [type_id],
+        })
+      end
+
+      if order_id
+        query.must({
+          "purchase_order_id" => [order_id],
+        })
+      end
+
+      if barcode
+        query.must({
+          "barcode" => [barcode],
+        })
+      end
+
+      if serial_number
+        query.must({
+          "serial_number" => [serial_number],
+        })
+      end
+
+      # query.has_parent(parent: Model::AssetType, parent_index: Model::AssetType.table_name)
 
       query.sort({"id" => {order: :asc}})
       paginate_results(elastic, query)

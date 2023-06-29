@@ -6,6 +6,19 @@ module PlaceOS::Api
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::AssetType, AssetTypes)
+
+      it "optimally solves the N+1 problem" do
+        asset = PlaceOS::Model::Generator.asset.save!
+
+        asset.should_not be_nil
+        asset.persisted?.should be_true
+
+        asset_type = asset.asset_type.as(PlaceOS::Model::AssetType)
+
+        counts = PlaceOS::Api::AssetTypes.apply_counts([asset_type])
+        counts[asset_type.id].should eq 1
+        asset_type.@asset_count.should eq 1
+      end
     end
 
     describe "CRUD operations", tags: "crud" do

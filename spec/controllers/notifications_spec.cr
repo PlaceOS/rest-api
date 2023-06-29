@@ -153,7 +153,7 @@ module PlaceOS::Api
                 {
                     "subscriptionId": "f37536ac-b308-4bc7-b239-b2b51cd2ff24",
                     "subscriptionExpirationDateTime": "2023-05-26T23:29:18.2277768+00:00",
-                    "tenantId": "7f1d0cb7-93b9-405a-8dad-c21703b7af18",  
+                    "tenantId": "7f1d0cb7-93b9-405a-8dad-c21703b7af18",
                     "clientState": "secretClientState",
                     "lifecycleEvent": "reauthorizationRequired"
                 }
