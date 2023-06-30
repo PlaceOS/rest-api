@@ -28,20 +28,29 @@ module PlaceOS::Api
     def self.apply_counts(results : Array(Model::AssetType), zone_id : String? = nil) : Hash(String, Int64)
       counts = {} of String => Int64
       return counts if results.empty?
+      zone_id = zone_id.presence
 
       sql_query = %{
         SELECT asset_type_id, COUNT(*) as child_count
         FROM asset
-        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}') #{zone_id.presence ? "AND zone_id = ?" : ""}
+        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}') #{zone_id ? "AND zone_id = ?" : ""}
         GROUP BY asset_type_id
       }
 
       PgORM::Database.connection do |db|
-        db.query_all(
-          sql_query,
-          args: [zone_id].compact,
-          as: {String, Int64}
-        ).each { |(id, count)| counts[id] = count }
+        result = if zone_id
+          db.query_all(
+            sql_query,
+            zone_id,
+            as: {String, Int64}
+          )
+        else
+          db.query_all(
+            sql_query,
+            as: {String, Int64}
+          )
+        end
+        result.each { |(id, count)| counts[id] = count }
       end
 
       results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }
