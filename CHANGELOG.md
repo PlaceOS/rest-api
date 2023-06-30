@@ -27,6 +27,7 @@
 
 ### Fix
 
+- **asset_types**: zone filtering for counts ([#350](https://github.com/PlaceOS/rest-api/pull/350))
 - **assets**: sort by id
 - **assets**: authenticated users can view
 - domain check skipped for x-api-keys ([#342](https://github.com/PlaceOS/rest-api/pull/342))
