@@ -39,17 +39,17 @@ module PlaceOS::Api
 
       PgORM::Database.connection do |db|
         result = if zone_id
-          db.query_all(
-            sql_query,
-            zone_id,
-            as: {String, Int64}
-          )
-        else
-          db.query_all(
-            sql_query,
-            as: {String, Int64}
-          )
-        end
+                   db.query_all(
+                     sql_query,
+                     zone_id,
+                     as: {String, Int64}
+                   )
+                 else
+                   db.query_all(
+                     sql_query,
+                     as: {String, Int64}
+                   )
+                 end
         result.each { |(id, count)| counts[id] = count }
       end
 
