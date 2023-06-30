@@ -1447,6 +1447,14 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: zone_id
+        in: query
+        description: filters the asset count to the zone provided
+        example: zone-1234
+        required: false
+        schema:
+          type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)

@@ -25,20 +25,21 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    def self.apply_counts(results : Array(Model::AssetType)) : Hash(String, Int64)
+    def self.apply_counts(results : Array(Model::AssetType), zone_id : String? = nil) : Hash(String, Int64)
       counts = {} of String => Int64
       return counts if results.empty?
 
       sql_query = %{
         SELECT asset_type_id, COUNT(*) as child_count
         FROM asset
-        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}')
+        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}') #{zone_id.presence ? "AND zone_id = ?" : ""}
         GROUP BY asset_type_id
       }
 
       PgORM::Database.connection do |db|
         db.query_all(
           sql_query,
+          args: [zone_id].compact,
           as: {String, Int64}
         ).each { |(id, count)| counts[id] = count }
       end
@@ -55,7 +56,9 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return assets with the provided model number", example: "Model 2")]
       model_number : String? = nil,
       @[AC::Param::Info(description: "return asset types in the category provided", example: "category_id-1234")]
-      category_id : String? = nil
+      category_id : String? = nil,
+      @[AC::Param::Info(description: "filters the asset count to the zone provided", example: "zone-1234")]
+      zone_id : String? = nil
     ) : Array(Model::AssetType)
       elastic = Model::AssetType.elastic
       query = elastic.query(search_params)
@@ -81,7 +84,7 @@ module PlaceOS::Api
       end
 
       # optimise the rendering of the counts, avoid the N + 1 problem
-      self.class.apply_counts(results)
+      self.class.apply_counts(results, zone_id)
       results
     end
 
