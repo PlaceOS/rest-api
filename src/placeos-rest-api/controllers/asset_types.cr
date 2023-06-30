@@ -37,20 +37,21 @@ module PlaceOS::Api
         GROUP BY asset_type_id
       }
 
-      PgORM::Database.connection do |db|
-        result = if zone_id
-                   db.query_all(
-                     sql_query,
-                     zone_id,
-                     as: {String, Int64}
-                   )
-                 else
-                   db.query_all(
-                     sql_query,
-                     as: {String, Int64}
-                   )
-                 end
-        result.each { |(id, count)| counts[id] = count }
+      if zone_id
+        PgORM::Database.connection do |db|
+          db.query_all(
+            sql_query,
+            args: [zone_id.as(String)],
+            as: {String, Int64}
+          ).each { |(id, count)| counts[id] = count }
+        end
+      else
+        PgORM::Database.connection do |db|
+          db.query_all(
+            sql_query,
+            as: {String, Int64}
+          ).each { |(id, count)| counts[id] = count }
+        end
       end
 
       results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }
