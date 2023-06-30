@@ -33,25 +33,15 @@ module PlaceOS::Api
       sql_query = %{
         SELECT asset_type_id, COUNT(*) as child_count
         FROM asset
-        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}') #{zone_id ? "AND zone_id = ?" : ""}
+        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}') #{zone_id ? "AND zone_id = '#{zone_id.gsub(/['";]/, "")}'" : ""}
         GROUP BY asset_type_id
       }
 
-      if zone_id
-        PgORM::Database.connection do |db|
-          db.query_all(
-            sql_query,
-            args: [zone_id.as(String)],
-            as: {String, Int64}
-          ).each { |(id, count)| counts[id] = count }
-        end
-      else
-        PgORM::Database.connection do |db|
-          db.query_all(
-            sql_query,
-            as: {String, Int64}
-          ).each { |(id, count)| counts[id] = count }
-        end
+      PgORM::Database.connection do |db|
+        db.query_all(
+          sql_query,
+          as: {String, Int64}
+        ).each { |(id, count)| counts[id] = count }
       end
 
       results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }

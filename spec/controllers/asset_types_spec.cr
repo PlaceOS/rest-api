@@ -18,6 +18,9 @@ module PlaceOS::Api
         counts = PlaceOS::Api::AssetTypes.apply_counts([asset_type])
         counts[asset_type.id].should eq 1
         asset_type.@asset_count.should eq 1
+
+        counts = PlaceOS::Api::AssetTypes.apply_counts([asset_type], "zone-22222222")
+        asset_type.@asset_count.should eq 0
       end
     end
 
