@@ -95,7 +95,7 @@ shards:
 
   exception_page:
     git: https://github.com/crystal-loot/exception_page.git
-    version: 0.3.0
+    version: 0.3.1
 
   exec_from:
     git: https://github.com/place-labs/exec_from.git
@@ -235,7 +235,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.11.1+git.commit.6349c894979178137f30d9d4dc6838aa8d2ae942
+    version: 4.11.1+git.commit.9f2a0288fc64769305083438367a5fcb84485763
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -247,7 +247,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.dab02380175e1206aaec81537f1c53ff92227c9d
+    version: 2.7.1+git.commit.2f92ef091f1c92a92125992f00227c7fef719ce7
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.9.0+git.commit.2c27ea39d02b964fcebcd1f99b957a3a359d3bd4
+    version: 2.9.0+git.commit.e347325edad1682aff8a733eda62fda5d202085a
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
