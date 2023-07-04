@@ -28,6 +28,7 @@
 ### Fix
 
 - **eventbus**: handle read replica race conditions
+- **eventbus**: handle read replica race conditions
 - **asset_types**: zone filtering for counts ([#350](https://github.com/PlaceOS/rest-api/pull/350))
 - **assets**: sort by id
 - **assets**: authenticated users can view
