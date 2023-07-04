@@ -91,7 +91,7 @@ shards:
 
   eventbus:
     git: https://github.com/spider-gazelle/eventbus.git
-    version: 0.9.9+git.commit.8572cf71937680e38df4652fe886e4383b20e4f1
+    version: 0.9.9+git.commit.8755e1f92deda39c13e4f8d3c5b1ec5fdded4ce9
 
   exception_page:
     git: https://github.com/crystal-loot/exception_page.git
@@ -247,7 +247,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.2f92ef091f1c92a92125992f00227c7fef719ce7
+    version: 2.7.1+git.commit.a1668158bfcee2f3131dea560223108d0bacd501
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.9.0+git.commit.e347325edad1682aff8a733eda62fda5d202085a
+    version: 2.9.1+git.commit.d7fb4eb5ea9d69145047a95030262a94853d92e4
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
@@ -323,7 +323,7 @@ shards:
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
-    version: 2.0.7
+    version: 2.1.4
 
   time-ext:
     git: https://github.com/wyhaines/time-ext.cr.git
