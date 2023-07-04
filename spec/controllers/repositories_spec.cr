@@ -102,7 +102,10 @@ module PlaceOS::Api
           repo.save!
 
           sleep 1
-          result[1].should eq "123456"
+          result.should_not be_nil
+          if output = result
+            output[1].should eq "123456"
+          end
         end
       end
     end
