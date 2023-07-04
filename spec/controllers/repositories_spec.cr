@@ -88,6 +88,22 @@ module PlaceOS::Api
 
           result.status.should eq HTTP::Status::BAD_REQUEST
         end
+
+        it "should work with changefeeds", focus: true do
+          result = nil
+          spawn do
+            result = PlaceOS::Api::Repositories.pull_repository(repo, 10.seconds)
+          end
+
+          sleep 1
+          repo.reload!
+          repo.deployed_commit_hash.should be_nil
+          repo.deployed_commit_hash = "123456"
+          repo.save!
+
+          sleep 1
+          result[1].should eq "123456"
+        end
       end
     end
 
