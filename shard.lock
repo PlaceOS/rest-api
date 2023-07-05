@@ -91,7 +91,7 @@ shards:
 
   eventbus:
     git: https://github.com/spider-gazelle/eventbus.git
-    version: 0.9.9+git.commit.0e30bccef306197b558c1d697a98b6d24ab03ae8
+    version: 0.9.9+git.commit.a26f6f022eed373264e13acbf95ffc1e710df645
 
   exception_page:
     git: https://github.com/crystal-loot/exception_page.git
@@ -235,7 +235,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.11.3+git.commit.8e0cb44204c606c39024b2369ccad09fdc6b713a
+    version: 4.11.3+git.commit.653223001d8116b19e6cb108371d3c90cb237e38
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -247,7 +247,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.2cbf9cdb90007220821c0a3d63abf15f9ff10cc0
+    version: 2.7.1+git.commit.c876741e4364fda3712ec38f2330767c9f632ac4
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
