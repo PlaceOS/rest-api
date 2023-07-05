@@ -91,7 +91,7 @@ shards:
 
   eventbus:
     git: https://github.com/spider-gazelle/eventbus.git
-    version: 0.9.9+git.commit.635e95322815069ac76c9d3b32aa57433c5bb478
+    version: 0.9.9+git.commit.0e30bccef306197b558c1d697a98b6d24ab03ae8
 
   exception_page:
     git: https://github.com/crystal-loot/exception_page.git
@@ -115,7 +115,7 @@ shards:
 
   google:
     git: https://github.com/placeos/google.git
-    version: 3.4.0
+    version: 3.5.0
 
   habitat:
     git: https://github.com/luckyframework/habitat.git
@@ -175,7 +175,7 @@ shards:
 
   office365:
     git: https://github.com/placeos/office365.git
-    version: 1.21.2
+    version: 1.22.0
 
   open_api:
     git: https://github.com/elbywan/open_api.cr.git
@@ -227,7 +227,7 @@ shards:
 
   place_calendar:
     git: https://github.com/placeos/calendar.git
-    version: 4.18.3
+    version: 4.19.0
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -235,7 +235,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.11.2+git.commit.e5f7f9e82737c532b9f482e953f493cf15647906
+    version: 4.11.3+git.commit.8e0cb44204c606c39024b2369ccad09fdc6b713a
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.9.2+git.commit.d60c01b610214836eb3859462aa4200fc631bc1a
+    version: 2.9.2+git.commit.c1cf82ee12886c12109db6a8a58315ba4696d842
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
