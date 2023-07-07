@@ -162,5 +162,65 @@ module PlaceOS::Api
     describe "scopes" do
       Spec.test_controller_scope(Users)
     end
+
+    describe "GET /metadata/search" do
+      it "renders the JSON path search results" do
+        schema = <<-J
+        { "address": {
+            "city":"Sydney",
+            "street": "Some street, 7A"
+        },
+        "lift": false,
+        "floor": [
+          {
+            "level": 1,
+            "apt": [
+                        {"no": 1, "area": 40, "rooms": 1},
+                        {"no": 2, "area": 80, "rooms": 3},
+                        {"no": 3, "area": 50, "rooms": 2}
+            ]
+          },
+          {
+            "level": 2,
+            "apt": [
+                        {"no": 4, "area": 100, "rooms": 3},
+                        {"no": 5, "area": 60, "rooms": 2}
+            ]
+          }
+        ]
+      }
+      J
+        user = Model::Generator.user.save!
+        user_id = user.id
+        name = random_name
+        metadata = Model::Generator.metadata(name: name, parent: user_id)
+        metadata.details = JSON.parse(schema)
+        metadata.save!
+
+        filters = [
+          # Search for any string that contains the value of "Sydney"
+          %($.** ? (@ == "Sydney")),
+          # Search for any apartment on any floor with the area from 40 to 90
+          %($.floor[*].apt[*] ? (@.area > 40 && @.area < 90)),
+          # Search for apartments with the number greater than 3
+          %($.floor.apt.no ? (@>3)),
+        ]
+
+        filters.each do |filter|
+          resp = client.get(
+            path: "#{Users.base_route}metadata/search?filter=#{URI.encode_path_segment(filter)}",
+            headers: Spec::Authentication.headers,
+          )
+
+          resp.status_code.should eq 200
+          users = Array(Model::User).from_json(resp.body)
+          users.size.should eq(1)
+          users.first.id.should eq(user_id)
+
+          resp.headers["X-Total-Count"].should eq("1")
+          resp.headers["Link"]?.should be_nil
+        end
+      end
+    end
   end
 end

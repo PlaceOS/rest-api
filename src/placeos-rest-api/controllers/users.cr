@@ -18,7 +18,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :current, :resource_token, :groups])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :current, :resource_token, :groups, :search])]
     def find_user(
       @[AC::Param::Info(name: "id", description: "the id of the user", example: "user-1234")]
       lookup : String
@@ -293,6 +293,47 @@ module PlaceOS::Api
       emails.each_with_object([] of Error::Field) do |email, errors|
         errors << Error::Field.new(:emails, "#{email} is an invalid email") unless email.is_email?
       end
+    end
+
+    # Search User metadata with provided JSON Path query.
+    # query need to follow JSONPath query expression as described in
+    # https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html
+    @[AC::Route::GET("/metadata/search")]
+    def search(
+      @[AC::Param::Info(description: "filter expression in JSONPath format", example: "$.bookings.allowed_daily_desk_count ? (@>0)")]
+      filter : String,
+      @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
+      limit : Int32 = 100,
+      @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
+      offset : Int32 = 0
+    ) : Array(Model::User)
+      sql = <<-SQL
+        from "user" u INNER JOIN "metadata" m ON m.parent_id = u.id AND
+        jsonb_path_exists(m.details, $1) and  u.authority_id = $2
+      SQL
+
+      total = PgORM::Database.connection do |db|
+        db.query_one "SELECT COUNT(DISTINCT u.id) #{sql}", args: [filter, current_user.authority_id], &.read(Int64)
+      end
+
+      range_start = offset > 0 ? offset - 1 : 0
+
+      result = Model::User.find_all_by_sql(<<-SQL, args: [filter, current_user.authority_id])
+        SELECT DISTINCT u.* #{sql} LIMIT #{limit} OFFSET #{range_start}
+      SQL
+
+      range_end = result.size + range_start
+
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "users #{offset + 1}-#{range_end}/#{total}"
+
+      if range_end < total
+        params["offset"] = (range_end + 1).to_s
+        params["limit"] = limit.to_s
+        response.headers["Link"] = %(<#{base_route}?#{params}>; rel="next")
+      end
+
+      result
     end
   end
 end

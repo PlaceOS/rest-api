@@ -67,6 +67,7 @@ def clear_tables
                     PlaceOS::Model::TriggerInstance,
                     PlaceOS::Model::User,
                     PlaceOS::Model::Zone,
+                    PlaceOS::Model::Metadata,
                   } %}
         Promise.defer { {{t.id}}.clear },
       {% end %}
