@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **notifications**: publish on subscription id ([#352](https://github.com/PlaceOS/rest-api/pull/352))
 - **asset_types**: filter counts based on zone_id ([#349](https://github.com/PlaceOS/rest-api/pull/349))
 - **assets**: add additional query options (PPT-669) ([#347](https://github.com/PlaceOS/rest-api/pull/347))
 - **shard.lock**: bump opentelemetry-instrumentation.cr
