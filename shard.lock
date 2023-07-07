@@ -255,7 +255,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.13.0
+    version: 9.14.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.9.2+git.commit.c1cf82ee12886c12109db6a8a58315ba4696d842
+    version: 2.9.2+git.commit.e9d897a233f769ff9b7cf5f952b2f3662b39abb3
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
