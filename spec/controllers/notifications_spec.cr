@@ -22,7 +22,7 @@ module PlaceOS::Api
 
       it "should receive valid payload when google sends change notification" do
         authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
-        subscription_channel = "#{authority.id}/calendar/event"
+        subscription_channel = "4ba78bf0-6a47-11e2-bcfd-0800200c9a66/event"
 
         channel = Channel(String).new
         subs = PlaceOS::Driver::Subscriptions.new
@@ -42,8 +42,7 @@ module PlaceOS::Api
           "X-Goog-Resource-URI"       => "https://www.googleapis.com/calendar/v3/calendars/my_calendar@gmail.com/events",
           "X-Goog-Resource-State"     => "exists",
           "X-Goog-Message-Number"     => "1",
-        }
-        )
+        })
         result.status_code.should eq 202
 
         begin
@@ -81,7 +80,7 @@ module PlaceOS::Api
 
       it "should receive valid payload when microsoft sends change notification" do
         authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
-        subscription_channel = "#{authority.id}/calendar/event/f37536ac-b308-4bc7-b239-b2b51cd2ff24"
+        subscription_channel = "f37536ac-b308-4bc7-b239-b2b51cd2ff24/event"
 
         channel = Channel(String).new
         subs = PlaceOS::Driver::Subscriptions.new
@@ -138,7 +137,7 @@ module PlaceOS::Api
 
       it "should receive valid payload when microsoft sends lifecycle notification" do
         authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
-        subscription_channel = "#{authority.id}/calendar/event/f37536ac-b308-4bc7-b239-b2b51cd2ff24"
+        subscription_channel = "f37536ac-b308-4bc7-b239-b2b51cd2ff24/event"
 
         channel = Channel(String).new
         subs = PlaceOS::Driver::Subscriptions.new
