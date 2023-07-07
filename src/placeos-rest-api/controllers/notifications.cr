@@ -48,11 +48,13 @@ module PlaceOS::Api
     end
 
     private def signal(notification)
-      payload = notification.to_payload
-      path = "placeos/#{authority.id}/calendar/event"
-      Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
+      notification.notifications.each do |entry|
+        payload = entry.to_payload
+        path = "placeos/#{entry.subscription_id}/event"
+        Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
 
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
+        ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
+      end
     end
   end
 end

@@ -17,6 +17,14 @@ module PlaceOS::Api
       end
     end
 
+    def notifications
+      [self]
+    end
+
+    def subscription_id
+      channel_id
+    end
+
     @[JSON::Field(key: "X-Goog-Channel-ID")]
     getter channel_id : String
 
@@ -39,14 +47,14 @@ module PlaceOS::Api
     getter channel_token : String?
 
     def to_payload
-      [{
+      {
         "event_type":      resource_state.to_payload,
         "resource_id":     resource_id,
         "resource_uri":    resource_uri,
         "subscription_id": channel_id,
         "client_secret":   channel_token,
         "expiration_time": channel_expiry.try &.to_unix || 0_i64,
-      }].to_json
+      }.to_json
     end
   end
 

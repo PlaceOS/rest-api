@@ -16,10 +16,6 @@ module PlaceOS::Api
     # The set of notifications being sent to the notification URL. Required.
     getter notifications : Array(ChangeNotification)
 
-    def to_payload
-      notifications.map(&.to_payload).to_json
-    end
-
     struct ChangeNotification
       include JSON::Serializable
 
@@ -116,7 +112,7 @@ module PlaceOS::Api
           "subscription_id": subscription_id,
           "client_secret":   client_state,
           "expiration_time": subscription_expiry.to_unix,
-        }
+        }.to_json
       end
     end
 

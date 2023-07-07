@@ -22,7 +22,7 @@ module PlaceOS::Api
 
       it "should receive valid payload when google sends change notification" do
         authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
-        subscription_channel = "#{authority.id}/calendar/event"
+        subscription_channel = "4ba78bf0-6a47-11e2-bcfd-0800200c9a66/event"
 
         channel = Channel(String).new
         subs = PlaceOS::Driver::Subscriptions.new
@@ -42,21 +42,20 @@ module PlaceOS::Api
           "X-Goog-Resource-URI"       => "https://www.googleapis.com/calendar/v3/calendars/my_calendar@gmail.com/events",
           "X-Goog-Resource-State"     => "exists",
           "X-Goog-Message-Number"     => "1",
-        }
-        )
+        })
         result.status_code.should eq 202
 
         begin
           select
           when message = channel.receive
-            [{
+            {
               "event_type":      "updated",
               "resource_id":     "ret08u3rv24htgh289g",
               "resource_uri":    "https://www.googleapis.com/calendar/v3/calendars/my_calendar@gmail.com/events",
               "subscription_id": "4ba78bf0-6a47-11e2-bcfd-0800200c9a66",
               "client_secret":   "398348u3tu83ut8uu38",
               "expiration_time": 1685063632,
-            }].to_json.should eq(message)
+            }.to_json.should eq(message)
           when timeout 2.seconds
             raise "timeout"
           end
@@ -81,7 +80,7 @@ module PlaceOS::Api
 
       it "should receive valid payload when microsoft sends change notification" do
         authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
-        subscription_channel = "#{authority.id}/calendar/event"
+        subscription_channel = "f37536ac-b308-4bc7-b239-b2b51cd2ff24/event"
 
         channel = Channel(String).new
         subs = PlaceOS::Driver::Subscriptions.new
@@ -120,14 +119,14 @@ module PlaceOS::Api
         begin
           select
           when message = channel.receive
-            [{
+            {
               "event_type":      "created",
               "resource_id":     "AAMkADlhNjJjN2M1LTJiYWUtNGVhMS04ODEzLTRjNDlmYmZkYWMyYQBGAAAAAAA2241OoLZoSZGqNr4MvSZJBwAXxlVK8zI-TZLFIn9D86hXAAAAAAENAAAXxlVK8zI-TZLFIn9D86hXAAAECHE1AAA=",
               "resource_uri":    "Users/2189c720-90d5-44ff-818b-fe585706ee90/Events/AAMkADlhNjJjN2M1LTJiYWUtNGVhMS04ODEzLTRjNDlmYmZkYWMyYQBGAAAAAAA2241OoLZoSZGqNr4MvSZJBwAXxlVK8zI-TZLFIn9D86hXAAAAAAENAAAXxlVK8zI-TZLFIn9D86hXAAAECHE1AAA=",
               "subscription_id": "f37536ac-b308-4bc7-b239-b2b51cd2ff24",
               "client_secret":   "secretClientState",
               "expiration_time": 1685143758,
-            }].to_json.should eq(message)
+            }.to_json.should eq(message)
           when timeout 2.seconds
             raise "timeout"
           end
@@ -138,7 +137,7 @@ module PlaceOS::Api
 
       it "should receive valid payload when microsoft sends lifecycle notification" do
         authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
-        subscription_channel = "#{authority.id}/calendar/event"
+        subscription_channel = "f37536ac-b308-4bc7-b239-b2b51cd2ff24/event"
 
         channel = Channel(String).new
         subs = PlaceOS::Driver::Subscriptions.new
@@ -170,14 +169,14 @@ module PlaceOS::Api
         begin
           select
           when message = channel.receive
-            [{
+            {
               "event_type":      "reauthorize",
               "resource_id":     nil,
               "resource_uri":    nil,
               "subscription_id": "f37536ac-b308-4bc7-b239-b2b51cd2ff24",
               "client_secret":   "secretClientState",
               "expiration_time": 1685143758,
-            }].to_json.should eq(message)
+            }.to_json.should eq(message)
           when timeout 2.seconds
             raise "timeout"
           end
