@@ -10,6 +10,8 @@ module PlaceOS::Api
 
     describe "CRUD operations", tags: "crud" do
       Spec.test_crd(Model::AssetCategory, AssetCategories)
+      Spec.test_crd(Model::AssetCategory, AssetCategories, sys_admin: false, support: false, groups: ["management"])
+      Spec.test_crd(Model::AssetCategory, AssetCategories, sys_admin: false, support: false, groups: ["concierge"])
     end
 
     describe "scopes" do
