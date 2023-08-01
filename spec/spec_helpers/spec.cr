@@ -81,6 +81,7 @@ module PlaceOS::Api::Spec
     {% klass_name = klass.stringify.split("::").last.underscore %}
 
     it "destroy" do
+      groups = {{ groups }} || [] of String
       model = PlaceOS::Model::Generator.{{ klass_name.id }}.save!
       model.persisted?.should be_true
       id = model.id.as({{ id_type.id }})
