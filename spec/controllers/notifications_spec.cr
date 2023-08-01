@@ -21,7 +21,7 @@ module PlaceOS::Api
       end
 
       it "should receive valid payload when google sends change notification" do
-        authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
+        PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
         subscription_channel = "4ba78bf0-6a47-11e2-bcfd-0800200c9a66/event"
 
         channel = Channel(String).new
@@ -79,7 +79,7 @@ module PlaceOS::Api
       end
 
       it "should receive valid payload when microsoft sends change notification" do
-        authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
+        PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
         subscription_channel = "f37536ac-b308-4bc7-b239-b2b51cd2ff24/event"
 
         channel = Channel(String).new
@@ -136,7 +136,7 @@ module PlaceOS::Api
       end
 
       it "should receive valid payload when microsoft sends lifecycle notification" do
-        authority = PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
+        PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!
         subscription_channel = "f37536ac-b308-4bc7-b239-b2b51cd2ff24/event"
 
         channel = Channel(String).new

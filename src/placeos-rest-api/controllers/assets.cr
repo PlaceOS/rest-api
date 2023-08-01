@@ -2,6 +2,8 @@ require "./application"
 
 module PlaceOS::Api
   class Assets < Application
+    include Utils::Permissions
+
     base "/api/engine/v2/assets/"
 
     # Scopes
@@ -9,8 +11,6 @@ module PlaceOS::Api
 
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :bulk_create, :bulk_update, :bulk_destroy]
-
-    before_action :check_admin, except: [:index, :show]
 
     ###############################################################################################
 
@@ -22,6 +22,22 @@ module PlaceOS::Api
     end
 
     getter! current_asset : Model::Asset
+
+    @[AC::Route::Filter(:before_action, only: [:update, :destroy])]
+    private def confirm_access
+      return if user_support?
+
+      user = user_token
+      authority = current_authority.as(Model::Authority)
+
+      if zone_id = authority.config["org_zone"].as_s?
+        zones = [zone_id, current_asset.zone_id.as(String)]
+        access = check_access(user.user.roles, zones)
+        return if access.manage? || access.admin?
+      end
+
+      raise Error::Forbidden.new
+    end
 
     ###############################################################################################
 
@@ -97,6 +113,8 @@ module PlaceOS::Api
     # add new asset
     @[AC::Route::POST("/", body: :asset, status_code: HTTP::Status::CREATED)]
     def create(asset : Model::Asset) : Model::Asset
+      @current_asset = asset
+      confirm_access
       raise Error::ModelValidation.new(asset.errors) unless asset.save
       asset
     end

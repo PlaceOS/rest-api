@@ -2,6 +2,8 @@ require "./application"
 
 module PlaceOS::Api
   class AssetTypes < Application
+    include Utils::Permissions
+
     base "/api/engine/v2/asset_types/"
 
     # Scopes
@@ -10,7 +12,20 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :show]
+    @[AC::Route::Filter(:before_action, only: [:create, :update, :destroy])]
+    private def confirm_access
+      return if user_support?
+
+      user = user_token
+      authority = current_authority.as(Model::Authority)
+
+      if zone_id = authority.config["org_zone"].as_s?
+        access = check_access(user.user.roles, [zone_id])
+        return if access.manage? || access.admin?
+      end
+
+      head :forbidden
+    end
 
     ###############################################################################################
 

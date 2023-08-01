@@ -39,15 +39,16 @@ module PlaceOS::Api::Spec
     end
   end
 
-  macro test_create(klass, controller_klass)
+  macro test_create(klass, controller_klass, sys_admin = true, support = true, groups = nil)
     {% klass_name = klass.stringify.split("::").last.underscore %}
 
     it "create" do
+      groups = {{ groups }} || [] of String
       body = PlaceOS::Model::Generator.{{ klass_name.id }}.to_json
       result = client.post(
         {{ controller_klass }}.base_route,
         body: body,
-        headers: Spec::Authentication.headers
+        headers: Spec::Authentication.headers(sys_admin: {{sys_admin}}, support: {{support}}, groups: groups)
       )
 
       result.status_code.should eq 201
@@ -93,8 +94,8 @@ module PlaceOS::Api::Spec
     end
   end
 
-  macro test_crd(klass, controller_klass, id_type = String)
-    Spec.test_create({{ klass }}, {{ controller_klass }})
+  macro test_crd(klass, controller_klass, id_type = String, sys_admin = true, support = true, groups = nil)
+    Spec.test_create({{ klass }}, {{ controller_klass }}, {{sys_admin}}, {{support}}, {{groups}})
     Spec.test_show({{ klass }}, {{ controller_klass }}, {{ id_type }})
     Spec.test_destroy({{ klass }}, {{ controller_klass }}, {{ id_type }})
   end

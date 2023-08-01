@@ -78,7 +78,7 @@ module PlaceOS::Api
       raise Error::GuestAccessDisabled.new("guest access not enabled") unless jwt_secret
 
       # captcha, name, phone, type, chat_to_user_id, room_id, guest_chat_id (user_id), session_id
-      authority = current_authority.not_nil!
+      authority = current_authority.as(Model::Authority)
       if recaptcha_secret = authority.internals["recaptcha_secret"]?.try(&.as_s)
         HTTP::Client.new("www.google.com", tls: true) do |client|
           client.connect_timeout = 2
