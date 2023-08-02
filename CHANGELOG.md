@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **assets**: add permissions system PPT-743 ([#354](https://github.com/PlaceOS/rest-api/pull/354))
 - **users**: PPT-53 Add User metadata search ([#353](https://github.com/PlaceOS/rest-api/pull/353))
 - **notifications**: publish on subscription id ([#352](https://github.com/PlaceOS/rest-api/pull/352))
 - **asset_types**: filter counts based on zone_id ([#349](https://github.com/PlaceOS/rest-api/pull/349))
