@@ -79,7 +79,6 @@ module PlaceOS::Api
           body: body,
           headers: Spec::Authentication.headers(sys_admin: false, support: false)
         )
-
         result.status_code.should eq 403
       end
     end
