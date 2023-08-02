@@ -2,6 +2,8 @@ require "./application"
 
 module PlaceOS::Api
   class AssetPurchaseOrders < Application
+    include Utils::Permissions
+
     base "/api/engine/v2/asset_purchase_orders/"
 
     # Scopes
@@ -10,8 +12,19 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :show]
-    before_action :check_support, only: [:index, :show]
+    @[AC::Route::Filter(:before_action)]
+    private def confirm_access
+      return if user_support?
+
+      authority = current_authority.as(Model::Authority)
+
+      if zone_id = authority.config["org_zone"]?.try(&.as_s?)
+        access = check_access(current_user.groups, [zone_id])
+        return if access.manage? || access.admin?
+      end
+
+      head :forbidden
+    end
 
     ###############################################################################################
 

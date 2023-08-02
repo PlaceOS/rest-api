@@ -10,6 +10,18 @@ module PlaceOS::Api
 
     describe "CRUD operations", tags: "crud" do
       Spec.test_crd(Model::AssetCategory, AssetCategories)
+      Spec.test_crd(Model::AssetCategory, AssetCategories, sys_admin: false, support: false, groups: ["management"])
+      Spec.test_crd(Model::AssetCategory, AssetCategories, sys_admin: false, support: false, groups: ["concierge"])
+
+      it "fails to create if a regular user" do
+        body = PlaceOS::Model::Generator.asset_category.to_json
+        result = client.post(
+          AssetCategories.base_route,
+          body: body,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false)
+        )
+        result.status_code.should eq 403
+      end
     end
 
     describe "scopes" do
