@@ -32,7 +32,7 @@ module PlaceOS::Api
       it "fails to create if a regular user" do
         body = PlaceOS::Model::Generator.asset_type.to_json
         result = client.post(
-          Assets.base_route,
+          AssetTypes.base_route,
           body: body,
           headers: Spec::Authentication.headers(sys_admin: false, support: false)
         )
