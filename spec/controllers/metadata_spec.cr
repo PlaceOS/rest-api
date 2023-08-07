@@ -86,6 +86,109 @@ module PlaceOS::Api
         found.name.should eq new_metadata.name
       end
 
+      it "creates metadata as a regular user and prevents delete" do
+        parent = Model::Generator.zone
+        parent.parent_id = Spec::Authentication.org_zone.id
+        parent.save!
+
+        meta = Model::Metadata::Interface.new(
+          name: "test2",
+          description: "",
+          details: JSON.parse(%({"hello":"world","bye":"friends"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+
+        parent_id = parent.id.as(String)
+        path = "#{Api::Metadata.base_route}/#{parent_id}?name=test2"
+
+        auth_headers = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["concierge"])
+        result = client.put(
+          path: path,
+          body: meta.to_json,
+          headers: auth_headers,
+        )
+
+        result.success?.should be_true
+
+        new_metadata = Model::Metadata::Interface.from_json(result.body)
+        found = Model::Metadata.for(parent.id.as(String), meta.name).first
+        found.name.should eq new_metadata.name
+
+        # attempt remove of metadata
+        result = client.delete(
+          path: "#{Metadata.base_route}/#{parent_id}",
+          headers: auth_headers,
+        )
+        result.success?.should be_false
+        result.status_code.should eq 403
+      end
+
+      it "creates metadata as a regular user and allows delete" do
+        parent = Model::Generator.zone
+        parent.parent_id = Spec::Authentication.org_zone.id
+        parent.save!
+
+        meta = Model::Metadata::Interface.new(
+          name: "test3",
+          description: "",
+          details: JSON.parse(%({"hello":"world","bye":"friends"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+
+        parent_id = parent.id.as(String)
+        path = "#{Api::Metadata.base_route}/#{parent_id}"
+
+        auth_headers = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"])
+        result = client.put(
+          path: path,
+          body: meta.to_json,
+          headers: auth_headers,
+        )
+
+        result.success?.should be_true
+
+        new_metadata = Model::Metadata::Interface.from_json(result.body)
+        found = Model::Metadata.for(parent.id.as(String), meta.name).first
+        found.name.should eq new_metadata.name
+
+        # attempt remove of metadata
+        result = client.delete(
+          path: "#{Metadata.base_route}/#{parent_id}?name=test3",
+          headers: auth_headers,
+        )
+
+        result.status_code.should eq 202
+        result.success?.should be_true
+      end
+
+      it "returns forbidden when attempting to create metadata as a regular user" do
+        parent = Model::Generator.zone
+        parent.parent_id = Spec::Authentication.org_zone.id
+        parent.save!
+
+        meta = Model::Metadata::Interface.new(
+          name: "test4",
+          description: "",
+          details: JSON.parse(%({"hello":"world","bye":"friends"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+
+        parent_id = parent.id.as(String)
+        path = "#{Api::Metadata.base_route}/#{parent_id}"
+
+        result = client.put(
+          path: path,
+          body: meta.to_json,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false),
+        )
+
+        result.success?.should be_false
+        result.status_code.should eq 403
+      end
+
       it "updates metadata" do
         parent = Model::Generator.zone.save!
         meta = Model::Metadata::Interface.new(
