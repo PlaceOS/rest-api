@@ -96,6 +96,37 @@ module PlaceOS::Api
         Array(Hash(String, JSON::Any)).from_json(response.body.to_s).map(&.["id"].as_s).first?.should eq(mod.id)
       end
 
+      it "looks up by org zone id due to limited permissions" do
+        Model::Generator.module.save!
+        mod = Model::Generator.module.save!
+        sys = Model::Generator.control_system
+        sys.zones << Spec::Authentication.org_zone.id.as(String)
+        sys.modules = [mod.id.as(String)]
+        sys.save!
+
+        refresh_elastic(Model::Module.table_name)
+
+        # ensure regular users can't use the route
+        params = HTTP::Params{"control_system_id" => sys.id.as(String)}
+        response = client.get(
+          "#{Modules.base_route}?#{params}",
+          headers: Spec::Authentication.headers(sys_admin: false, support: false),
+        )
+        response.status_code.should eq 403
+
+        # Call the index method of the controller
+        header = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"])
+        until_expected("GET", Modules.base_route, header) do |resp|
+          response = resp
+          resp.success? ? (resp.headers["X-Total-Count"].to_i > 0) : false
+        end
+
+        # check the results
+        response.status_code.should eq 200
+        response.headers["X-Total-Count"].should eq("1")
+        Array(Hash(String, JSON::Any)).from_json(response.body.to_s).map(&.["id"].as_s).first?.should eq(mod.id)
+      end
+
       context "query parameter" do
         it "as_of" do
           mod1 = Model::Generator.module

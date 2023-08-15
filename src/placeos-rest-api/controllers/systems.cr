@@ -64,8 +64,8 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :check_admin, except: [
-      :index, :show, :find_by_email, :control, :execute,
-      :types, :destroy, :update, :create,
+      :index, :show, :find_by_email, :control, :execute, :types,
+      :destroy, :update, :create, :add_module, :remove_module, :start, :stop,
       :state, :state_lookup, :functions,
     ]
 
@@ -73,8 +73,8 @@ module PlaceOS::Api
       :state, :state_lookup, :functions,
     ]
 
-    @[AC::Route::Filter(:before_action, only: [:destroy])]
-    def check_delete_permissions
+    @[AC::Route::Filter(:before_action, only: [:destroy, :add_module, :remove_module, :start, :stop])]
+    def check_admin_permissions
       return if user_admin?
       check_access_level(current_control_system.zones, admin_required: true)
     end
@@ -329,7 +329,7 @@ module PlaceOS::Api
       Api::Settings.collated_settings(current_user, current_control_system)
     end
 
-    # Adds the module from the system if it doesn't already exist
+    # Adds the module to the system if it doesn't already exist
     @[AC::Route::PUT("/:sys_id/module/:module_id")]
     def add_module(
       module_id : String

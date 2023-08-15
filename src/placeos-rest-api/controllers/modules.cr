@@ -8,6 +8,7 @@ require "./settings"
 module PlaceOS::Api
   class Modules < Application
     include Utils::CoreHelper
+    include Utils::Permissions
 
     base "/api/engine/v2/modules/"
 
@@ -18,7 +19,7 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :state, :show, :ping]
-    before_action :check_support, only: [:index, :state, :show, :ping]
+    before_action :check_support, only: [:state, :show, :ping]
 
     ###############################################################################################
 
@@ -30,6 +31,24 @@ module PlaceOS::Api
     end
 
     getter! current_module : Model::Module
+
+    # Permissions
+    ###############################################################################################
+
+    @[AC::Route::Filter(:before_action, only: [:index])]
+    def check_view_permissions
+      return if user_support?
+
+      # find the org zone
+      authority = current_authority.as(Model::Authority)
+      @org_zone_id = org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
+      raise Error::Forbidden.new unless org_zone_id
+
+      access = check_access(current_user.groups, [org_zone_id])
+      raise Error::Forbidden.new unless access.admin?
+    end
+
+    getter org_zone_id : String? = nil
 
     # Response helpers
     ###############################################################################################
@@ -84,61 +103,93 @@ module PlaceOS::Api
 
         set_collection_headers(results.size, Model::Module.table_name)
 
-        results
-      else # we use Elasticsearch
-        elastic = Model::Module.elastic
-        query = elastic.query(search_params)
-        query.minimum_should_match(1)
+        return results
+      end
 
-        if driver_id
-          query.filter({"driver_id" => [driver_id]})
+      # we use Elasticsearch
+      elastic = Model::Module.elastic
+      query = elastic.query(search_params)
+      query.minimum_should_match(1)
+
+      # TODO:: we can remove this once there is a tenant_id field on modules
+      # which will make this much simpler to filter
+      if filter_zone_id = org_zone_id
+        # we only want to show modules in use by systems that include this zone
+        no_logic = true
+
+        # find all the non-logic modules that this user can access
+        # 1. grabs all the module ids in the systems of the provided org zone
+        # 2. select distinct modules ids which are not logic modules (99)
+        sql_query = %[
+          WITH matching_rows AS (
+            SELECT unnest(modules) AS module_id
+            FROM sys
+            WHERE $1 = ANY(zones)
+          )
+
+          SELECT ARRAY_AGG(DISTINCT m.module_id)
+          FROM matching_rows m
+          JOIN mod ON m.module_id = mod.id
+          WHERE mod.role <> 99;
+        ]
+
+        module_ids = PgORM::Database.connection do |conn|
+          conn.query_one(sql_query, args: [filter_zone_id], &.read(Array(String)))
         end
 
-        unless connected.nil?
-          query.filter({
-            "ignore_connected" => [false],
-            "connected"        => [connected],
-          })
-        end
+        query.must({
+          "id" => module_ids,
+        })
+      end
 
-        unless running.nil?
-          query.should({"running" => [running]})
-        end
+      if no_logic
+        query.must_not({"role" => [Model::Driver::Role::Logic.to_i]})
+      end
 
-        if as_of
-          query.range({
-            "updated_at" => {
-              :lte => as_of,
-            },
-          })
-        end
+      if driver_id
+        query.filter({"driver_id" => [driver_id]})
+      end
 
-        if no_logic
-          query.must_not({"role" => [Model::Driver::Role::Logic.to_i]})
-        end
+      unless connected.nil?
+        query.filter({
+          "ignore_connected" => [false],
+          "connected"        => [connected],
+        })
+      end
 
-        query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
+      unless running.nil?
+        query.should({"running" => [running]})
+      end
 
-        search_results = paginate_results(elastic, query)
+      if as_of
+        query.range({
+          "updated_at" => {
+            :lte => as_of,
+          },
+        })
+      end
 
-        # Include subset of association data with results
-        search_results.compact_map do |d|
-          sys = d.control_system
-          driver = d.driver
-          next unless driver
+      query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
 
-          # Include control system on Logic modules so it is possible
-          # to display the inherited settings
-          sys_field = if sys
-                        ControlSystemDetails.new(sys.name, Model::Zone.find_all(sys.zones).to_a)
-                      else
-                        nil
-                      end
+      search_results = paginate_results(elastic, query)
 
-          d.control_system_details = sys_field
-          d.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
-          d
-        end
+      # Include subset of association data with results
+      search_results.compact_map do |d|
+        sys = d.control_system
+        driver = d.driver
+        next unless driver
+
+        # Include control system on Logic modules so it is possible
+        # to display the inherited settings
+        sys_field = if sys
+                      ControlSystemDetails.new(sys.name, Model::Zone.find_all(sys.zones).to_a)
+                    else
+                      nil
+                    end
+
+        d.control_system_details = sys_field
+        d.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
+        d
       end
     end
 
