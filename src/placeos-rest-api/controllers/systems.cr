@@ -93,8 +93,6 @@ module PlaceOS::Api
     end
 
     def check_access_level(zones : Array(String), admin_required : Bool = false)
-      return if admin_required ? user_admin? : user_support?
-
       # find the org zone
       authority = current_authority.as(Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)

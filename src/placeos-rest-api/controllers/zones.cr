@@ -5,6 +5,7 @@ require "./application"
 module PlaceOS::Api
   class Zones < Application
     include Utils::CoreHelper
+    include Utils::Permissions
 
     base "/api/engine/v2/zones/"
 
@@ -14,8 +15,7 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :show]
-    before_action :check_support, except: [:index]
+    before_action :check_support, only: [:zone_execute]
 
     # Response helpers
     ###############################################################################################
@@ -36,6 +36,60 @@ module PlaceOS::Api
     end
 
     getter! current_zone : Model::Zone
+
+    @[AC::Route::Filter(:before_action, only: [:update, :create], body: :zone_update)]
+    def parse_update_zone(@zone_update : Model::Zone)
+    end
+
+    getter! zone_update : Model::Zone
+
+    # Permissions
+    ###############################################################################################
+
+    @[AC::Route::Filter(:before_action, only: [:destroy])]
+    def check_delete_permissions
+      return if user_support?
+      check_access_level(current_zone, admin_required: true)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:update])]
+    def check_update_permissions
+      return if user_support?
+      check_access_level(current_zone, admin_required: false)
+      if zone_update.parent_id != current_zone.parent_id
+        check_access_level(zone_update, admin_required: false)
+      end
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:create])]
+    def check_create_permissions
+      return if user_support?
+      check_access_level(zone_update, admin_required: false)
+    end
+
+    def check_access_level(zone : Model::Zone, admin_required : Bool = false)
+      # find the org zone
+      authority = current_authority.as(Model::Authority)
+      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
+      raise Error::Forbidden.new unless org_zone_id
+      raise Error::Forbidden.new unless zone.persisted? || zone.parent_id.presence
+
+      root_zone_id = zone.root_zone_id
+
+      # ensure the system is part of the organisation
+      if root_zone_id == org_zone_id
+        zones = [org_zone_id, zone.id].compact.uniq!
+        access = check_access(current_user.groups, zones)
+
+        if admin_required
+          return if access.admin?
+        else
+          return if access.admin? || access.manage?
+        end
+      end
+
+      raise Error::Forbidden.new
+    end
 
     ###############################################################################################
 
@@ -83,9 +137,10 @@ module PlaceOS::Api
     end
 
     # update the details of a zone
-    @[AC::Route::PATCH("/:id", body: :zone)]
-    @[AC::Route::PUT("/:id", body: :zone)]
-    def update(zone : Model::Zone) : Model::Zone
+    @[AC::Route::PATCH("/:id")]
+    @[AC::Route::PUT("/:id")]
+    def update : Model::Zone
+      zone = zone_update
       current = current_zone
       current.assign_attributes(zone)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -93,8 +148,9 @@ module PlaceOS::Api
     end
 
     # add a new zone
-    @[AC::Route::POST("/", body: :zone, status_code: HTTP::Status::CREATED)]
-    def create(zone : Model::Zone) : Model::Zone
+    @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
+    def create : Model::Zone
+      zone = zone_update
       raise Error::ModelValidation.new(zone.errors) unless zone.save
       zone
     end
