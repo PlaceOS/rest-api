@@ -3,6 +3,10 @@ require "timecop"
 
 module PlaceOS::Api
   describe Modules do
+    ::Spec.before_each do
+      Model::Module.clear
+    end
+
     Spec.test_404(Modules.base_route, model_name: Model::Module.table_name, headers: Spec::Authentication.headers)
 
     describe "CRUD operations", tags: "crud" do

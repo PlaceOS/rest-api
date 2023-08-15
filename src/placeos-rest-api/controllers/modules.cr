@@ -36,7 +36,10 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, only: [:index])]
-    def check_view_permissions
+    def check_view_permissions(
+      @[AC::Param::Info(description: "only return modules running in this system (query params are ignored if this is provided)", example: "sys-1234")]
+      control_system_id : String? = nil,
+    )
       return if user_support?
 
       # find the org zone
@@ -46,6 +49,11 @@ module PlaceOS::Api
 
       access = check_access(current_user.groups, [org_zone_id])
       raise Error::Forbidden.new unless access.admin?
+
+      if control_system_id
+        cs = Model::ControlSystem.find!(control_system_id)
+        raise Error::Forbidden.new unless cs.zones.includes?(org_zone_id)
+      end
     end
 
     getter org_zone_id : String? = nil
