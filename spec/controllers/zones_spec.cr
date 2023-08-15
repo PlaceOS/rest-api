@@ -10,6 +10,7 @@ module PlaceOS::Api
 
     describe "CRUD operations", tags: "crud" do
       Spec.test_crd(klass: Model::Zone, controller_klass: Zones)
+
       it "update" do
         zone = Model::Generator.zone.save!
         original_name = zone.name

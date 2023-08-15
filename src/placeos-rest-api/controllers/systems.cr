@@ -63,11 +63,15 @@ module PlaceOS::Api
     # Permissions
     ###############################################################################################
 
-    before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
-                                         :types, :functions, :state, :state_lookup,
-                                         :destroy, :update, :create]
+    before_action :check_admin, except: [
+      :index, :show, :find_by_email, :control, :execute,
+      :types, :destroy, :update, :create,
+      :state, :state_lookup, :functions,
+    ]
 
-    before_action :check_support, only: [:state, :state_lookup, :functions]
+    before_action :check_support, only: [
+      :state, :state_lookup, :functions,
+    ]
 
     @[AC::Route::Filter(:before_action, only: [:destroy])]
     def check_delete_permissions
@@ -75,15 +79,17 @@ module PlaceOS::Api
       check_access_level(current_control_system.zones, admin_required: true)
     end
 
-    @[AC::Route::Filter(:before_action, only: [:update, :create])]
+    @[AC::Route::Filter(:before_action, only: [:update])]
     def check_update_permissions
       return if user_support?
-      zones = control_system_update.zones
-      if @current_control_system
-        zones = zones + current_control_system.zones
-        zones.uniq!
-      end
-      check_access_level(zones, admin_required: false)
+      check_access_level(current_control_system.zones, admin_required: false)
+      check_access_level(control_system_update.zones, admin_required: false)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:create])]
+    def check_create_permissions
+      return if user_support?
+      check_access_level(control_system_update.zones, admin_required: false)
     end
 
     def check_access_level(zones : Array(String), admin_required : Bool = false)
