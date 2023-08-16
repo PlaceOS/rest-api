@@ -113,9 +113,9 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
       id : String,
       @[AC::Param::Info(description: "Link expiry period in minutes.", example: "60")]
-      expiry : Int32 = 60
+      expiry : Int32 = 1440
     )
-      expiry = expiry > 60 ? 60 : expiry
+      expiry = expiry > 1440 ? 1440 : expiry
       unless storage = current_upload.storage
         Log.warn { {message: "upload object associated storage not found", upload_id: current_upload.id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Upload missing associated storage")
