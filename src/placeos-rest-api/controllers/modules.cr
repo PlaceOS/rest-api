@@ -18,7 +18,7 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :state, :show, :ping]
+    before_action :check_admin, except: [:index, :create, :update, :state, :show, :ping]
     before_action :check_support, only: [:state, :show, :ping]
 
     ###############################################################################################
@@ -34,6 +34,21 @@ module PlaceOS::Api
 
     # Permissions
     ###############################################################################################
+
+    def can_modify?(mod)
+      return if user_admin?
+
+      cs_id = mod.control_system_id
+      raise Error::Forbidden.new unless cs_id
+
+      # find the org zone
+      authority = current_authority.as(Model::Authority)
+      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
+      raise Error::Forbidden.new unless org_zone_id
+
+      cs = Model::ControlSystem.find!(cs_id)
+      raise Error::Forbidden.new unless cs.zones.includes?(org_zone_id)
+    end
 
     @[AC::Route::Filter(:before_action, only: [:index])]
     def check_view_permissions(
@@ -220,7 +235,10 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :mod)]
     def update(mod : Model::Module) : Model::Module
       current = current_module
+      can_modify?(current)
       current.assign_attributes(mod)
+      can_modify?(current)
+
       raise Error::ModelValidation.new(current.errors) unless current.save
 
       if driver = current.driver
@@ -232,6 +250,7 @@ module PlaceOS::Api
     # add a new module / instance of a driver
     @[AC::Route::POST("/", body: :mod, status_code: HTTP::Status::CREATED)]
     def create(mod : Model::Module) : Model::Module
+      can_modify?(mod)
       raise Error::ModelValidation.new(mod.errors) unless mod.save
       mod
     end
