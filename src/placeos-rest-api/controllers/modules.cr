@@ -37,6 +37,7 @@ module PlaceOS::Api
 
     def can_modify?(mod)
       return if user_admin?
+      # NOTE:: if modifying, update Settings#can_modify?
 
       cs_id = mod.control_system_id
       raise Error::Forbidden.new unless cs_id
@@ -46,14 +47,15 @@ module PlaceOS::Api
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
-      cs = Model::ControlSystem.find!(cs_id)
-      raise Error::Forbidden.new unless cs.zones.includes?(org_zone_id)
+      zones = Model::ControlSystem.find!(cs_id).zones
+      raise Error::Forbidden.new unless zones.includes?(org_zone_id)
+      raise Error::Forbidden.new unless check_access(current_user.groups, zones).admin?
     end
 
     @[AC::Route::Filter(:before_action, only: [:index])]
     def check_view_permissions(
       @[AC::Param::Info(description: "only return modules running in this system (query params are ignored if this is provided)", example: "sys-1234")]
-      control_system_id : String? = nil,
+      control_system_id : String? = nil
     )
       return if user_support?
 
@@ -62,12 +64,13 @@ module PlaceOS::Api
       @org_zone_id = org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
-      access = check_access(current_user.groups, [org_zone_id])
-      raise Error::Forbidden.new unless access.admin?
-
       if control_system_id
-        cs = Model::ControlSystem.find!(control_system_id)
-        raise Error::Forbidden.new unless cs.zones.includes?(org_zone_id)
+        zones = Model::ControlSystem.find!(control_system_id).zones
+        raise Error::Forbidden.new unless zones.includes?(org_zone_id)
+        raise Error::Forbidden.new unless check_access(current_user.groups, zones).manage?
+      else
+        access = check_access(current_user.groups, [org_zone_id])
+        raise Error::Forbidden.new unless access.manage?
       end
     end
 
