@@ -2,6 +2,7 @@
 
 ### Feat
 
+- add concierge permissions PPT-746 ([#355](https://github.com/PlaceOS/rest-api/pull/355))
 - **assets**: add permissions system PPT-743 ([#354](https://github.com/PlaceOS/rest-api/pull/354))
 - **users**: PPT-53 Add User metadata search ([#353](https://github.com/PlaceOS/rest-api/pull/353))
 - **notifications**: publish on subscription id ([#352](https://github.com/PlaceOS/rest-api/pull/352))
