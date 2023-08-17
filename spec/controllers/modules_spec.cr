@@ -5,6 +5,7 @@ module PlaceOS::Api
   describe Modules do
     ::Spec.before_each do
       Model::Module.clear
+      Model::ControlSystem.clear
     end
 
     Spec.test_404(Modules.base_route, model_name: Model::Module.table_name, headers: Spec::Authentication.headers)
@@ -53,6 +54,50 @@ module PlaceOS::Api
         updated = Model::Module.from_trusted_json(result.body)
         updated.id.should eq mod.id
         updated.connected.should eq !connected
+      end
+
+      it "can update logic modules as a management user" do
+        control_system = Model::Generator.control_system
+        control_system.zones << Spec::Authentication.org_zone.id.as(String)
+        control_system.zones_will_change!
+        control_system.save!
+
+        # ensure the user can't edit modules that are not logics
+        ser_driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+        protected_mod = Model::Generator.module(driver: ser_driver).save!
+
+        connected = protected_mod.connected
+        protected_mod.connected = !connected
+
+        id = protected_mod.id.as(String)
+        path = File.join(Modules.base_route, id)
+
+        result = client.patch(
+          path: path,
+          body: protected_mod.to_json,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"]),
+        )
+        result.status_code.should eq 403
+
+        # ensure they can edit modules they have access to
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        mod = Model::Generator.module(driver: driver, control_system: control_system).save!
+
+        connected = mod.connected
+        mod.connected = !connected
+
+        id = mod.id.as(String)
+        path = File.join(Modules.base_route, id)
+
+        result = client.patch(
+          path: path,
+          body: mod.to_json,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"]),
+        )
+
+        result.status_code.should eq 200
+        updated = Model::Module.from_trusted_json(result.body)
+        updated.id.should eq mod.id
       end
     end
 
