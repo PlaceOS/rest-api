@@ -31,6 +31,7 @@
 
 ### Fix
 
+- allow start and stop of modules
 - **resource**: replaced change feed iterator with async closure
 - **eventbus**: handle read replica race conditions
 - **eventbus**: handle read replica race conditions
