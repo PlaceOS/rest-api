@@ -4,6 +4,8 @@ require "./application"
 
 module PlaceOS::Api
   class Metadata < Application
+    include Utils::Permissions
+
     base "/api/engine/v2/metadata"
 
     # Scopes
@@ -22,8 +24,8 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be destroyed")]
       parent_id : String
     )
-      # NOTE: Will the user token ever be assigned a zone id?
-      raise Error::Forbidden.new unless user_support? || parent_id == user_token.id
+      return if user_support? || parent_id == user_token.id
+      check_access_level(parent_id, admin_required: true)
     end
 
     ###############################################################################################
@@ -190,12 +192,12 @@ module PlaceOS::Api
     def create_or_update(parent_id : String, interface : Model::Metadata::Interface, merge : Bool) : Model::Metadata
       if metadata = Model::Metadata.for(parent_id, interface.name).first?
         # Check if the current user has access
-        raise Error::Forbidden.new unless metadata.user_can_update?(user_token)
+        check_access_level(parent_id) unless metadata.user_can_update?(user_token)
 
         metadata.assign_from_interface(user_token, interface, merge)
       else
         # When creating a new metadata, must be at least a support user or own the metadata
-        raise Error::Forbidden.new unless Model::Metadata.user_can_create?(parent_id, user_token)
+        check_access_level(parent_id) unless Model::Metadata.user_can_create?(parent_id, user_token)
 
         # Create a new Metadata
         Model::Metadata.from_interface(interface).tap do |model|
@@ -211,6 +213,33 @@ module PlaceOS::Api
     def guest_ids
       sys_id = user_token.user.roles.last
       Model::ControlSystem.find!(sys_id).zones + [sys_id]
+    end
+
+    def check_access_level(zone_id : String, admin_required : Bool = false)
+      # ensure this is a zone_id we're checking
+      raise Error::Forbidden.new unless zone_id.starts_with? "zone-"
+
+      # find the org zone
+      authority = current_authority.as(Model::Authority)
+      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
+      raise Error::Forbidden.new unless org_zone_id
+
+      # check that the permissions apply to this zone
+      current_zone = Model::Zone.find!(zone_id)
+      root_zone_id = current_zone.root_zone_id
+
+      if root_zone_id == org_zone_id
+        zones = [org_zone_id, zone_id].uniq!
+        access = check_access(current_user.groups, zones)
+
+        if admin_required
+          return if access.admin?
+        else
+          return if access.can_manage?
+        end
+      end
+
+      raise Error::Forbidden.new
     end
   end
 end

@@ -569,7 +569,60 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      Spec.test_crd(klass: Model::ControlSystem, controller_klass: Systems)
+      Spec.test_crd(Model::ControlSystem, Systems)
+
+      it "fails to create if a regular user" do
+        body = PlaceOS::Model::Generator.control_system.to_json
+        result = client.post(
+          Systems.base_route,
+          body: body,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false)
+        )
+        result.status_code.should eq 403
+      end
+
+      it "fails to delete if a concierge user" do
+        org_zone_id = Spec::Authentication.org_zone.id.as(String)
+        auth_headers = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["concierge"])
+
+        sys = PlaceOS::Model::Generator.control_system
+        sys.zones << org_zone_id
+        result = client.post(
+          Systems.base_route,
+          body: sys.to_json,
+          headers: auth_headers
+        )
+        result.success?.should be_true
+
+        sys = Model::ControlSystem.from_trusted_json result.body
+        result = client.delete(
+          path: "#{Systems.base_route}#{sys.id}",
+          headers: auth_headers,
+        )
+        result.success?.should be_false
+        result.status_code.should eq 403
+      end
+
+      it "management user can perform CRUD operations when in the org zone" do
+        org_zone_id = Spec::Authentication.org_zone.id.as(String)
+        auth_headers = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"])
+
+        sys = PlaceOS::Model::Generator.control_system
+        sys.zones << org_zone_id
+        result = client.post(
+          Systems.base_route,
+          body: sys.to_json,
+          headers: auth_headers
+        )
+        result.success?.should be_true
+
+        sys = Model::ControlSystem.from_trusted_json result.body
+        result = client.delete(
+          path: "#{Systems.base_route}#{sys.id}",
+          headers: auth_headers,
+        )
+        result.success?.should be_true
+      end
 
       describe "update" do
         it "if version is valid" do

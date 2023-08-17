@@ -6,6 +6,10 @@ module PlaceOS::Api::Utils::Permissions
     Manage
     Admin
     Deny
+
+    def can_manage?
+      manage? || admin?
+    end
   end
 
   class PermissionsMeta
@@ -17,12 +21,14 @@ module PlaceOS::Api::Utils::Permissions
 
     # Returns {permission_found, access_level}
     def has_access?(groups : Array(String)) : Tuple(Bool, Permission)
+      groups.map! &.downcase
+
       case
-      when (is_deny = deny) && !(is_deny & groups).empty?
+      when (is_deny = deny.try(&.map!(&.downcase))) && !(is_deny & groups).empty?
         {false, Permission::Deny}
-      when (can_manage = manage) && !(can_manage & groups).empty?
+      when (can_manage = manage.try(&.map!(&.downcase))) && !(can_manage & groups).empty?
         {true, Permission::Manage}
-      when (can_admin = admin) && !(can_admin & groups).empty?
+      when (can_admin = admin.try(&.map!(&.downcase))) && !(can_admin & groups).empty?
         {true, Permission::Admin}
       else
         {true, Permission::None}

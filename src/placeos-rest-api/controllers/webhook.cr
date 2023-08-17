@@ -130,7 +130,8 @@ module PlaceOS::Api
 
               if response_headers
                 # Forward response headers from the remote driver
-                response_headers.each { |key, value| @context.response.headers[key] = value }
+                ctx = context
+                response_headers.each { |key, value| ctx.response.headers[key] = value }
               end
 
               # These calls to render will return

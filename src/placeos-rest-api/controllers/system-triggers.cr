@@ -3,7 +3,6 @@ require "./application"
 module PlaceOS::Api
   class SystemTriggers < Application
     base "/api/engine/v2/systems/:sys_id/triggers/"
-    id_param :trig_id
 
     # Scopes
     ###############################################################################################

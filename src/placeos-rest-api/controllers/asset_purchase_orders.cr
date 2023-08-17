@@ -20,7 +20,7 @@ module PlaceOS::Api
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         access = check_access(current_user.groups, [zone_id])
-        return if access.manage? || access.admin?
+        return if access.can_manage?
       end
 
       head :forbidden

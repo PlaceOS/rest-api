@@ -2,6 +2,8 @@ require "./application"
 
 module PlaceOS::Api
   class Settings < Application
+    include Utils::Permissions
+
     base "/api/engine/v2/settings/"
 
     # Scopes
@@ -10,8 +12,8 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show, :history]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :show]
-    before_action :check_support, only: [:index, :show]
+    # permissions are checked as part of the route
+    before_action :check_admin, except: [:index, :show, :create, :update]
 
     ###############################################################################################
 
@@ -24,6 +26,58 @@ module PlaceOS::Api
 
     getter! current_settings : Model::Settings
 
+    # Permissions
+    ###############################################################################################
+
+    def can_view?(parent_id)
+      return if user_support?
+      check_access_level(parent_id, admin_required: false)
+    end
+
+    def can_modify?(setting)
+      return if user_admin?
+      raise Error::Forbidden.new("can only modify unencrypted settings") unless setting.encryption_level.none?
+      parent_id = setting.parent_id.as(String)
+      check_access_level(parent_id, admin_required: true)
+    end
+
+    def check_access_level(parent_id : String, admin_required : Bool)
+      # find the org zone
+      authority = current_authority.as(Model::Authority)
+      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
+      raise Error::Forbidden.new unless org_zone_id
+
+      access = Permission::None
+
+      # check if the user has access
+      case parent_id
+      when .starts_with?(Model::ControlSystem.table_name)
+        zones = Model::ControlSystem.find!(parent_id).zones
+        if zones.includes? org_zone_id
+          access = check_access(current_user.groups, zones)
+        end
+      when .starts_with?(Model::Module.table_name)
+        # NOTE:: duplicate of Modules#can_modify?
+        mod = Model::Module.find!(parent_id)
+        cs_id = mod.control_system_id
+        raise Error::Forbidden.new unless cs_id
+
+        zones = Model::ControlSystem.find!(cs_id).zones
+        raise Error::Forbidden.new unless zones.includes?(org_zone_id)
+        access = check_access(current_user.groups, zones)
+      when .starts_with?(Model::Zone.table_name)
+        zone = Model::Zone.find!(parent_id)
+        root_zone_id = zone.root_zone_id
+
+        if root_zone_id == org_zone_id
+          zones = [org_zone_id, zone.id].compact.uniq!
+          access = check_access(current_user.groups, zones)
+        end
+      end
+
+      raise Error::Forbidden.new unless admin_required ? access.admin? : access.can_manage?
+    end
+
     ###############################################################################################
 
     # list the settings associated with the provided parent object
@@ -32,12 +86,16 @@ module PlaceOS::Api
       parent_id : Array(String)? = nil
     ) : Array(Model::Settings)
       if parents = parent_id
+        parents.each { |pid| can_view?(pid) }
+
         # Directly search for model's settings
         parent_settings = Model::Settings.for_parent(parents)
         # Decrypt for the user
         parent_settings.each &.decrypt_for!(current_user)
         parent_settings
       else
+        raise Error::Forbidden.new unless user_support?
+
         elastic = Model::Settings.elastic
         query = elastic.query(search_params)
         paginate_results(elastic, query)
@@ -47,6 +105,7 @@ module PlaceOS::Api
     # return the requested setting details
     @[AC::Route::GET("/:id")]
     def show : Model::Settings
+      can_view?(current_settings.parent_id.as(String))
       current_settings.decrypt_for!(current_user)
     end
 
@@ -55,8 +114,12 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :setting)]
     def update(setting : Model::Settings) : Model::Settings
       current = current_settings
+      can_modify?(current)
+
       current.assign_attributes(setting)
-      current_settings.modified_by = current_user
+      current.modified_by = current_user
+      can_modify?(current)
+
       raise Error::ModelValidation.new(current.errors) unless current.save
       current.decrypt_for!(current_user)
     end
@@ -64,6 +127,7 @@ module PlaceOS::Api
     # add a new setting
     @[AC::Route::POST("/", body: :setting, status_code: HTTP::Status::CREATED)]
     def create(setting : Model::Settings) : Model::Settings
+      can_modify?(setting)
       setting.modified_by = current_user
       raise Error::ModelValidation.new(setting.errors) unless setting.save
       setting.decrypt_for!(current_user)

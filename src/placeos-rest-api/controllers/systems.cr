@@ -11,12 +11,11 @@ require "../websocket"
 module PlaceOS::Api
   class Systems < Application
     include Utils::CoreHelper
+    include Utils::Permissions
 
     alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
     base "/api/engine/v2/systems/"
-
-    id_param :sys_id
 
     # Scopes
     ###############################################################################################
@@ -32,11 +31,6 @@ module PlaceOS::Api
 
     before_action :can_read_control, only: [:types, :functions, :state, :state_lookup]
     before_action :can_write_control, only: [:control, :execute]
-
-    before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
-                                         :types, :functions, :state, :state_lookup]
-
-    before_action :check_support, only: [:state, :state_lookup, :functions]
 
     ###############################################################################################
 
@@ -59,6 +53,64 @@ module PlaceOS::Api
     end
 
     getter! current_control_system : Model::ControlSystem
+
+    @[AC::Route::Filter(:before_action, only: [:update, :create], body: :control_system_update)]
+    def parse_update_control_system(@control_system_update : Model::ControlSystem)
+    end
+
+    getter! control_system_update : Model::ControlSystem
+
+    # Permissions
+    ###############################################################################################
+
+    before_action :check_admin, except: [
+      :index, :show, :find_by_email, :control, :execute, :types,
+      :destroy, :update, :create, :add_module, :remove_module, :start, :stop,
+      :state, :state_lookup, :functions,
+    ]
+
+    before_action :check_support, only: [
+      :state, :state_lookup, :functions,
+    ]
+
+    @[AC::Route::Filter(:before_action, only: [:destroy, :add_module, :remove_module, :start, :stop])]
+    def check_admin_permissions
+      return if user_admin?
+      check_access_level(current_control_system.zones, admin_required: true)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:update])]
+    def check_update_permissions
+      return if user_support?
+      check_access_level(current_control_system.zones, admin_required: false)
+      check_access_level(control_system_update.zones, admin_required: false)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:create])]
+    def check_create_permissions
+      return if user_support?
+      check_access_level(control_system_update.zones, admin_required: false)
+    end
+
+    def check_access_level(zones : Array(String), admin_required : Bool = false)
+      # find the org zone
+      authority = current_authority.as(Model::Authority)
+      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
+      raise Error::Forbidden.new unless org_zone_id
+
+      # ensure the system is part of the organisation
+      if zones.includes? org_zone_id
+        access = check_access(current_user.groups, zones)
+
+        if admin_required
+          return if access.admin?
+        else
+          return if access.can_manage?
+        end
+      end
+
+      raise Error::Forbidden.new
+    end
 
     # Response helpers
     ###############################################################################################
@@ -208,10 +260,9 @@ module PlaceOS::Api
     end
 
     # Updates a control system
-    @[AC::Route::PATCH("/:sys_id", body: :sys)]
-    @[AC::Route::PUT("/:sys_id", body: :sys)]
+    @[AC::Route::PATCH("/:sys_id")]
+    @[AC::Route::PUT("/:sys_id")]
     def update(
-      sys : Model::ControlSystem,
       @[AC::Param::Info(description: "must be provided to prevent overwriting newer config with old, in the case where multiple people might be editing a system", example: "3")]
       version : Int32
     ) : Model::ControlSystem
@@ -219,16 +270,18 @@ module PlaceOS::Api
         raise Error::Conflict.new("Attempting to edit an old System version")
       end
 
+      updated = control_system_update
       current = current_control_system
-      current.assign_attributes(sys)
+      current.assign_attributes(updated)
       current.version = version + 1
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
 
     # adds a new system
-    @[AC::Route::POST("/", body: :sys, status_code: HTTP::Status::CREATED)]
-    def create(sys : Model::ControlSystem) : Model::ControlSystem
+    @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
+    def create : Model::ControlSystem
+      sys = control_system_update
       raise Error::ModelValidation.new(sys.errors) unless sys.save
       sys
     end
@@ -276,7 +329,7 @@ module PlaceOS::Api
       Api::Settings.collated_settings(current_user, current_control_system)
     end
 
-    # Adds the module from the system if it doesn't already exist
+    # Adds the module to the system if it doesn't already exist
     @[AC::Route::PUT("/:sys_id/module/:module_id")]
     def add_module(
       module_id : String

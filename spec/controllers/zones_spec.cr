@@ -10,6 +10,7 @@ module PlaceOS::Api
 
     describe "CRUD operations", tags: "crud" do
       Spec.test_crd(klass: Model::Zone, controller_klass: Zones)
+
       it "update" do
         zone = Model::Generator.zone.save!
         original_name = zone.name
@@ -29,6 +30,61 @@ module PlaceOS::Api
         updated.id.should eq zone.id
         updated.name.should_not eq original_name
         updated.destroy
+      end
+
+      it "fails to create if a regular user" do
+        org_zone_id = Spec::Authentication.org_zone.id.as(String)
+        zone = PlaceOS::Model::Generator.zone
+        zone.parent_id = org_zone_id
+        result = client.post(
+          Zones.base_route,
+          body: zone.to_json,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false)
+        )
+        result.status_code.should eq 403
+      end
+
+      it "fails to delete if a concierge user" do
+        org_zone_id = Spec::Authentication.org_zone.id.as(String)
+        auth_headers = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["concierge"])
+
+        zone = PlaceOS::Model::Generator.zone
+        zone.parent_id = org_zone_id
+        result = client.post(
+          Zones.base_route,
+          body: zone.to_json,
+          headers: auth_headers
+        )
+        result.success?.should be_true
+
+        zone = Model::Zone.from_trusted_json result.body
+        result = client.delete(
+          path: "#{Zones.base_route}#{zone.id}",
+          headers: auth_headers,
+        )
+        result.success?.should be_false
+        result.status_code.should eq 403
+      end
+
+      it "management user can perform CRUD operations when in the org zone" do
+        org_zone_id = Spec::Authentication.org_zone.id.as(String)
+        auth_headers = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"])
+
+        zone = PlaceOS::Model::Generator.zone
+        zone.parent_id = org_zone_id
+        result = client.post(
+          Zones.base_route,
+          body: zone.to_json,
+          headers: auth_headers
+        )
+        result.success?.should be_true
+
+        zone = Model::Zone.from_trusted_json result.body
+        result = client.delete(
+          path: "#{Zones.base_route}#{zone.id}",
+          headers: auth_headers,
+        )
+        result.success?.should be_true
       end
     end
 
