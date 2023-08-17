@@ -75,7 +75,7 @@ module PlaceOS::Api
         end
       end
 
-      raise Error::Forbidden.new unless admin_required ? access.admin? : access.manage?
+      raise Error::Forbidden.new unless admin_required ? access.admin? : access.can_manage?
     end
 
     ###############################################################################################

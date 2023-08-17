@@ -100,11 +100,14 @@ module PlaceOS::Api
         Array(Hash(String, JSON::Any)).from_json(response.body.to_s).map(&.["id"].as_s).first?.should eq(mod.id)
       end
 
-      it "looks up by org zone id due to limited permissions" do
+      it "ensures management users can only see the modules they have access to" do
+        Model::Generator.module.save!
+        Model::Generator.module.save!
         Model::Generator.module.save!
         mod = Model::Generator.module.save!
         sys = Model::Generator.control_system
         sys.zones << Spec::Authentication.org_zone.id.as(String)
+        sys.zones_will_change!
         sys.modules = [mod.id.as(String)]
         sys.save!
 
@@ -118,7 +121,24 @@ module PlaceOS::Api
         )
         response.status_code.should eq 403
 
-        # Call the index method of the controller
+        # management users can see the list of modules in a control system
+        params = HTTP::Params{"control_system_id" => sys.id.as(String)}
+        response = client.get(
+          "#{Modules.base_route}?#{params}",
+          headers: Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"]),
+        )
+        response.status_code.should eq 200
+
+        # Admins can see everything
+        header = Spec::Authentication.headers
+        until_expected("GET", Modules.base_route, header) do |resp|
+          response = resp
+          resp.success? ? (resp.headers["X-Total-Count"].to_i > 1) : false
+        end
+        response.status_code.should eq 200
+        response.headers["X-Total-Count"].to_i > 1
+
+        # Management can only see the one
         header = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"])
         until_expected("GET", Modules.base_route, header) do |resp|
           response = resp

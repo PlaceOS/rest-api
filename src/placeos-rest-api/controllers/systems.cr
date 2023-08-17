@@ -105,7 +105,7 @@ module PlaceOS::Api
         if admin_required
           return if access.admin?
         else
-          return if access.admin? || access.manage?
+          return if access.can_manage?
         end
       end
 

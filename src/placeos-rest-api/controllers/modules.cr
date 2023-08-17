@@ -67,10 +67,10 @@ module PlaceOS::Api
       if control_system_id
         zones = Model::ControlSystem.find!(control_system_id).zones
         raise Error::Forbidden.new unless zones.includes?(org_zone_id)
-        raise Error::Forbidden.new unless check_access(current_user.groups, zones).manage?
+        raise Error::Forbidden.new unless check_access(current_user.groups, zones).can_manage?
       else
         access = check_access(current_user.groups, [org_zone_id])
-        raise Error::Forbidden.new unless access.manage?
+        raise Error::Forbidden.new unless access.can_manage?
       end
     end
 
@@ -160,8 +160,8 @@ module PlaceOS::Api
         ]
 
         module_ids = PgORM::Database.connection do |conn|
-          conn.query_one(sql_query, args: [filter_zone_id], &.read(Array(String)))
-        end
+          conn.query_one(sql_query, args: [filter_zone_id], &.read(Array(String)?))
+        end || [] of String
 
         query.must({
           "id" => module_ids,
