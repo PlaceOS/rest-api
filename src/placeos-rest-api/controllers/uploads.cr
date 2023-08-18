@@ -20,9 +20,9 @@ module PlaceOS::Api
     def get_upload
       id = params["upload_id"]? || params["id"]?
       raise Error::NotFound.new("Missing upload id.") unless id
-      unless @current_upload = Model::Upload.find_by?(uploaded_by: current_user.id, id: id)
+      unless @current_upload = Model::Upload.find?(id)
         Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
-        raise Error::NotFound.new("Invalid upload id")
+        raise Error::NotFound.new("Invalid upload id: #{id}")
       end
     end
 
@@ -60,7 +60,7 @@ module PlaceOS::Api
     end
 
     record UploadInfo, file_name : String, file_size : String, file_id : String, file_mime : String? = nil,
-      file_path : String? = nil, permissions : Model::Upload::Permissions = Model::Upload::Permissions::None, expires : Int32 = 5 do
+      file_path : String? = nil, permissions : Model::Upload::Permissions = Model::Upload::Permissions::None, public : Bool = true, expires : Int32 = 5 do
       include JSON::Serializable
 
       def expires
@@ -83,25 +83,26 @@ module PlaceOS::Api
       file_name = sanitize_filename(info.file_name)
 
       if upload = Model::Upload.find_by?(uploaded_by: user_id, file_name: file_name, file_size: info.file_size, file_md5: info.file_id)
+        visibility = upload.public ? :public : :private
         resp = if (resumable_id = upload.resumable_id) && upload.resumable
                  s3 = signer.get_parts(storage.bucket_name, upload.object_key, upload.file_size, resumable_id, get_headers(upload))
                  {type: :parts, signature: s3, part_list: upload.part_list, part_data: upload.part_data}
                else
                  s3 = signer.sign_upload(storage.bucket_name, upload.object_key, upload.file_size, upload.file_md5, info.file_mime,
-                   get_permissions(upload), info.expires, get_headers(upload))
+                   visibility, info.expires, get_headers(upload))
                  {type: (signer.multipart? ? :chunked_upload : :direct_upload), signature: s3}
                end
 
         render json: resp.merge({upload_id: upload.id, residence: signer.name})
       else
         object_key = get_object_key(file_name)
-        object_options = default_object_options(info.file_mime)
-
-        s3 = signer.sign_upload(storage.bucket_name, object_key, info.file_size, info.file_id, info.file_mime, :public, info.expires, get_default_headers(info.file_mime))
+        object_options = default_object_options(info.file_mime, info.public)
+        visibility = info.public ? :public : :private
+        s3 = signer.sign_upload(storage.bucket_name, object_key, info.file_size, info.file_id, info.file_mime, visibility, info.expires, get_default_headers(info.file_mime, info.public))
 
         upload = Model::Upload.create!(uploaded_by: user_id, uploaded_email: user_email, file_name: file_name, file_size: info.file_size, file_md5: info.file_id,
           file_path: info.file_path, storage_id: storage.id, permissions: info.permissions,
-          object_key: object_key, object_options: object_options,
+          object_key: object_key, object_options: object_options, public: info.public,
           resumable: signer.multipart?)
 
         render json: {type: (signer.multipart? ? :chunked_upload : :direct_upload), signature: s3, upload_id: upload.id, residence: signer.name}
@@ -120,6 +121,14 @@ module PlaceOS::Api
         Log.warn { {message: "upload object associated storage not found", upload_id: current_upload.id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Upload missing associated storage")
       end
+
+      unless current_upload.public
+        case current_upload.permissions
+        when .admin?   then check_admin
+        when .support? then check_support
+        end
+      end
+
       s3 = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
       response.headers["Location"] = s3.get_object(storage.bucket_name, current_upload.object_key, expiry * 60)
       render status: 303
@@ -224,37 +233,25 @@ module PlaceOS::Api
       end
     end
 
-    private def get_permissions(upload)
-      if pr = upload.object_options["permissions"]?.try &.as_s?
-        if pr.strip == "public"
-          :public
-        else
-          :private
-        end
-      else
-        :private
-      end
-    end
-
     private def get_object_key(filename)
       "/#{request.hostname}/#{Time.utc.to_unix_f.to_s.sub(".", "")}#{rand(1000)}#{File.extname(filename)}"
     end
 
-    private def default_object_options(file_mime)
+    private def default_object_options(file_mime, public)
       if mime = file_mime
         {
-          "permissions" => JSON::Any.new("public"),
+          "permissions" => JSON::Any.new(public ? "public" : "private"),
           "headers"     => JSON::Any.new({
             "Content-Type" => JSON::Any.new(mime),
           }),
         }
       else
-        {"permissions" => JSON::Any.new("public")}
+        {"permissions" => JSON::Any.new(public ? "public" : "private")}
       end
     end
 
-    private def get_default_headers(mime)
-      opts = default_object_options(mime)
+    private def get_default_headers(mime, public)
+      opts = default_object_options(mime, public)
       if h = opts["headers"]?.try &.as_h?
         h.transform_values(&.as_s)
       else
