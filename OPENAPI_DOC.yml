@@ -8165,7 +8165,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/module/{module_id}:
     put:
-      summary: Adds the module from the system if it doesn't already exist
+      summary: Adds the module to the system if it doesn't already exist
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems#add_module

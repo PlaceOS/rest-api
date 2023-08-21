@@ -63,32 +63,36 @@ module PlaceOS::Api
     # Permissions
     ###############################################################################################
 
-    before_action :check_admin, except: [:index, :show, :find_by_email, :control, :execute,
-                                         :types, :functions, :state, :state_lookup,
-                                         :destroy, :update, :create]
+    before_action :check_admin, except: [
+      :index, :show, :find_by_email, :control, :execute, :types,
+      :destroy, :update, :create, :add_module, :remove_module,
+      :state, :state_lookup, :functions,
+    ]
 
-    before_action :check_support, only: [:state, :state_lookup, :functions]
+    before_action :check_support, only: [
+      :state, :state_lookup, :functions,
+    ]
 
-    @[AC::Route::Filter(:before_action, only: [:destroy])]
-    def check_delete_permissions
+    @[AC::Route::Filter(:before_action, only: [:destroy, :add_module, :remove_module])]
+    def check_admin_permissions
       return if user_admin?
       check_access_level(current_control_system.zones, admin_required: true)
     end
 
-    @[AC::Route::Filter(:before_action, only: [:update, :create])]
+    @[AC::Route::Filter(:before_action, only: [:update])]
     def check_update_permissions
       return if user_support?
-      zones = control_system_update.zones
-      if @current_control_system
-        zones = zones + current_control_system.zones
-        zones.uniq!
-      end
-      check_access_level(zones, admin_required: false)
+      check_access_level(current_control_system.zones, admin_required: false)
+      check_access_level(control_system_update.zones, admin_required: false)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:create])]
+    def check_create_permissions
+      return if user_support?
+      check_access_level(control_system_update.zones, admin_required: false)
     end
 
     def check_access_level(zones : Array(String), admin_required : Bool = false)
-      return if admin_required ? user_admin? : user_support?
-
       # find the org zone
       authority = current_authority.as(Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
@@ -101,7 +105,7 @@ module PlaceOS::Api
         if admin_required
           return if access.admin?
         else
-          return if access.admin? || access.manage?
+          return if access.can_manage?
         end
       end
 
@@ -325,7 +329,7 @@ module PlaceOS::Api
       Api::Settings.collated_settings(current_user, current_control_system)
     end
 
-    # Adds the module from the system if it doesn't already exist
+    # Adds the module to the system if it doesn't already exist
     @[AC::Route::PUT("/:sys_id/module/:module_id")]
     def add_module(
       module_id : String

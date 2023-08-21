@@ -6,6 +6,10 @@ module PlaceOS::Api::Utils::Permissions
     Manage
     Admin
     Deny
+
+    def can_manage?
+      manage? || admin?
+    end
   end
 
   class PermissionsMeta

@@ -32,7 +32,7 @@ module PlaceOS::Api
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         zones = [zone_id, current_asset.zone_id.as(String)]
         access = check_access(current_user.groups, zones)
-        return if access.manage? || access.admin?
+        return if access.can_manage?
       end
 
       raise Error::Forbidden.new
