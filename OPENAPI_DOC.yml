@@ -13228,6 +13228,460 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/storages:
+    get:
+      summary: returns the list of available storages for provided authority
+      tags:
+      - Storages
+      operationId: PlaceOS::Api::Storages#index
+      parameters:
+      - name: auth_id
+        in: query
+        description: return storages which are in the authority provided
+        example: auth-1234
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: deprecated, the starting offset of the result set. Used to implement
+          pagination
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      summary: adds a new storage
+      tags:
+      - Storages
+      operationId: PlaceOS::Api::Storages#create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        required: true
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/storages/{id}:
+    get:
+      summary: returns the details of a Storage
+      tags:
+      - Storages
+      operationId: PlaceOS::Api::Storages#show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    put:
+      summary: updates a storage details
+      tags:
+      - Storages
+      operationId: PlaceOS::Api::Storages#update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: removes a storage
+      tags:
+      - Storages
+      operationId: PlaceOS::Api::Storages#destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: updates a storage details
+      tags:
+      - Storages
+      operationId: PlaceOS::Api::Storages#update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Storage'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/triggers:
     get:
       summary: return the list of triggers associated with the system specified
@@ -14242,6 +14696,486 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PlaceOS__Model__TriggerInstance'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads/new:
+    get:
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads#index
+      parameters:
+      - name: file_name
+        in: query
+        description: Name of file which will be uploaded to cloud storage
+        example: test.jpeg
+        required: true
+        schema:
+          type: string
+      - name: file_size
+        in: query
+        description: Size of file which will be uploaded to cloud storage
+        example: "1234"
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      - name: file_mime
+        in: query
+        description: Mime-Type of file which will be uploaded to cloud storage
+        example: image/jpeg
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: deprecated, the starting offset of the result set. Used to implement
+          pagination
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads:
+    post:
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads#create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__Uploads__UploadInfo'
+        required: true
+      parameters: []
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads/{id}/url:
+    get:
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads#get_link
+      parameters:
+      - name: id
+        in: path
+        description: upload id of the upload
+        example: uploads-XXX
+        required: true
+        schema:
+          type: string
+      - name: expiry
+        in: query
+        description: Link expiry period in minutes.
+        example: "60"
+        required: false
+        schema:
+          type: integer
+          format: Int32
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads/{id}/edit:
+    get:
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads#edit
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: "null"
+      - name: part
+        in: query
+        description: file part which will be uploaded to cloud storage
+        example: part1
+        required: true
+        schema:
+          type: string
+      - name: file_id
+        in: query
+        description: MD5 of file which will be uploaded to cloud storage
+        example: pxdXsOVpn6+SAcvZoZQphQ==
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads/{id}:
+    put:
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads#update
+      parameters:
+      - name: id
+        in: path
+        description: upload id of the upload
+        example: uploads-XXX
+        required: true
+        schema:
+          type: string
+      - name: part
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: Int32
+          nullable: true
+      - name: file_id
+        in: query
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: file_mime
+        in: query
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads#destroy
+      parameters:
+      - name: id
+        in: path
+        description: upload id of the upload
+        example: uploads-XXX
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
         409:
           description: Conflict
           content:
@@ -20144,6 +21078,55 @@ components:
         id:
           type: string
           nullable: true
+    PlaceOS__Model__Storage:
+      type: object
+      properties:
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
+          nullable: true
+        storage_type:
+          type: string
+          enum:
+          - s3
+          - azure
+          - google
+          nullable: true
+        bucket_name:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        access_key:
+          type: string
+          nullable: true
+        access_secret:
+          type: string
+          nullable: true
+        authority_id:
+          type: string
+          nullable: true
+        endpoint:
+          type: string
+          nullable: true
+        ext_filter:
+          type: array
+          items:
+            type: string
+          nullable: true
+        mime_filter:
+          type: array
+          items:
+            type: string
+          nullable: true
+        id:
+          type: string
+          nullable: true
     PlaceOS__Model__TriggerInstance:
       type: object
       properties:
@@ -20435,6 +21418,39 @@ components:
         id:
           type: string
           nullable: true
+    PlaceOS__Api__Uploads__UploadInfo:
+      type: object
+      properties:
+        file_name:
+          type: string
+        file_size:
+          type: string
+        file_id:
+          type: string
+        file_mime:
+          type: string
+          nullable: true
+        file_path:
+          type: string
+          nullable: true
+        permissions:
+          type: string
+          enum:
+          - none
+          - admin
+          - support
+        public:
+          type: boolean
+        expires:
+          type: integer
+          format: Int32
+      required:
+      - file_name
+      - file_size
+      - file_id
+      - permissions
+      - public
+      - expires
     PlaceOS__Model__User__AdminResponse:
       type: object
       properties:

@@ -35,7 +35,7 @@ dependencies:
   neuroplastic:
     github: spider-gazelle/neuroplastic
     version: ~> 1.13.0
- 
+
   # Performs ping requests
   pinger:
     github: spider-gazelle/pinger
@@ -93,6 +93,10 @@ dependencies:
   secrets-env:
     github: spider-gazelle/secrets-env
     version: ~> 1
+
+  # Upload signer
+  upload-signer:
+    github: spider-gazelle/upload-signer
 
 development_dependencies:
   # Linter
