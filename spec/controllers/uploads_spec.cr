@@ -2,8 +2,6 @@ require "../helper"
 
 module PlaceOS::Api
   describe Uploads do
-    # Spec.test_404(Uploads.base_route, model_name: Model::Upload.table_name, headers: Spec::Authentication.headers)
-
     it "new should return the Storage Provider" do
       Model::Generator.storage.save!
       params = HTTP::Params.encode({
@@ -17,6 +15,40 @@ module PlaceOS::Api
 
       resp.status_code.should eq(200)
       JSON.parse(resp.body).as_h["residence"].should eq("AmazonS3")
+    end
+
+    it "should handle storage allowed list on get call" do
+      s = Model::Generator.storage
+      s.ext_filter << "jpg"
+      s.save!
+      params = HTTP::Params.encode({
+        "file_name" => "some_file_name.png",
+        "file_size" => "500",
+        "file_mime" => "image/png",
+      })
+
+      resp = client.get("#{Uploads.base_route}/new?#{params}",
+        headers: Spec::Authentication.headers)
+      resp.status_code.should eq(401)
+      JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
+    end
+
+    it "should handle storage allowed list on post call" do
+      s = Model::Generator.storage
+      s.ext_filter << ".png"
+      s.save!
+      params = {
+        "file_name" => "some_file_name.jpg",
+        "file_size" => "7000000",
+        "file_id"   => "some_file_md5_hash",
+        "file_mime" => "image/jpeg",
+      }
+
+      resp = client.post(Uploads.base_route,
+        body: params.to_json,
+        headers: Spec::Authentication.headers)
+      resp.status_code.should eq(401)
+      JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
     end
 
     it "post should return the pre-signed signature" do

@@ -56,6 +56,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "Mime-Type of file which will be uploaded to cloud storage", example: "image/jpeg")]
       file_mime : String?
     )
+      allowed?(file_name, file_name)
       render json: {residence: signer.name}
     end
 
@@ -73,6 +74,10 @@ module PlaceOS::Api
 
       def file_mime : String
         @file_mime || MIME.from_filename?(file_name) || "binary/octet-stream"
+      end
+
+      def user_mime : String?
+        @file_mime
       end
     end
 
@@ -95,6 +100,8 @@ module PlaceOS::Api
 
         render json: resp.merge({upload_id: upload.id, residence: signer.name})
       else
+        allowed?(info.file_name, info.user_mime)
+
         object_key = get_object_key(file_name)
         object_options = default_object_options(info.file_mime, info.public)
         visibility = info.public ? :public : :private
@@ -257,6 +264,16 @@ module PlaceOS::Api
       else
         {} of String => String
       end
+    end
+
+    def allowed?(file_name, file_mime)
+      storage.check_file_ext(File.extname(file_name))
+      if mime = file_mime
+        storage.check_file_mime(mime)
+      end
+    rescue ex : PlaceOS::Model::Error
+      Log.error(exception: ex) { {file_name: file_name, mime_type: file_mime} }
+      raise Error::Unauthorized.new(ex.message || "Invalid file extension or mime type")
     end
   end
 end
