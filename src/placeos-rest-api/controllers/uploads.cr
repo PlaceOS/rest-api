@@ -19,7 +19,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:get_link, :edit, :update, :destroy])]
     def get_upload
       id = params["upload_id"]? || params["id"]?
-      raise Error::NotFound.new("Missing upload id.") unless id
+      raise AC::Route::Param::MissingError.new("missing required parameter", "upload_id", "String") unless id
       unless @current_upload = Model::Upload.find?(id)
         Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Invalid upload id: #{id}")
