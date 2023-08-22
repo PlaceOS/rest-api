@@ -18,7 +18,7 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :create, :update, :state, :show, :ping, :start, :stop]
+    before_action :check_admin, except: [:index, :create, :update, :destroy, :state, :show, :ping, :start, :stop]
     before_action :check_support, only: [:state, :show, :ping]
 
     ###############################################################################################
@@ -261,6 +261,7 @@ module PlaceOS::Api
     # remove a module
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
+      can_modify?(current_module)
       current_module.destroy
     end
 
