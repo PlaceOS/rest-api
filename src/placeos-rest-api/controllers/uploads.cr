@@ -267,7 +267,7 @@ module PlaceOS::Api
     end
 
     def allowed?(file_name, file_mime)
-      storage.check_file_ext(File.extname(file_name)[1..])
+      storage.check_file_ext(File.extname(file_name))
       if mime = file_mime
         storage.check_file_mime(mime)
       end
