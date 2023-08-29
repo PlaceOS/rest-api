@@ -32,6 +32,7 @@
 
 ### Fix
 
+- **uploads**: remove . from ext check
 - allow start and stop of modules
 - **resource**: replaced change feed iterator with async closure
 - **eventbus**: handle read replica race conditions
