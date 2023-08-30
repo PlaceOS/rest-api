@@ -14748,9 +14748,10 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/uploads/new:
     get:
+      summary: check the storage provider for a new file upload
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#index
+      operationId: PlaceOS::Api::Uploads#storage_name
       parameters:
       - name: file_name
         in: query
@@ -14775,39 +14776,13 @@ paths:
         schema:
           type: string
           nullable: true
-      - name: q
-        in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
-        schema:
-          type: string
-      - name: limit
-        in: query
-        description: the maximum number of results to return
-        example: "10000"
-        required: false
-        schema:
-          type: integer
-          format: UInt32
-      - name: offset
-        in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
-        required: false
-        schema:
-          type: integer
-          format: UInt32
-      - name: ref
-        in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
-        required: false
-        schema:
-          type: string
-          nullable: true
       responses:
         200:
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_residence__String_'
         409:
           description: Conflict
           content:
@@ -14860,6 +14835,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/uploads:
     post:
+      summary: initiate a new upload
       tags:
       - Uploads
       operationId: PlaceOS::Api::Uploads#create
@@ -14873,6 +14849,10 @@ paths:
       responses:
         200:
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____part_list__Array_Int32___part_data__Hash_String__JSON__Any___upload_id__String___Nil__residence__String____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__residence__String__'
         409:
           description: Conflict
           content:
@@ -14925,6 +14905,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/uploads/{id}/url:
     get:
+      summary: obtain a temporary link to a private resource
       tags:
       - Uploads
       operationId: PlaceOS::Api::Uploads#get_link
@@ -14999,15 +14980,25 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/uploads/{id}/edit:
     get:
+      summary: obtain a signed request for each chunk of the file being uploaded.
+      description: 'obtain a signed request for each chunk of the file being uploaded.
+
+
+        once all parts are uploaded, you can obtain the final commit request by passing
+        `?part=finish`
+
+        file_id is required except for the final finish request'
       tags:
       - Uploads
       operationId: PlaceOS::Api::Uploads#edit
       parameters:
       - name: id
         in: path
+        description: upload id of the upload
+        example: uploads-XXX
         required: true
         schema:
-          type: "null"
+          type: string
       - name: part
         in: query
         description: file part which will be uploaded to cloud storage
@@ -15017,7 +15008,7 @@ paths:
           type: string
       - name: file_id
         in: query
-        description: MD5 of file which will be uploaded to cloud storage
+        description: MD5 of the part which will be uploaded to cloud storage
         example: pxdXsOVpn6+SAcvZoZQphQ==
         required: false
         schema:
@@ -15026,6 +15017,10 @@ paths:
       responses:
         200:
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil_'
         409:
           description: Conflict
           content:
@@ -15078,9 +15073,10 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/uploads/{id}:
     put:
+      summary: mark an upload as complete
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#update
+      operationId: PlaceOS::Api::Uploads#finished
       parameters:
       - name: id
         in: path
@@ -15089,28 +15085,13 @@ paths:
         required: true
         schema:
           type: string
-      - name: part
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: Int32
-          nullable: true
-      - name: file_id
-        in: query
-        required: false
-        schema:
-          type: string
-          nullable: true
-      - name: file_mime
-        in: query
-        required: false
-        schema:
-          type: string
-          nullable: true
       responses:
         200:
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_ok__Bool_'
         409:
           description: Conflict
           content:
@@ -15162,6 +15143,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
+      summary: delete an uploaded file
       tags:
       - Uploads
       operationId: PlaceOS::Api::Uploads#destroy
@@ -15174,8 +15156,100 @@ paths:
         schema:
           type: string
       responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: save your resumable upload progress and grab the next signed request
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads#update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__Uploads__UpdateInfo'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        description: upload id of the upload
+        example: uploads-XXX
+        required: true
+        schema:
+          type: string
+      - name: part
+        in: query
+        description: the next file part which we need a signed URL for
+        example: part2
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: file_id
+        in: query
+        description: MD5 of the next part
+        example: pxdXsOVpn6+SAcvZoZQphQ==
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
         200:
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__'
         409:
           description: Conflict
           content:
@@ -21418,6 +21492,13 @@ components:
         id:
           type: string
           nullable: true
+    NamedTuple_residence__String_:
+      type: object
+      properties:
+        residence:
+          type: string
+      required:
+      - residence
     PlaceOS__Api__Uploads__UploadInfo:
       type: object
       properties:
@@ -21451,6 +21532,177 @@ components:
       - permissions
       - public
       - expires
+    ? _NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____part_list__Array_Int32___part_data__Hash_String__JSON__Any___upload_id__String___Nil__residence__String____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__residence__String__
+    : anyOf:
+      - type: object
+        properties:
+          type:
+            type: string
+          signature:
+            type: object
+            properties:
+              verb:
+                type: string
+              url:
+                type: string
+              headers:
+                type: object
+                additionalProperties:
+                  type: string
+            required:
+            - verb
+            - url
+            - headers
+          part_list:
+            type: array
+            items:
+              type: integer
+              format: Int32
+          part_data:
+            type: object
+            additionalProperties:
+              type: object
+          upload_id:
+            type: string
+            nullable: true
+          residence:
+            type: string
+        required:
+        - type
+        - signature
+        - part_list
+        - part_data
+        - residence
+      - type: object
+        properties:
+          type:
+            type: string
+          signature:
+            type: object
+            properties:
+              verb:
+                type: string
+              url:
+                type: string
+              headers:
+                type: object
+                additionalProperties:
+                  type: string
+            required:
+            - verb
+            - url
+            - headers
+          upload_id:
+            type: string
+            nullable: true
+          residence:
+            type: string
+        required:
+        - type
+        - signature
+        - residence
+    ? NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil_
+    : type: object
+      properties:
+        type:
+          type: string
+        signature:
+          type: object
+          properties:
+            verb:
+              type: string
+            url:
+              type: string
+            headers:
+              type: object
+              additionalProperties:
+                type: string
+          required:
+          - verb
+          - url
+          - headers
+        upload_id:
+          type: string
+          nullable: true
+      required:
+      - type
+      - signature
+    PlaceOS__Api__Uploads__UpdateInfo:
+      type: object
+      properties:
+        file_id:
+          type: string
+          nullable: true
+        part:
+          type: integer
+          format: Int32
+          nullable: true
+        resumable_id:
+          type: string
+          nullable: true
+        part_data:
+          type: array
+          items:
+            type: object
+            properties:
+              md5:
+                type: string
+              part:
+                type: integer
+                format: Int32
+            required:
+            - md5
+            - part
+          nullable: true
+        part_list:
+          type: array
+          items:
+            type: integer
+            format: Int32
+          nullable: true
+        part_update:
+          type: boolean
+          nullable: true
+    ? _NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__
+    : anyOf:
+      - type: object
+        properties:
+          ok:
+            type: boolean
+        required:
+        - ok
+      - type: object
+        properties:
+          type:
+            type: string
+          signature:
+            type: object
+            properties:
+              verb:
+                type: string
+              url:
+                type: string
+              headers:
+                type: object
+                additionalProperties:
+                  type: string
+            required:
+            - verb
+            - url
+            - headers
+          upload_id:
+            type: string
+            nullable: true
+        required:
+        - type
+        - signature
+    NamedTuple_ok__Bool_:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+      - ok
     PlaceOS__Model__User__AdminResponse:
       type: object
       properties:

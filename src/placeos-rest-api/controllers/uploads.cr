@@ -16,10 +16,11 @@ module PlaceOS::Api
       end
     end
 
-    @[AC::Route::Filter(:before_action, only: [:get_link, :edit, :update, :destroy])]
-    def get_upload
-      id = params["upload_id"]? || params["id"]?
-      raise AC::Route::Param::MissingError.new("missing required parameter", "upload_id", "String") unless id
+    @[AC::Route::Filter(:before_action, only: [:get_link, :edit, :update, :finished, :destroy])]
+    def get_upload(
+      @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
+      id : String
+    )
       unless @current_upload = Model::Upload.find?(id)
         Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Invalid upload id: #{id}")
@@ -47,17 +48,18 @@ module PlaceOS::Api
     getter! signer : UploadSigner::AmazonS3?
     getter! current_upload : Model::Upload?
 
+    # check the storage provider for a new file upload
     @[AC::Route::GET("/new")]
-    def index(
+    def storage_name(
       @[AC::Param::Info(description: "Name of file which will be uploaded to cloud storage", example: "test.jpeg")]
       file_name : String,
       @[AC::Param::Info(description: "Size of file which will be uploaded to cloud storage", example: "1234")]
       file_size : Int64,
       @[AC::Param::Info(description: "Mime-Type of file which will be uploaded to cloud storage", example: "image/jpeg")]
       file_mime : String?
-    )
+    ) : NamedTuple(residence: String)
       allowed?(file_name, file_name)
-      render json: {residence: signer.name}
+      {residence: signer.name}
     end
 
     record UploadInfo, file_name : String, file_size : String, file_id : String, file_mime : String? = nil,
@@ -81,8 +83,19 @@ module PlaceOS::Api
       end
     end
 
+    # initiate a new upload
     @[AC::Route::POST("/", body: :info)]
-    def create(info : UploadInfo)
+    def create(info : UploadInfo) : NamedTuple(
+      type: Symbol,
+      signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
+      part_list: Array(Int32),
+      part_data: Hash(String, JSON::Any),
+      upload_id: String | Nil,
+      residence: String) | NamedTuple(
+      type: Symbol,
+      signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
+      upload_id: String | Nil,
+      residence: String)
       user_id = current_user.id
       user_email = current_user.email
       file_name = sanitize_filename(info.file_name)
@@ -98,7 +111,7 @@ module PlaceOS::Api
                  {type: (signer.multipart? ? :chunked_upload : :direct_upload), signature: s3}
                end
 
-        render json: resp.merge({upload_id: upload.id, residence: signer.name})
+        resp.merge({upload_id: upload.id, residence: signer.name})
       else
         allowed?(info.file_name, info.user_mime)
 
@@ -112,14 +125,13 @@ module PlaceOS::Api
           object_key: object_key, object_options: object_options, public: info.public,
           resumable: signer.multipart?)
 
-        render json: {type: (signer.multipart? ? :chunked_upload : :direct_upload), signature: s3, upload_id: upload.id, residence: signer.name}
+        {type: (signer.multipart? ? :chunked_upload : :direct_upload), signature: s3, upload_id: upload.id, residence: signer.name}
       end
     end
 
+    # obtain a temporary link to a private resource
     @[AC::Route::GET("/:id/url")]
     def get_link(
-      @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
-      id : String,
       @[AC::Param::Info(description: "Link expiry period in minutes.", example: "60")]
       expiry : Int32 = 1440
     )
@@ -137,30 +149,38 @@ module PlaceOS::Api
       end
 
       s3 = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
-      response.headers["Location"] = s3.get_object(storage.bucket_name, current_upload.object_key, expiry * 60)
-      render status: 303
+      object_url = s3.get_object(storage.bucket_name, current_upload.object_key, expiry * 60)
+
+      redirect_to object_url, status: :see_other
     end
 
+    # obtain a signed request for each chunk of the file being uploaded.
+    #
+    # once all parts are uploaded, you can obtain the final commit request by passing `?part=finish`
+    # file_id is required except for the final finish request
     @[AC::Route::GET("/:id/edit")]
     def edit(
       @[AC::Param::Info(description: "file part which will be uploaded to cloud storage", example: "part1")]
       part : String,
-      @[AC::Param::Info(description: "MD5 of file which will be uploaded to cloud storage", example: "pxdXsOVpn6+SAcvZoZQphQ==")]
+      @[AC::Param::Info(description: "MD5 of the part which will be uploaded to cloud storage", example: "pxdXsOVpn6+SAcvZoZQphQ==")]
       file_id : String?
-    )
+    ) : NamedTuple(
+      type: Symbol,
+      signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
+      upload_id: String | Nil)
       if (resumable_id = current_upload.resumable_id) && current_upload.resumable
         if part.strip == "finish"
           s3 = signer.commit_file(storage.bucket_name, current_upload.object_key, resumable_id, get_headers(current_upload))
-          render json: {type: :finish, signature: s3, upload_id: current_upload.id}
+          {type: :finish, signature: s3, upload_id: current_upload.id}
         else
           unless md5 = file_id
-            return render json: "Missing file_id parameter", status: :not_acceptable
+            raise AC::Route::Param::ValueError.new("Missing MD5 hash of file part", "file_id", "required except for the `finish` part")
           end
           s3 = signer.set_part(storage.bucket_name, current_upload.object_key, current_upload.file_size, md5, part, resumable_id, get_headers(current_upload))
-          render json: {type: :part_upload, signature: s3, upload_id: current_upload.id}
+          {type: :part_upload, signature: s3, upload_id: current_upload.id}
         end
       else
-        render status: :not_acceptable
+        raise AC::Route::Param::ValueError.new("upload is not resumable, no part available")
       end
     end
 
@@ -173,57 +193,58 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
-    @[AC::Route::PUT("/:id")]
+    # save your resumable upload progress and grab the next signed request
+    @[AC::Route::PATCH("/:id", body: info)]
     def update(
-      @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
-      id : String,
-      part : Int32?,
+      @[AC::Param::Info(description: "the next file part which we need a signed URL for", example: "part2")]
+      part : String?,
+      @[AC::Param::Info(description: "MD5 of the next part", example: "pxdXsOVpn6+SAcvZoZQphQ==")]
       file_id : String?,
-      file_mime : String?
-    )
-      upload_info = if (body = request.body.try &.gets_to_end) && (body.strip('"') != "{}")
-                      UpdateInfo.from_json(body)
-                    else
-                      nil
-                    end
+      info : UpdateInfo
+    ) : NamedTuple(
+      type: Symbol,
+      signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
+      upload_id: String | Nil) | NamedTuple(ok: Bool)
+      raise AC::Route::Param::ValueError.new("upload is not resumable") unless current_upload.resumable
 
-      if info = upload_info
-        if current_upload.resumable
-          if part_list = info.part_list
-            current_upload.part_list = part_list
-            if pdata = info.part_data
-              pdata.each do |p|
-                current_upload.part_data[p.part.to_s] = JSON.parse(p.to_json)
-              end
-              current_upload.part_data_changed
-            end
+      if part_list = info.part_list
+        current_upload.part_list = part_list
+        if pdata = info.part_data
+          pdata.each do |p|
+            current_upload.part_data[p.part.to_s] = JSON.parse(p.to_json)
           end
-
-          current_upload.resumable_id = info.resumable_id if info.resumable_id
-          current_upload.save!
-
-          if (pu = info.part_update) && pu
-            render json: {ok: true}, status: :ok
-          else
-            edit((part || info.part).to_s, file_id || info.file_id)
-          end
-        else
-          render status: :not_acceptable
+          current_upload.part_data_changed
         end
+      end
+
+      current_upload.resumable_id = info.resumable_id if info.resumable_id
+      current_upload.save!
+
+      # returns the signed URL for the next part if params are provided
+      if part && file_id
+        edit(part, file_id)
+      elsif !info.part_update
+        edit(info.part.to_s, info.file_id)
       else
-        current_upload.update!(upload_complete: true)
-        render json: {ok: true}, status: :ok
+        {ok: true}
       end
     end
 
-    @[AC::Route::DELETE("/:id")]
+    # mark an upload as complete
+    @[AC::Route::PUT("/:id")]
+    def finished : NamedTuple(ok: Bool)
+      current_upload.update!(upload_complete: true)
+      {ok: true}
+    end
+
+    # delete an uploaded file
+    @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy(
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
       id : String
-    )
+    ) : Nil
       signer.delete_file(storage.bucket_name, current_upload.object_key, current_upload.resumable_id)
       current_upload.destroy
-      render json: {ok: true}, status: :ok
     end
 
     private def sanitize_filename(filename)
