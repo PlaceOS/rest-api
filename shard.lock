@@ -355,7 +355,7 @@ shards:
 
   upload-signer:
     git: https://github.com/spider-gazelle/upload-signer.git
-    version: 0.1.0+git.commit.b8eff9b84e119a491df5bacad5e4a06bee52529b
+    version: 0.1.0+git.commit.4c7baf3fc72ca15035c827e16f2c8a15b5f39246
 
   webmock:
     git: https://github.com/manastech/webmock.cr.git
