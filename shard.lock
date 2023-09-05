@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 7.2.1
+    version: 7.2.2
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -283,7 +283,7 @@ shards:
 
   raven:
     git: https://github.com/sija/raven.cr.git
-    version: 1.9.3+git.commit.2fa8a119cfa15d6fb98f0d8e3924d8175e974103
+    version: 1.9.3+git.commit.37ec01251561789304c032b14d8906e8c50eb6b3
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
