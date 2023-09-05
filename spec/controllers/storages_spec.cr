@@ -7,7 +7,10 @@ module PlaceOS::Api
     describe "CRUD operations", tags: "crud" do
       it "create" do
         Model::Storage.clear
-        body = PlaceOS::Model::Generator.storage.to_json
+        storage = PlaceOS::Model::Generator.storage
+        storage.mime_filter = ["image/bmp", "image/jpeg", "image/tiff"]
+        storage.ext_filter = [".bmp", ".jpg", ".tiff"]
+        body = storage.to_json
         result = client.post(
           Storages.base_route,
           body: body,
@@ -25,6 +28,8 @@ module PlaceOS::Api
         original_name = storage.bucket_name
 
         storage.bucket_name = random_name
+        storage.mime_filter = ["image/bmp", "image/jpeg", "image/tiff"]
+        storage.ext_filter = [".bmp", ".jpg", ".tiff"]
 
         id = storage.id.as(String)
         path = File.join(Storages.base_route, id)
@@ -39,6 +44,8 @@ module PlaceOS::Api
 
         updated.id.should eq storage.id
         updated.bucket_name.should_not eq original_name
+        updated.mime_filter.should eq(["image/bmp", "image/jpeg", "image/tiff"])
+        updated.ext_filter.should eq(["bmp", "jpg", "tiff"])
         updated.destroy
       end
 

@@ -44,14 +44,16 @@ module PlaceOS::Api
     def update(storage : Model::Storage) : Model::Storage
       current = current_storage
       current.assign_attributes(storage)
-      raise Error::ModelValidation.new(current.errors) unless current.save
+      raise Error::ModelValidation.new(current.errors) unless current.valid?
+      current.save!
       current
     end
 
     # adds a new storage
     @[AC::Route::POST("/", body: :storage, status_code: HTTP::Status::CREATED)]
     def create(storage : Model::Storage) : Model::Storage
-      raise Error::ModelValidation.new(storage.errors) unless storage.save
+      raise Error::ModelValidation.new(storage.errors) unless storage.valid?
+      storage.save!
       storage
     end
 
