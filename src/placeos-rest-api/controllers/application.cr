@@ -1,6 +1,7 @@
 require "action-controller"
 require "placeos-models"
 require "uuid"
+require "html"
 
 require "../error"
 require "../utilities/*"
@@ -66,7 +67,9 @@ module PlaceOS::Api
         if ref = data[:ref]
           query_params["ref"] = ref
         end
-        response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
+
+        link = %(<#{route}?#{query_params}>; rel="next")
+        response.headers["Link"] = HTML.escape(link)
       end
 
       data[:results]
@@ -74,7 +77,7 @@ module PlaceOS::Api
 
     def set_collection_headers(size : Int32, content_type : String)
       response.headers["X-Total-Count"] = size.to_s
-      response.headers["Content-Range"] = "#{content_type} 0-#{size - 1}/#{size}"
+      response.headers["Content-Range"] = HTML.escape("#{content_type} 0-#{size - 1}/#{size}")
     end
 
     getter! search_params : Hash(String, String)
@@ -128,7 +131,7 @@ module PlaceOS::Api
         request_id: request_id
       )
 
-      response.headers["X-Request-ID"] = request_id
+      response.headers["X-Request-ID"] = HTML.escape(request_id)
     end
 
     ###########################################################################

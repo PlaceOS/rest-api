@@ -1,3 +1,5 @@
+require "html"
+
 require "./application"
 
 module PlaceOS::Api
@@ -161,7 +163,9 @@ module PlaceOS::Api
         query_params["offset"] = (range_end + 1).to_s
         query_params["limit"] = limit.to_s
         path = File.join(base_route, "/#{current_settings.id}/history")
-        response.headers["Link"] = %(<#{path}?#{query_params}>; rel="next")
+
+        link = %(<#{path}?#{query_params}>; rel="next")
+        response.headers["Link"] = HTML.escape(link)
       end
 
       history

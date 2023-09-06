@@ -1,5 +1,6 @@
 require "oauth2"
 require "CrystalEmail"
+require "html"
 
 require "./application"
 require "./metadata"
@@ -330,7 +331,9 @@ module PlaceOS::Api
       if range_end < total
         params["offset"] = (range_end + 1).to_s
         params["limit"] = limit.to_s
-        response.headers["Link"] = %(<#{base_route}?#{params}>; rel="next")
+
+        link = %(<#{base_route}?#{params}>; rel="next")
+        response.headers["Link"] = HTML.escape(link)
       end
 
       result

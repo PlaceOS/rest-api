@@ -1,4 +1,5 @@
 require "base64"
+require "html"
 require "./application"
 
 module PlaceOS::Api
@@ -131,7 +132,7 @@ module PlaceOS::Api
               if response_headers
                 # Forward response headers from the remote driver
                 ctx = context
-                response_headers.each { |key, value| ctx.response.headers[key] = value }
+                response_headers.each { |key, value| ctx.response.headers[key] = HTML.escape(value) }
               end
 
               # These calls to render will return
