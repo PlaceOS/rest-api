@@ -1,5 +1,4 @@
 require "./application"
-require "html"
 
 module PlaceOS::Api
   class Flux < Application

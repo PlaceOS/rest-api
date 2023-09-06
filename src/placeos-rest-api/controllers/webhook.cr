@@ -1,5 +1,4 @@
 require "base64"
-require "html"
 require "./application"
 
 module PlaceOS::Api

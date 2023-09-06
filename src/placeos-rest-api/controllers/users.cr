@@ -1,6 +1,5 @@
 require "oauth2"
 require "CrystalEmail"
-require "html"
 
 require "./application"
 require "./metadata"

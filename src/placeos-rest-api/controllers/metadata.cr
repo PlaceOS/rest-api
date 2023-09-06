@@ -1,5 +1,4 @@
 require "promise"
-require "html"
 
 require "./application"
 

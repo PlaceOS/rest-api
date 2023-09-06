@@ -1,7 +1,6 @@
 require "action-controller"
 require "placeos-models"
 require "uuid"
-require "html"
 
 require "../error"
 require "../utilities/*"

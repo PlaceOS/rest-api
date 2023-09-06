@@ -1,5 +1,3 @@
-require "html"
-
 require "./application"
 
 module PlaceOS::Api
