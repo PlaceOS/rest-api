@@ -17,7 +17,7 @@ module PlaceOS::Api
         "Content-Type" => request_headers["Content-Type"]? || "application/vnd.flux",
       }, body do |result|
         response.status_code = result.status_code
-        response.headers["Content-Type"] = HTML.escape(result.headers["Content-Type"])
+        response.headers["Content-Type"] = result.headers["Content-Type"].gsub(/[\r\n]+/, String.new)
         IO.copy(result.body_io, response)
       end
 

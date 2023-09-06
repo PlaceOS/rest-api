@@ -69,7 +69,7 @@ module PlaceOS::Api
         end
 
         link = %(<#{route}?#{query_params}>; rel="next")
-        response.headers["Link"] = HTML.escape(link)
+        response.headers["Link"] = link.gsub(/[\r\n]+/, String.new)
       end
 
       data[:results]
@@ -77,7 +77,7 @@ module PlaceOS::Api
 
     def set_collection_headers(size : Int32, content_type : String)
       response.headers["X-Total-Count"] = size.to_s
-      response.headers["Content-Range"] = HTML.escape("#{content_type} 0-#{size - 1}/#{size}")
+      response.headers["Content-Range"] = "#{content_type} 0-#{size - 1}/#{size}".gsub(/[\r\n]+/, String.new)
     end
 
     getter! search_params : Hash(String, String)
@@ -131,7 +131,7 @@ module PlaceOS::Api
         request_id: request_id
       )
 
-      response.headers["X-Request-ID"] = HTML.escape(request_id)
+      response.headers["X-Request-ID"] = request_id.gsub(/[\r\n]+/, String.new)
     end
 
     ###########################################################################

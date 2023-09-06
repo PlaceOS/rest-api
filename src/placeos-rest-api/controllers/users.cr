@@ -333,7 +333,7 @@ module PlaceOS::Api
         params["limit"] = limit.to_s
 
         link = %(<#{base_route}?#{params}>; rel="next")
-        response.headers["Link"] = HTML.escape(link)
+        response.headers["Link"] = link.gsub(/[\r\n]+/, String.new)
       end
 
       result

@@ -132,7 +132,7 @@ module PlaceOS::Api
               if response_headers
                 # Forward response headers from the remote driver
                 ctx = context
-                response_headers.each { |key, value| ctx.response.headers[key] = HTML.escape(value) }
+                response_headers.each { |key, value| ctx.response.headers[key] = value.gsub(/[\r\n]+/, String.new) }
               end
 
               # These calls to render will return

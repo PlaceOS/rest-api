@@ -165,7 +165,7 @@ module PlaceOS::Api
         path = File.join(base_route, "/#{current_settings.id}/history")
 
         link = %(<#{path}?#{query_params}>; rel="next")
-        response.headers["Link"] = HTML.escape(link)
+        response.headers["Link"] = link.gsub(/[\r\n]+/, String.new)
       end
 
       history
