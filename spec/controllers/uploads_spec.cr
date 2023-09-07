@@ -2,6 +2,10 @@ require "../helper"
 
 module PlaceOS::Api
   describe Uploads do
+    Spec.before_each do
+      Model::Storage.clear
+    end
+
     it "new should return the Storage Provider" do
       Model::Generator.storage.save!
       params = HTTP::Params.encode({
@@ -18,9 +22,7 @@ module PlaceOS::Api
     end
 
     it "should handle storage allowed list on get call" do
-      Model::Storage.clear
       s = Model::Generator.storage
-      s.ext_filter_will_change!
       s.ext_filter << "jpg"
       s.save!
       params = HTTP::Params.encode({
@@ -36,9 +38,7 @@ module PlaceOS::Api
     end
 
     it "should handle storage allowed list on post call" do
-      Model::Storage.clear
       s = Model::Generator.storage
-      s.ext_filter_will_change!
       s.ext_filter << ".png"
       s.save!
       params = {
@@ -56,7 +56,6 @@ module PlaceOS::Api
     end
 
     it "post should return the pre-signed signature" do
-      Model::Storage.clear
       Model::Generator.storage.save!
       params = {
         "file_name" => "some_file_name.jpg",
@@ -79,7 +78,6 @@ module PlaceOS::Api
     end
 
     it "post should return the pre-signed signature for multi-part" do
-      Model::Storage.clear
       Model::Generator.storage.save!
       params = {
         "file_name" => "some_file_name.jpg",
@@ -103,7 +101,6 @@ module PlaceOS::Api
     end
 
     it "should handle upload visibility" do
-      Model::Storage.clear
       Model::Generator.storage.save!
       params = {
         "file_name"   => "some_file_name.jpg",
