@@ -18,9 +18,10 @@ module PlaceOS::Api
     end
 
     it "should handle storage allowed list on get call" do
+      Model::Storage.clear
       s = Model::Generator.storage
-      s.ext_filter << "jpg"
       s.ext_filter_will_change!
+      s.ext_filter << "jpg"
       s.save!
       params = HTTP::Params.encode({
         "file_name" => "some_file_name.png",
@@ -35,9 +36,10 @@ module PlaceOS::Api
     end
 
     it "should handle storage allowed list on post call" do
+      Model::Storage.clear
       s = Model::Generator.storage
-      s.ext_filter << ".png"
       s.ext_filter_will_change!
+      s.ext_filter << ".png"
       s.save!
       params = {
         "file_name" => "some_file_name.jpg",
