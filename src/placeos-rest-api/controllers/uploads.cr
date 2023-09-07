@@ -299,7 +299,7 @@ module PlaceOS::Api
         storage.check_file_ext(File.extname(file_name))
       rescue error : PlaceOS::Model::Error
         raise AC::Route::Param::ValueError.new(
-          "filename extension not allowed",
+          error.message,
           "file_name",
           storage.ext_filter.join(",")
         )
@@ -310,7 +310,7 @@ module PlaceOS::Api
           storage.check_file_mime(mime)
         rescue error : PlaceOS::Model::Error
           raise AC::Route::Param::ValueError.new(
-            "mime type not supported",
+            error.message,
             "file_mime",
             storage.mime_filter.join(",")
           )

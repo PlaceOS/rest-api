@@ -20,6 +20,7 @@ module PlaceOS::Api
     it "should handle storage allowed list on get call" do
       s = Model::Generator.storage
       s.ext_filter << "jpg"
+      s.ext_filter_will_change!
       s.save!
       params = HTTP::Params.encode({
         "file_name" => "some_file_name.png",
@@ -30,12 +31,13 @@ module PlaceOS::Api
       resp = client.get("#{Uploads.base_route}/new?#{params}",
         headers: Spec::Authentication.headers)
       resp.status_code.should eq(400)
-      JSON.parse(resp.body).as_h["error"].as_s.should eq("filename extension not allowed")
+      JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
     end
 
     it "should handle storage allowed list on post call" do
       s = Model::Generator.storage
       s.ext_filter << ".png"
+      s.ext_filter_will_change!
       s.save!
       params = {
         "file_name" => "some_file_name.jpg",
@@ -48,7 +50,7 @@ module PlaceOS::Api
         body: params.to_json,
         headers: Spec::Authentication.headers)
       resp.status_code.should eq(400)
-      JSON.parse(resp.body).as_h["error"].as_s.should eq("filename extension not allowed")
+      JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
     end
 
     it "post should return the pre-signed signature" do
