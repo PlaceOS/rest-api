@@ -29,8 +29,8 @@ module PlaceOS::Api
 
       resp = client.get("#{Uploads.base_route}/new?#{params}",
         headers: Spec::Authentication.headers)
-      resp.status_code.should eq(401)
-      JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
+      resp.status_code.should eq(400)
+      JSON.parse(resp.body).as_h["error"].as_s.should eq("filename extension not allowed")
     end
 
     it "should handle storage allowed list on post call" do
@@ -47,8 +47,8 @@ module PlaceOS::Api
       resp = client.post(Uploads.base_route,
         body: params.to_json,
         headers: Spec::Authentication.headers)
-      resp.status_code.should eq(401)
-      JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
+      resp.status_code.should eq(400)
+      JSON.parse(resp.body).as_h["error"].as_s.should eq("filename extension not allowed")
     end
 
     it "post should return the pre-signed signature" do
