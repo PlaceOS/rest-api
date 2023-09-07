@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **uploads**: improve upload validation ([#360](https://github.com/PlaceOS/rest-api/pull/360))
 - **uploads**: improve documentation
 - PPT-767 File Upload controller ([#357](https://github.com/PlaceOS/rest-api/pull/357))
 - add concierge permissions PPT-746 ([#355](https://github.com/PlaceOS/rest-api/pull/355))
