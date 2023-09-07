@@ -288,13 +288,34 @@ module PlaceOS::Api
     end
 
     def allowed?(file_name, file_mime)
-      storage.check_file_ext(File.extname(file_name))
-      if mime = file_mime
-        storage.check_file_mime(mime)
+      if !Model::Upload.safe_filename?(file_name)
+        raise AC::Route::Param::ValueError.new(
+          "filename contains unsupported characters or words",
+          "file_name"
+        )
       end
-    rescue ex : PlaceOS::Model::Error
-      Log.error(exception: ex) { {file_name: file_name, mime_type: file_mime} }
-      raise Error::Unauthorized.new(ex.message || "Invalid file extension or mime type")
+
+      begin
+        storage.check_file_ext(File.extname(file_name))
+      rescue error : PlaceOS::Model::Error
+        raise AC::Route::Param::ValueError.new(
+          error.message,
+          "file_name",
+          storage.ext_filter.join(",")
+        )
+      end
+
+      if mime = file_mime
+        begin
+          storage.check_file_mime(mime)
+        rescue error : PlaceOS::Model::Error
+          raise AC::Route::Param::ValueError.new(
+            error.message,
+            "file_mime",
+            storage.mime_filter.join(",")
+          )
+        end
+      end
     end
   end
 end

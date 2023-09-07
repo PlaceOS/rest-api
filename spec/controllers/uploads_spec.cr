@@ -2,6 +2,10 @@ require "../helper"
 
 module PlaceOS::Api
   describe Uploads do
+    ::Spec.before_each do
+      Model::Storage.clear
+    end
+
     it "new should return the Storage Provider" do
       Model::Generator.storage.save!
       params = HTTP::Params.encode({
@@ -29,7 +33,7 @@ module PlaceOS::Api
 
       resp = client.get("#{Uploads.base_route}/new?#{params}",
         headers: Spec::Authentication.headers)
-      resp.status_code.should eq(401)
+      resp.status_code.should eq(400)
       JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
     end
 
@@ -47,12 +51,11 @@ module PlaceOS::Api
       resp = client.post(Uploads.base_route,
         body: params.to_json,
         headers: Spec::Authentication.headers)
-      resp.status_code.should eq(401)
+      resp.status_code.should eq(400)
       JSON.parse(resp.body).as_h["error"].as_s.should eq("File extension not allowed")
     end
 
     it "post should return the pre-signed signature" do
-      Model::Storage.clear
       Model::Generator.storage.save!
       params = {
         "file_name" => "some_file_name.jpg",
@@ -75,7 +78,6 @@ module PlaceOS::Api
     end
 
     it "post should return the pre-signed signature for multi-part" do
-      Model::Storage.clear
       Model::Generator.storage.save!
       params = {
         "file_name" => "some_file_name.jpg",
@@ -99,7 +101,6 @@ module PlaceOS::Api
     end
 
     it "should handle upload visibility" do
-      Model::Storage.clear
       Model::Generator.storage.save!
       params = {
         "file_name"   => "some_file_name.jpg",
