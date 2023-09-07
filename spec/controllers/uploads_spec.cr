@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Uploads do
-    Spec.before_each do
+    ::Spec.before_each do
       Model::Storage.clear
     end
 
