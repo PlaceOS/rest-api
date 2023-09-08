@@ -263,7 +263,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.18.0
+    version: 9.18.8
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -283,7 +283,7 @@ shards:
 
   raven:
     git: https://github.com/sija/raven.cr.git
-    version: 1.9.3+git.commit.37ec01251561789304c032b14d8906e8c50eb6b3
+    version: 1.9.3+git.commit.78ab46f635208faf4a8f48e593de7c5e5490d543
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
@@ -311,7 +311,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.10.2+git.commit.b895c787cd6c841c5b56eebdca72f7a1fb5c2cd3
+    version: 2.10.3+git.commit.22f75e31bb5da67127d722268aadc7db69054034
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
