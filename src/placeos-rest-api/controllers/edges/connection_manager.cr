@@ -28,7 +28,7 @@ module PlaceOS::Api
       edge_lock.synchronize do
         if existing_socket = edge_sockets[edge_id]?
           existing_socket.on_close { }
-          existing_socket.close
+          existing_socket.close rescue nil
         end
 
         edge_sockets[edge_id] = socket
@@ -37,15 +37,33 @@ module PlaceOS::Api
         else
           node_found = core_discovery.find(edge_id)
           add_core(edge_id, current_node: node_found)
-          ping_tasks[edge_id] = Tasker.every(30.seconds) do
+          ping_tasks[edge_id] = Tasker.every(10.seconds) do
             socket.ping rescue nil
             core_sockets[edge_id].ping rescue nil
             nil
           end
+
+          socket.on_ping do |string|
+            core_sockets[edge_id].ping(string)
+          rescue e
+            Log.error(exception: e) { {edge_id: edge_id, message: "while forwarding ping to core socket"} }
+          end
+
+          socket.on_pong do |string|
+            Model::Edge.update(edge_id, {last_seen: Time.utc, online: true})
+            begin
+              core_sockets[edge_id].pong(string)
+            rescue e
+              Log.error(exception: e) { {edge_id: edge_id, message: "while forwarding pong to core socket"} }
+            end
+          end
         end
       end
 
-      socket.on_close { edge_lock.synchronize { remove(edge_id) if socket == edge_sockets[edge_id]? } }
+      socket.on_close do
+        Model::Edge.update(edge_id, {last_seen: Time.utc, online: false})
+        edge_lock.synchronize { remove(edge_id) if socket == edge_sockets[edge_id]? }
+      end
     rescue e
       Log.error(exception: e) { {edge_id: edge_id, message: "while adding edge socket"} }
       remove(edge_id)
@@ -115,7 +133,13 @@ module PlaceOS::Api
           Log.debug { {message: "from core", packet: message} }
           edge_sockets[edge_id].send(message)
         }
-        core_socket.on_binary { |bytes| edge_sockets[edge_id].stream &.write(bytes) }
+        core_socket.on_binary do |bytes|
+          Log.debug { {message: "Got binary packet from core", size: bytes.size, edge_active: !edge_socket.closed?} }
+          edge_socket.stream &.write(bytes)
+        end
+
+        core_socket.on_ping { |string| edge_socket.ping(string) }
+        core_socket.on_pong { |string| edge_socket.pong(string) }
 
         # Link edge to core
         link_edge(edge_socket, edge_id)
