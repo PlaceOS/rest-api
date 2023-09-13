@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-864 fix and capture online and last seen activity ([#361](https://github.com/PlaceOS/rest-api/pull/361))
 - **uploads**: improve upload validation ([#360](https://github.com/PlaceOS/rest-api/pull/360))
 - **uploads**: improve documentation
 - PPT-767 File Upload controller ([#357](https://github.com/PlaceOS/rest-api/pull/357))
