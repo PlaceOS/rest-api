@@ -11,7 +11,7 @@ paths:
         otherwise all domains
       tags:
       - ApiKeys
-      operationId: PlaceOS::Api::ApiKeys#index
+      operationId: PlaceOS::Api::ApiKeys_index
       parameters:
       - name: authority_id
         in: query
@@ -114,7 +114,7 @@ paths:
       summary: create a new API key
       tags:
       - ApiKeys
-      operationId: PlaceOS::Api::ApiKeys#create
+      operationId: PlaceOS::Api::ApiKeys_create
       requestBody:
         content:
           application/json:
@@ -184,7 +184,7 @@ paths:
       summary: returns the requested API key details
       tags:
       - ApiKeys
-      operationId: PlaceOS::Api::ApiKeys#show
+      operationId: PlaceOS::Api::ApiKeys_show
       parameters:
       - name: id
         in: path
@@ -252,7 +252,7 @@ paths:
       summary: updates an API key name, description user or scopes
       tags:
       - ApiKeys
-      operationId: PlaceOS::Api::ApiKeys#update
+      operationId: PlaceOS::Api::ApiKeys_update
       requestBody:
         content:
           application/json:
@@ -326,7 +326,7 @@ paths:
       summary: remove an API key
       tags:
       - ApiKeys
-      operationId: PlaceOS::Api::ApiKeys#destroy
+      operationId: PlaceOS::Api::ApiKeys_destroy
       parameters:
       - name: id
         in: path
@@ -390,7 +390,7 @@ paths:
       summary: updates an API key name, description user or scopes
       tags:
       - ApiKeys
-      operationId: PlaceOS::Api::ApiKeys#update{2}
+      operationId: PlaceOS::Api::ApiKeys_update{2}
       requestBody:
         content:
           application/json:
@@ -465,7 +465,7 @@ paths:
       summary: obtain the a JSON JWT representation of the API key permissions
       tags:
       - ApiKeys
-      operationId: PlaceOS::Api::ApiKeys#inspect_key
+      operationId: PlaceOS::Api::ApiKeys_inspect_key
       parameters: []
       responses:
         200:
@@ -529,7 +529,7 @@ paths:
       summary: list the asset categories
       tags:
       - AssetCategories
-      operationId: PlaceOS::Api::AssetCategories#index
+      operationId: PlaceOS::Api::AssetCategories_index
       parameters:
       - name: q
         in: query
@@ -624,7 +624,7 @@ paths:
       summary: add new asset category
       tags:
       - AssetCategories
-      operationId: PlaceOS::Api::AssetCategories#create
+      operationId: PlaceOS::Api::AssetCategories_create
       requestBody:
         content:
           application/json:
@@ -694,7 +694,7 @@ paths:
       summary: show the selected asset category
       tags:
       - AssetCategories
-      operationId: PlaceOS::Api::AssetCategories#show
+      operationId: PlaceOS::Api::AssetCategories_show
       parameters:
       - name: id
         in: path
@@ -762,7 +762,7 @@ paths:
       summary: udpate asset category details
       tags:
       - AssetCategories
-      operationId: PlaceOS::Api::AssetCategories#update
+      operationId: PlaceOS::Api::AssetCategories_update
       requestBody:
         content:
           application/json:
@@ -836,7 +836,7 @@ paths:
       summary: remove asset category
       tags:
       - AssetCategories
-      operationId: PlaceOS::Api::AssetCategories#destroy
+      operationId: PlaceOS::Api::AssetCategories_destroy
       parameters:
       - name: id
         in: path
@@ -900,7 +900,7 @@ paths:
       summary: udpate asset category details
       tags:
       - AssetCategories
-      operationId: PlaceOS::Api::AssetCategories#update{2}
+      operationId: PlaceOS::Api::AssetCategories_update{2}
       requestBody:
         content:
           application/json:
@@ -975,7 +975,7 @@ paths:
       summary: list the asset purchase_orders
       tags:
       - AssetPurchaseOrders
-      operationId: PlaceOS::Api::AssetPurchaseOrders#index
+      operationId: PlaceOS::Api::AssetPurchaseOrders_index
       parameters:
       - name: q
         in: query
@@ -1070,7 +1070,7 @@ paths:
       summary: add new asset purchase_order
       tags:
       - AssetPurchaseOrders
-      operationId: PlaceOS::Api::AssetPurchaseOrders#create
+      operationId: PlaceOS::Api::AssetPurchaseOrders_create
       requestBody:
         content:
           application/json:
@@ -1140,7 +1140,7 @@ paths:
       summary: show the selected asset purchase_order
       tags:
       - AssetPurchaseOrders
-      operationId: PlaceOS::Api::AssetPurchaseOrders#show
+      operationId: PlaceOS::Api::AssetPurchaseOrders_show
       parameters:
       - name: id
         in: path
@@ -1208,7 +1208,7 @@ paths:
       summary: udpate asset purchase_order details
       tags:
       - AssetPurchaseOrders
-      operationId: PlaceOS::Api::AssetPurchaseOrders#update
+      operationId: PlaceOS::Api::AssetPurchaseOrders_update
       requestBody:
         content:
           application/json:
@@ -1282,7 +1282,7 @@ paths:
       summary: remove asset purchase_order
       tags:
       - AssetPurchaseOrders
-      operationId: PlaceOS::Api::AssetPurchaseOrders#destroy
+      operationId: PlaceOS::Api::AssetPurchaseOrders_destroy
       parameters:
       - name: id
         in: path
@@ -1346,7 +1346,7 @@ paths:
       summary: udpate asset purchase_order details
       tags:
       - AssetPurchaseOrders
-      operationId: PlaceOS::Api::AssetPurchaseOrders#update{2}
+      operationId: PlaceOS::Api::AssetPurchaseOrders_update{2}
       requestBody:
         content:
           application/json:
@@ -1421,7 +1421,7 @@ paths:
       summary: list the asset types
       tags:
       - AssetTypes
-      operationId: PlaceOS::Api::AssetTypes#index
+      operationId: PlaceOS::Api::AssetTypes_index
       parameters:
       - name: brand
         in: query
@@ -1548,7 +1548,7 @@ paths:
       summary: add new asset type
       tags:
       - AssetTypes
-      operationId: PlaceOS::Api::AssetTypes#create
+      operationId: PlaceOS::Api::AssetTypes_create
       requestBody:
         content:
           application/json:
@@ -1618,7 +1618,7 @@ paths:
       summary: show the selected asset type
       tags:
       - AssetTypes
-      operationId: PlaceOS::Api::AssetTypes#show
+      operationId: PlaceOS::Api::AssetTypes_show
       parameters:
       - name: id
         in: path
@@ -1686,7 +1686,7 @@ paths:
       summary: udpate asset type details
       tags:
       - AssetTypes
-      operationId: PlaceOS::Api::AssetTypes#update
+      operationId: PlaceOS::Api::AssetTypes_update
       requestBody:
         content:
           application/json:
@@ -1760,7 +1760,7 @@ paths:
       summary: remove asset type
       tags:
       - AssetTypes
-      operationId: PlaceOS::Api::AssetTypes#destroy
+      operationId: PlaceOS::Api::AssetTypes_destroy
       parameters:
       - name: id
         in: path
@@ -1824,7 +1824,7 @@ paths:
       summary: udpate asset type details
       tags:
       - AssetTypes
-      operationId: PlaceOS::Api::AssetTypes#update{2}
+      operationId: PlaceOS::Api::AssetTypes_update{2}
       requestBody:
         content:
           application/json:
@@ -1899,7 +1899,7 @@ paths:
       summary: list the assets
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#index
+      operationId: PlaceOS::Api::Assets_index
       parameters:
       - name: zone_id
         in: query
@@ -2034,7 +2034,7 @@ paths:
       summary: add new asset
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#create
+      operationId: PlaceOS::Api::Assets_create
       requestBody:
         content:
           application/json:
@@ -2104,7 +2104,7 @@ paths:
       summary: show the selected asset
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#show
+      operationId: PlaceOS::Api::Assets_show
       parameters:
       - name: id
         in: path
@@ -2172,7 +2172,7 @@ paths:
       summary: udpate asset details
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#update
+      operationId: PlaceOS::Api::Assets_update
       requestBody:
         content:
           application/json:
@@ -2246,7 +2246,7 @@ paths:
       summary: remove asset
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#destroy
+      operationId: PlaceOS::Api::Assets_destroy
       parameters:
       - name: id
         in: path
@@ -2310,7 +2310,7 @@ paths:
       summary: udpate asset details
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#update{2}
+      operationId: PlaceOS::Api::Assets_update{2}
       requestBody:
         content:
           application/json:
@@ -2385,7 +2385,7 @@ paths:
       summary: udpate asset details
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#bulk_update
+      operationId: PlaceOS::Api::Assets_bulk_update
       requestBody:
         content:
           application/json:
@@ -2456,7 +2456,7 @@ paths:
       summary: add new assets
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#bulk_create
+      operationId: PlaceOS::Api::Assets_bulk_create
       requestBody:
         content:
           application/json:
@@ -2527,7 +2527,7 @@ paths:
       summary: remove assets
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#bulk_destroy
+      operationId: PlaceOS::Api::Assets_bulk_destroy
       requestBody:
         content:
           application/json:
@@ -2592,7 +2592,7 @@ paths:
       summary: udpate asset details
       tags:
       - Assets
-      operationId: PlaceOS::Api::Assets#bulk_update{2}
+      operationId: PlaceOS::Api::Assets_bulk_update{2}
       requestBody:
         content:
           application/json:
@@ -2664,7 +2664,7 @@ paths:
       summary: returns a list of authentications
       tags:
       - LdapAuthentications
-      operationId: PlaceOS::Api::LdapAuthentications#index
+      operationId: PlaceOS::Api::LdapAuthentications_index
       parameters:
       - name: authority_id
         in: query
@@ -2767,7 +2767,7 @@ paths:
       summary: creates a new authentication method
       tags:
       - LdapAuthentications
-      operationId: PlaceOS::Api::LdapAuthentications#create
+      operationId: PlaceOS::Api::LdapAuthentications_create
       requestBody:
         content:
           application/json:
@@ -2837,7 +2837,7 @@ paths:
       summary: returns the details of a particular authentication
       tags:
       - LdapAuthentications
-      operationId: PlaceOS::Api::LdapAuthentications#show
+      operationId: PlaceOS::Api::LdapAuthentications_show
       parameters:
       - name: id
         in: path
@@ -2905,7 +2905,7 @@ paths:
       summary: updates the details of an authentication
       tags:
       - LdapAuthentications
-      operationId: PlaceOS::Api::LdapAuthentications#update
+      operationId: PlaceOS::Api::LdapAuthentications_update
       requestBody:
         content:
           application/json:
@@ -2979,7 +2979,7 @@ paths:
       summary: removes an authentication method
       tags:
       - LdapAuthentications
-      operationId: PlaceOS::Api::LdapAuthentications#destroy
+      operationId: PlaceOS::Api::LdapAuthentications_destroy
       parameters:
       - name: id
         in: path
@@ -3043,7 +3043,7 @@ paths:
       summary: updates the details of an authentication
       tags:
       - LdapAuthentications
-      operationId: PlaceOS::Api::LdapAuthentications#update{2}
+      operationId: PlaceOS::Api::LdapAuthentications_update{2}
       requestBody:
         content:
           application/json:
@@ -3118,7 +3118,7 @@ paths:
       summary: returns a list of authentications
       tags:
       - SamlAuthentications
-      operationId: PlaceOS::Api::SamlAuthentications#index
+      operationId: PlaceOS::Api::SamlAuthentications_index
       parameters:
       - name: authority_id
         in: query
@@ -3221,7 +3221,7 @@ paths:
       summary: creates a new authentication method
       tags:
       - SamlAuthentications
-      operationId: PlaceOS::Api::SamlAuthentications#create
+      operationId: PlaceOS::Api::SamlAuthentications_create
       requestBody:
         content:
           application/json:
@@ -3291,7 +3291,7 @@ paths:
       summary: returns the details of a particular authentication
       tags:
       - SamlAuthentications
-      operationId: PlaceOS::Api::SamlAuthentications#show
+      operationId: PlaceOS::Api::SamlAuthentications_show
       parameters:
       - name: id
         in: path
@@ -3359,7 +3359,7 @@ paths:
       summary: updates the details of an authentication
       tags:
       - SamlAuthentications
-      operationId: PlaceOS::Api::SamlAuthentications#update
+      operationId: PlaceOS::Api::SamlAuthentications_update
       requestBody:
         content:
           application/json:
@@ -3433,7 +3433,7 @@ paths:
       summary: removes an authentication method
       tags:
       - SamlAuthentications
-      operationId: PlaceOS::Api::SamlAuthentications#destroy
+      operationId: PlaceOS::Api::SamlAuthentications_destroy
       parameters:
       - name: id
         in: path
@@ -3497,7 +3497,7 @@ paths:
       summary: updates the details of an authentication
       tags:
       - SamlAuthentications
-      operationId: PlaceOS::Api::SamlAuthentications#update{2}
+      operationId: PlaceOS::Api::SamlAuthentications_update{2}
       requestBody:
         content:
           application/json:
@@ -3572,7 +3572,7 @@ paths:
       summary: returns a list of authentications
       tags:
       - OAuthAuthentications
-      operationId: PlaceOS::Api::OAuthAuthentications#index
+      operationId: PlaceOS::Api::OAuthAuthentications_index
       parameters:
       - name: authority_id
         in: query
@@ -3675,7 +3675,7 @@ paths:
       summary: creates a new authentication method
       tags:
       - OAuthAuthentications
-      operationId: PlaceOS::Api::OAuthAuthentications#create
+      operationId: PlaceOS::Api::OAuthAuthentications_create
       requestBody:
         content:
           application/json:
@@ -3745,7 +3745,7 @@ paths:
       summary: returns the details of a particular authentication
       tags:
       - OAuthAuthentications
-      operationId: PlaceOS::Api::OAuthAuthentications#show
+      operationId: PlaceOS::Api::OAuthAuthentications_show
       parameters:
       - name: id
         in: path
@@ -3813,7 +3813,7 @@ paths:
       summary: updates the details of an authentication
       tags:
       - OAuthAuthentications
-      operationId: PlaceOS::Api::OAuthAuthentications#update
+      operationId: PlaceOS::Api::OAuthAuthentications_update
       requestBody:
         content:
           application/json:
@@ -3887,7 +3887,7 @@ paths:
       summary: removes an authentication method
       tags:
       - OAuthAuthentications
-      operationId: PlaceOS::Api::OAuthAuthentications#destroy
+      operationId: PlaceOS::Api::OAuthAuthentications_destroy
       parameters:
       - name: id
         in: path
@@ -3951,7 +3951,7 @@ paths:
       summary: updates the details of an authentication
       tags:
       - OAuthAuthentications
-      operationId: PlaceOS::Api::OAuthAuthentications#update{2}
+      operationId: PlaceOS::Api::OAuthAuthentications_update{2}
       requestBody:
         content:
           application/json:
@@ -4026,7 +4026,7 @@ paths:
       summary: returns the list of MQTT brokers receiving state information
       tags:
       - Brokers
-      operationId: PlaceOS::Api::Brokers#collection
+      operationId: PlaceOS::Api::Brokers_collection
       parameters: []
       responses:
         200:
@@ -4091,7 +4091,7 @@ paths:
       summary: adds a new broker
       tags:
       - Brokers
-      operationId: PlaceOS::Api::Brokers#create
+      operationId: PlaceOS::Api::Brokers_create
       requestBody:
         content:
           application/json:
@@ -4161,7 +4161,7 @@ paths:
       summary: returns the details of the selected broker
       tags:
       - Brokers
-      operationId: PlaceOS::Api::Brokers#show
+      operationId: PlaceOS::Api::Brokers_show
       parameters:
       - name: id
         in: path
@@ -4229,7 +4229,7 @@ paths:
       summary: updates the details of a broker
       tags:
       - Brokers
-      operationId: PlaceOS::Api::Brokers#update
+      operationId: PlaceOS::Api::Brokers_update
       requestBody:
         content:
           application/json:
@@ -4303,7 +4303,7 @@ paths:
       summary: removes a broker
       tags:
       - Brokers
-      operationId: PlaceOS::Api::Brokers#destroy
+      operationId: PlaceOS::Api::Brokers_destroy
       parameters:
       - name: id
         in: path
@@ -4367,7 +4367,7 @@ paths:
       summary: updates the details of a broker
       tags:
       - Brokers
-      operationId: PlaceOS::Api::Brokers#update{2}
+      operationId: PlaceOS::Api::Brokers_update{2}
       requestBody:
         content:
           application/json:
@@ -4442,7 +4442,7 @@ paths:
       summary: returns the list of core nodes running in the cluster
       tags:
       - Cluster
-      operationId: PlaceOS::Api::Cluster#nodes
+      operationId: PlaceOS::Api::Cluster_nodes
       parameters:
       - name: include_status
         in: query
@@ -4516,7 +4516,7 @@ paths:
       summary: return the details of a particular core node
       tags:
       - Cluster
-      operationId: PlaceOS::Api::Cluster#show
+      operationId: PlaceOS::Api::Cluster_show
       parameters:
       - name: id
         in: path
@@ -4594,7 +4594,7 @@ paths:
       summary: terminates a driver on the node selected
       tags:
       - Cluster
-      operationId: PlaceOS::Api::Cluster#destroy
+      operationId: PlaceOS::Api::Cluster_destroy
       parameters:
       - name: id
         in: path
@@ -4666,7 +4666,7 @@ paths:
       summary: list the domains
       tags:
       - Domains
-      operationId: PlaceOS::Api::Domains#index
+      operationId: PlaceOS::Api::Domains_index
       parameters:
       - name: q
         in: query
@@ -4761,7 +4761,7 @@ paths:
       summary: add a new domain
       tags:
       - Domains
-      operationId: PlaceOS::Api::Domains#create
+      operationId: PlaceOS::Api::Domains_create
       requestBody:
         content:
           application/json:
@@ -4831,7 +4831,7 @@ paths:
       summary: show the selected domain
       tags:
       - Domains
-      operationId: PlaceOS::Api::Domains#show
+      operationId: PlaceOS::Api::Domains_show
       parameters:
       - name: id
         in: path
@@ -4899,7 +4899,7 @@ paths:
       summary: udpate a domains details
       tags:
       - Domains
-      operationId: PlaceOS::Api::Domains#update
+      operationId: PlaceOS::Api::Domains_update
       requestBody:
         content:
           application/json:
@@ -4973,7 +4973,7 @@ paths:
       summary: remove a domain
       tags:
       - Domains
-      operationId: PlaceOS::Api::Domains#destroy
+      operationId: PlaceOS::Api::Domains_destroy
       parameters:
       - name: id
         in: path
@@ -5037,7 +5037,7 @@ paths:
       summary: udpate a domains details
       tags:
       - Domains
-      operationId: PlaceOS::Api::Domains#update{2}
+      operationId: PlaceOS::Api::Domains_update{2}
       requestBody:
         content:
           application/json:
@@ -5112,7 +5112,7 @@ paths:
       summary: list the drivers available on a cluster
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#index
+      operationId: PlaceOS::Api::Drivers_index
       parameters:
       - name: role
         in: query
@@ -5221,7 +5221,7 @@ paths:
       summary: add a new driver to the cluster
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#create
+      operationId: PlaceOS::Api::Drivers_create
       requestBody:
         content:
           application/json:
@@ -5291,7 +5291,7 @@ paths:
       summary: view the details of a driver
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#show
+      operationId: PlaceOS::Api::Drivers_show
       parameters:
       - name: id
         in: path
@@ -5366,7 +5366,7 @@ paths:
       summary: udpate a drivers details
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#update
+      operationId: PlaceOS::Api::Drivers_update
       requestBody:
         content:
           application/json:
@@ -5440,7 +5440,7 @@ paths:
       summary: remove a driver and its modules from a cluster
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#destroy
+      operationId: PlaceOS::Api::Drivers_destroy
       parameters:
       - name: id
         in: path
@@ -5504,7 +5504,7 @@ paths:
       summary: udpate a drivers details
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#update{2}
+      operationId: PlaceOS::Api::Drivers_update{2}
       requestBody:
         content:
           application/json:
@@ -5580,7 +5580,7 @@ paths:
         have been updated
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#recompile
+      operationId: PlaceOS::Api::Drivers_recompile
       parameters:
       - name: id
         in: path
@@ -5651,7 +5651,7 @@ paths:
       summary: Check if the driver is available on the cluster
       tags:
       - Drivers
-      operationId: PlaceOS::Api::Drivers#compiled
+      operationId: PlaceOS::Api::Drivers_compiled
       parameters:
       - name: id
         in: path
@@ -5722,7 +5722,7 @@ paths:
       summary: list the settings associated with the provided parent object
       tags:
       - Settings
-      operationId: PlaceOS::Api::Settings#index
+      operationId: PlaceOS::Api::Settings_index
       parameters:
       - name: parent_id
         in: query
@@ -5825,7 +5825,7 @@ paths:
       summary: add a new setting
       tags:
       - Settings
-      operationId: PlaceOS::Api::Settings#create
+      operationId: PlaceOS::Api::Settings_create
       requestBody:
         content:
           application/json:
@@ -5895,7 +5895,7 @@ paths:
       summary: return the requested setting details
       tags:
       - Settings
-      operationId: PlaceOS::Api::Settings#show
+      operationId: PlaceOS::Api::Settings_show
       parameters:
       - name: id
         in: path
@@ -5963,7 +5963,7 @@ paths:
       summary: udpate a setting
       tags:
       - Settings
-      operationId: PlaceOS::Api::Settings#update
+      operationId: PlaceOS::Api::Settings_update
       requestBody:
         content:
           application/json:
@@ -6037,7 +6037,7 @@ paths:
       summary: remove a setting
       tags:
       - Settings
-      operationId: PlaceOS::Api::Settings#destroy
+      operationId: PlaceOS::Api::Settings_destroy
       parameters:
       - name: id
         in: path
@@ -6101,7 +6101,7 @@ paths:
       summary: udpate a setting
       tags:
       - Settings
-      operationId: PlaceOS::Api::Settings#update{2}
+      operationId: PlaceOS::Api::Settings_update{2}
       requestBody:
         content:
           application/json:
@@ -6176,7 +6176,7 @@ paths:
       summary: Returns the version history for a Settings model
       tags:
       - Settings
-      operationId: PlaceOS::Api::Settings#history
+      operationId: PlaceOS::Api::Settings_history
       parameters:
       - name: id
         in: path
@@ -6262,7 +6262,7 @@ paths:
       summary: return a list of modules configured on the cluster
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#index
+      operationId: PlaceOS::Api::Modules_index
       parameters:
       - name: as_of
         in: query
@@ -6406,7 +6406,7 @@ paths:
       summary: add a new module / instance of a driver
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#create
+      operationId: PlaceOS::Api::Modules_create
       requestBody:
         content:
           application/json:
@@ -6476,7 +6476,7 @@ paths:
       summary: return the details of a module
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#show
+      operationId: PlaceOS::Api::Modules_show
       parameters:
       - name: id
         in: path
@@ -6551,7 +6551,7 @@ paths:
       summary: update the details of a module
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#update
+      operationId: PlaceOS::Api::Modules_update
       requestBody:
         content:
           application/json:
@@ -6625,7 +6625,7 @@ paths:
       summary: remove a module
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#destroy
+      operationId: PlaceOS::Api::Modules_destroy
       parameters:
       - name: id
         in: path
@@ -6689,7 +6689,7 @@ paths:
       summary: update the details of a module
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#update{2}
+      operationId: PlaceOS::Api::Modules_update{2}
       requestBody:
         content:
           application/json:
@@ -6764,7 +6764,7 @@ paths:
       summary: Receive the collated settings for a module
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#settings
+      operationId: PlaceOS::Api::Modules_settings
       parameters:
       - name: id
         in: path
@@ -6835,7 +6835,7 @@ paths:
       summary: Starts a module
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#start
+      operationId: PlaceOS::Api::Modules_start
       parameters:
       - name: id
         in: path
@@ -6900,7 +6900,7 @@ paths:
       summary: Stops a module
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#stop
+      operationId: PlaceOS::Api::Modules_stop
       parameters:
       - name: id
         in: path
@@ -6969,7 +6969,7 @@ paths:
         and argument requirements'
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#execute
+      operationId: PlaceOS::Api::Modules_execute
       requestBody:
         content:
           application/json:
@@ -7047,7 +7047,7 @@ paths:
         JSON
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#state
+      operationId: PlaceOS::Api::Modules_state
       parameters:
       - name: id
         in: path
@@ -7116,7 +7116,7 @@ paths:
       summary: Returns the value of the requested status variable
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#state_lookup
+      operationId: PlaceOS::Api::Modules_state_lookup
       parameters:
       - name: id
         in: path
@@ -7191,7 +7191,7 @@ paths:
       summary: pings the ip or hostname specified in the modules configuration
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#ping
+      operationId: PlaceOS::Api::Modules_ping
       parameters:
       - name: id
         in: path
@@ -7263,7 +7263,7 @@ paths:
         If the module is already running, it will be updated to latest settings.'
       tags:
       - Modules
-      operationId: PlaceOS::Api::Modules#load
+      operationId: PlaceOS::Api::Modules_load
       parameters:
       - name: id
         in: path
@@ -7332,7 +7332,7 @@ paths:
       summary: list the systems in a cluster
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#index
+      operationId: PlaceOS::Api::Systems_index
       parameters:
       - name: bookable
         in: query
@@ -7498,7 +7498,7 @@ paths:
       summary: adds a new system
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#create
+      operationId: PlaceOS::Api::Systems_create
       requestBody:
         content:
           application/json:
@@ -7568,7 +7568,7 @@ paths:
       summary: Finds all the systems with the specified email address
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#find_by_email
+      operationId: PlaceOS::Api::Systems_find_by_email
       parameters:
       - name: in
         in: query
@@ -7643,7 +7643,7 @@ paths:
       summary: Renders a control system
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#show
+      operationId: PlaceOS::Api::Systems_show
       parameters:
       - name: sys_id
         in: path
@@ -7719,7 +7719,7 @@ paths:
       summary: Updates a control system
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#update
+      operationId: PlaceOS::Api::Systems_update
       requestBody:
         content:
           application/json:
@@ -7803,7 +7803,7 @@ paths:
         are not in any other systems
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#destroy
+      operationId: PlaceOS::Api::Systems_destroy
       parameters:
       - name: sys_id
         in: path
@@ -7867,7 +7867,7 @@ paths:
       summary: Updates a control system
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#update{2}
+      operationId: PlaceOS::Api::Systems_update{2}
       requestBody:
         content:
           application/json:
@@ -7951,7 +7951,7 @@ paths:
       summary: Return all zones for this system
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#sys_zones
+      operationId: PlaceOS::Api::Systems_sys_zones
       parameters:
       - name: sys_id
         in: path
@@ -8022,7 +8022,7 @@ paths:
       summary: Return metadata for the system
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#metadata
+      operationId: PlaceOS::Api::Systems_metadata
       parameters:
       - name: sys_id
         in: path
@@ -8097,7 +8097,7 @@ paths:
       summary: Receive the collated settings for a system
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#settings
+      operationId: PlaceOS::Api::Systems_settings
       parameters:
       - name: sys_id
         in: path
@@ -8168,7 +8168,7 @@ paths:
       summary: Adds the module to the system if it doesn't already exist
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#add_module
+      operationId: PlaceOS::Api::Systems_add_module
       parameters:
       - name: sys_id
         in: path
@@ -8241,7 +8241,7 @@ paths:
       summary: Removes the module from the system and deletes it if not used elsewhere
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#remove_module
+      operationId: PlaceOS::Api::Systems_remove_module
       parameters:
       - name: sys_id
         in: path
@@ -8315,7 +8315,7 @@ paths:
       summary: Start modules
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#start
+      operationId: PlaceOS::Api::Systems_start
       parameters:
       - name: sys_id
         in: path
@@ -8380,7 +8380,7 @@ paths:
       summary: Stop modules
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#stop
+      operationId: PlaceOS::Api::Systems_stop
       parameters:
       - name: sys_id
         in: path
@@ -8445,7 +8445,7 @@ paths:
       summary: Runs a function in a system module
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#execute
+      operationId: PlaceOS::Api::Systems_execute
       requestBody:
         content:
           application/json:
@@ -8531,7 +8531,7 @@ paths:
       summary: Look-up a module types in a system, returning a count of each type
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#types
+      operationId: PlaceOS::Api::Systems_types
       parameters:
       - name: sys_id
         in: path
@@ -8600,7 +8600,7 @@ paths:
       summary: Returns the state of an associated module
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#state
+      operationId: PlaceOS::Api::Systems_state
       parameters:
       - name: sys_id
         in: path
@@ -8677,7 +8677,7 @@ paths:
       summary: Returns the state lookup for a given key on a module
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#state_lookup
+      operationId: PlaceOS::Api::Systems_state_lookup
       parameters:
       - name: sys_id
         in: path
@@ -8764,7 +8764,7 @@ paths:
         Filters higher privilege functions.'
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#functions
+      operationId: PlaceOS::Api::Systems_functions
       parameters:
       - name: sys_id
         in: path
@@ -8844,7 +8844,7 @@ paths:
         use this to interact with systems and modules efficiently'
       tags:
       - Systems
-      operationId: PlaceOS::Api::Systems#control
+      operationId: PlaceOS::Api::Systems_control
       parameters:
       - name: fixed_device
         in: query
@@ -8909,7 +8909,7 @@ paths:
       summary: the websocket endpoint that edge devices use to connect to the cluster
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#edge_control
+      operationId: PlaceOS::Api::Edges_edge_control
       parameters: []
       responses:
         101:
@@ -8969,7 +8969,7 @@ paths:
       summary: admins can obtain the token edge nodes will use to connect to the cluster
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#token
+      operationId: PlaceOS::Api::Edges_token
       parameters:
       - name: id
         in: path
@@ -9042,7 +9042,7 @@ paths:
         nodes servicing it'
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#index
+      operationId: PlaceOS::Api::Edges_index
       parameters:
       - name: q
         in: query
@@ -9137,7 +9137,7 @@ paths:
       summary: add a new edge location
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#create
+      operationId: PlaceOS::Api::Edges_create
       requestBody:
         content:
           application/json:
@@ -9207,7 +9207,7 @@ paths:
       summary: return the details of an edge location
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#show
+      operationId: PlaceOS::Api::Edges_show
       parameters:
       - name: id
         in: path
@@ -9275,7 +9275,7 @@ paths:
       summary: update the details of an edge location
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#update
+      operationId: PlaceOS::Api::Edges_update
       requestBody:
         content:
           application/json:
@@ -9349,7 +9349,7 @@ paths:
       summary: remove an edge location
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#destroy
+      operationId: PlaceOS::Api::Edges_destroy
       parameters:
       - name: id
         in: path
@@ -9413,7 +9413,7 @@ paths:
       summary: update the details of an edge location
       tags:
       - Edges
-      operationId: PlaceOS::Api::Edges#update{2}
+      operationId: PlaceOS::Api::Edges_update{2}
       requestBody:
         content:
           application/json:
@@ -9489,7 +9489,7 @@ paths:
         clients
       tags:
       - Flux
-      operationId: PlaceOS::Api::Flux#query
+      operationId: PlaceOS::Api::Flux_query
       requestBody:
         content:
           application/json:
@@ -9559,7 +9559,7 @@ paths:
         Filter for a specific metadata by name via `name` param'
       tags:
       - Metadata
-      operationId: PlaceOS::Api::Metadata#show
+      operationId: PlaceOS::Api::Metadata_show
       parameters:
       - name: id
         in: path
@@ -9639,7 +9639,7 @@ paths:
         udpates are signalled on the `placeos/metadata/changed` channel'
       tags:
       - Metadata
-      operationId: PlaceOS::Api::Metadata#update
+      operationId: PlaceOS::Api::Metadata_update
       requestBody:
         content:
           application/json:
@@ -9714,7 +9714,7 @@ paths:
       summary: remove a metadata entry from the database
       tags:
       - Metadata
-      operationId: PlaceOS::Api::Metadata#destroy
+      operationId: PlaceOS::Api::Metadata_destroy
       parameters:
       - name: id
         in: path
@@ -9789,7 +9789,7 @@ paths:
         udpates are signalled on the `placeos/metadata/changed` channel'
       tags:
       - Metadata
-      operationId: PlaceOS::Api::Metadata#merge
+      operationId: PlaceOS::Api::Metadata_merge
       requestBody:
         content:
           application/json:
@@ -9871,7 +9871,7 @@ paths:
         Includes the parent metadata by default via `include_parent` param.'
       tags:
       - Metadata
-      operationId: PlaceOS::Api::Metadata#children_metadata
+      operationId: PlaceOS::Api::Metadata_children_metadata
       parameters:
       - name: id
         in: path
@@ -9958,7 +9958,7 @@ paths:
       summary: Returns the version history for a Settings model
       tags:
       - Metadata
-      operationId: PlaceOS::Api::Metadata#history
+      operationId: PlaceOS::Api::Metadata_history
       parameters:
       - name: id
         in: path
@@ -10054,7 +10054,7 @@ paths:
         jwt_response_mode: status, jwt_params_mode: form'
       tags:
       - MQTT
-      operationId: PlaceOS::Api::MQTT#mqtt_user
+      operationId: PlaceOS::Api::MQTT_mqtt_user
       parameters: []
       responses:
         200:
@@ -10119,7 +10119,7 @@ paths:
         example payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A'
       tags:
       - MQTT
-      operationId: PlaceOS::Api::MQTT#mqtt_access
+      operationId: PlaceOS::Api::MQTT_mqtt_access
       parameters:
       - name: topic
         in: query
@@ -10202,7 +10202,7 @@ paths:
     post:
       tags:
       - PushNotifications
-      operationId: PlaceOS::Api::PushNotifications#google
+      operationId: PlaceOS::Api::PushNotifications_google
       parameters: []
       responses:
         200:
@@ -10261,7 +10261,7 @@ paths:
     post:
       tags:
       - PushNotifications
-      operationId: PlaceOS::Api::PushNotifications#microsoft
+      operationId: PlaceOS::Api::PushNotifications_microsoft
       requestBody:
         content:
           application/json:
@@ -10327,7 +10327,7 @@ paths:
       summary: lists the frontend applications enabled on the domains
       tags:
       - OAuthApplications
-      operationId: PlaceOS::Api::OAuthApplications#index
+      operationId: PlaceOS::Api::OAuthApplications_index
       parameters:
       - name: authority_id
         in: query
@@ -10430,7 +10430,7 @@ paths:
       summary: add a new user interface application
       tags:
       - OAuthApplications
-      operationId: PlaceOS::Api::OAuthApplications#create
+      operationId: PlaceOS::Api::OAuthApplications_create
       requestBody:
         content:
           application/json:
@@ -10500,7 +10500,7 @@ paths:
       summary: show the details of the applications
       tags:
       - OAuthApplications
-      operationId: PlaceOS::Api::OAuthApplications#show
+      operationId: PlaceOS::Api::OAuthApplications_show
       parameters:
       - name: id
         in: path
@@ -10568,7 +10568,7 @@ paths:
       summary: udpate an application
       tags:
       - OAuthApplications
-      operationId: PlaceOS::Api::OAuthApplications#update
+      operationId: PlaceOS::Api::OAuthApplications_update
       requestBody:
         content:
           application/json:
@@ -10642,7 +10642,7 @@ paths:
       summary: remove an application
       tags:
       - OAuthApplications
-      operationId: PlaceOS::Api::OAuthApplications#destroy
+      operationId: PlaceOS::Api::OAuthApplications_destroy
       parameters:
       - name: id
         in: path
@@ -10706,7 +10706,7 @@ paths:
       summary: udpate an application
       tags:
       - OAuthApplications
-      operationId: PlaceOS::Api::OAuthApplications#update{2}
+      operationId: PlaceOS::Api::OAuthApplications_update{2}
       requestBody:
         content:
           application/json:
@@ -10781,7 +10781,7 @@ paths:
       summary: lists the repositories added to the system
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#index
+      operationId: PlaceOS::Api::Repositories_index
       parameters:
       - name: q
         in: query
@@ -10876,7 +10876,7 @@ paths:
       summary: adds a new repository, either a frontends or driver repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#create
+      operationId: PlaceOS::Api::Repositories_create
       requestBody:
         content:
           application/json:
@@ -10946,7 +10946,7 @@ paths:
       summary: returns the details of a saved repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#show
+      operationId: PlaceOS::Api::Repositories_show
       parameters:
       - name: id
         in: path
@@ -11014,7 +11014,7 @@ paths:
       summary: updates a repositories details
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#update
+      operationId: PlaceOS::Api::Repositories_update
       requestBody:
         content:
           application/json:
@@ -11088,7 +11088,7 @@ paths:
       summary: removes a repository from the server
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#destroy
+      operationId: PlaceOS::Api::Repositories_destroy
       parameters:
       - name: id
         in: path
@@ -11152,7 +11152,7 @@ paths:
       summary: updates a repositories details
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#update{2}
+      operationId: PlaceOS::Api::Repositories_update{2}
       requestBody:
         content:
           application/json:
@@ -11227,7 +11227,7 @@ paths:
       summary: checks the remote for any new commits and pulls them locally
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#pull
+      operationId: PlaceOS::Api::Repositories_pull
       parameters:
       - name: id
         in: path
@@ -11300,7 +11300,7 @@ paths:
         Returns a hash of folder_name to commit'
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#loaded_interfaces
+      operationId: PlaceOS::Api::Repositories_loaded_interfaces
       parameters: []
       responses:
         200:
@@ -11364,7 +11364,7 @@ paths:
       summary: lists the drivers in a repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#drivers
+      operationId: PlaceOS::Api::Repositories_drivers
       parameters:
       - name: id
         in: path
@@ -11435,7 +11435,7 @@ paths:
       summary: Returns the commits for a repository or file
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#commits
+      operationId: PlaceOS::Api::Repositories_commits
       parameters:
       - name: id
         in: path
@@ -11534,7 +11534,7 @@ paths:
         For payload information, look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults'
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#details
+      operationId: PlaceOS::Api::Repositories_details
       parameters:
       - name: id
         in: path
@@ -11613,7 +11613,7 @@ paths:
       summary: returns the list of branches in the repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#branches
+      operationId: PlaceOS::Api::Repositories_branches
       parameters:
       - name: id
         in: path
@@ -11684,7 +11684,7 @@ paths:
       summary: returns the list of releases in the repository, i.e. github releases
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#releases
+      operationId: PlaceOS::Api::Repositories_releases
       parameters:
       - name: id
         in: path
@@ -11755,7 +11755,7 @@ paths:
       summary: Returns an array of tags for the repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#tags
+      operationId: PlaceOS::Api::Repositories_tags
       parameters:
       - name: id
         in: path
@@ -11826,7 +11826,7 @@ paths:
       summary: returns the default branch of the specified repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#default_branch
+      operationId: PlaceOS::Api::Repositories_default_branch
       parameters:
       - name: id
         in: path
@@ -11895,7 +11895,7 @@ paths:
       summary: returns the default branch of the specified repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#remote_default_branch
+      operationId: PlaceOS::Api::Repositories_remote_default_branch
       parameters:
       - name: repository_url
         in: query
@@ -11982,7 +11982,7 @@ paths:
       summary: lists the branches of the specified repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#remote_branches
+      operationId: PlaceOS::Api::Repositories_remote_branches
       parameters:
       - name: repository_url
         in: query
@@ -12071,7 +12071,7 @@ paths:
       summary: lists the commits of the specified repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#remote_commits
+      operationId: PlaceOS::Api::Repositories_remote_commits
       parameters:
       - name: branch
         in: query
@@ -12176,7 +12176,7 @@ paths:
       summary: Returns an array of tags for the specified repository
       tags:
       - Repositories
-      operationId: PlaceOS::Api::Repositories#remote_tags
+      operationId: PlaceOS::Api::Repositories_remote_tags
       parameters:
       - name: repository_url
         in: query
@@ -12266,7 +12266,7 @@ paths:
         etc)
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#root
+      operationId: PlaceOS::Api::Root_root
       parameters: []
       responses:
         200:
@@ -12326,7 +12326,7 @@ paths:
       summary: provides release details of the platform
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#platform_info
+      operationId: PlaceOS::Api::Root_platform_info
       parameters: []
       responses:
         200:
@@ -12390,7 +12390,7 @@ paths:
       summary: provides the version of this service
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#version
+      operationId: PlaceOS::Api::Root_version
       parameters: []
       responses:
         200:
@@ -12454,7 +12454,7 @@ paths:
       summary: provides the core node versions
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#cluster_version
+      operationId: PlaceOS::Api::Root_cluster_version
       parameters: []
       responses:
         200:
@@ -12521,7 +12521,7 @@ paths:
         API
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#scopes
+      operationId: PlaceOS::Api::Root_scopes
       parameters: []
       responses:
         200:
@@ -12590,7 +12590,7 @@ paths:
         pushes arbitrary data to channels in redis'
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#signal
+      operationId: PlaceOS::Api::Root_signal
       parameters:
       - name: channel
         in: query
@@ -12657,7 +12657,7 @@ paths:
       summary: maps the database tables to indexes in elasticsearch
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#reindex
+      operationId: PlaceOS::Api::Root_reindex
       parameters:
       - name: backfill
         in: query
@@ -12724,7 +12724,7 @@ paths:
       summary: pushes all the data from the database into elasticsearch
       tags:
       - Root
-      operationId: PlaceOS::Api::Root#backfill
+      operationId: PlaceOS::Api::Root_backfill
       parameters: []
       responses:
         200:
@@ -12787,7 +12787,7 @@ paths:
         schemas can be used to ensure metadata conforms to the desired state'
       tags:
       - Schema
-      operationId: PlaceOS::Api::Schema#index
+      operationId: PlaceOS::Api::Schema_index
       parameters:
       - name: q
         in: query
@@ -12882,7 +12882,7 @@ paths:
       summary: add a new schema
       tags:
       - Schema
-      operationId: PlaceOS::Api::Schema#create
+      operationId: PlaceOS::Api::Schema_create
       requestBody:
         content:
           application/json:
@@ -12952,7 +12952,7 @@ paths:
       summary: return the details of a schema
       tags:
       - Schema
-      operationId: PlaceOS::Api::Schema#show
+      operationId: PlaceOS::Api::Schema_show
       parameters:
       - name: id
         in: path
@@ -13020,7 +13020,7 @@ paths:
       summary: update a schema details
       tags:
       - Schema
-      operationId: PlaceOS::Api::Schema#update
+      operationId: PlaceOS::Api::Schema_update
       requestBody:
         content:
           application/json:
@@ -13094,7 +13094,7 @@ paths:
       summary: remove a schema
       tags:
       - Schema
-      operationId: PlaceOS::Api::Schema#destroy
+      operationId: PlaceOS::Api::Schema_destroy
       parameters:
       - name: id
         in: path
@@ -13158,7 +13158,7 @@ paths:
       summary: update a schema details
       tags:
       - Schema
-      operationId: PlaceOS::Api::Schema#update{2}
+      operationId: PlaceOS::Api::Schema_update{2}
       requestBody:
         content:
           application/json:
@@ -13233,7 +13233,7 @@ paths:
       summary: returns the list of available storages for provided authority
       tags:
       - Storages
-      operationId: PlaceOS::Api::Storages#index
+      operationId: PlaceOS::Api::Storages_index
       parameters:
       - name: auth_id
         in: query
@@ -13336,7 +13336,7 @@ paths:
       summary: adds a new storage
       tags:
       - Storages
-      operationId: PlaceOS::Api::Storages#create
+      operationId: PlaceOS::Api::Storages_create
       requestBody:
         content:
           application/json:
@@ -13406,7 +13406,7 @@ paths:
       summary: returns the details of a Storage
       tags:
       - Storages
-      operationId: PlaceOS::Api::Storages#show
+      operationId: PlaceOS::Api::Storages_show
       parameters:
       - name: id
         in: path
@@ -13474,7 +13474,7 @@ paths:
       summary: updates a storage details
       tags:
       - Storages
-      operationId: PlaceOS::Api::Storages#update
+      operationId: PlaceOS::Api::Storages_update
       requestBody:
         content:
           application/json:
@@ -13548,7 +13548,7 @@ paths:
       summary: removes a storage
       tags:
       - Storages
-      operationId: PlaceOS::Api::Storages#destroy
+      operationId: PlaceOS::Api::Storages_destroy
       parameters:
       - name: id
         in: path
@@ -13612,7 +13612,7 @@ paths:
       summary: updates a storage details
       tags:
       - Storages
-      operationId: PlaceOS::Api::Storages#update{2}
+      operationId: PlaceOS::Api::Storages_update{2}
       requestBody:
         content:
           application/json:
@@ -13687,7 +13687,7 @@ paths:
       summary: return the list of triggers associated with the system specified
       tags:
       - SystemTriggers
-      operationId: PlaceOS::Api::SystemTriggers#index
+      operationId: PlaceOS::Api::SystemTriggers_index
       parameters:
       - name: sys_id
         in: path
@@ -13827,7 +13827,7 @@ paths:
       summary: add a trigger to a system
       tags:
       - SystemTriggers
-      operationId: PlaceOS::Api::SystemTriggers#create
+      operationId: PlaceOS::Api::SystemTriggers_create
       requestBody:
         content:
           application/json:
@@ -13904,7 +13904,7 @@ paths:
       summary: return a particular trigger instance
       tags:
       - SystemTriggers
-      operationId: PlaceOS::Api::SystemTriggers#show
+      operationId: PlaceOS::Api::SystemTriggers_show
       parameters:
       - name: sys_id
         in: path
@@ -13986,7 +13986,7 @@ paths:
       summary: update the details of a trigger instance
       tags:
       - SystemTriggers
-      operationId: PlaceOS::Api::SystemTriggers#update
+      operationId: PlaceOS::Api::SystemTriggers_update
       requestBody:
         content:
           application/json:
@@ -14069,7 +14069,7 @@ paths:
       summary: remove a trigger from a system
       tags:
       - SystemTriggers
-      operationId: PlaceOS::Api::SystemTriggers#destroy
+      operationId: PlaceOS::Api::SystemTriggers_destroy
       parameters:
       - name: sys_id
         in: path
@@ -14142,7 +14142,7 @@ paths:
       summary: update the details of a trigger instance
       tags:
       - SystemTriggers
-      operationId: PlaceOS::Api::SystemTriggers#update{2}
+      operationId: PlaceOS::Api::SystemTriggers_update{2}
       requestBody:
         content:
           application/json:
@@ -14226,7 +14226,7 @@ paths:
       summary: returns the list of available triggers
       tags:
       - Triggers
-      operationId: PlaceOS::Api::Triggers#index
+      operationId: PlaceOS::Api::Triggers_index
       parameters:
       - name: q
         in: query
@@ -14321,7 +14321,7 @@ paths:
       summary: adds a new trigger
       tags:
       - Triggers
-      operationId: PlaceOS::Api::Triggers#create
+      operationId: PlaceOS::Api::Triggers_create
       requestBody:
         content:
           application/json:
@@ -14391,7 +14391,7 @@ paths:
       summary: returns the details of a trigger
       tags:
       - Triggers
-      operationId: PlaceOS::Api::Triggers#show
+      operationId: PlaceOS::Api::Triggers_show
       parameters:
       - name: id
         in: path
@@ -14467,7 +14467,7 @@ paths:
       summary: updates a trigger details
       tags:
       - Triggers
-      operationId: PlaceOS::Api::Triggers#update
+      operationId: PlaceOS::Api::Triggers_update
       requestBody:
         content:
           application/json:
@@ -14541,7 +14541,7 @@ paths:
       summary: removes a trigger
       tags:
       - Triggers
-      operationId: PlaceOS::Api::Triggers#destroy
+      operationId: PlaceOS::Api::Triggers_destroy
       parameters:
       - name: id
         in: path
@@ -14605,7 +14605,7 @@ paths:
       summary: updates a trigger details
       tags:
       - Triggers
-      operationId: PlaceOS::Api::Triggers#update{2}
+      operationId: PlaceOS::Api::Triggers_update{2}
       requestBody:
         content:
           application/json:
@@ -14680,7 +14680,7 @@ paths:
       summary: Get instances of a trigger, how many systems are using a trigger
       tags:
       - Triggers
-      operationId: PlaceOS::Api::Triggers#instances
+      operationId: PlaceOS::Api::Triggers_instances
       parameters:
       - name: id
         in: path
@@ -14751,7 +14751,7 @@ paths:
       summary: check the storage provider for a new file upload
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#storage_name
+      operationId: PlaceOS::Api::Uploads_storage_name
       parameters:
       - name: file_name
         in: query
@@ -14838,7 +14838,7 @@ paths:
       summary: initiate a new upload
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#create
+      operationId: PlaceOS::Api::Uploads_create
       requestBody:
         content:
           application/json:
@@ -14908,7 +14908,7 @@ paths:
       summary: obtain a temporary link to a private resource
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#get_link
+      operationId: PlaceOS::Api::Uploads_get_link
       parameters:
       - name: id
         in: path
@@ -14990,7 +14990,7 @@ paths:
         file_id is required except for the final finish request'
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#edit
+      operationId: PlaceOS::Api::Uploads_edit
       parameters:
       - name: id
         in: path
@@ -15076,7 +15076,7 @@ paths:
       summary: mark an upload as complete
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#finished
+      operationId: PlaceOS::Api::Uploads_finished
       parameters:
       - name: id
         in: path
@@ -15146,7 +15146,7 @@ paths:
       summary: delete an uploaded file
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#destroy
+      operationId: PlaceOS::Api::Uploads_destroy
       parameters:
       - name: id
         in: path
@@ -15212,7 +15212,7 @@ paths:
       summary: save your resumable upload progress and grab the next signed request
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads#update
+      operationId: PlaceOS::Api::Uploads_update
       requestBody:
         content:
           application/json:
@@ -15305,7 +15305,7 @@ paths:
       summary: Render the current user
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#current
+      operationId: PlaceOS::Api::Users_current
       parameters: []
       responses:
         200:
@@ -15376,7 +15376,7 @@ paths:
         have access)'
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#resource_token
+      operationId: PlaceOS::Api::Users_resource_token
       parameters: []
       responses:
         200:
@@ -15436,6 +15436,79 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/{id}/resource_token:
+    post:
+      summary: Obtain a token to the specified users SSO resources
+      description: 'Obtain a token to the specified users SSO resources
+
+        requires the PlaceOS ''users'' scope to be specified explicity for access'
+      tags:
+      - Users
+      operationId: PlaceOS::Api::Users_user_resource_token
+      parameters:
+      - name: id
+        in: path
+        description: the id of the user
+        example: user-1234
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Users__AccessToken'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
       summary: removes the saved resource token of a user
       description: 'removes the saved resource token of a user
@@ -15443,7 +15516,7 @@ paths:
         a new one can be obtained via SSO authentication'
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#delete_resource_token
+      operationId: PlaceOS::Api::Users_delete_resource_token
       parameters:
       - name: id
         in: path
@@ -15510,7 +15583,7 @@ paths:
       summary: returns a list of users
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#index
+      operationId: PlaceOS::Api::Users_index
       parameters:
       - name: include_deleted
         in: query
@@ -15627,7 +15700,7 @@ paths:
       summary: add a new local user
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#create
+      operationId: PlaceOS::Api::Users_create
       requestBody:
         content:
           application/json:
@@ -15697,7 +15770,7 @@ paths:
       summary: returns the profile of the selected user
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#show
+      operationId: PlaceOS::Api::Users_show
       parameters:
       - name: id
         in: path
@@ -15774,7 +15847,7 @@ paths:
       summary: udpate a users profile
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#update
+      operationId: PlaceOS::Api::Users_update
       requestBody:
         content:
           application/json:
@@ -15850,7 +15923,7 @@ paths:
       summary: Destroy user, revoke authentication.
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#destroy
+      operationId: PlaceOS::Api::Users_destroy
       parameters:
       - name: id
         in: path
@@ -15921,7 +15994,7 @@ paths:
       summary: udpate a users profile
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#update{2}
+      operationId: PlaceOS::Api::Users_update{2}
       requestBody:
         content:
           application/json:
@@ -15998,7 +16071,7 @@ paths:
       summary: undelete a user
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#revive
+      operationId: PlaceOS::Api::Users_revive
       parameters:
       - name: id
         in: path
@@ -16065,7 +16138,7 @@ paths:
       summary: return a users metadata
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#metadata
+      operationId: PlaceOS::Api::Users_metadata
       parameters:
       - name: id
         in: path
@@ -16144,7 +16217,7 @@ paths:
       summary: Returns the groups these users are in
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#groups
+      operationId: PlaceOS::Api::Users_groups
       parameters:
       - name: emails
         in: query
@@ -16224,7 +16297,7 @@ paths:
         https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html'
       tags:
       - Users
-      operationId: PlaceOS::Api::Users#search
+      operationId: PlaceOS::Api::Users_search
       parameters:
       - name: filter
         in: query
@@ -16312,7 +16385,7 @@ paths:
       summary: returns the details of a webhook trigger
       tags:
       - Webhook
-      operationId: PlaceOS::Api::Webhook#show
+      operationId: PlaceOS::Api::Webhook_show
       parameters:
       - name: id
         in: path
@@ -16391,7 +16464,7 @@ paths:
         additional fields provided as part of the guest post will also be forwarded'
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#guest_entry
+      operationId: PlaceOS::Api::WebRTC_guest_entry
       requestBody:
         content:
           application/json:
@@ -16467,7 +16540,7 @@ paths:
         it will remove the authentication token and close any open websockets'
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#guest_exit
+      operationId: PlaceOS::Api::WebRTC_guest_exit
       parameters: []
       responses:
         200:
@@ -16532,7 +16605,7 @@ paths:
         other members of the call will stop communicating with them'
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#kick_user
+      operationId: PlaceOS::Api::WebRTC_kick_user
       requestBody:
         content:
           application/json:
@@ -16608,7 +16681,7 @@ paths:
       summary: Obtain a list of the connected users in chat session provided
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#members
+      operationId: PlaceOS::Api::WebRTC_members
       parameters:
       - name: session_id
         in: path
@@ -16682,7 +16755,7 @@ paths:
         the body can be used to pass any custom connection details'
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#transfer_guest
+      operationId: PlaceOS::Api::WebRTC_transfer_guest
       requestBody:
         content:
           application/json:
@@ -16768,7 +16841,7 @@ paths:
         it takes either the system `id` or `code` for a more friendly lookup'
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#public_room
+      operationId: PlaceOS::Api::WebRTC_public_room
       parameters:
       - name: system_id
         in: path
@@ -16839,7 +16912,7 @@ paths:
       summary: this route provides a list of public chat rooms for the current domain
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#index
+      operationId: PlaceOS::Api::WebRTC_index
       parameters:
       - name: q
         in: query
@@ -16935,7 +17008,7 @@ paths:
       summary: WebRTC signaller websocket endpoint, managing call participants
       tags:
       - WebRTC
-      operationId: PlaceOS::Api::WebRTC#signaller
+      operationId: PlaceOS::Api::WebRTC_signaller
       parameters: []
       responses:
         101:
@@ -16995,7 +17068,7 @@ paths:
       summary: list the configured zones
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#index
+      operationId: PlaceOS::Api::Zones_index
       parameters:
       - name: parent_id
         in: query
@@ -17108,7 +17181,7 @@ paths:
       summary: add a new zone
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#create
+      operationId: PlaceOS::Api::Zones_create
       requestBody:
         content:
           application/json:
@@ -17178,7 +17251,7 @@ paths:
       summary: return the details of the zone
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#show
+      operationId: PlaceOS::Api::Zones_show
       parameters:
       - name: id
         in: path
@@ -17253,7 +17326,7 @@ paths:
       summary: update the details of a zone
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#update
+      operationId: PlaceOS::Api::Zones_update
       requestBody:
         content:
           application/json:
@@ -17327,7 +17400,7 @@ paths:
       summary: remove a zone and any children zones
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#destroy
+      operationId: PlaceOS::Api::Zones_destroy
       parameters:
       - name: id
         in: path
@@ -17391,7 +17464,7 @@ paths:
       summary: update the details of a zone
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#update{2}
+      operationId: PlaceOS::Api::Zones_update{2}
       requestBody:
         content:
           application/json:
@@ -17466,7 +17539,7 @@ paths:
       summary: return metadata associcated with the selected zone
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#metadata
+      operationId: PlaceOS::Api::Zones_metadata
       parameters:
       - name: id
         in: path
@@ -17543,7 +17616,7 @@ paths:
       summary: Return triggers attached to current zone
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#trigger_instances
+      operationId: PlaceOS::Api::Zones_trigger_instances
       parameters:
       - name: id
         in: path
@@ -17614,7 +17687,7 @@ paths:
       summary: Execute a method on a module across all systems in a Zone
       tags:
       - Zones
-      operationId: PlaceOS::Api::Zones#zone_execute
+      operationId: PlaceOS::Api::Zones_zone_execute
       requestBody:
         content:
           application/json:
@@ -20448,6 +20521,13 @@ components:
         user_id:
           type: string
           nullable: true
+        last_seen:
+          type: string
+          format: date-time
+          nullable: true
+        online:
+          type: boolean
+          nullable: true
         id:
           type: string
           nullable: true
@@ -20479,6 +20559,12 @@ components:
           type: string
         user_id:
           type: string
+        last_seen:
+          type: string
+          format: date-time
+          nullable: true
+        online:
+          type: boolean
         x_api_key:
           type: string
       required:
@@ -20487,6 +20573,7 @@ components:
       - name
       - description
       - user_id
+      - online
       - x_api_key
     PlaceOS__Api__Metadata__Children:
       type: object

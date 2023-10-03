@@ -14,7 +14,7 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :revive]
 
-    before_action :check_admin, only: [:destroy, :create, :revive, :delete_resource_token]
+    before_action :check_admin, only: [:destroy, :create, :revive, :delete_resource_token, :user_resource_token]
 
     ###############################################################################################
 
@@ -81,6 +81,29 @@ module PlaceOS::Api
     # we only make this token available to the current user (admin users don't have access)
     @[AC::Route::POST("/resource_token")]
     def resource_token : AccessToken
+      get_user_token(current_user)
+    end
+
+    # Obtain a token to the specified users SSO resources
+    # requires the PlaceOS 'users' scope to be specified explicity for access
+    @[AC::Route::POST("/:id/resource_token")]
+    def user_resource_token : AccessToken
+      raise Error::Forbidden.new("Explicitly requires 'users' scope") unless user_token.scope.find { |s| s.resource == "users" }
+      get_user_token(user)
+    end
+
+    # removes the saved resource token of a user
+    # a new one can be obtained via SSO authentication
+    @[AC::Route::DELETE("/:id/resource_token", status_code: HTTP::Status::ACCEPTED)]
+    def delete_resource_token : Nil
+      user.access_token = nil
+      user.refresh_token = nil
+      user.expires_at = nil
+      user.expires = false
+      user.save!
+    end
+
+    protected def get_user_token(current_user) : AccessToken
       expired = true
 
       if access_token = current_user.access_token.presence
@@ -137,17 +160,6 @@ module PlaceOS::Api
           raise error
         end
       end
-    end
-
-    # removes the saved resource token of a user
-    # a new one can be obtained via SSO authentication
-    @[AC::Route::DELETE("/:id/resource_token", status_code: HTTP::Status::ACCEPTED)]
-    def delete_resource_token : Nil
-      user.access_token = nil
-      user.refresh_token = nil
-      user.expires_at = nil
-      user.expires = false
-      user.save!
     end
 
     # CRUD
