@@ -243,7 +243,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.11.9+git.commit.00a6f016db0eaaffdbd30dbb5ebe2ce9d55f9dee
+    version: 4.11.10+git.commit.c733c2874dbf5605e241c4941da8e0cd0bda8cbd
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -263,7 +263,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.22.0
+    version: 9.23.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
