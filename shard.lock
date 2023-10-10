@@ -11,7 +11,7 @@ shards:
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
-    version: 4.3.1
+    version: 4.3.2
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
@@ -263,7 +263,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.23.0
+    version: 9.24.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -311,7 +311,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.10.3+git.commit.2fa28f805eec8e64b4b91dcb452591d3908fee9c
+    version: 2.10.3+git.commit.218c93b0077be2c3bfbe272f5ee11d6fb6b7fef1
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
