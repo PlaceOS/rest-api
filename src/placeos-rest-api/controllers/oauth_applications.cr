@@ -55,7 +55,7 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :app)]
     def update(app : Model::DoorkeeperApplication) : Model::DoorkeeperApplication
       current = current_app
-      current.assign_attributes(app)
+      current.assign_attributes_from_json(app.to_json)
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
