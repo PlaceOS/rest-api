@@ -12,8 +12,25 @@ module PlaceOS::Api
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
 
+    protected def check_jwt_scope
+      access = user_token.get_access("public")
+      block_access = true
+
+      if request.method.downcase == "get"
+        block_access = access.none?
+      else
+        block_access = !access.write?
+      end
+
+      if block_access
+        Log.warn { {message: "unknown scope #{user_token.scope}", action: "authorize!", host: request.hostname, id: user_token.id} }
+        raise Error::Unauthorized.new "valid scope required for access"
+      end
+    end
+
     def authorize! : Model::UserJWT
       unless (token = @user_token).nil?
+        check_jwt_scope
         return token
       end
 
@@ -25,6 +42,7 @@ module PlaceOS::Api
           Log.context.set(api_key_id: api_key.id, api_key_name: api_key.name)
           ensure_matching_domain(user_token)
           @user_token = user_token
+          check_jwt_scope
           return user_token
         rescue e
           Log.warn(exception: e) { {message: "bad or unknown X-API-Key", action: "authorize!"} }
@@ -45,6 +63,7 @@ module PlaceOS::Api
       end
 
       ensure_matching_domain(user_token)
+      check_jwt_scope
       user_token
     rescue e
       # ensure that the user token is nil if this function ever errors.
