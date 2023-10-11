@@ -36,6 +36,7 @@
 
 ### Fix
 
+- **root**: pg healthcheck with aurora db
 - **uploads**: remove . from ext check
 - allow start and stop of modules
 - **resource**: replaced change feed iterator with async closure
