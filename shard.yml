@@ -98,6 +98,10 @@ dependencies:
   upload-signer:
     github: spider-gazelle/upload-signer
 
+  # Crystal OpenAI
+  openai:
+    github: spider-gazelle/crystal-openai
+
 development_dependencies:
   # Linter
   ameba:
