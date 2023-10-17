@@ -86,7 +86,7 @@ module PlaceOS::Api
 
     private def build_completion(messages, functions)
       OpenAI::ChatCompletionRequest.new(
-        model: OpenAI::GPT3Dot5Turbo, # gpt-3.5-turbo
+        model: OpenAI::GPT4, # required for competent use of functions
         messages: messages,
         functions: functions,
         function_call: "auto"
@@ -125,9 +125,12 @@ module PlaceOS::Api
 
       if payload = chat_payload
         messages << OpenAI::ChatMessage.new(role: :assistant, content: payload.prompt)
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have the following capabilities: #{payload.capabilities.to_json}")
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have access to the following API: #{function_schemas(chat, payload.capabilities).to_json}")
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: "If you were asked to perform any function of given capabilities, perform the action and reply with a confirmation telling what you have done.")
+        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have the following capabilities:\n```json\n#{payload.capabilities.to_json}\n```\n" +
+          "if a request could benefit from these capabilities you can obtain a list of the functions by providing the relevent capability id\n" +
+          "then you can use any of the functions to perform actions on behalf of the user, make sure to reply with the results"
+        )
+        # messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have access to the following API: #{function_schemas(chat, payload.capabilities).to_json}")
+        # messages << OpenAI::ChatMessage.new(role: :assistant, content: "If you were asked to perform any function of given capabilities, perform the action and reply with a confirmation telling what you have done.")
 
         messages.each { |m| save_history(chat.id.as(String), m) }
       else
@@ -158,21 +161,39 @@ module PlaceOS::Api
 
     private def build_executor(chat)
       executor = OpenAI::FunctionExecutor.new
+
       executor.add(
-        name: "call_driver_func",
-        description: "Executes functionality offered by driver",
-        clz: DriverExecutor) do |call|
-        request = call.as(DriverExecutor)
+        name: "list_function_schemas",
+        description: "obtains the list of functions available for a capability",
+        clz: FunctionDiscovery) do |call|
+        request = call.as(FunctionDiscovery)
         reply = "No response received"
         begin
-          resp, code = exec_driver_func(chat, request.id, request.driver_func, request.args)
+          resp, code = exec_driver_func(chat, request.id, "function_schemas", [] of String)
           reply = resp if 200 <= code <= 299
         rescue ex
-          Log.error(exception: ex) { {id: request.id, function: request.driver_func, args: request.args.to_s} }
+          Log.error(exception: ex) { {id: request.id, function: "function_schemas", args: request.id} }
           reply = "Encountered error: #{ex.message}"
         end
         DriverResponse.new(reply).as(JSON::Serializable)
       end
+
+      executor.add(
+        name: "call_function",
+        description: "Executes functionality offered by a capability",
+        clz: FunctionExecutor) do |call|
+        request = call.as(FunctionExecutor)
+        reply = "No response received"
+        begin
+          resp, code = exec_driver_func(chat, request.id, request.function, request.parameters)
+          reply = resp if 200 <= code <= 299
+        rescue ex
+          Log.error(exception: ex) { {id: request.id, function: request.function, args: request.parameters.to_s} }
+          reply = "Encountered error: #{ex.message}"
+        end
+        DriverResponse.new(reply).as(JSON::Serializable)
+      end
+
       executor
     end
 
@@ -205,18 +226,26 @@ module PlaceOS::Api
       )
     end
 
-    private struct DriverExecutor
+    private struct FunctionExecutor
       extend OpenAI::FuncMarker
       include JSON::Serializable
 
-      @[JSON::Field(description: "The ID of the driver which provides the functionality")]
+      @[JSON::Field(description: "The ID of the capability")]
       getter id : String
 
-      @[JSON::Field(description: "The name of the driver function which will be invoked to perform action. Value placeholders must be replaced with actual values")]
-      getter driver_func : String
+      @[JSON::Field(description: "The name of the function")]
+      getter function : String
 
-      @[JSON::Field(description: "A string representation of the JSON that should be sent as the arguments to driver function")]
-      getter args : JSON::Any?
+      @[JSON::Field(description: "a JSON hash representing the named arguments of the function, as per the JSON schema provided")]
+      getter parameters : JSON::Any?
+    end
+
+    private struct FunctionDiscovery
+      extend OpenAI::FuncMarker
+      include JSON::Serializable
+
+      @[JSON::Field(description: "The ID of the capability")]
+      getter id : String
     end
 
     private record DriverResponse, body : String do
