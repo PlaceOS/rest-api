@@ -67,7 +67,7 @@ module PlaceOS::Api
     record Config, api_key : String, api_base : String?
 
     protected def config
-      if internals = authority.internals["openai"]
+      if internals = authority.internals["openai"]?
         key = internals["api_key"]?.try &.as_s || Api::OPENAI_API_KEY || raise Error::NotFound.new("missing openai api_key configuration")
         Config.new(key, internals["api_base"]?.try &.as_s || Api::OPENAI_API_BASE)
       else
