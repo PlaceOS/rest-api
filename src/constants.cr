@@ -31,10 +31,8 @@ module PlaceOS::Api
   PROD = ENV["SG_ENV"]?.try(&.downcase) == "production"
 
   # Open AI
-  OPENAI_API_KEY      = ENV["OPENAI_API_KEY"]?
-  OPENAI_API_KEY_PATH = ENV["OPENAI_API_KEY_PATH"]?
-  ORGANIZATION        = ENV["OPENAI_ORGANIZATION"]? || ""
-  OPENAI_API_BASE     = ENV["OPENAI_API_BASE"]? # Set this to Azure URL only if Azure OpenAI is used
+  OPENAI_API_KEY  = ENV["OPENAI_API_KEY"]?
+  OPENAI_API_BASE = ENV["OPENAI_API_BASE"]? # Set this to Azure URL only if Azure OpenAI is used
 
   # CHANGELOG
   #################################################################################################

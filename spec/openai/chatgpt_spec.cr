@@ -1,7 +1,7 @@
 require "../helper"
 
 module PlaceOS::Api
-  describe ChatGPT, focus: true do
+  describe ChatGPT do
     ::Spec.before_each do
       Model::ChatMessage.clear
       Model::Chat.clear

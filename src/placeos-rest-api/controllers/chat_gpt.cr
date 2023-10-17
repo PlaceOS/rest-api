@@ -10,7 +10,16 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:chat, :delete]
 
+    @[AC::Route::Filter(:before_action)]
+    def check_authority
+      unless @authority = current_authority
+        Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
+        raise Error::Unauthorized.new "authority not found"
+      end
+    end
+
     getter chat_manager : ChatGPT::ChatManager { ChatGPT::ChatManager.new(self) }
+    getter! authority : Model::Authority?
 
     # list user chats
     @[AC::Route::GET("/")]
@@ -38,17 +47,11 @@ module PlaceOS::Api
     def chat(socket, system_id : String,
              @[AC::Param::Info(name: "resume", description: "To resume previous chat session. Provide session chat id", example: "chats-xxxx")]
              resume : String? = nil) : Nil
-      chat = (resume && PlaceOS::Model::Chat.find!(resume.not_nil!)) || begin
-        PlaceOS::Model::Chat.create!(user_id: current_user.id.as(String), system_id: system_id, summary: "")
-      end
-
-      begin
-        chat_manager.start_chat(socket, chat, !!resume)
-      rescue e : RemoteDriver::Error
-        handle_execute_error(e)
-      rescue e
-        render_error(HTTP::Status::INTERNAL_SERVER_ERROR, e.message, backtrace: e.backtrace)
-      end
+      chat_manager.start_session(socket, (resume && PlaceOS::Model::Chat.find!(resume.not_nil!)) || nil, system_id)
+    rescue e : RemoteDriver::Error
+      handle_execute_error(e)
+    rescue e
+      render_error(HTTP::Status::INTERNAL_SERVER_ERROR, e.message, backtrace: e.backtrace)
     end
 
     # remove chat and associated history
@@ -59,6 +62,18 @@ module PlaceOS::Api
         raise Error::NotFound.new("Invalid chat id: #{id}")
       end
       chat.destroy
+    end
+
+    record Config, api_key : String, api_base : String?
+
+    protected def config
+      if internals = authority.internals["openai"]
+        key = internals["api_key"]?.try &.as_s || Api::OPENAI_API_KEY || raise Error::NotFound.new("missing openai api_key configuration")
+        Config.new(key, internals["api_base"]?.try &.as_s || Api::OPENAI_API_BASE)
+      else
+        key = Api::OPENAI_API_KEY || raise Error::NotFound.new("missing openai api_key configuration")
+        Config.new(key, Api::OPENAI_API_BASE)
+      end
     end
   end
 end

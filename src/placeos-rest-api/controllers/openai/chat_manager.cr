@@ -7,11 +7,10 @@ module PlaceOS::Api
     Log = ::Log.for(self)
     alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
-    private getter chat_sockets = {} of String => {HTTP::WebSocket, OpenAI::Client, OpenAI::ChatCompletionRequest, OpenAI::FunctionExecutor}
-    private getter ping_tasks : Hash(String, Tasker::Repeat(Nil)) = {} of String => Tasker::Repeat(Nil)
+    private getter ws_sockets = {} of UInt64 => {HTTP::WebSocket, String, OpenAI::Client, OpenAI::ChatCompletionRequest, OpenAI::FunctionExecutor}
+    private getter ws_ping_tasks : Hash(UInt64, Tasker::Repeat(Nil)) = {} of UInt64 => Tasker::Repeat(Nil)
 
     private getter ws_lock = Mutex.new(protection: :reentrant)
-    private getter session_ch = Channel(Nil).new
     private getter app : ChatGPT
 
     LLM_DRIVER      = "LLM"
@@ -20,63 +19,69 @@ module PlaceOS::Api
     def initialize(@app)
     end
 
-    def start_chat(ws : HTTP::WebSocket, chat : PlaceOS::Model::Chat, resume : Bool = false)
-      chat_id = chat.id.as(String)
-      update_summary = !resume
-      chat_prompt =
-        if resume
-          Log.debug { {chat_id: chat_id, message: "resuming chat session"} }
-          nil
-        else
-          Log.debug { {chat_id: chat_id, message: "starting new chat session"} }
-          driver_prompt(chat)
-        end
-
+    def start_session(ws : HTTP::WebSocket, existing_chat : PlaceOS::Model::Chat?, system_id : String)
       ws_lock.synchronize do
-        if existing_socket = chat_sockets[chat_id]?
+        ws_id = ws.object_id
+        if existing_socket = ws_sockets[ws_id]?
           existing_socket[0].close rescue nil
         end
 
-        client, executor, chat_completion = setup(chat, chat_prompt)
-        chat_sockets[chat_id] = {ws, client, chat_completion, executor}
+        if chat = existing_chat
+          Log.debug { {chat_id: chat.id, message: "resuming chat session"} }
+          client, executor, chat_completion = setup(chat, nil)
+          ws_sockets[ws_id] = {ws, chat.id.as(String), client, chat_completion, executor}
+        else
+          Log.debug { {message: "starting new chat session"} }
+        end
 
-        ping_tasks[chat_id] = Tasker.every(10.seconds) do
+        ws_ping_tasks[ws_id] = Tasker.every(10.seconds) do
           ws.ping rescue nil
           nil
         end
 
-        ws.on_message do |message|
-          if (update_summary)
-            PlaceOS::Model::Chat.update(chat_id, {summary: message})
-            update_summary = false
-          end
-          resp = openai_interaction(client, chat_completion, executor, message, chat_id)
-          ws.send(resp.to_json)
-        end
+        ws.on_message { |message| manage_chat(ws, message, system_id) }
 
         ws.on_close do
-          if task = ping_tasks.delete(chat_id)
+          if task = ws_ping_tasks.delete(ws_id)
             task.cancel
           end
-          chat_sockets.delete(chat_id)
+          ws_sockets.delete(ws_id)
         end
       end
     end
 
-    private def setup(chat, chat_prompt)
+    private def manage_chat(ws : HTTP::WebSocket, message : String, system_id : String)
+      ws_lock.synchronize do
+        ws_id = ws.object_id
+        _, chat_id, client, completion_req, executor = ws_sockets[ws_id]? || begin
+          chat = PlaceOS::Model::Chat.create!(user_id: app.current_user.id.as(String), system_id: system_id, summary: message)
+          id = chat.id.as(String)
+          c, e, req = setup(chat, driver_prompt(chat))
+          ws_sockets[ws_id] = {ws, id, c, req, e}
+          {ws, id, c, req, e}
+        end
+        resp = openai_interaction(client, completion_req, executor, message, chat_id)
+        ws.send(resp.to_json)
+      end
+    end
+
+    private def setup(chat, chat_payload)
       client = build_client
       executor = build_executor(chat)
-      chat_completion = build_completion(build_prompt(chat, chat_prompt), executor.functions)
+      chat_completion = build_completion(build_prompt(chat, chat_payload), executor.functions)
 
       {client, executor, chat_completion}
     end
 
     private def build_client
-      if azure = PlaceOS::Api::OPENAI_API_BASE
-        OpenAI::Client.azure(api_key: nil, api_endpoint: azure)
-      else
-        OpenAI::Client.new
-      end
+      app_config = app.config
+      config = if base = app_config.api_base
+                 OpenAI::Client::Config.azure(api_key: app_config.api_key, api_base: base)
+               else
+                 OpenAI::Client::Config.default(api_key: app_config.api_key)
+               end
+
+      OpenAI::Client.new(config)
     end
 
     private def build_completion(messages, functions)
@@ -115,13 +120,13 @@ module PlaceOS::Api
       save_history(chat_id, PlaceOS::Model::ChatMessage::Role.parse(msg.role.to_s), msg.content || "", msg.name, msg.function_call.try &.arguments)
     end
 
-    private def build_prompt(chat : PlaceOS::Model::Chat, chat_prompt : ChatPrompt?)
+    private def build_prompt(chat : PlaceOS::Model::Chat, chat_payload : Payload?)
       messages = [] of OpenAI::ChatMessage
 
-      if prompt = chat_prompt
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: prompt.payload.prompt)
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have the following capabilities: #{prompt.payload.capabilities.to_json}")
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have access to the following API: #{function_schemas(chat, prompt.payload.capabilities).to_json}")
+      if payload = chat_payload
+        messages << OpenAI::ChatMessage.new(role: :assistant, content: payload.prompt)
+        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have the following capabilities: #{payload.capabilities.to_json}")
+        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have access to the following API: #{function_schemas(chat, payload.capabilities).to_json}")
         messages << OpenAI::ChatMessage.new(role: :assistant, content: "If you were asked to perform any function of given capabilities, perform the action and reply with a confirmation telling what you have done.")
 
         messages.each { |m| save_history(chat.id.as(String), m) }
@@ -144,10 +149,10 @@ module PlaceOS::Api
       messages
     end
 
-    private def driver_prompt(chat : PlaceOS::Model::Chat) : ChatPrompt?
+    private def driver_prompt(chat : PlaceOS::Model::Chat) : Payload?
       resp, code = exec_driver_func(chat, LLM_DRIVER, LLM_DRIVER_CHAT, nil)
       if code > 200 && code < 299
-        ChatPrompt.new(message: "", payload: Payload.from_json(resp))
+        Payload.from_json(resp)
       end
     end
 
@@ -215,10 +220,6 @@ module PlaceOS::Api
     end
 
     private record DriverResponse, body : String do
-      include JSON::Serializable
-    end
-
-    record ChatPrompt, message : String, payload : Payload do
       include JSON::Serializable
     end
 
