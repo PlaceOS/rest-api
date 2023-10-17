@@ -128,10 +128,19 @@ module PlaceOS::Api
       messages = [] of OpenAI::ChatMessage
 
       if payload = chat_payload
-        messages << OpenAI::ChatMessage.new(role: :system, content: payload.prompt)
-        messages << OpenAI::ChatMessage.new(role: :system, content: "request function lists and call functions as required to fulfil requests.\n" +
-                                                                    "make sure to interpret results and reply appropriately once you have all the information.\n" +
-                                                                    "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```")
+        user = Model::User.find!(chat.user_id)
+
+        messages << OpenAI::ChatMessage.new(
+          role: :system,
+          content: payload.prompt +
+                   "\n\nrequest function lists and call functions as required to fulfil requests.\n" +
+                   "make sure to interpret results and reply appropriately once you have all the information.\n" +
+                   "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```\n\n" +
+                   "my name is: #{user.name}\n" +
+                   "my email is: #{user.email}\n" +
+                   "my user_id is: #{user.id}\n" +
+                   "use these details in function calls as required"
+        )
 
         messages.each { |m| save_history(chat.id.as(String), m) }
       else
