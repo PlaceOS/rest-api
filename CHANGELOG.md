@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-568 Added Controller for ChatBot ([#364](https://github.com/PlaceOS/rest-api/pull/364))
 - **users**: enable user token access with appropriate scope
 - PPT-864 fix and capture online and last seen activity ([#361](https://github.com/PlaceOS/rest-api/pull/361))
 - **uploads**: improve upload validation ([#360](https://github.com/PlaceOS/rest-api/pull/360))
