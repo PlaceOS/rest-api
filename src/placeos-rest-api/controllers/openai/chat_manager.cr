@@ -63,11 +63,15 @@ module PlaceOS::Api
         resp = openai_interaction(client, completion_req, executor, message, chat_id)
         ws.send(resp.to_json)
       end
+    rescue error
+      Log.warn(exception: error) { "failure processing chat message" }
+      ws.send({message: "error: #{error}"}.to_json)
+      ws.close
     end
 
     private def setup(chat, chat_payload)
       client = build_client
-      executor = build_executor(chat)
+      executor = build_executor(chat, chat_payload)
       chat_completion = build_completion(build_prompt(chat, chat_payload), executor.functions)
 
       {client, executor, chat_completion}
@@ -124,13 +128,11 @@ module PlaceOS::Api
       messages = [] of OpenAI::ChatMessage
 
       if payload = chat_payload
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: payload.prompt)
-        messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have the following capabilities:\n```json\n#{payload.capabilities.to_json}\n```\n" +
-          "if a request could benefit from these capabilities you can obtain a list of the functions by providing the relevent capability id\n" +
-          "then you can use any of the functions to perform actions on behalf of the user, make sure to reply with the results"
-        )
-        # messages << OpenAI::ChatMessage.new(role: :assistant, content: "You have access to the following API: #{function_schemas(chat, payload.capabilities).to_json}")
-        # messages << OpenAI::ChatMessage.new(role: :assistant, content: "If you were asked to perform any function of given capabilities, perform the action and reply with a confirmation telling what you have done.")
+        messages << OpenAI::ChatMessage.new(role: :system, content: payload.prompt)
+        messages << OpenAI::ChatMessage.new(role: :system, content: "request function lists and call functions as required to fulfil requests.\n" +
+                                                                    "make sure to interpret and reply with the results of function calls.\n" +
+                                                                    "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```" +
+                                                                    "id strings are case sensitive and must not be modified.")
 
         messages.each { |m| save_history(chat.id.as(String), m) }
       else
@@ -154,25 +156,37 @@ module PlaceOS::Api
 
     private def driver_prompt(chat : PlaceOS::Model::Chat) : Payload?
       resp, code = exec_driver_func(chat, LLM_DRIVER, LLM_DRIVER_CHAT, nil)
-      if code > 200 && code < 299
+      if code >= 200 && code <= 299
         Payload.from_json(resp)
+      else
+        raise "error obtaining chat prompt: #{resp} (#{code})"
       end
     end
 
-    private def build_executor(chat)
+    private def build_executor(chat, payload : Payload?)
       executor = OpenAI::FunctionExecutor.new
+
+      description = if payload
+                      "You have the following capability list, described in the following JSON:\n```json\n#{payload.capabilities.to_json}\n```\n" +
+                        "if a request could benefit from these capabilities you can obtain the list of functions by providing the id string.\n" +
+                        "id strings are case sensitive and must not be modified."
+                    else
+                      "if a request could benefit from a capability you can obtain the list of functions by providing the id string\n" +
+                        "id strings are case sensitive and must not be modified."
+                    end
 
       executor.add(
         name: "list_function_schemas",
-        description: "obtains the list of functions available for a capability",
-        clz: FunctionDiscovery) do |call|
+        description: description,
+        clz: FunctionDiscovery
+      ) do |call|
         request = call.as(FunctionDiscovery)
         reply = "No response received"
         begin
-          resp, code = exec_driver_func(chat, request.id, "function_schemas", [] of String)
+          resp, code = exec_driver_func(chat, request.id, "function_schemas")
           reply = resp if 200 <= code <= 299
         rescue ex
-          Log.error(exception: ex) { {id: request.id, function: "function_schemas", args: request.id} }
+          Log.error(exception: ex) { {id: request.id, function: "function_schemas"} }
           reply = "Encountered error: #{ex.message}"
         end
         DriverResponse.new(reply).as(JSON::Serializable)
@@ -180,7 +194,7 @@ module PlaceOS::Api
 
       executor.add(
         name: "call_function",
-        description: "Executes functionality offered by a capability",
+        description: "Executes functionality offered by a capability, you'll first need to obtain the function schema to perform a request",
         clz: FunctionExecutor) do |call|
         request = call.as(FunctionExecutor)
         reply = "No response received"
@@ -197,18 +211,7 @@ module PlaceOS::Api
       executor
     end
 
-    private def function_schemas(chat, capabilities)
-      schemas = Array(NamedTuple(function: String, description: String, parameters: Hash(String, JSON::Any))).new
-      capabilities.each do |capability|
-        resp, code = exec_driver_func(chat, capability.id, "function_schemas", nil)
-        if code > 200 && code < 299
-          schemas += JSON.parse(resp).as_a
-        end
-      end
-      schemas
-    end
-
-    private def exec_driver_func(chat, module_name, method, args)
+    private def exec_driver_func(chat, module_name, method, args = nil)
       remote_driver = RemoteDriver.new(
         sys_id: chat.system_id,
         module_name: module_name,
@@ -230,7 +233,7 @@ module PlaceOS::Api
       extend OpenAI::FuncMarker
       include JSON::Serializable
 
-      @[JSON::Field(description: "The ID of the capability")]
+      @[JSON::Field(description: "The ID of the capability, exactly as provided in the capability list")]
       getter id : String
 
       @[JSON::Field(description: "The name of the function")]
@@ -244,7 +247,7 @@ module PlaceOS::Api
       extend OpenAI::FuncMarker
       include JSON::Serializable
 
-      @[JSON::Field(description: "The ID of the capability")]
+      @[JSON::Field(description: "The ID of the capability, exactly as provided in the capability list")]
       getter id : String
     end
 
