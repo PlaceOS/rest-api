@@ -78,4 +78,4 @@ module PlaceOS::Api
   end
 end
 
-require "./openai/chat_manager"
+require "./chat_gpt/chat_manager"

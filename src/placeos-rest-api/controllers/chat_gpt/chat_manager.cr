@@ -130,9 +130,8 @@ module PlaceOS::Api
       if payload = chat_payload
         messages << OpenAI::ChatMessage.new(role: :system, content: payload.prompt)
         messages << OpenAI::ChatMessage.new(role: :system, content: "request function lists and call functions as required to fulfil requests.\n" +
-                                                                    "make sure to interpret and reply with the results of function calls.\n" +
-                                                                    "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```" +
-                                                                    "id strings are case sensitive and must not be modified.")
+                                                                    "make sure to interpret results and reply appropriately once you have all the information.\n" +
+                                                                    "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```")
 
         messages.each { |m| save_history(chat.id.as(String), m) }
       else
@@ -168,11 +167,9 @@ module PlaceOS::Api
 
       description = if payload
                       "You have the following capability list, described in the following JSON:\n```json\n#{payload.capabilities.to_json}\n```\n" +
-                        "if a request could benefit from these capabilities you can obtain the list of functions by providing the id string.\n" +
-                        "id strings are case sensitive and must not be modified."
+                        "if a request could benefit from these capabilities, obtain the list of functions by providing the id string."
                     else
-                      "if a request could benefit from a capability you can obtain the list of functions by providing the id string\n" +
-                        "id strings are case sensitive and must not be modified."
+                      "if a request could benefit from a capability, obtain the list of functions by providing the id string"
                     end
 
       executor.add(
@@ -194,7 +191,7 @@ module PlaceOS::Api
 
       executor.add(
         name: "call_function",
-        description: "Executes functionality offered by a capability, you'll first need to obtain the function schema to perform a request",
+        description: "Executes functionality offered by a capability, you'll need to obtain the function schema to perform requests",
         clz: FunctionExecutor) do |call|
         request = call.as(FunctionExecutor)
         reply = "No response received"
