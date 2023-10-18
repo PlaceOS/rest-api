@@ -1,6 +1,7 @@
 require "tasker"
 require "mutex"
 require "openai"
+require "placeos-driver/storage"
 
 module PlaceOS::Api
   class ChatGPT::ChatManager
@@ -13,8 +14,8 @@ module PlaceOS::Api
     private getter ws_lock = Mutex.new(protection: :reentrant)
     private getter app : ChatGPT
 
-    LLM_DRIVER      = "LLM"
-    LLM_DRIVER_CHAT = "new_chat"
+    LLM_DRIVER        = "LLM"
+    LLM_DRIVER_PROMPT = "prompt"
 
     def initialize(@app)
     end
@@ -132,14 +133,18 @@ module PlaceOS::Api
 
         messages << OpenAI::ChatMessage.new(
           role: :system,
-          content: payload.prompt +
-                   "\n\nrequest function lists and call functions as required to fulfil requests.\n" +
-                   "make sure to interpret results and reply appropriately once you have all the information.\n" +
-                   "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```\n\n" +
-                   "my name is: #{user.name}\n" +
-                   "my email is: #{user.email}\n" +
-                   "my user_id is: #{user.id}\n" +
-                   "use these details in function calls as required"
+          content: String.build { |str|
+            str << payload.prompt
+            str << "\n\nrequest function lists and call functions as required to fulfil requests.\n"
+            str << "make sure to interpret results and reply appropriately once you have all the information.\n"
+            str << "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```\n\n"
+            str << "my name is: #{user.name}\n"
+            str << "my email is: #{user.email}\n"
+            str << "my phone number is: #{user.phone}\n" if user.phone.presence
+            str << "my swipe card number is: #{user.card_number}\n" if user.card_number.presence
+            str << "my user_id is: #{user.id}\n"
+            str << "use these details in function calls as required"
+          }
         )
 
         messages.each { |m| save_history(chat.id.as(String), m) }
@@ -162,13 +167,8 @@ module PlaceOS::Api
       messages
     end
 
-    private def driver_prompt(chat : PlaceOS::Model::Chat) : Payload?
-      resp, code = exec_driver_func(chat, LLM_DRIVER, LLM_DRIVER_CHAT, nil)
-      if code >= 200 && code <= 299
-        Payload.from_json(resp)
-      else
-        raise "error obtaining chat prompt: #{resp} (#{code})"
-      end
+    private def driver_prompt(chat : PlaceOS::Model::Chat) : Payload
+      Payload.from_json grab_driver_status(chat, LLM_DRIVER, LLM_DRIVER_PROMPT)
     end
 
     private def build_executor(chat, payload : Payload?)
@@ -189,10 +189,9 @@ module PlaceOS::Api
         request = call.as(FunctionDiscovery)
         reply = "No response received"
         begin
-          resp, code = exec_driver_func(chat, request.id, "function_schemas")
-          reply = resp if 200 <= code <= 299
+          reply = grab_driver_status(chat, request.id, "function_schemas")
         rescue ex
-          Log.error(exception: ex) { {id: request.id, function: "function_schemas"} }
+          Log.error(exception: ex) { {id: request.id, status: "function_schemas"} }
           reply = "Encountered error: #{ex.message}"
         end
         DriverResponse.new(reply).as(JSON::Serializable)
@@ -233,6 +232,23 @@ module PlaceOS::Api
         function: method,
         args: args
       )
+    end
+
+    private def grab_driver_status(chat, module_slug : String, key : String) : String
+      module_name, index = RemoteDriver.get_parts(module_slug)
+
+      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
+        system_id: chat.system_id,
+        module_name: module_name,
+        index: index
+      )
+
+      if module_id
+        storage = Driver::RedisStorage.new(module_id)
+        storage[key]
+      else
+        raise "error obtaining chat prompt, #{module_slug} not found on system #{chat.system_id}"
+      end
     end
 
     private struct FunctionExecutor

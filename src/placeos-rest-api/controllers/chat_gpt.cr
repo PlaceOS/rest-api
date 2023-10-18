@@ -30,7 +30,7 @@ module PlaceOS::Api
     # show user chat history
     @[AC::Route::GET("/:id")]
     def show(
-      @[AC::Param::Info(name: "id", description: "return the chat messages associated with this chat id", example: "chats-xxxx")]
+      @[AC::Param::Info(description: "return the chat messages associated with this chat id", example: "chats-xxxx")]
       id : String
     ) : Array(NamedTuple(role: String, content: String?, timestamp: Time))
       unless chat = Model::Chat.find?(id)
@@ -44,9 +44,13 @@ module PlaceOS::Api
 
     # the websocket endpoint for ChatGPT chatbot
     @[AC::Route::WebSocket("/chat/:system_id")]
-    def chat(socket, system_id : String,
-             @[AC::Param::Info(name: "resume", description: "To resume previous chat session. Provide session chat id", example: "chats-xxxx")]
-             resume : String? = nil) : Nil
+    def chat(
+      socket,
+      @[AC::Param::Info(description: "the system id the LLM driver resides", example: "sys-xxxx")]
+      system_id : String,
+      @[AC::Param::Info(description: "To resume previous chat session. Provide session chat id", example: "chats-xxxx")]
+      resume : String? = nil
+    ) : Nil
       chat_manager.start_session(socket, (resume && PlaceOS::Model::Chat.find!(resume.not_nil!)) || nil, system_id)
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
@@ -56,7 +60,10 @@ module PlaceOS::Api
 
     # remove chat and associated history
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
-    def destroy(id : String) : Nil
+    def destroy(
+      @[AC::Param::Info(description: "the id of the chat to delete", example: "chats-xxxx")]
+      id : String
+    ) : Nil
       unless chat = Model::Chat.find?(id)
         Log.warn { {message: "Invalid chat id. Unable to find matching chat record", id: id, user: current_user.id} }
         raise Error::NotFound.new("Invalid chat id: #{id}")

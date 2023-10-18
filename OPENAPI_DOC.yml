@@ -4437,6 +4437,316 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/chatgpt:
+    get:
+      summary: list user chats
+      tags:
+      - ChatGPT
+      operationId: PlaceOS::Api::ChatGPT_index
+      parameters:
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: deprecated, the starting offset of the result set. Used to implement
+          pagination
+        required: false
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Chat'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/chatgpt/{id}:
+    get:
+      summary: show user chat history
+      tags:
+      - ChatGPT
+      operationId: PlaceOS::Api::ChatGPT_show
+      parameters:
+      - name: id
+        in: path
+        description: return the chat messages associated with this chat id
+        example: chats-xxxx
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamedTuple_role__String__content__String___Nil__timestamp__Time_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: remove chat and associated history
+      tags:
+      - ChatGPT
+      operationId: PlaceOS::Api::ChatGPT_destroy
+      parameters:
+      - name: id
+        in: path
+        description: the id of the chat to delete
+        example: chats-xxxx
+        required: true
+        schema:
+          type: string
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/chatgpt/chat/{system_id}:
+    get:
+      summary: the websocket endpoint for ChatGPT chatbot
+      tags:
+      - ChatGPT
+      operationId: PlaceOS::Api::ChatGPT_chat
+      parameters:
+      - name: system_id
+        in: path
+        description: the system id the LLM driver resides
+        example: sys-xxxx
+        required: true
+        schema:
+          type: string
+      - name: resume
+        in: query
+        description: To resume previous chat session. Provide session chat id
+        example: chats-xxxx
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        101:
+          description: Switching Protocols
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/cluster:
     get:
       summary: returns the list of core nodes running in the cluster
@@ -10726,312 +11036,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Model__DoorkeeperApplication'
-        409:
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        403:
-          description: Forbidden
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        408:
-          description: Request Timeout
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        400:
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        422:
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        406:
-          description: Not Acceptable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-        415:
-          description: Unsupported Media Type
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/chatgpt:
-    get:
-      summary: list user chats
-      tags:
-      - ChatGPT
-      operationId: PlaceOS::Api::ChatGPT_index
-      parameters:
-      - name: q
-        in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
-        schema:
-          type: string
-      - name: limit
-        in: query
-        description: the maximum number of results to return
-        example: "10000"
-        required: false
-        schema:
-          type: integer
-          format: UInt32
-      - name: offset
-        in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
-        required: false
-        schema:
-          type: integer
-          format: UInt32
-      - name: ref
-        in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
-        required: false
-        schema:
-          type: string
-          nullable: true
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PlaceOS__Model__Chat'
-        409:
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        403:
-          description: Forbidden
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        408:
-          description: Request Timeout
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        400:
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        422:
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        406:
-          description: Not Acceptable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-        415:
-          description: Unsupported Media Type
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/chatgpt/{id}:
-    get:
-      summary: show user chat history
-      tags:
-      - ChatGPT
-      operationId: PlaceOS::Api::ChatGPT_show
-      parameters:
-      - name: id
-        in: path
-        description: return the chat messages associated with this chat id
-        example: chats-xxxx
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/NamedTuple_role__String__content__String___Nil__timestamp__Time_'
-        409:
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        403:
-          description: Forbidden
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        408:
-          description: Request Timeout
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        400:
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        422:
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        406:
-          description: Not Acceptable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-        415:
-          description: Unsupported Media Type
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-    delete:
-      summary: remove chat and associated history
-      tags:
-      - ChatGPT
-      operationId: PlaceOS::Api::ChatGPT_destroy
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        202:
-          description: Accepted
-        409:
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        403:
-          description: Forbidden
-        404:
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        408:
-          description: Request Timeout
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
-        400:
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        422:
-          description: Unprocessable Entity
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
-        406:
-          description: Not Acceptable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-        415:
-          description: Unsupported Media Type
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/chatgpt/chat/{system_id}:
-    get:
-      summary: the websocket endpoint for ChatGPT chatbot
-      tags:
-      - ChatGPT
-      operationId: PlaceOS::Api::ChatGPT_chat
-      parameters:
-      - name: system_id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: resume
-        in: query
-        description: To resume previous chat session. Provide session chat id
-        example: chats-xxxx
-        required: false
-        schema:
-          type: string
-          nullable: true
-      responses:
-        101:
-          description: Switching Protocols
         409:
           description: Conflict
           content:
@@ -18778,6 +18782,43 @@ components:
         id:
           type: string
           nullable: true
+    PlaceOS__Model__Chat:
+      type: object
+      properties:
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        user_id:
+          type: string
+          nullable: true
+        system_id:
+          type: string
+          nullable: true
+        id:
+          type: string
+          nullable: true
+    NamedTuple_role__String__content__String___Nil__timestamp__Time_:
+      type: object
+      properties:
+        role:
+          type: string
+        content:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+      required:
+      - role
+      - timestamp
     PlaceOS__Api__Cluster__NodeStatus:
       type: object
       properties:
@@ -21417,43 +21458,6 @@ components:
           type: integer
           format: Int64
           nullable: true
-    PlaceOS__Model__Chat:
-      type: object
-      properties:
-        created_at:
-          type: integer
-          format: Int64
-          nullable: true
-        updated_at:
-          type: integer
-          format: Int64
-          nullable: true
-        summary:
-          type: string
-          nullable: true
-        user_id:
-          type: string
-          nullable: true
-        system_id:
-          type: string
-          nullable: true
-        id:
-          type: string
-          nullable: true
-    NamedTuple_role__String__content__String___Nil__timestamp__Time_:
-      type: object
-      properties:
-        role:
-          type: string
-        content:
-          type: string
-          nullable: true
-        timestamp:
-          type: string
-          format: date-time
-      required:
-      - role
-      - timestamp
     PlaceOS__Model__Repository:
       type: object
       properties:
