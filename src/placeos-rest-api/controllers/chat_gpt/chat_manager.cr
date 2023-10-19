@@ -52,6 +52,11 @@ module PlaceOS::Api
     end
 
     private def manage_chat(ws : HTTP::WebSocket, message : String, system_id : String)
+      if timezone = Model::ControlSystem.find!(system_id).timezone
+        now = Time.local(timezone)
+        message = "sent at: #{now}\n#{message}"
+      end
+
       ws_lock.synchronize do
         ws_id = ws.object_id
         _, chat_id, client, completion_req, executor = ws_sockets[ws_id]? || begin
@@ -143,7 +148,8 @@ module PlaceOS::Api
             str << "my phone number is: #{user.phone}\n" if user.phone.presence
             str << "my swipe card number is: #{user.card_number}\n" if user.card_number.presence
             str << "my user_id is: #{user.id}\n"
-            str << "use these details in function calls as required"
+            str << "use these details in function calls as required\n"
+            str << "the chat client prepends the date-time each message was sent at in the following format YYYY-MM-DD HH:mm:ss +ZZ:ZZ:ZZ"
           }
         )
 
