@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **chat_gpt**: provides the current date and time with each request
 - **chat_gpt/chat_manager**: migrate to using status where possible
 - **chat_gpt**: update prompt with users details
 - PPT-568 Added Controller for ChatBot ([#364](https://github.com/PlaceOS/rest-api/pull/364))
