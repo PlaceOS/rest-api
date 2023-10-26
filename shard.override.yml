@@ -13,6 +13,10 @@ dependencies:
     github: wyhaines/opentelemetry-sdk.cr
     branch: main
 
+  protobuf:
+    github: jeromegn/protobuf.cr
+    version: 2.3.0
+
   # For core client
   placeos-core-client:
     github: placeos/core-client

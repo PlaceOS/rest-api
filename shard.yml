@@ -102,6 +102,9 @@ dependencies:
   openai:
     github: spider-gazelle/crystal-openai
 
+  alys:
+    git: https://git.sr.ht/~refi64/alys
+
 development_dependencies:
   # Linter
   ameba:

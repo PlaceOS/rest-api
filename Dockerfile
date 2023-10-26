@@ -49,6 +49,9 @@ RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/* /usr/libexe
         xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;' || true; \
       done
 
+RUN touch /app/memory.alys
+RUN chown 10001 /app/memory.alys
+
 # Build a minimal docker image
 FROM scratch
 WORKDIR /
@@ -80,6 +83,7 @@ COPY --from=build /usr/libexec/git-core/ /usr/libexec/git-core/
 # Copy the app into place
 COPY --from=build /app/deps /
 COPY --from=build /app/bin /
+COPY --from=build /app/memory.alys /memory.alys
 
 # Use an unprivileged user.
 USER appuser:appuser

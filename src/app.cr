@@ -1,3 +1,6 @@
+require "alys"
+Alys.setup_from_env
+
 require "option_parser"
 require "http/client"
 
