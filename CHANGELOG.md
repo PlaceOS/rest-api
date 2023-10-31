@@ -40,6 +40,7 @@
 
 ### Fix
 
+- **chatgpt**: provide day of the week details
 - **root**: pg healthcheck with aurora db
 - **uploads**: remove . from ext check
 - allow start and stop of modules
