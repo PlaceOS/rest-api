@@ -54,7 +54,7 @@ module PlaceOS::Api
     private def manage_chat(ws : HTTP::WebSocket, message : String, system_id : String)
       if timezone = Model::ControlSystem.find!(system_id).timezone
         now = Time.local(timezone)
-        message = "sent at: #{now}\n#{message}"
+        message = "sent at: #{now}\nday of week: #{now.day_of_week}\n#{message}"
       end
 
       ws_lock.synchronize do
