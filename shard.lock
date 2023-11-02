@@ -191,7 +191,7 @@ shards:
 
   openai:
     git: https://github.com/spider-gazelle/crystal-openai.git
-    version: 0.9.0+git.commit.e6bfaba7758f992d7cb81cad0109180d5be2d958
+    version: 0.9.0+git.commit.b6c669a09a57aabcd2d156e0dcc85f0a6255408d
 
   openapi-generator:
     git: https://github.com/place-labs/openapi-generator.git
