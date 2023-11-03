@@ -111,6 +111,7 @@ module PlaceOS::Api
     @max_tokens : Int32 = 0
     @total_tokens : Int32 = 0
 
+    # ameba:disable Metrics/CyclomaticComplexity
     private def openai_interaction(client, request, executor, message, chat_id, &) : Nil
       request.messages << OpenAI::ChatMessage.new(role: :user, content: message)
 
