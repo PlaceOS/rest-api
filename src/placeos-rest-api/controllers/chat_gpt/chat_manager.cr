@@ -86,6 +86,10 @@ module PlaceOS::Api
 
     private def build_client
       app_config = app.config
+
+      # we save 10% of the tokens to hold the latest request and new output, should be enough
+      @max_tokens = (app_config.max_tokens.to_f * 0.90).to_i
+
       config = if base = app_config.api_base
                  OpenAI::Client::Config.azure(api_key: app_config.api_key, api_base: base)
                else
@@ -104,25 +108,47 @@ module PlaceOS::Api
       )
     end
 
+    @max_tokens : Int32 = 0
     @total_tokens : Int32 = 0
 
     private def openai_interaction(client, request, executor, message, chat_id, &) : Nil
       request.messages << OpenAI::ChatMessage.new(role: :user, content: message)
-      save_history(chat_id, :user, message)
 
       # track token usage
       discardable_tokens = 0
       tracking_total = 0
       calculate_discard = false
+      save_initial_msg = true
 
+      # ensure we don't loop forever
+      count = 0
       loop do
-        # ensure new request will fit here
+        count += 1
+        if count > 20
+          yield({chat_id: chat_id, message: "sorry, I am unable to complete that task", type: :response})
+          request.messages.truncate(0..0) # leave only the prompt
+          break
+        end
+
         # cleanup old messages, saving first system prompt and then removing messages beyond that until we're within the limit
-        # we could also restore messages once a task has been completed if there is space
-        # TODO::
+        ensure_request_fits(request)
 
         # track token usage
         resp = client.chat_completion(request)
+
+        if save_initial_msg
+          save_initial_msg = false
+
+          # the first request is actually the prompt + user message
+          # we always want to keep the prompt so we need to guestimate how many tokens this user message actually contains
+          # this doesn't need to be highly accurate
+          if request.messages.size == 2
+            calculate_initial_request_size(request, resp.usage)
+            save_history(chat_id, :user, message, request.messages[1].tokens)
+          else
+            save_history(chat_id, :user, message, resp.usage.prompt_tokens - @total_tokens)
+          end
+        end
         @total_tokens = resp.usage.total_tokens
 
         if calculate_discard
@@ -133,6 +159,7 @@ module PlaceOS::Api
 
         # save relevant history
         msg = resp.choices.first.message
+        msg.tokens = resp.usage.completion_tokens
         request.messages << msg
         save_history(chat_id, msg) unless msg.function_call || (msg.role.function? && msg.name != "task_complete")
 
@@ -177,6 +204,59 @@ module PlaceOS::Api
       end
     end
 
+    private def ensure_request_fits(request)
+      return if @total_tokens < @max_tokens
+
+      messages = request.messages
+
+      # NOTE:: we need at least one user message in the request
+      num_user = messages.count(&.role.user?)
+
+      # let the LLM know some information has been removed
+      if messages[1].role.user?
+        # we inject a message to the AI to indicate that some messages have been removed
+        messages.insert(1, OpenAI::ChatMessage.new(role: :system, content: "some earlier messages have been removed", tokens: 6))
+        @total_tokens += 6
+      end
+
+      delete_at = 2
+
+      loop do
+        msg = messages.delete_at(delete_at)
+        if msg.role.user?
+          if num_user == 1
+            messages.insert(delete_at, msg)
+            delete_at += 1
+            next
+          end
+
+          num_user -= 1
+        end
+        @total_tokens -= msg.tokens
+
+        break if @total_tokens <= @max_tokens || messages[delete_at]?.nil?
+      end
+    end
+
+    private def calculate_initial_request_size(request, usage)
+      msg = request.messages.pop
+      prompt = request.messages.pop
+
+      prompt_size = prompt.content.as(String).count(' ')
+      msg_size = msg.content.as(String).count(' ')
+
+      token_part = usage.prompt_tokens / (prompt_size + msg_size)
+
+      msg_tokens = (token_part * msg_size).to_i
+      prompt_tokens = (token_part * prompt_size).to_i
+
+      msg.tokens = msg_tokens
+      prompt.tokens = prompt_tokens
+
+      request.messages << prompt
+      request.messages << msg
+    end
+
     private def cleanup_messages(request, discardable_tokens)
       # keep task summaries
       request.messages.reject! { |mess| mess.function_call || (mess.role.function? && mess.name != "task_complete") }
@@ -185,12 +265,12 @@ module PlaceOS::Api
       @total_tokens = @total_tokens - discardable_tokens
     end
 
-    private def save_history(chat_id : String, role : PlaceOS::Model::ChatMessage::Role, message : String, func_name : String? = nil, func_args : JSON::Any? = nil) : Nil
-      PlaceOS::Model::ChatMessage.create!(role: role, chat_id: chat_id, content: message, function_name: func_name, function_args: func_args)
+    private def save_history(chat_id : String, role : PlaceOS::Model::ChatMessage::Role, message : String, tokens : Int32, func_name : String? = nil, func_args : JSON::Any? = nil) : Nil
+      PlaceOS::Model::ChatMessage.create!(role: role, chat_id: chat_id, content: message, tokens: tokens, function_name: func_name, function_args: func_args)
     end
 
     private def save_history(chat_id : String, msg : OpenAI::ChatMessage)
-      save_history(chat_id, PlaceOS::Model::ChatMessage::Role.parse(msg.role.to_s), msg.content || "", msg.name, msg.function_call.try &.arguments)
+      save_history(chat_id, PlaceOS::Model::ChatMessage::Role.parse(msg.role.to_s), msg.content || "", msg.tokens, msg.name, msg.function_call.try &.arguments)
     end
 
     private def build_prompt(chat : PlaceOS::Model::Chat, chat_payload : Payload?)
@@ -203,9 +283,10 @@ module PlaceOS::Api
           role: :system,
           content: String.build { |str|
             str << payload.prompt
-            str << "\n\nrequest function lists and call functions as required to fulfil requests.\n"
+            str << "\n\nrequest function schemas and call functions as required to fulfil requests.\n"
             str << "make sure to interpret results and reply appropriately once you have all the information.\n"
-            str << "remember to only use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```\n\n"
+            str << "remember to use valid capability ids, they can be found in this JSON:\n```json\n#{payload.capabilities.to_json}\n```\n\n"
+            str << "you must have a schema for a function before calling it\n"
             str << "my name is: #{user.name}\n"
             str << "my email is: #{user.email}\n"
             str << "my phone number is: #{user.phone}\n" if user.phone.presence
@@ -227,9 +308,12 @@ module PlaceOS::Api
               func_call = OpenAI::ChatFunctionCall.new(name, args)
             end
           end
-          messages << OpenAI::ChatMessage.new(role: OpenAI::ChatMessageRole.parse(hist.role.to_s), content: hist.content,
+          messages << OpenAI::ChatMessage.new(
+            role: OpenAI::ChatMessageRole.parse(hist.role.to_s),
+            content: hist.content,
             name: hist.function_name,
-            function_call: func_call
+            function_call: func_call,
+            tokens: hist.tokens
           )
         end
       end
