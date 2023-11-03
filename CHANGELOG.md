@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **chat_gpt**: compress chats once tasks are completed ([#366](https://github.com/PlaceOS/rest-api/pull/366))
 - **chat_gpt**: provides the current date and time with each request
 - **chat_gpt/chat_manager**: migrate to using status where possible
 - **chat_gpt**: update prompt with users details
