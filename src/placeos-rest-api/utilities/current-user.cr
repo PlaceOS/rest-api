@@ -17,7 +17,7 @@ module PlaceOS::Api
       block_access = true
 
       if request.method.downcase == "get"
-        block_access = !access.none?
+        block_access = !access.none? || !access.read?
       else
         block_access = !access.write?
       end
