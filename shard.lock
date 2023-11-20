@@ -21,10 +21,6 @@ shards:
     git: https://github.com/sija/any_hash.cr.git
     version: 0.2.5
 
-  auto_initialize:
-    git: https://github.com/kostya/auto_initialize.git
-    version: 0.1.0
-
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
     version: 0.8.3
@@ -247,7 +243,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.11.10+git.commit.f2114d7b453708aa0659aefada5ae3271eda6ff7
+    version: 4.11.10+git.commit.e603a0d40f636e568d96a468692eea8213586467
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -287,7 +283,7 @@ shards:
 
   raven:
     git: https://github.com/sija/raven.cr.git
-    version: 1.9.3+git.commit.78ab46f635208faf4a8f48e593de7c5e5490d543
+    version: 1.9.3+git.commit.30d884fbf8012478aba6bfa818640f7886879071
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
@@ -315,7 +311,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.0+git.commit.0014d0541f341af6e011b645d1975d3c452a3794
+    version: 2.11.0+git.commit.94af9c82ef4728cbb4fc9671e52a7a8aa9d90222
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
