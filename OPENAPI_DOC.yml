@@ -5438,6 +5438,14 @@ paths:
           - websocket
           - logic
           nullable: true
+      - name: update_available
+        in: query
+        description: list only drivers for which update is available
+        example: "true"
+        required: false
+        schema:
+          type: boolean
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -19164,6 +19172,26 @@ components:
           nullable: true
         ignore_connected:
           type: boolean
+          nullable: true
+        update_available:
+          type: boolean
+          nullable: true
+        update_info:
+          type: object
+          properties:
+            commit:
+              type: string
+            message:
+              type: string
+            author:
+              type: string
+              nullable: true
+            date:
+              type: string
+              nullable: true
+          required:
+          - commit
+          - message
           nullable: true
         repository_id:
           type: string

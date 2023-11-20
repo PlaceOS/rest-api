@@ -43,13 +43,16 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
 RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/* /usr/libexec/git-core/*; do \
-        ldd "$binary" | \
-        tr -s '[:blank:]' '\n' | \
-        grep '^/' | \
-        xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;' || true; \
-      done
+    ldd "$binary" | \
+    tr -s '[:blank:]' '\n' | \
+    grep '^/' | \
+    xargs -I % sh -c 'mkdir -p $(dirname deps%); cp % deps%;' || true; \
+    done
 
 # Build a minimal docker image
+
+RUN mkdir /repositories && chown -R appuser /repositories
+
 FROM scratch
 WORKDIR /
 ENV PATH=$PATH:/
@@ -80,7 +83,7 @@ COPY --from=build /usr/libexec/git-core/ /usr/libexec/git-core/
 # Copy the app into place
 COPY --from=build /app/deps /
 COPY --from=build /app/bin /
-
+COPY --chown=appuser:appuser --from=build /repositories /repositories
 # Use an unprivileged user.
 USER appuser:appuser
 

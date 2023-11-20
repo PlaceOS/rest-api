@@ -38,7 +38,9 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "filter by the type of driver", example: "Logic")]
-      role : Model::Driver::Role? = nil
+      role : Model::Driver::Role? = nil,
+      @[AC::Param::Info(description: "list only drivers for which update is available", example: "true")]
+      update_available : Bool? = nil
     ) : Array(Model::Driver)
       elastic = Model::Driver.elastic
       query = elastic.query(search_params)
@@ -46,6 +48,12 @@ module PlaceOS::Api
       if role
         query.filter({
           "role" => [role.to_i],
+        })
+      end
+
+      if update_available
+        query.filter({
+          "update_available" => [update_available.as(Bool)],
         })
       end
 
