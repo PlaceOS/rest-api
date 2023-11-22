@@ -136,6 +136,8 @@ module PlaceOS::Api
         raise "failed to load driver's repository"
       end
 
+      raise Error::NotFound.new("Driver not compiled yet") if current_driver.recompile_commit?
+
       compiled = self.class.driver_compiled?(current_driver, repository, request_id)
       Log.info { "#{compiled ? "" : "not "}compiled" }
 
