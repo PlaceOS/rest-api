@@ -16,7 +16,7 @@ module PlaceOS::Api
     alias UserJWT = PlaceOS::Model::UserJWT
 
     def self.can_scope_access?(user_token : UserJWT, scope : String, access : Access)
-      user_token.public_scope? || user_token.get_access(scope).includes? access
+      user_token.get_access("public").includes?(access) || user_token.get_access(scope).includes?(access)
     end
 
     def self.can_scopes_access!(user_token : UserJWT, scopes : Enumerable(String), access : Access)
