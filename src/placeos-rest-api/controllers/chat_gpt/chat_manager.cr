@@ -101,7 +101,7 @@ module PlaceOS::Api
 
     private def build_completion(messages, functions)
       OpenAI::ChatCompletionRequest.new(
-        model: OpenAI::GPT4, # required for competent use of functions
+        model: app.config.api_model,
         messages: messages,
         functions: functions,
         function_call: "auto"

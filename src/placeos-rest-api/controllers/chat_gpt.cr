@@ -71,17 +71,19 @@ module PlaceOS::Api
       chat.destroy
     end
 
-    record Config, api_key : String, api_base : String?, max_tokens : Int32
+    record Config, api_key : String, api_base : String?, max_tokens : Int32, api_model : String
 
-    protected def config
+    getter config : Config do
       if internals = authority.internals["openai"]?
         api_key = internals["api_key"]?.try &.as_s || Api::OPENAI_API_KEY || raise Error::NotFound.new("missing openai api_key configuration")
         api_base = internals["api_base"]?.try &.as_s || Api::OPENAI_API_BASE
+        api_model = internals["api_model"]?.try &.as_s || Api::OPENAI_API_MODEL
         max_tokens = internals["max_tokens"]?.try &.as_i || Api::OPENAI_MAX_TOKENS
-        Config.new(api_key, api_base, max_tokens)
+
+        Config.new(api_key, api_base, max_tokens, api_model)
       else
         api_key = Api::OPENAI_API_KEY || raise Error::NotFound.new("missing openai api_key configuration")
-        Config.new(api_key, Api::OPENAI_API_BASE, Api::OPENAI_MAX_TOKENS)
+        Config.new(api_key, Api::OPENAI_API_BASE, Api::OPENAI_MAX_TOKENS, Api::OPENAI_API_MODEL)
       end
     end
   end

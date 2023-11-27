@@ -33,6 +33,7 @@ module PlaceOS::Api
   # Open AI
   OPENAI_API_KEY    = ENV["OPENAI_API_KEY"]?
   OPENAI_API_BASE   = ENV["OPENAI_API_BASE"]? # Set this to Azure URL only if Azure OpenAI is used
+  OPENAI_API_MODEL  = ENV["OPENAI_API_MODEL"]? || "gpt-4"
   OPENAI_MAX_TOKENS = ENV["OPENAI_MAX_TOKENS"]?.try(&.to_i) || 8192
 
   # CHANGELOG
