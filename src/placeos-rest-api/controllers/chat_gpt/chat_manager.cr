@@ -181,7 +181,7 @@ module PlaceOS::Api
                 msg.lchop("OpenAI called unknown function: name: '")[...-2]
               end
             end || "unknown_function"
-            request.messages << OpenAI::ChatMessage.new(:tool, result.to_pretty_json, func_name)
+            request.messages << OpenAI::ChatMessage.new(:tool, result.to_pretty_json, func_name, tool_call_id: tool_calls.first?.try &.id)
             next
           end
 
