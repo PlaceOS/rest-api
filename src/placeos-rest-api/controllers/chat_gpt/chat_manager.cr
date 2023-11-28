@@ -79,7 +79,7 @@ module PlaceOS::Api
     private def setup(chat, chat_payload)
       client = build_client
       executor = build_executor(chat)
-      chat_completion = build_completion(build_prompt(chat, chat_payload), executor.functions)
+      chat_completion = build_completion(build_prompt(chat, chat_payload), executor.tools)
 
       {client, executor, chat_completion}
     end
@@ -99,12 +99,12 @@ module PlaceOS::Api
       OpenAI::Client.new(config)
     end
 
-    private def build_completion(messages, functions)
+    private def build_completion(messages, tools)
       OpenAI::ChatCompletionRequest.new(
         model: app.config.api_model,
         messages: messages,
-        functions: functions,
-        function_call: "auto"
+        tools: tools,
+        tool_choice: "auto"
       )
     end
 
@@ -162,40 +162,49 @@ module PlaceOS::Api
         msg = resp.choices.first.message
         msg.tokens = resp.usage.completion_tokens
         request.messages << msg
-        save_history(chat_id, msg) unless msg.function_call || (msg.role.function? && msg.name != "task_complete")
+        save_history(chat_id, msg) unless msg.tool_calls || (msg.role.function? && msg.name != "task_complete")
 
         # perform function calls until we get a response for the user
-        if func_call = msg.function_call
+        if tool_calls = msg.tool_calls
           discardable_tokens += resp.usage.completion_tokens
 
           # handle the AI not providing a valid function name, we want it to retry
           func_res = begin
-            executor.execute(func_call)
+            executor.execute(tool_calls)
           rescue ex
             Log.error(exception: ex) { "executing function call" }
             reply = "Encountered error: #{ex.message}"
             result = DriverResponse.new(reply).as(JSON::Serializable)
-            request.messages << OpenAI::ChatMessage.new(:function, result.to_pretty_json, func_call.name)
+            func_name = tool_calls.first?.try &.function.name || begin
+              # try to get function name from the exception. Assuming it was raised by executor
+              if (msg = ex.message) && msg.starts_with?("OpenAI called unknown function: name: '")
+                msg.lchop("OpenAI called unknown function: name: '")[...-2]
+              end
+            end || "unknown_function"
+            request.messages << OpenAI::ChatMessage.new(:tool, result.to_pretty_json, func_name)
             next
           end
 
           # process the function result
-          case func_res.name
-          when "task_complete"
-            cleanup_messages(request, discardable_tokens)
-            discardable_tokens = 0
-            summary = TaskCompleted.from_json func_call.arguments.as_s
-            yield({chat_id: chat_id, message: "condensing progress: #{summary.details}", type: :progress, function: func_res.name, usage: resp.usage, compressed_usage: @total_tokens})
-          when "list_function_schemas"
-            calculate_discard = true
-            discover = FunctionDiscovery.from_json func_call.arguments.as_s
-            yield({chat_id: chat_id, message: "checking #{discover.id} capabilities", type: :progress, function: func_res.name, usage: resp.usage})
-          when "call_function"
-            calculate_discard = true
-            execute = FunctionExecutor.from_json func_call.arguments.as_s
-            yield({chat_id: chat_id, message: "performing action: #{execute.id}.#{execute.function}(#{execute.parameters})", type: :progress, function: func_res.name, usage: resp.usage})
+          func_res.each_with_index do |res, index|
+            func_call = (tool_calls.find(tool_calls[index]) { |func| func.function.name == res.name }).function
+            case res.name
+            when "task_complete"
+              cleanup_messages(request, discardable_tokens)
+              discardable_tokens = 0
+              summary = TaskCompleted.from_json func_call.arguments.as_s
+              yield({chat_id: chat_id, message: "condensing progress: #{summary.details}", type: :progress, function: func_call.name, usage: resp.usage, compressed_usage: @total_tokens})
+            when "list_function_schemas"
+              calculate_discard = true
+              discover = FunctionDiscovery.from_json func_call.arguments.as_s
+              yield({chat_id: chat_id, message: "checking #{discover.id} capabilities", type: :progress, function: func_call.name, usage: resp.usage})
+            when "call_function"
+              calculate_discard = true
+              execute = FunctionExecutor.from_json func_call.arguments.as_s
+              yield({chat_id: chat_id, message: "performing action: #{execute.id}.#{execute.function}(#{execute.parameters})", type: :progress, function: func_call.name, usage: resp.usage})
+            end
+            request.messages << res
           end
-          request.messages << func_res
           next
         end
 
@@ -260,18 +269,21 @@ module PlaceOS::Api
 
     private def cleanup_messages(request, discardable_tokens)
       # keep task summaries
-      request.messages.reject! { |mess| mess.function_call || (mess.role.function? && mess.name != "task_complete") }
+      request.messages.reject! { |mess| mess.tool_calls || (mess.role.function? && mess.name != "task_complete") }
 
       # a good estimate of the total tokens once the cleanup is complete
       @total_tokens = @total_tokens - discardable_tokens
     end
 
-    private def save_history(chat_id : String, role : PlaceOS::Model::ChatMessage::Role, message : String, tokens : Int32, func_name : String? = nil, func_args : JSON::Any? = nil) : Nil
-      PlaceOS::Model::ChatMessage.create!(role: role, chat_id: chat_id, content: message, tokens: tokens, function_name: func_name, function_args: func_args)
+    private def save_history(chat_id : String, role : PlaceOS::Model::ChatMessage::Role, message : String, tokens : Int32, func_name : String? = nil,
+                             func_args : JSON::Any? = nil, call_id : String? = nil) : Nil
+      PlaceOS::Model::ChatMessage.create!(role: role, chat_id: chat_id, content: message, tokens: tokens, function_name: func_name,
+        function_args: func_args, tool_call_id: call_id)
     end
 
     private def save_history(chat_id : String, msg : OpenAI::ChatMessage)
-      save_history(chat_id, PlaceOS::Model::ChatMessage::Role.parse(msg.role.to_s), msg.content || "", msg.tokens, msg.name, msg.function_call.try &.arguments)
+      save_history(chat_id, PlaceOS::Model::ChatMessage::Role.parse(msg.role.to_s), msg.content || "", msg.tokens, msg.name,
+        msg.tool_calls.try &.first.function.arguments, msg.tool_call_id)
     end
 
     private def build_prompt(chat : PlaceOS::Model::Chat, chat_payload : Payload?)
@@ -302,18 +314,21 @@ module PlaceOS::Api
         messages.each { |m| save_history(chat.id.as(String), m) }
       else
         chat.messages.each do |hist|
-          func_call = nil
+          tool_calls = nil
           if hist.role.to_s == "function"
             if name = hist.function_name
               args = hist.function_args || JSON::Any.new(nil)
-              func_call = OpenAI::ChatFunctionCall.new(name, args)
+              if call_id = hist.tool_call_id
+                tool_calls = [OpenAI::ChatToolCall.new(call_id, "function", OpenAI::ChatFunctionCall.new(name, args))]
+              end
             end
           end
           messages << OpenAI::ChatMessage.new(
             role: OpenAI::ChatMessageRole.parse(hist.role.to_s),
             content: hist.content,
             name: hist.function_name,
-            function_call: func_call,
+            tool_calls: tool_calls,
+            tool_call_id: hist.tool_call_id,
             tokens: hist.tokens
           )
         end
