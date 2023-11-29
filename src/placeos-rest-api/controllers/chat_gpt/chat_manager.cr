@@ -307,7 +307,7 @@ module PlaceOS::Api
             str << "my user_id is: #{user.id}\n"
             str << "use these details in function calls as required.\n"
             str << "if you encounter an error, check the schema, check the error message and try again. An empty response is not an error, just the absence of something.\n"
-            str << "perform one task at a time, making as many function calls as required to complete a task. Once a task is complete call the task_complete function with details of the progress you've made.\n"
+            str << "perform one task at a time, making as many function calls as required to complete a task. Once a task is complete call the task_complete function with details of the progress you've made. Use this summary information to answer the user.\n"
             str << "the chat client prepends the date-time each message was sent at in the following format YYYY-MM-DD HH:mm:ss +ZZ:ZZ:ZZ"
           }
         )
