@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-1085 Add OpenAI Tool Call support ([#369](https://github.com/PlaceOS/rest-api/pull/369))
 - allow public.read to work
 - **chat_gpt**: make the default API model configurable
 - PPT-524 Integrate the build service into core ([#367](https://github.com/PlaceOS/rest-api/pull/367))
