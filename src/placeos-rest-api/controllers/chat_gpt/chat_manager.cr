@@ -126,7 +126,7 @@ module PlaceOS::Api
       loop do
         count += 1
         if count > 20
-          yield({chat_id: chat_id, message: "sorry, I am unable to complete that task", type: :response})
+          yield({chat_id: chat_id, message: "sorry, I am unable to complete that task.\nTry breaking the request into smaller tasks.", type: :response})
           request.messages.truncate(0..0) # leave only the prompt
           break
         end
@@ -158,11 +158,10 @@ module PlaceOS::Api
         end
         tracking_total = @total_tokens
 
-        # save relevant history
+        # track request history
         msg = resp.choices.first.message
         msg.tokens = resp.usage.completion_tokens
         request.messages << msg
-        save_history(chat_id, msg) unless msg.tool_calls || (msg.role.function? && msg.name != "task_complete")
 
         # perform function calls until we get a response for the user
         if tool_calls = msg.tool_calls
@@ -190,6 +189,8 @@ module PlaceOS::Api
             request.messages << res
           end
           next
+        else
+          save_history(chat_id, msg)
         end
 
         cleanup_messages(request, discardable_tokens)
