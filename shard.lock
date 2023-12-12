@@ -227,7 +227,7 @@ shards:
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
-    version: 1.0.0+git.commit.e614b076c9f185d0891b505ea74c4b5e7e6307b7
+    version: 1.1.0+git.commit.08a8710b6ff199aeb89a321ceea12f5e3c33cc68
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -263,7 +263,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.29.0
+    version: 9.30.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
