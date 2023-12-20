@@ -33,6 +33,7 @@ module PlaceOS::Api
     end
 
     getter! current_repo : Model::Repository
+    class_property repository_dir : String = File.expand_path("./repositories")
 
     ###############################################################################################
 
@@ -118,14 +119,32 @@ module PlaceOS::Api
     # lists the drivers in a repository
     @[AC::Route::GET("/:id/drivers")]
     def drivers : Array(String)
-      repository_folder = current_repo.folder_name
-      # Request to core:
-      # "/api/core/v1/drivers/?repository=#{repository}"
-      # Returns: `["path/to/file.cr"]`
-      drivers = Api::Systems.core_for(repository_folder, request_id) do |core_client|
-        core_client.drivers(repository_folder)
+      Dir.cd(fetch_repo) do
+        Dir.glob("drivers/**/*.cr").select do |file|
+          !file.ends_with?("_spec.cr") && File.open(file) do |f|
+            f.each_line.any? &.includes?("PlaceOS::Driver")
+          rescue
+            false
+          end
+        end
       end
-      drivers
+    end
+
+    private def fetch_repo
+      folder = Path.new(self.class.repository_dir, current_repo.id.as(String), current_repo.folder_name)
+      downloaded = Dir.exists?(folder)
+      Dir.mkdir_p(folder) unless downloaded
+      password = current_repo.decrypt_password if current_repo.password.presence
+      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
+      git = GitRepository::Commands.new(folder.to_s)
+      unless downloaded
+        git.init
+        git.add_origin repo.repository
+      end
+      git.run_git("fetch", {"--all"})
+      git.checkout current_repo.branch rescue git.checkout repo.default_branch
+
+      folder
     end
 
     # Returns the commits for a repository or file
@@ -167,7 +186,7 @@ module PlaceOS::Api
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&commit=#{commit_hash}"
       details = Api::Systems.core_for(driver_filename, request_id) do |core_client|
-        core_client.driver_details(driver_filename, commit, current_repo.folder_name, current_repo.branch)
+        core_client.driver_details(driver_filename, commit, current_repo.id.as(String), current_repo.branch)
       end
 
       # The raw JSON string is returned and we proxy that (no need to encode and decode)
