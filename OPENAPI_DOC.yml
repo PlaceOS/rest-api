@@ -18211,6 +18211,14 @@ components:
             support:
               type: boolean
               nullable: true
+            login_count:
+              type: integer
+              format: Int64
+              nullable: true
+            last_login:
+              type: string
+              format: date-time
+              nullable: true
             authority_id:
               type: string
               nullable: true
@@ -22231,6 +22239,13 @@ components:
           type: boolean
         support:
           type: boolean
+        login_count:
+          type: integer
+          format: Int64
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
         authority_id:
           type: string
           nullable: true
@@ -22245,6 +22260,7 @@ components:
       - groups
       - sys_admin
       - support
+      - login_count
     PlaceOS__Api__Users__AccessToken:
       type: object
       properties:
@@ -22323,6 +22339,13 @@ components:
             type: boolean
           support:
             type: boolean
+          login_count:
+            type: integer
+            format: Int64
+          last_login:
+            type: string
+            format: date-time
+            nullable: true
           authority_id:
             type: string
             nullable: true
@@ -22337,6 +22360,7 @@ components:
         - groups
         - sys_admin
         - support
+        - login_count
       - type: object
         properties:
           created_at:
@@ -22402,6 +22426,13 @@ components:
             type: boolean
           support:
             type: boolean
+          login_count:
+            type: integer
+            format: Int64
+          last_login:
+            type: string
+            format: date-time
+            nullable: true
           authority_id:
             type: string
             nullable: true
@@ -22416,6 +22447,7 @@ components:
         - groups
         - sys_admin
         - support
+        - login_count
       - type: object
         properties:
           created_at:
@@ -22633,6 +22665,14 @@ components:
           nullable: true
         support:
           type: boolean
+          nullable: true
+        login_count:
+          type: integer
+          format: Int64
+          nullable: true
+        last_login:
+          type: string
+          format: date-time
           nullable: true
         authority_id:
           type: string
