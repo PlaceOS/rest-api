@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 7.3.0
+    version: 7.3.1
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -15,7 +15,7 @@ shards:
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
-    version: 1.5.0
+    version: 1.6.1
 
   any_hash:
     git: https://github.com/sija/any_hash.cr.git
@@ -103,7 +103,7 @@ shards:
 
   exception_page:
     git: https://github.com/crystal-loot/exception_page.git
-    version: 0.3.1
+    version: 0.4.1
 
   exec_from:
     git: https://github.com/place-labs/exec_from.git
@@ -239,7 +239,7 @@ shards:
 
   place_calendar:
     git: https://github.com/placeos/calendar.git
-    version: 4.19.1
+    version: 4.19.2
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -255,11 +255,11 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.9.16
+    version: 6.9.17
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.63d201c6bc5d805bb05632531ca9e6fdd5e1dd0a
+    version: 2.7.1+git.commit.44a021f45df03441c5885a96c91ed863440c28ba
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -267,7 +267,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.35.7
+    version: 9.36.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -287,7 +287,7 @@ shards:
 
   raven:
     git: https://github.com/sija/raven.cr.git
-    version: 1.9.3+git.commit.30d884fbf8012478aba6bfa818640f7886879071
+    version: 1.9.3+git.commit.990a7650fb027cbe65705fc6dad228cddc76c503
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
