@@ -18219,6 +18219,64 @@ components:
               type: string
               format: date-time
               nullable: true
+            work_preferences:
+              type: array
+              items:
+                type: object
+                properties:
+                  day:
+                    type: string
+                    enum:
+                    - monday
+                    - tuesday
+                    - wednesday
+                    - thursday
+                    - friday
+                    - saturday
+                    - sunday
+                  start_time:
+                    type: number
+                    format: Float64
+                  end_time:
+                    type: number
+                    format: Float64
+                  location:
+                    type: string
+                required:
+                - day
+                - start_time
+                - end_time
+                - location
+              nullable: true
+            work_overrides:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  day:
+                    type: string
+                    enum:
+                    - monday
+                    - tuesday
+                    - wednesday
+                    - thursday
+                    - friday
+                    - saturday
+                    - sunday
+                  start_time:
+                    type: number
+                    format: Float64
+                  end_time:
+                    type: number
+                    format: Float64
+                  location:
+                    type: string
+                required:
+                - day
+                - start_time
+                - end_time
+                - location
+              nullable: true
             authority_id:
               type: string
               nullable: true
@@ -22246,6 +22304,62 @@ components:
           type: string
           format: date-time
           nullable: true
+        work_preferences:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+                enum:
+                - monday
+                - tuesday
+                - wednesday
+                - thursday
+                - friday
+                - saturday
+                - sunday
+              start_time:
+                type: number
+                format: Float64
+              end_time:
+                type: number
+                format: Float64
+              location:
+                type: string
+            required:
+            - day
+            - start_time
+            - end_time
+            - location
+        work_overrides:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              day:
+                type: string
+                enum:
+                - monday
+                - tuesday
+                - wednesday
+                - thursday
+                - friday
+                - saturday
+                - sunday
+              start_time:
+                type: number
+                format: Float64
+              end_time:
+                type: number
+                format: Float64
+              location:
+                type: string
+            required:
+            - day
+            - start_time
+            - end_time
+            - location
         authority_id:
           type: string
           nullable: true
@@ -22261,6 +22375,8 @@ components:
       - sys_admin
       - support
       - login_count
+      - work_preferences
+      - work_overrides
     PlaceOS__Api__Users__AccessToken:
       type: object
       properties:
@@ -22346,6 +22462,62 @@ components:
             type: string
             format: date-time
             nullable: true
+          work_preferences:
+            type: array
+            items:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
+          work_overrides:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
           authority_id:
             type: string
             nullable: true
@@ -22361,6 +22533,8 @@ components:
         - sys_admin
         - support
         - login_count
+        - work_preferences
+        - work_overrides
       - type: object
         properties:
           created_at:
@@ -22433,6 +22607,62 @@ components:
             type: string
             format: date-time
             nullable: true
+          work_preferences:
+            type: array
+            items:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
+          work_overrides:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
           authority_id:
             type: string
             nullable: true
@@ -22448,6 +22678,8 @@ components:
         - sys_admin
         - support
         - login_count
+        - work_preferences
+        - work_overrides
       - type: object
         properties:
           created_at:
@@ -22497,6 +22729,62 @@ components:
             type: array
             items:
               type: string
+          work_preferences:
+            type: array
+            items:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
+          work_overrides:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
           authority_id:
             type: string
             nullable: true
@@ -22509,6 +22797,8 @@ components:
         - email
         - deleted
         - groups
+        - work_preferences
+        - work_overrides
       - type: object
         properties:
           created_at:
@@ -22558,6 +22848,62 @@ components:
             type: array
             items:
               type: string
+          work_preferences:
+            type: array
+            items:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
+          work_overrides:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                day:
+                  type: string
+                  enum:
+                  - monday
+                  - tuesday
+                  - wednesday
+                  - thursday
+                  - friday
+                  - saturday
+                  - sunday
+                start_time:
+                  type: number
+                  format: Float64
+                end_time:
+                  type: number
+                  format: Float64
+                location:
+                  type: string
+              required:
+              - day
+              - start_time
+              - end_time
+              - location
           authority_id:
             type: string
             nullable: true
@@ -22570,6 +22916,8 @@ components:
         - email
         - deleted
         - groups
+        - work_preferences
+        - work_overrides
     PlaceOS__Model__User:
       type: object
       properties:
@@ -22673,6 +23021,64 @@ components:
         last_login:
           type: string
           format: date-time
+          nullable: true
+        work_preferences:
+          type: array
+          items:
+            type: object
+            properties:
+              day:
+                type: string
+                enum:
+                - monday
+                - tuesday
+                - wednesday
+                - thursday
+                - friday
+                - saturday
+                - sunday
+              start_time:
+                type: number
+                format: Float64
+              end_time:
+                type: number
+                format: Float64
+              location:
+                type: string
+            required:
+            - day
+            - start_time
+            - end_time
+            - location
+          nullable: true
+        work_overrides:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              day:
+                type: string
+                enum:
+                - monday
+                - tuesday
+                - wednesday
+                - thursday
+                - friday
+                - saturday
+                - sunday
+              start_time:
+                type: number
+                format: Float64
+              end_time:
+                type: number
+                format: Float64
+              location:
+                type: string
+            required:
+            - day
+            - start_time
+            - end_time
+            - location
           nullable: true
         authority_id:
           type: string
