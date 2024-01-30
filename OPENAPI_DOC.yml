@@ -18224,16 +18224,9 @@ components:
               items:
                 type: object
                 properties:
-                  day:
-                    type: string
-                    enum:
-                    - monday
-                    - tuesday
-                    - wednesday
-                    - thursday
-                    - friday
-                    - saturday
-                    - sunday
+                  day_of_week:
+                    type: integer
+                    format: Int64
                   start_time:
                     type: number
                     format: Float64
@@ -18243,7 +18236,7 @@ components:
                   location:
                     type: string
                 required:
-                - day
+                - day_of_week
                 - start_time
                 - end_time
                 - location
@@ -18253,16 +18246,9 @@ components:
               additionalProperties:
                 type: object
                 properties:
-                  day:
-                    type: string
-                    enum:
-                    - monday
-                    - tuesday
-                    - wednesday
-                    - thursday
-                    - friday
-                    - saturday
-                    - sunday
+                  day_of_week:
+                    type: integer
+                    format: Int64
                   start_time:
                     type: number
                     format: Float64
@@ -18272,7 +18258,7 @@ components:
                   location:
                     type: string
                 required:
-                - day
+                - day_of_week
                 - start_time
                 - end_time
                 - location
@@ -22309,16 +22295,9 @@ components:
           items:
             type: object
             properties:
-              day:
-                type: string
-                enum:
-                - monday
-                - tuesday
-                - wednesday
-                - thursday
-                - friday
-                - saturday
-                - sunday
+              day_of_week:
+                type: integer
+                format: Int64
               start_time:
                 type: number
                 format: Float64
@@ -22328,7 +22307,7 @@ components:
               location:
                 type: string
             required:
-            - day
+            - day_of_week
             - start_time
             - end_time
             - location
@@ -22337,16 +22316,9 @@ components:
           additionalProperties:
             type: object
             properties:
-              day:
-                type: string
-                enum:
-                - monday
-                - tuesday
-                - wednesday
-                - thursday
-                - friday
-                - saturday
-                - sunday
+              day_of_week:
+                type: integer
+                format: Int64
               start_time:
                 type: number
                 format: Float64
@@ -22356,7 +22328,7 @@ components:
               location:
                 type: string
             required:
-            - day
+            - day_of_week
             - start_time
             - end_time
             - location
@@ -22467,16 +22439,9 @@ components:
             items:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22486,7 +22451,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -22495,16 +22460,9 @@ components:
             additionalProperties:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22514,7 +22472,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -22612,16 +22570,9 @@ components:
             items:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22631,7 +22582,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -22640,16 +22591,9 @@ components:
             additionalProperties:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22659,7 +22603,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -22734,16 +22678,9 @@ components:
             items:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22753,7 +22690,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -22762,16 +22699,9 @@ components:
             additionalProperties:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22781,7 +22711,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -22853,16 +22783,9 @@ components:
             items:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22872,7 +22795,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -22881,16 +22804,9 @@ components:
             additionalProperties:
               type: object
               properties:
-                day:
-                  type: string
-                  enum:
-                  - monday
-                  - tuesday
-                  - wednesday
-                  - thursday
-                  - friday
-                  - saturday
-                  - sunday
+                day_of_week:
+                  type: integer
+                  format: Int64
                 start_time:
                   type: number
                   format: Float64
@@ -22900,7 +22816,7 @@ components:
                 location:
                   type: string
               required:
-              - day
+              - day_of_week
               - start_time
               - end_time
               - location
@@ -23027,16 +22943,9 @@ components:
           items:
             type: object
             properties:
-              day:
-                type: string
-                enum:
-                - monday
-                - tuesday
-                - wednesday
-                - thursday
-                - friday
-                - saturday
-                - sunday
+              day_of_week:
+                type: integer
+                format: Int64
               start_time:
                 type: number
                 format: Float64
@@ -23046,7 +22955,7 @@ components:
               location:
                 type: string
             required:
-            - day
+            - day_of_week
             - start_time
             - end_time
             - location
@@ -23056,16 +22965,9 @@ components:
           additionalProperties:
             type: object
             properties:
-              day:
-                type: string
-                enum:
-                - monday
-                - tuesday
-                - wednesday
-                - thursday
-                - friday
-                - saturday
-                - sunday
+              day_of_week:
+                type: integer
+                format: Int64
               start_time:
                 type: number
                 format: Float64
@@ -23075,7 +22977,7 @@ components:
               location:
                 type: string
             required:
-            - day
+            - day_of_week
             - start_time
             - end_time
             - location
