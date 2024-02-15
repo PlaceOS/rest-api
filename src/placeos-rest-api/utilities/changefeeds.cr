@@ -27,8 +27,6 @@ module PlaceOS::Api
       rescue
         nil
       ensure
-        # Terminate the changefeed
-        changefeed.stop
         channel.close
       end
     end
