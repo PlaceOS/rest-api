@@ -133,9 +133,10 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id/url")]
     def get_link(
       @[AC::Param::Info(description: "Link expiry period in minutes.", example: "60")]
-      expiry : Int32 = 1440
+      expiry : Int32 = TEMP_LINK_DEFAULT_MINUTES
     )
-      expiry = expiry > 1440 ? 1440 : expiry
+      max_expiry = TEMP_LINK_MAX_MINUTES
+      expiry = expiry > max_expiry ? max_expiry : expiry
       unless storage = current_upload.storage
         Log.warn { {message: "upload object associated storage not found", upload_id: current_upload.id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Upload missing associated storage")

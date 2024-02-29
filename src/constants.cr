@@ -36,6 +36,10 @@ module PlaceOS::Api
   OPENAI_API_MODEL  = ENV["OPENAI_API_MODEL"]? || "gpt-4-1106-preview"
   OPENAI_MAX_TOKENS = ENV["OPENAI_MAX_TOKENS"]?.try(&.to_i) || 11264
 
+  # Upload temporary links
+  TEMP_LINK_MAX_MINUTES     = ENV["TEMP_LINK_MAX_MINUTES"]?.try(&.to_i) || 1440
+  TEMP_LINK_DEFAULT_MINUTES = ENV["TEMP_LINK_DEFAULT_MINUTES"]?.try(&.to_i) || TEMP_LINK_MAX_MINUTES
+
   # CHANGELOG
   #################################################################################################
 
