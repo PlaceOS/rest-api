@@ -9,6 +9,9 @@ require "placeos-models/version"
 require "path"
 require "uri"
 
+require "perf_tools/mem_prof"
+require "perf_tools/fiber_trace"
+
 module PlaceOS::Api
   class Root < Application
     base "/api/engine/v2/"
@@ -233,6 +236,16 @@ module PlaceOS::Api
     def backfill
       success = SearchIngest::Client.client &.backfill
       raise "backfill failed" unless success
+    end
+
+    @[AC::Route::GET("/dump_memory_trace")]
+    def dump_memory_trace
+      resp = response
+      PerfTools::MemProf.log_object_counts(resp)
+      PerfTools::MemProf.log_object_sizes(resp)
+      PerfTools::MemProf.pretty_log_allocations(resp)
+      PerfTools::FiberTrace.pretty_log_fibers(resp)
+      @__render_called__ = true
     end
   end
 end

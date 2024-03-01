@@ -102,6 +102,9 @@ dependencies:
   openai:
     github: spider-gazelle/crystal-openai
 
+  perf_tools:
+    github: crystal-lang/perf-tools
+
 development_dependencies:
   # Linter
   ameba:

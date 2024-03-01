@@ -1,5 +1,7 @@
 require "option_parser"
 require "http/client"
+require "perf_tools/mem_prof"
+require "perf_tools/fiber_trace"
 
 # Server defaults
 port = 3000
@@ -105,6 +107,11 @@ Signal::TERM.trap &terminate
 server.run do
   PlaceOS::Api::Log.info { "listening on #{server.print_addresses}" }
   STDOUT.flush
+
+  PerfTools::MemProf.log_object_counts(STDOUT)
+  PerfTools::MemProf.log_object_sizes(STDOUT)
+  PerfTools::MemProf.pretty_log_allocations(STDOUT)
+  PerfTools::FiberTrace.pretty_log_fibers(STDOUT)
 end
 
 # Shutdown message
