@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN git clone https://github.com/PlaceOS/models
+RUN git clone -b PPT-526 https://github.com/PlaceOS/models
 RUN mv ./models/migration/db ./db
 
 ENV PATH /app/bin:$PATH
