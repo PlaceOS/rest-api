@@ -13992,7 +13992,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/signage:
+  /api/engine/v2/signage/playlists:
     get:
       summary: list media playlists uploaded for this domain
       tags:
@@ -14157,7 +14157,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/signage/{id}:
+  /api/engine/v2/signage/playlists/{id}:
     get:
       summary: return the details of the requested media playlist
       tags:
@@ -14438,7 +14438,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/signage/{id}/media:
+  /api/engine/v2/signage/playlists/{id}/media:
     get:
       summary: get the current list of media for the playlist
       tags:
@@ -14581,7 +14581,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/signage/{id}/media/revisions:
+  /api/engine/v2/signage/playlists/{id}/media/revisions:
     get:
       summary: returns the previous versions of a playlist
       tags:
@@ -14608,6 +14608,146 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PlaceOS__Model__Playlist__Revision'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/{system_id}:
+    get:
+      summary: return all the details for displaying signage
+      tags:
+      - Signage
+      operationId: PlaceOS::Api::Signage_display
+      parameters:
+      - name: system_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_PlaceOS__Model__ControlSystem___Nil_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/{system_id}/metrics:
+    post:
+      summary: update the metrics for production players
+      tags:
+      - Signage
+      operationId: PlaceOS::Api::Signage_update_metrics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__Signage__Metrics'
+        required: true
+      parameters:
+      - name: system_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        202:
+          description: Accepted
         409:
           description: Conflict
           content:
@@ -21701,6 +21841,180 @@ components:
                 type: string
                 nullable: true
           nullable: true
+        playlist_mappings:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          nullable: true
+        playlist_config:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+            - type: object
+              properties:
+                created_at:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                updated_at:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                name:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                authority_id:
+                  type: string
+                  nullable: true
+                orientation:
+                  type: string
+                  enum:
+                  - unspecified
+                  - landscape
+                  - portrait
+                  - square
+                  nullable: true
+                play_count:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                play_through_count:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                default_animation:
+                  type: string
+                  enum:
+                  - cut
+                  - cross_fade
+                  - slide_top
+                  - slide_left
+                  - slide_right
+                  - slide_bottom
+                  nullable: true
+                random:
+                  type: boolean
+                  nullable: true
+                enabled:
+                  type: boolean
+                  nullable: true
+                default_duration:
+                  type: integer
+                  format: Int32
+                  nullable: true
+                valid_from:
+                  type: string
+                  format: date-time
+                  nullable: true
+                valid_until:
+                  type: string
+                  format: date-time
+                  nullable: true
+                play_hours:
+                  type: string
+                  nullable: true
+                play_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                play_cron:
+                  type: string
+                  nullable: true
+                id:
+                  type: string
+                  nullable: true
+            - type: array
+              items:
+                type: string
+          nullable: true
+        playlist_media:
+          type: array
+          items:
+            type: object
+            properties:
+              created_at:
+                type: integer
+                format: Int64
+                nullable: true
+              updated_at:
+                type: integer
+                format: Int64
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              authority_id:
+                type: string
+                nullable: true
+              start_time:
+                type: integer
+                format: Int32
+                nullable: true
+              play_time:
+                type: integer
+                format: Int32
+                nullable: true
+              animation:
+                type: string
+                enum:
+                - cut
+                - cross_fade
+                - slide_top
+                - slide_left
+                - slide_right
+                - slide_bottom
+                nullable: true
+              media_type:
+                type: string
+                enum:
+                - image
+                - video
+                - plugin
+                - webpage
+                - external_image
+                nullable: true
+              orientation:
+                type: string
+                enum:
+                - unspecified
+                - landscape
+                - portrait
+                - square
+                nullable: true
+              media_uri:
+                type: string
+                nullable: true
+              media_id:
+                type: string
+                nullable: true
+              thumbnail_id:
+                type: string
+                nullable: true
+              play_count:
+                type: integer
+                format: Int64
+                nullable: true
+              valid_from:
+                type: string
+                format: date-time
+                nullable: true
+              valid_until:
+                type: string
+                format: date-time
+                nullable: true
+              id:
+                type: string
+                nullable: true
+          nullable: true
         id:
           type: string
           nullable: true
@@ -23032,6 +23346,1047 @@ components:
         id:
           type: string
           nullable: true
+    _PlaceOS__Model__ControlSystem___Nil_:
+      type: object
+      properties:
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        features:
+          type: array
+          items:
+            type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        bookable:
+          type: boolean
+          nullable: true
+        public:
+          type: boolean
+          nullable: true
+        display_name:
+          type: string
+          nullable: true
+        code:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        capacity:
+          type: integer
+          format: Int32
+          nullable: true
+        map_id:
+          type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        timezone:
+          type: object
+          nullable: true
+        support_url:
+          type: string
+          nullable: true
+        version:
+          type: integer
+          format: Int32
+          nullable: true
+        installed_ui_devices:
+          type: integer
+          format: Int32
+          nullable: true
+        zones:
+          type: array
+          items:
+            type: string
+          nullable: true
+        modules:
+          type: array
+          items:
+            type: string
+          nullable: true
+        orientation:
+          type: string
+          enum:
+          - unspecified
+          - landscape
+          - portrait
+          - square
+          nullable: true
+        playlists:
+          type: array
+          items:
+            type: string
+          nullable: true
+        signage:
+          type: boolean
+          nullable: true
+        remove_zones:
+          type: array
+          items:
+            type: string
+          nullable: true
+        add_zones:
+          type: array
+          items:
+            type: string
+          nullable: true
+        zone_data:
+          type: array
+          items:
+            type: object
+            properties:
+              created_at:
+                type: integer
+                format: Int64
+                nullable: true
+              updated_at:
+                type: integer
+                format: Int64
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              tags:
+                type: array
+                items:
+                  type: string
+                nullable: true
+              location:
+                type: string
+                nullable: true
+              display_name:
+                type: string
+                nullable: true
+              code:
+                type: string
+                nullable: true
+              type:
+                type: string
+                nullable: true
+              count:
+                type: integer
+                format: Int32
+                nullable: true
+              capacity:
+                type: integer
+                format: Int32
+                nullable: true
+              map_id:
+                type: string
+                nullable: true
+              timezone:
+                type: object
+                nullable: true
+              triggers:
+                type: array
+                items:
+                  type: string
+                nullable: true
+              images:
+                type: array
+                items:
+                  type: string
+                nullable: true
+              playlists:
+                type: array
+                items:
+                  type: string
+                nullable: true
+              parent_id:
+                type: string
+                nullable: true
+              remove_triggers:
+                type: array
+                items:
+                  type: string
+                nullable: true
+              add_triggers:
+                type: array
+                items:
+                  type: string
+                nullable: true
+              trigger_data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    created_at:
+                      type: integer
+                      format: Int64
+                      nullable: true
+                    updated_at:
+                      type: integer
+                      format: Int64
+                      nullable: true
+                    name:
+                      type: string
+                      nullable: true
+                    description:
+                      type: string
+                      nullable: true
+                    actions:
+                      type: object
+                      properties:
+                        functions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              mod:
+                                type: string
+                                nullable: true
+                              method:
+                                type: string
+                                nullable: true
+                              args:
+                                type: object
+                                additionalProperties:
+                                  type: object
+                                nullable: true
+                          nullable: true
+                        mailers:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              emails:
+                                type: array
+                                items:
+                                  type: string
+                                nullable: true
+                              content:
+                                type: string
+                                nullable: true
+                          nullable: true
+                      nullable: true
+                    conditions:
+                      type: object
+                      properties:
+                        comparisons:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              left:
+                                anyOf:
+                                - type: boolean
+                                - type: number
+                                  format: Float64
+                                - type: integer
+                                  format: Int64
+                                - type: object
+                                  properties:
+                                    mod:
+                                      type: string
+                                    status:
+                                      type: string
+                                    keys:
+                                      type: array
+                                      items:
+                                        type: string
+                                  required:
+                                  - mod
+                                  - status
+                                  - keys
+                                - type: string
+                                nullable: true
+                              operator:
+                                type: string
+                                enum:
+                                - and
+                                - equal
+                                - exclusive_or
+                                - greater_than
+                                - greater_than_or_equal
+                                - less_than
+                                - less_than_or_equal
+                                - not_equal
+                                - or
+                                nullable: true
+                              right:
+                                anyOf:
+                                - type: boolean
+                                - type: number
+                                  format: Float64
+                                - type: integer
+                                  format: Int64
+                                - type: object
+                                  properties:
+                                    mod:
+                                      type: string
+                                    status:
+                                      type: string
+                                    keys:
+                                      type: array
+                                      items:
+                                        type: string
+                                  required:
+                                  - mod
+                                  - status
+                                  - keys
+                                - type: string
+                                nullable: true
+                          nullable: true
+                        time_dependents:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                                enum:
+                                - at
+                                - cron
+                                nullable: true
+                              time:
+                                type: integer
+                                format: Int64
+                                nullable: true
+                              cron:
+                                type: string
+                                nullable: true
+                              timezone:
+                                type: string
+                                nullable: true
+                          nullable: true
+                      nullable: true
+                    debounce_period:
+                      type: integer
+                      format: Int32
+                      nullable: true
+                    important:
+                      type: boolean
+                      nullable: true
+                    enable_webhook:
+                      type: boolean
+                      nullable: true
+                    supported_methods:
+                      type: array
+                      items:
+                        type: string
+                      nullable: true
+                    control_system_id:
+                      type: string
+                      nullable: true
+                    trigger_instances:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          created_at:
+                            type: integer
+                            format: Int64
+                            nullable: true
+                          updated_at:
+                            type: integer
+                            format: Int64
+                            nullable: true
+                          enabled:
+                            type: boolean
+                            nullable: true
+                          triggered:
+                            type: boolean
+                            nullable: true
+                          important:
+                            type: boolean
+                            nullable: true
+                          exec_enabled:
+                            type: boolean
+                            nullable: true
+                          playlists:
+                            type: array
+                            items:
+                              type: string
+                            nullable: true
+                          webhook_secret:
+                            type: string
+                            nullable: true
+                          trigger_count:
+                            type: integer
+                            format: Int32
+                            nullable: true
+                          control_system_id:
+                            type: string
+                            nullable: true
+                          trigger_id:
+                            type: string
+                            nullable: true
+                          zone_id:
+                            type: string
+                            nullable: true
+                          name:
+                            type: string
+                            nullable: true
+                          control_system:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              id:
+                                type: string
+                            required:
+                            - name
+                            - id
+                            nullable: true
+                          id:
+                            type: string
+                            nullable: true
+                      nullable: true
+                    id:
+                      type: string
+                      nullable: true
+                nullable: true
+              id:
+                type: string
+                nullable: true
+              update_systems:
+                type: boolean
+            required:
+            - update_systems
+          nullable: true
+        module_data:
+          type: array
+          items:
+            type: object
+            properties:
+              created_at:
+                type: integer
+                format: Int64
+                nullable: true
+              updated_at:
+                type: integer
+                format: Int64
+                nullable: true
+              ip:
+                type: string
+                nullable: true
+              port:
+                type: integer
+                format: Int32
+                nullable: true
+              tls:
+                type: boolean
+                nullable: true
+              udp:
+                type: boolean
+                nullable: true
+              makebreak:
+                type: boolean
+                nullable: true
+              uri:
+                type: string
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              custom_name:
+                type: string
+                nullable: true
+              role:
+                type: string
+                enum:
+                - ssh
+                - device
+                - service
+                - websocket
+                - logic
+                nullable: true
+              connected:
+                type: boolean
+                nullable: true
+              running:
+                type: boolean
+                nullable: true
+              notes:
+                type: string
+                nullable: true
+              ignore_connected:
+                type: boolean
+                nullable: true
+              ignore_startstop:
+                type: boolean
+                nullable: true
+              control_system_id:
+                type: string
+                nullable: true
+              driver_id:
+                type: string
+                nullable: true
+              edge_id:
+                type: string
+                nullable: true
+              driver:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                    nullable: true
+                  module_name:
+                    type: string
+                    nullable: true
+                required:
+                - name
+                nullable: true
+              compiled:
+                type: boolean
+                nullable: true
+              control_system:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  zone_data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        created_at:
+                          type: integer
+                          format: Int64
+                          nullable: true
+                        updated_at:
+                          type: integer
+                          format: Int64
+                          nullable: true
+                        name:
+                          type: string
+                          nullable: true
+                        description:
+                          type: string
+                          nullable: true
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        location:
+                          type: string
+                          nullable: true
+                        display_name:
+                          type: string
+                          nullable: true
+                        code:
+                          type: string
+                          nullable: true
+                        type:
+                          type: string
+                          nullable: true
+                        count:
+                          type: integer
+                          format: Int32
+                          nullable: true
+                        capacity:
+                          type: integer
+                          format: Int32
+                          nullable: true
+                        map_id:
+                          type: string
+                          nullable: true
+                        timezone:
+                          type: object
+                          nullable: true
+                        triggers:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        images:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        playlists:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        parent_id:
+                          type: string
+                          nullable: true
+                        remove_triggers:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        add_triggers:
+                          type: array
+                          items:
+                            type: string
+                          nullable: true
+                        trigger_data:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              created_at:
+                                type: integer
+                                format: Int64
+                                nullable: true
+                              updated_at:
+                                type: integer
+                                format: Int64
+                                nullable: true
+                              name:
+                                type: string
+                                nullable: true
+                              description:
+                                type: string
+                                nullable: true
+                              actions:
+                                type: object
+                                properties:
+                                  functions:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        mod:
+                                          type: string
+                                          nullable: true
+                                        method:
+                                          type: string
+                                          nullable: true
+                                        args:
+                                          type: object
+                                          additionalProperties:
+                                            type: object
+                                          nullable: true
+                                    nullable: true
+                                  mailers:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        emails:
+                                          type: array
+                                          items:
+                                            type: string
+                                          nullable: true
+                                        content:
+                                          type: string
+                                          nullable: true
+                                    nullable: true
+                                nullable: true
+                              conditions:
+                                type: object
+                                properties:
+                                  comparisons:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        left:
+                                          anyOf:
+                                          - type: boolean
+                                          - type: number
+                                            format: Float64
+                                          - type: integer
+                                            format: Int64
+                                          - type: object
+                                            properties:
+                                              mod:
+                                                type: string
+                                              status:
+                                                type: string
+                                              keys:
+                                                type: array
+                                                items:
+                                                  type: string
+                                            required:
+                                            - mod
+                                            - status
+                                            - keys
+                                          - type: string
+                                          nullable: true
+                                        operator:
+                                          type: string
+                                          enum:
+                                          - and
+                                          - equal
+                                          - exclusive_or
+                                          - greater_than
+                                          - greater_than_or_equal
+                                          - less_than
+                                          - less_than_or_equal
+                                          - not_equal
+                                          - or
+                                          nullable: true
+                                        right:
+                                          anyOf:
+                                          - type: boolean
+                                          - type: number
+                                            format: Float64
+                                          - type: integer
+                                            format: Int64
+                                          - type: object
+                                            properties:
+                                              mod:
+                                                type: string
+                                              status:
+                                                type: string
+                                              keys:
+                                                type: array
+                                                items:
+                                                  type: string
+                                            required:
+                                            - mod
+                                            - status
+                                            - keys
+                                          - type: string
+                                          nullable: true
+                                    nullable: true
+                                  time_dependents:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        type:
+                                          type: string
+                                          enum:
+                                          - at
+                                          - cron
+                                          nullable: true
+                                        time:
+                                          type: integer
+                                          format: Int64
+                                          nullable: true
+                                        cron:
+                                          type: string
+                                          nullable: true
+                                        timezone:
+                                          type: string
+                                          nullable: true
+                                    nullable: true
+                                nullable: true
+                              debounce_period:
+                                type: integer
+                                format: Int32
+                                nullable: true
+                              important:
+                                type: boolean
+                                nullable: true
+                              enable_webhook:
+                                type: boolean
+                                nullable: true
+                              supported_methods:
+                                type: array
+                                items:
+                                  type: string
+                                nullable: true
+                              control_system_id:
+                                type: string
+                                nullable: true
+                              trigger_instances:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    created_at:
+                                      type: integer
+                                      format: Int64
+                                      nullable: true
+                                    updated_at:
+                                      type: integer
+                                      format: Int64
+                                      nullable: true
+                                    enabled:
+                                      type: boolean
+                                      nullable: true
+                                    triggered:
+                                      type: boolean
+                                      nullable: true
+                                    important:
+                                      type: boolean
+                                      nullable: true
+                                    exec_enabled:
+                                      type: boolean
+                                      nullable: true
+                                    playlists:
+                                      type: array
+                                      items:
+                                        type: string
+                                      nullable: true
+                                    webhook_secret:
+                                      type: string
+                                      nullable: true
+                                    trigger_count:
+                                      type: integer
+                                      format: Int32
+                                      nullable: true
+                                    control_system_id:
+                                      type: string
+                                      nullable: true
+                                    trigger_id:
+                                      type: string
+                                      nullable: true
+                                    zone_id:
+                                      type: string
+                                      nullable: true
+                                    name:
+                                      type: string
+                                      nullable: true
+                                    control_system:
+                                      type: object
+                                      properties:
+                                        name:
+                                          type: string
+                                        id:
+                                          type: string
+                                      required:
+                                      - name
+                                      - id
+                                      nullable: true
+                                    id:
+                                      type: string
+                                      nullable: true
+                                nullable: true
+                              id:
+                                type: string
+                                nullable: true
+                          nullable: true
+                        id:
+                          type: string
+                          nullable: true
+                        update_systems:
+                          type: boolean
+                      required:
+                      - update_systems
+                required:
+                - name
+                - zone_data
+                nullable: true
+              id:
+                type: string
+                nullable: true
+          nullable: true
+        playlist_mappings:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          nullable: true
+        playlist_config:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+            - type: object
+              properties:
+                created_at:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                updated_at:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                name:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                authority_id:
+                  type: string
+                  nullable: true
+                orientation:
+                  type: string
+                  enum:
+                  - unspecified
+                  - landscape
+                  - portrait
+                  - square
+                  nullable: true
+                play_count:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                play_through_count:
+                  type: integer
+                  format: Int64
+                  nullable: true
+                default_animation:
+                  type: string
+                  enum:
+                  - cut
+                  - cross_fade
+                  - slide_top
+                  - slide_left
+                  - slide_right
+                  - slide_bottom
+                  nullable: true
+                random:
+                  type: boolean
+                  nullable: true
+                enabled:
+                  type: boolean
+                  nullable: true
+                default_duration:
+                  type: integer
+                  format: Int32
+                  nullable: true
+                valid_from:
+                  type: string
+                  format: date-time
+                  nullable: true
+                valid_until:
+                  type: string
+                  format: date-time
+                  nullable: true
+                play_hours:
+                  type: string
+                  nullable: true
+                play_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                play_cron:
+                  type: string
+                  nullable: true
+                id:
+                  type: string
+                  nullable: true
+            - type: array
+              items:
+                type: string
+          nullable: true
+        playlist_media:
+          type: array
+          items:
+            type: object
+            properties:
+              created_at:
+                type: integer
+                format: Int64
+                nullable: true
+              updated_at:
+                type: integer
+                format: Int64
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              authority_id:
+                type: string
+                nullable: true
+              start_time:
+                type: integer
+                format: Int32
+                nullable: true
+              play_time:
+                type: integer
+                format: Int32
+                nullable: true
+              animation:
+                type: string
+                enum:
+                - cut
+                - cross_fade
+                - slide_top
+                - slide_left
+                - slide_right
+                - slide_bottom
+                nullable: true
+              media_type:
+                type: string
+                enum:
+                - image
+                - video
+                - plugin
+                - webpage
+                - external_image
+                nullable: true
+              orientation:
+                type: string
+                enum:
+                - unspecified
+                - landscape
+                - portrait
+                - square
+                nullable: true
+              media_uri:
+                type: string
+                nullable: true
+              media_id:
+                type: string
+                nullable: true
+              thumbnail_id:
+                type: string
+                nullable: true
+              play_count:
+                type: integer
+                format: Int64
+                nullable: true
+              valid_from:
+                type: string
+                format: date-time
+                nullable: true
+              valid_until:
+                type: string
+                format: date-time
+                nullable: true
+              id:
+                type: string
+                nullable: true
+          nullable: true
+        id:
+          type: string
+          nullable: true
+        update_triggers:
+          type: boolean
+      required:
+      - update_triggers
+      nullable: true
+    PlaceOS__Api__Signage__Metrics:
+      type: object
+      properties:
+        play_through_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: Int32
+        playlist_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: Int32
+        media_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: Int32
+      required:
+      - play_through_counts
+      - playlist_counts
+      - media_counts
     PlaceOS__Model__Storage:
       type: object
       properties:
@@ -25273,6 +26628,180 @@ components:
                     required:
                     - name
                     - zone_data
+                    nullable: true
+                  id:
+                    type: string
+                    nullable: true
+              nullable: true
+            playlist_mappings:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              nullable: true
+            playlist_config:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                - type: object
+                  properties:
+                    created_at:
+                      type: integer
+                      format: Int64
+                      nullable: true
+                    updated_at:
+                      type: integer
+                      format: Int64
+                      nullable: true
+                    name:
+                      type: string
+                      nullable: true
+                    description:
+                      type: string
+                      nullable: true
+                    authority_id:
+                      type: string
+                      nullable: true
+                    orientation:
+                      type: string
+                      enum:
+                      - unspecified
+                      - landscape
+                      - portrait
+                      - square
+                      nullable: true
+                    play_count:
+                      type: integer
+                      format: Int64
+                      nullable: true
+                    play_through_count:
+                      type: integer
+                      format: Int64
+                      nullable: true
+                    default_animation:
+                      type: string
+                      enum:
+                      - cut
+                      - cross_fade
+                      - slide_top
+                      - slide_left
+                      - slide_right
+                      - slide_bottom
+                      nullable: true
+                    random:
+                      type: boolean
+                      nullable: true
+                    enabled:
+                      type: boolean
+                      nullable: true
+                    default_duration:
+                      type: integer
+                      format: Int32
+                      nullable: true
+                    valid_from:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    valid_until:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    play_hours:
+                      type: string
+                      nullable: true
+                    play_at:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    play_cron:
+                      type: string
+                      nullable: true
+                    id:
+                      type: string
+                      nullable: true
+                - type: array
+                  items:
+                    type: string
+              nullable: true
+            playlist_media:
+              type: array
+              items:
+                type: object
+                properties:
+                  created_at:
+                    type: integer
+                    format: Int64
+                    nullable: true
+                  updated_at:
+                    type: integer
+                    format: Int64
+                    nullable: true
+                  name:
+                    type: string
+                    nullable: true
+                  description:
+                    type: string
+                    nullable: true
+                  authority_id:
+                    type: string
+                    nullable: true
+                  start_time:
+                    type: integer
+                    format: Int32
+                    nullable: true
+                  play_time:
+                    type: integer
+                    format: Int32
+                    nullable: true
+                  animation:
+                    type: string
+                    enum:
+                    - cut
+                    - cross_fade
+                    - slide_top
+                    - slide_left
+                    - slide_right
+                    - slide_bottom
+                    nullable: true
+                  media_type:
+                    type: string
+                    enum:
+                    - image
+                    - video
+                    - plugin
+                    - webpage
+                    - external_image
+                    nullable: true
+                  orientation:
+                    type: string
+                    enum:
+                    - unspecified
+                    - landscape
+                    - portrait
+                    - square
+                    nullable: true
+                  media_uri:
+                    type: string
+                    nullable: true
+                  media_id:
+                    type: string
+                    nullable: true
+                  thumbnail_id:
+                    type: string
+                    nullable: true
+                  play_count:
+                    type: integer
+                    format: Int64
+                    nullable: true
+                  valid_from:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  valid_until:
+                    type: string
+                    format: date-time
                     nullable: true
                   id:
                     type: string
