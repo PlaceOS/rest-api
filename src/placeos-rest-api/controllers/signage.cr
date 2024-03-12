@@ -43,7 +43,7 @@ module PlaceOS::Api
         system.playlist_config = playlist_config
 
         # grab all the media details that should be cached / used in the media lists
-        media_ids = playlist_config.values.map(&.[](1)).flatten.uniq!
+        media_ids = playlist_config.values.flat_map(&.[](1)).uniq!
         system.playlist_media = Model::Playlist::Item.where(id: media_ids).to_a
 
         # ensure response caching is configured correctly
