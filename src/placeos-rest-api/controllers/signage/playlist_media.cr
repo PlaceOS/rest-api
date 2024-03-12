@@ -1,4 +1,5 @@
 require "../application"
+require "upload-signer"
 
 module PlaceOS::Api
   class PlaylistMedia < Application
@@ -96,7 +97,17 @@ module PlaceOS::Api
     # remove a media item from the library
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
-      current_item.destroy
+      PgORM::Database.transaction do |_tx|
+        {current_item.media, current_item.thumbnail}.each do |upload|
+          next unless upload
+
+          storage = upload.storage || Model::Storage.storage_or_default(authority.id)
+          signer = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+          signer.delete_file(storage.bucket_name, upload.object_key, upload.resumable_id)
+          upload.destroy
+        end
+        current_item.destroy
+      end
     end
   end
 end
