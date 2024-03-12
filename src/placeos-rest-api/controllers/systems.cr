@@ -122,6 +122,19 @@ module PlaceOS::Api
 
       @[JSON::Field(key: "module_data")]
       property module_data_details : Array(Model::Module)? = nil
+
+      # source => list of playlists
+      # i.e. zone-xyz => ["playlist-1", "playlist-2"]
+      @[JSON::Field(key: "playlist_mappings")]
+      property playlist_mappings : Hash(String, Array(String))? = nil
+
+      # playlist-1 => [configuration, media list]
+      @[JSON::Field(key: "playlist_config")]
+      property playlist_config : Hash(String, Tuple(Model::Playlist, Array(String)))? = nil
+
+      # media details (for caching)
+      @[JSON::Field(key: "playlist_media")]
+      property playlist_media : Array(Model::Playlist::Item)? = nil
     end
 
     ###############################################################################################

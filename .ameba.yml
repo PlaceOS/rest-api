@@ -4,9 +4,18 @@ Style/PredicateName:
   Enabled: false
 Style/QueryBoolMethods:
   Enabled: false
+Naming/BlockParameterName:
+  Enabled: false
 Lint/LiteralInInterpolation:
   Enabled: false
 Style/ParenthesesAroundCondition:
   Enabled: false
   ExcludeTernary: true
   AllowSafeAssignment: true
+Naming/AccessorMethodName:
+  Enabled: false
+Lint/SpecFilename:
+  Enabled: false
+
+Documentation/DocumentationAdmonition:
+  Enabled: false
