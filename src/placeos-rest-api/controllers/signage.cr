@@ -26,7 +26,7 @@ module PlaceOS::Api
       last_updated = system.playlists_last_updated(playlist_map)
 
       # continue processing the request if the client has stale data
-      if stale? last_modified: last_updated
+      if stale?(last_modified: last_updated)
         playlist_ids = playlist_map.values.flatten.uniq!
         system.playlist_mappings = playlist_map
 
