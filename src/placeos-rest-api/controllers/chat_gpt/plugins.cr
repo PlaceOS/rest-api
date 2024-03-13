@@ -57,7 +57,7 @@ module PlaceOS::Api
       parameters : JSON::Any
     ) : JSON::Any | RequestError
       user_id = current_user.id
-      reply = "No response received"
+
       begin
         remote_driver = RemoteDriver.new(
           sys_id: system_id,
@@ -69,7 +69,7 @@ module PlaceOS::Api
           Model::Module.find!(module_id).edge_id.as(String)
         }
 
-        resp, code = remote_driver.exec(
+        resp, _code = remote_driver.exec(
           security: driver_clearance(user_token),
           function: function,
           args: parameters
