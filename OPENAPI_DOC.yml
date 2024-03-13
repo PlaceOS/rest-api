@@ -4747,6 +4747,174 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/chatgpt/plugin/{system_id}/function_schema/{id}:
+    get:
+      summary: if a request could benefit from a capability, obtain the list of function
+        schemas by providing the id string
+      tags:
+      - Plugin
+      operationId: PlaceOS::Api::ChatGPT::Plugin_function_schema
+      parameters:
+      - name: system_id
+        in: path
+        required: true
+        schema:
+          type: "null"
+      - name: id
+        in: path
+        description: The ID of the capability, exactly as provided in the capability
+          list
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamedTuple_function__String__description__String__parameters__Hash_String__JSON__Any__'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/chatgpt/plugin/{system_id}/call_function/{id}/{function}:
+    get:
+      summary: Executes functionality offered by a capability, you'll need to obtain
+        the function schema to perform requests
+      tags:
+      - Plugin
+      operationId: PlaceOS::Api::ChatGPT::Plugin_call_function
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JSON__Any'
+        required: true
+      parameters:
+      - name: system_id
+        in: path
+        required: true
+        schema:
+          type: "null"
+      - name: id
+        in: path
+        description: The ID of the capability, exactly as provided in the capability
+          list
+        required: true
+        schema:
+          type: string
+      - name: function
+        in: path
+        description: The name of the function to call
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSON__Any'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/cluster:
     get:
       summary: returns the list of core nodes running in the cluster
@@ -20131,6 +20299,30 @@ components:
       required:
       - role
       - timestamp
+    NamedTuple_function__String__description__String__parameters__Hash_String__JSON__Any__:
+      type: object
+      properties:
+        function:
+          type: string
+        description:
+          type: string
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+      required:
+      - function
+      - description
+      - parameters
+    JSON__Any:
+      type: object
+    NamedTuple_error__String_:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
     PlaceOS__Api__Cluster__NodeStatus:
       type: object
       properties:
@@ -22378,8 +22570,6 @@ components:
       additionalProperties:
         type: integer
         format: Int32
-    JSON__Any:
-      type: object
     Hash_String__PlaceOS__Api__Systems__FunctionDetails_:
       type: object
       additionalProperties:
