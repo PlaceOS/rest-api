@@ -20,9 +20,35 @@ module PlaceOS::Api
     getter! authority : Model::Authority?
     getter system_id : String { route_params["system_id"] }
 
-    # obtain the list of capabilities that this API can provide, must be called if the user requests some related functionality
+    class Details
+      include JSON::Serializable
+
+      getter prompt : String
+      getter capabilities : Array(Capabilities)
+      getter system_id : String
+      property user_information : UserInformation?
+      property current_time : Time?
+      property day_of_week : String?
+
+      record Capabilities, id : String, capability : String do
+        include JSON::Serializable
+      end
+
+      record UserInformation, id : String, name : String, email : String, phone : String?, swipe_card_number : String? do
+        include JSON::Serializable
+      end
+    end
+
+    # obtain the list of capabilities that this API can provide, must be called if the user requests some related functionality, to abtain details of the current user such as their name and email address and the current local time of the user.
     @[AC::Route::GET("/capabilities")]
-    def capabilities : ChatGPT::ChatManager::Payload
+    def capabilities : Details
+      user_id = current_user.id.as(String)
+      user = Model::User.find!(user_id)
+
+      if timezone = Model::ControlSystem.find!(system_id).timezone
+        now = Time.local(timezone)
+      end
+
       module_name, index = RemoteDriver.get_parts(ChatGPT::ChatManager::LLM_DRIVER)
 
       module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
@@ -34,7 +60,11 @@ module PlaceOS::Api
       raise "error obtaining capabilities on system #{system_id}" unless module_id
 
       storage = Driver::RedisStorage.new(module_id)
-      ChatGPT::ChatManager::Payload.from_json storage[ChatGPT::ChatManager::LLM_DRIVER_PROMPT]
+      details = Details.from_json storage[ChatGPT::ChatManager::LLM_DRIVER_PROMPT]
+      details.user_information = Details::UserInformation.new(user_id, user.name.as(String), user.email.to_s, user.phone.presence, user.card_number.presence)
+      details.current_time = now
+      details.day_of_week = now.try(&.day_of_week.to_s)
+      details
     end
 
     alias FunctionSchema = NamedTuple(function: String, description: String, parameters: Hash(String, JSON::Any))

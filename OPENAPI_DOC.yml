@@ -4750,7 +4750,9 @@ paths:
   /api/engine/v2/chatgpt/plugin/{system_id}/capabilities:
     get:
       summary: obtain the list of capabilities that this API can provide, must be
-        called if the user requests some related functionality
+        called if the user requests some related functionality, to abtain details
+        of the current user such as their name and email address and the current local
+        time of the user.
       tags:
       - Plugin
       operationId: PlaceOS::Api::ChatGPT::Plugin_capabilities
@@ -4766,7 +4768,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS__Api__ChatGPT__ChatManager__Payload'
+                $ref: '#/components/schemas/PlaceOS__Api__ChatGPT__Plugin__Details'
         409:
           description: Conflict
           content:
@@ -20369,7 +20371,7 @@ components:
       required:
       - role
       - timestamp
-    PlaceOS__Api__ChatGPT__ChatManager__Payload:
+    PlaceOS__Api__ChatGPT__Plugin__Details:
       type: object
       properties:
         prompt:
@@ -20388,6 +20390,33 @@ components:
             - capability
         system_id:
           type: string
+        user_information:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+              nullable: true
+            swipe_card_number:
+              type: string
+              nullable: true
+          required:
+          - id
+          - name
+          - email
+          nullable: true
+        current_time:
+          type: string
+          format: date-time
+          nullable: true
+        day_of_week:
+          type: string
+          nullable: true
       required:
       - prompt
       - capabilities
