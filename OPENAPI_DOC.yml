@@ -4747,6 +4747,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/chatgpt/plugin/{system_id}/capabilities:
+    get:
+      summary: obtain the list of capabilities that this API can provide, must be
+        called if the user requests some related functionality
+      tags:
+      - Plugin
+      operationId: PlaceOS::Api::ChatGPT::Plugin_capabilities
+      parameters:
+      - name: system_id
+        in: path
+        required: true
+        schema:
+          type: "null"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__ChatGPT__ChatManager__Payload'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/chatgpt/plugin/{system_id}/function_schema/{id}:
     get:
       summary: if a request could benefit from a capability, obtain the list of function
@@ -20299,6 +20369,29 @@ components:
       required:
       - role
       - timestamp
+    PlaceOS__Api__ChatGPT__ChatManager__Payload:
+      type: object
+      properties:
+        prompt:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              capability:
+                type: string
+            required:
+            - id
+            - capability
+        system_id:
+          type: string
+      required:
+      - prompt
+      - capabilities
+      - system_id
     NamedTuple_function__String__description__String__parameters__Hash_String__JSON__Any__:
       type: object
       properties:

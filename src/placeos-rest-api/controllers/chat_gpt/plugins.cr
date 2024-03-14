@@ -1,5 +1,6 @@
 require "../application"
 require "../chat_gpt"
+require "./chat_manager"
 
 module PlaceOS::Api
   class ChatGPT::Plugin < Application
@@ -18,6 +19,23 @@ module PlaceOS::Api
 
     getter! authority : Model::Authority?
     getter system_id : String { route_params["system_id"] }
+
+    # obtain the list of capabilities that this API can provide, must be called if the user requests some related functionality
+    @[AC::Route::GET("/capabilities")]
+    def capabilities : ChatGPT::ChatManager::Payload
+      module_name, index = RemoteDriver.get_parts(ChatGPT::ChatManager::LLM_DRIVER)
+
+      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
+        system_id: system_id,
+        module_name: module_name,
+        index: index
+      )
+
+      raise "error obtaining capabilities on system #{system_id}" unless module_id
+
+      storage = Driver::RedisStorage.new(module_id)
+      ChatGPT::ChatManager::Payload.from_json storage[ChatGPT::ChatManager::LLM_DRIVER_PROMPT]
+    end
 
     alias FunctionSchema = NamedTuple(function: String, description: String, parameters: Hash(String, JSON::Any))
 
