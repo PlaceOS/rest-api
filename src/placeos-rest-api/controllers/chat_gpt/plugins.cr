@@ -70,12 +70,12 @@ module PlaceOS::Api
     alias FunctionSchema = NamedTuple(function: String, description: String, parameters: Hash(String, JSON::Any))
 
     # if a request could benefit from a capability, obtain the list of function schemas by providing the id string
-    @[AC::Route::GET("/function_schema/:id")]
+    @[AC::Route::GET("/function_schema/:capability_id")]
     def function_schema(
       @[AC::Param::Info(description: "The ID of the capability, exactly as provided in the capability list")]
-      id : String
+      capability_id : String
     ) : Array(FunctionSchema)
-      module_name, index = RemoteDriver.get_parts(id)
+      module_name, index = RemoteDriver.get_parts(capability_id)
 
       module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
         system_id: system_id,
@@ -83,7 +83,7 @@ module PlaceOS::Api
         index: index
       )
 
-      raise "error obtaining capability, #{id} not found on system #{system_id}" unless module_id
+      raise "error obtaining capability, #{capability_id} not found on system #{system_id}" unless module_id
 
       storage = Driver::RedisStorage.new(module_id)
       Array(FunctionSchema).from_json storage["function_schemas"]
@@ -91,25 +91,25 @@ module PlaceOS::Api
 
     alias RequestError = NamedTuple(error: String)
 
-    # Executes functionality offered by a capability, you'll need to obtain the function schema to perform requests
-    @[AC::Route::GET("/call_function/:id/:function", body: :parameters, status: {
+    # Executes functionality offered by a capability, you'll need to obtain the function schema to perform requests. Then to use this operation you'll need to provide the capability id and the function name params
+    @[AC::Route::POST("/call_function/:capability_id/:function_name", body: :payload, status: {
       JSON::Any                 => HTTP::Status::OK,
       NamedTuple(error: String) => HTTP::Status::BAD_REQUEST,
     })]
     def call_function(
       @[AC::Param::Info(description: "The ID of the capability, exactly as provided in the capability list")]
-      id : String,
+      capability_id : String,
       @[AC::Param::Info(description: "The name of the function to call")]
-      function : String,
-      @[AC::Param::Info(description: "a JSON hash representing the named arguments of the function, as per the JSON schema provided")]
-      parameters : JSON::Any
-    ) : JSON::Any | RequestError
+      function_name : String,
+      @[AC::Param::Info(description: "a JSON string representing the named arguments of the function, as per the JSON schema provided")]
+      payload : NamedTuple(function_params: String)
+    ) : NamedTuple(response: String) | RequestError
       user_id = current_user.id
 
       begin
         remote_driver = RemoteDriver.new(
           sys_id: system_id,
-          module_name: id,
+          module_name: capability_id,
           index: 1,
           discovery: Application.core_discovery,
           user_id: user_id,
@@ -119,13 +119,13 @@ module PlaceOS::Api
 
         resp, _code = remote_driver.exec(
           security: driver_clearance(user_token),
-          function: function,
-          args: parameters
+          function: function_name,
+          args: JSON.parse(payload[:function_params])
         )
 
-        JSON.parse(resp)
+        {response: resp}
       rescue error
-        Log.error(exception: error) { {id: id, function: function, args: parameters.to_s} }
+        Log.error(exception: error) { {id: capability_id, function: function_name, args: payload[:function_params]} }
         {error: "Encountered error: #{error.message}"}
       end
     end

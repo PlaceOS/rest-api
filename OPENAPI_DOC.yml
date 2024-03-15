@@ -4819,7 +4819,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/chatgpt/plugin/{system_id}/function_schema/{id}:
+  /api/engine/v2/chatgpt/plugin/{system_id}/function_schema/{capability_id}:
     get:
       summary: if a request could benefit from a capability, obtain the list of function
         schemas by providing the id string
@@ -4832,7 +4832,7 @@ paths:
         required: true
         schema:
           type: "null"
-      - name: id
+      - name: capability_id
         in: path
         description: The ID of the capability, exactly as provided in the capability
           list
@@ -4898,10 +4898,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/chatgpt/plugin/{system_id}/call_function/{id}/{function}:
-    get:
+  /api/engine/v2/chatgpt/plugin/{system_id}/call_function/{capability_id}/{function_name}:
+    post:
       summary: Executes functionality offered by a capability, you'll need to obtain
-        the function schema to perform requests
+        the function schema to perform requests. Then to use this operation you'll
+        need to provide the capability id and the function name params
       tags:
       - Plugin
       operationId: PlaceOS::Api::ChatGPT::Plugin_call_function
@@ -4909,7 +4910,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/JSON__Any'
+              $ref: '#/components/schemas/NamedTuple_function_params__String_'
         required: true
       parameters:
       - name: system_id
@@ -4917,14 +4918,14 @@ paths:
         required: true
         schema:
           type: "null"
-      - name: id
+      - name: capability_id
         in: path
         description: The ID of the capability, exactly as provided in the capability
           list
         required: true
         schema:
           type: string
-      - name: function
+      - name: function_name
         in: path
         description: The name of the function to call
         required: true
@@ -4936,7 +4937,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JSON__Any'
+                $ref: '#/components/schemas/NamedTuple_response__String_'
         400:
           description: Bad Request
           content:
@@ -20436,6 +20437,13 @@ components:
       - function
       - description
       - parameters
+    NamedTuple_function_params__String_:
+      type: object
+      properties:
+        function_params:
+          type: string
+      required:
+      - function_params
     JSON__Any:
       type: object
     NamedTuple_error__String_:
@@ -20445,6 +20453,13 @@ components:
           type: string
       required:
       - error
+    NamedTuple_response__String_:
+      type: object
+      properties:
+        response:
+          type: string
+      required:
+      - response
     PlaceOS__Api__Cluster__NodeStatus:
       type: object
       properties:
