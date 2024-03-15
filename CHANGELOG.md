@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **chat_gpt/plugin**: interaction API ([#378](https://github.com/PlaceOS/rest-api/pull/378))
 - add signage API [PPT-1040] ([#377](https://github.com/PlaceOS/rest-api/pull/377))
 - **uploads**: add temp link env vars
 - PPT-1085 Add OpenAI Tool Call support ([#369](https://github.com/PlaceOS/rest-api/pull/369))
