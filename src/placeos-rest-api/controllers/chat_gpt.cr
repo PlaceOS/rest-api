@@ -89,4 +89,4 @@ module PlaceOS::Api
   end
 end
 
-require "./chat_gpt/chat_manager"
+require "./chat_gpt/*"

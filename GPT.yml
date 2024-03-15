@@ -1,0 +1,221 @@
+---
+openapi: 3.0.3
+info:
+  description: PlaceOS REST-API description
+  title: rest-api
+  version: v2
+
+# The server URL is required to be customised per PlaceOS client
+servers:
+  - url: https://placeos-dev.aca.im
+
+# The System ID's for each path should be changed to applicable one for the client
+paths:
+  /api/engine/v2/chatgpt/plugin/sys-ELNF3KjDuK/capabilities:
+    get:
+      summary: obtain the list of capabilities that this API can provide, must be
+        called if the user requests some related functionality
+      tags:
+      - Plugin
+      operationId: capabilities
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prompt:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        capability:
+                          type: string
+                      required:
+                      - id
+                      - capability
+                  system_id:
+                    type: string
+                  user_information:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                        nullable: true
+                      swipe_card_number:
+                        type: string
+                        nullable: true
+                    required:
+                    - id
+                    - name
+                    - email
+                    nullable: true
+                  current_time:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  day_of_week:
+                    type: string
+                    nullable: true
+                required:
+                - prompt
+                - capabilities
+                - system_id
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    nullable: true
+                  backtrace:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+  /api/engine/v2/chatgpt/plugin/sys-ELNF3KjDuK/function_schema/{capability_id}:
+    get:
+      summary: if a request could benefit from a capability, obtain the list of function
+        schemas by providing the id string
+      tags:
+      - Plugin
+      operationId: function_schema
+      parameters:
+      - name: capability_id
+        in: path
+        description: The ID of the capability, exactly as provided in the capability
+          list
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    function:
+                      type: string
+                    description:
+                      type: string
+                    parameters:
+                      type: object
+                      additionalProperties:
+                        type: object
+                  required:
+                  - function
+                  - description
+                  - parameters
+
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    nullable: true
+                  backtrace:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+  /api/engine/v2/chatgpt/plugin/sys-ELNF3KjDuK/call_function/{capability_id}/{function_name}:
+    post:
+      summary: Executes functionality offered by a capability, you'll need to obtain
+        the function schema to perform requests. Then to use this operation you'll
+        need to provide the capability id and the function name params
+      tags:
+      - Plugin
+      operationId: call_function
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                function_params:
+                  type: string
+              required:
+              - function_params
+        required: true
+      parameters:
+      - name: capability_id
+        in: path
+        description: The ID of the capability, exactly as provided in the capability
+          list
+        required: true
+        schema:
+          type: string
+      - name: function_name
+        in: path
+        description: The name of the function to call
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                required:
+                - response
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    nullable: true
+                  backtrace:
+                    type: array
+                    items:
+                      type: string
+                    nullable: true
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
