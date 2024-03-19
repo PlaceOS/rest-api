@@ -157,6 +157,9 @@ paths:
       tags:
       - Plugin
       operationId: call_function
+      # Don't prompt before calling these functions as the actions are not dangerous
+      # may also prompt the user to optionally always allow
+      x-openai-isConsequential: false
       requestBody:
         content:
           application/json:
