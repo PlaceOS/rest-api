@@ -10,7 +10,9 @@ module PlaceOS::Api
         uri = Model::Generator.shortener(redirect_to).save!
         id = uri.id.as(String)
         path = File.join(ShortURL.base_route, id, "redirect")
-        result = client.get(path: path)
+        result = client.get(path: path, headers: HTTP::Headers{
+          "Host" => "localhost",
+        })
 
         result.headers["Location"]?.should eq redirect_to
         result.status_code.should eq 302
