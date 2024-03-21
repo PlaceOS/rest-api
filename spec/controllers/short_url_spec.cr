@@ -15,7 +15,7 @@ module PlaceOS::Api
         })
 
         result.headers["Location"]?.should eq redirect_to
-        result.status_code.should eq 302
+        result.status_code.should eq 303
         uri.destroy
       end
     end
