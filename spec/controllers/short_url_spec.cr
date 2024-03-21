@@ -9,7 +9,7 @@ module PlaceOS::Api
         redirect_to = "https://google.com.au/maps"
         uri = Model::Generator.shortener(redirect_to).save!
         id = uri.id.as(String)
-        path = File.join(ShortURL.base_route, id)
+        path = File.join(ShortURL.base_route, id, "redirect")
         result = client.get(path: path)
 
         result.headers["Location"]?.should eq redirect_to
