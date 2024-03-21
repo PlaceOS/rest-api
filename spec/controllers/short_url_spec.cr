@@ -12,8 +12,8 @@ module PlaceOS::Api
         path = File.join(ShortURL.base_route, id)
         result = client.get(path: path)
 
-        result.success?.should be_true
         result.headers["Location"]?.should eq redirect_to
+        result.status_code.should eq 302
         uri.destroy
       end
     end
