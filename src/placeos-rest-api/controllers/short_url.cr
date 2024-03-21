@@ -78,9 +78,11 @@ module PlaceOS::Api
     def update : Model::Shortener
       url = url_update
       current = current_url
+      current_count = current.redirect_count
       current.assign_attributes(url)
       current.authority_id = authority.id
       current.user = current_user
+      current.redirect_count = current_count
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -91,6 +93,7 @@ module PlaceOS::Api
       url = url_update
       url.authority_id = authority.id
       url.user = current_user
+      url.redirect_count = 0_i64
       raise Error::ModelValidation.new(url.errors) unless url.save
       url
     end
@@ -99,6 +102,17 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_url.destroy
+    end
+
+    # add a redirect path without security
+    skip_action :authorize!, only: :redirect
+    skip_action :set_user_id, only: :redirect
+
+    # redirects to the URI specified by the provided short URL id
+    @[AC::Route::GET("/:id/redirect", status_code: HTTP::Status::SEE_OTHER)]
+    def redirect : Nil
+      current_url.increment_redirect_count
+      response.headers["Location"] = current_url.uri
     end
   end
 end
