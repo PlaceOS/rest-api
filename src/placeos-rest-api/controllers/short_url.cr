@@ -1,4 +1,6 @@
 require "./application"
+require "qr-code"
+require "qr-code/export/png"
 
 module PlaceOS::Api
   class ShortURL < Application
@@ -113,6 +115,67 @@ module PlaceOS::Api
     def redirect : Nil
       current_url.increment_redirect_count
       response.headers["Location"] = current_url.uri
+    end
+
+    # obtains an SVG QR code for the specified short URL
+    @[AC::Route::GET("/:id/qr_code.svg")]
+    def svg_qr : String
+      # remove the "uri-" prefix from the id
+      id = current_url.id.as(String)[4..-1]
+      response.headers["Content-Type"] = "image/svg+xml"
+      response.headers["Content-Disposition"] = "inline"
+
+      short_uri = "https://#{request.headers["Host"]}/r/#{id}"
+      QRCode.new(short_uri).as_svg
+    end
+
+    # obtains an PNG QR code for the specified short URL with optional resolution
+    @[AC::Route::GET("/:id/qr_code.png")]
+    def png_qr(
+      @[AC::Param::Info(description: "size of the QR code in pixels. Between 72px and 512px")]
+      size : Int32 = 256
+    ) : Nil
+      # remove the "uri-" prefix from the id
+      id = current_url.id.as(String)[4..-1]
+      size = size.clamp(72, 512)
+      size += size % 2 # ensure an even number
+
+      response.headers["Content-Disposition"] = "inline"
+      short_uri = "https://#{request.headers["Host"]}/r/#{id}"
+      png_qr_response(short_uri, size)
+    end
+
+    enum Format
+      SVG
+      PNG
+    end
+
+    # helper for generating QR codes with user defined content
+    @[AC::Route::GET("/qr_code")]
+    def generate_qr_code(
+      @[AC::Param::Info(description: "the contents of the QR code")]
+      content : String,
+      @[AC::Param::Info(description: "file format of the response")]
+      format : Format = Format::SVG,
+      @[AC::Param::Info(description: "size of the QR code in pixels. Between 72px and 512px")]
+      size : Int32 = 256
+    ) : String?
+      response.headers["Content-Disposition"] = "inline"
+
+      case format
+      in .svg?
+        response.headers["Content-Type"] = "image/svg+xml"
+        QRCode.new(content).as_svg
+      in .png?
+        png_qr_response(content, size)
+      end
+    end
+
+    protected def png_qr_response(content : String, size : Int32) : Nil
+      response.headers["Content-Type"] = "image/png"
+      @__render_called__ = true
+      png_bytes = QRCode.new(content).as_png(size: size)
+      response.write png_bytes
     end
   end
 end

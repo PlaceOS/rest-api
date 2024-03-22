@@ -281,6 +281,10 @@ shards:
     git: https://github.com/jeromegn/protobuf.cr.git
     version: 2.3.0
 
+  qr-code:
+    git: https://github.com/spider-gazelle/qr-code.git
+    version: 1.0.3
+
   raven:
     git: https://github.com/sija/raven.cr.git
     version: 1.9.3+git.commit.990a7650fb027cbe65705fc6dad228cddc76c503
@@ -328,6 +332,14 @@ shards:
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
     version: 1.6.1
+
+  stumpy_core:
+    git: https://github.com/stumpycr/stumpy_core.git
+    version: 1.9.1
+
+  stumpy_png:
+    git: https://github.com/stumpycr/stumpy_png.git
+    version: 5.0.1
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
