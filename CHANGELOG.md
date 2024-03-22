@@ -50,6 +50,7 @@
 
 ### Fix
 
+- **short_url**: svg rendering
 - **playlist_media**: remove media from bucket
 - **changefeeds**: ensure change listener for drivers table remain intact ([#375](https://github.com/PlaceOS/rest-api/pull/375))
 - **user**: change WorktimePreference day to day_of_week ([#372](https://github.com/PlaceOS/rest-api/pull/372))
