@@ -243,7 +243,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.13.0+git.commit.5b6a64de16d952a8dcc60a35fc7ed0dd053fe32e
+    version: 4.13.1+git.commit.4e71add003df64596789c4f91ea5fc91cb55f616
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -263,7 +263,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.42.2
+    version: 9.44.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -280,6 +280,10 @@ shards:
   protobuf:
     git: https://github.com/jeromegn/protobuf.cr.git
     version: 2.3.0
+
+  qr-code:
+    git: https://github.com/spider-gazelle/qr-code.git
+    version: 1.0.3
 
   raven:
     git: https://github.com/sija/raven.cr.git
@@ -328,6 +332,14 @@ shards:
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
     version: 1.6.1
+
+  stumpy_core:
+    git: https://github.com/stumpycr/stumpy_core.git
+    version: 1.9.1
+
+  stumpy_png:
+    git: https://github.com/stumpycr/stumpy_png.git
+    version: 5.0.1
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
