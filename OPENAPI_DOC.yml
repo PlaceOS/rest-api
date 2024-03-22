@@ -14313,10 +14313,6 @@ paths:
       responses:
         200:
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/String'
         409:
           description: Conflict
           content:
@@ -14476,10 +14472,6 @@ paths:
       responses:
         200:
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/_String___Nil_'
         409:
           description: Conflict
           content:
@@ -24279,9 +24271,6 @@ components:
         id:
           type: string
           nullable: true
-    _String___Nil_:
-      type: string
-      nullable: true
     PlaceOS__Model__Playlist__Item:
       type: object
       properties:

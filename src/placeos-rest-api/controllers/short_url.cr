@@ -119,14 +119,14 @@ module PlaceOS::Api
 
     # obtains an SVG QR code for the specified short URL
     @[AC::Route::GET("/:id/qr_code.svg")]
-    def svg_qr : String
+    def svg_qr : Nil
       # remove the "uri-" prefix from the id
       id = current_url.id.as(String)[4..-1]
       response.headers["Content-Type"] = "image/svg+xml"
       response.headers["Content-Disposition"] = "inline"
 
       short_uri = "https://#{request.headers["Host"]}/r/#{id}"
-      QRCode.new(short_uri).as_svg
+      svg_qr_response short_uri
     end
 
     # obtains an PNG QR code for the specified short URL with optional resolution
@@ -159,13 +159,12 @@ module PlaceOS::Api
       format : Format = Format::SVG,
       @[AC::Param::Info(description: "size of the QR code in pixels. Between 72px and 512px")]
       size : Int32 = 256
-    ) : String?
+    ) : Nil
       response.headers["Content-Disposition"] = "inline"
 
       case format
       in .svg?
-        response.headers["Content-Type"] = "image/svg+xml"
-        QRCode.new(content).as_svg
+        svg_qr_response content
       in .png?
         png_qr_response(content, size)
       end
@@ -176,6 +175,13 @@ module PlaceOS::Api
       @__render_called__ = true
       png_bytes = QRCode.new(content).as_png(size: size)
       response.write png_bytes
+    end
+
+    protected def svg_qr_response(content : String) : Nil
+      response.headers["Content-Type"] = "image/svg+xml"
+      @__render_called__ = true
+      svg = QRCode.new(content).as_svg
+      response << svg
     end
   end
 end
