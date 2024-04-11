@@ -1,4 +1,4 @@
-require "hound-dog"
+require "redis_service_manager"
 require "tasker"
 
 module PlaceOS::Api
@@ -17,10 +17,31 @@ module PlaceOS::Api
 
     private getter edge_lock = Mutex.new(protection: :reentrant)
 
-    getter core_discovery : Api::Discovery::Core
+    getter core_discovery : Clustering::Discovery
 
-    def initialize(@core_discovery : Api::Discovery::Core)
-      @core_discovery.callbacks << ->rebalance(Array(HoundDog::Service::Node))
+    def initialize(@core_discovery : Clustering::Discovery)
+      spawn { detect_rebalance }
+    end
+
+    # detect rebalance - loop every 6 seconds
+    protected def detect_rebalance
+      current_nodes = core_discovery.nodes
+      loop do
+        begin
+          sleep 6
+          new_nodes = core_discovery.nodes
+          if current_nodes != new_nodes
+            current_nodes = new_nodes
+            rebalance
+          end
+        rescue error
+          Log.warn(exception: error) { "error rebalancing edge connections" }
+        end
+      end
+    rescue error
+      Log.warn(exception: error) { "error starting rebalance detection loop" }
+      sleep 1
+      spawn { detect_rebalance }
     end
 
     def add_edge(edge_id : String, socket : HTTP::WebSocket)
@@ -36,7 +57,7 @@ module PlaceOS::Api
           link_edge(socket, edge_id)
         else
           node_found = core_discovery.find(edge_id)
-          add_core(edge_id, current_node: node_found)
+          add_core(edge_id, uri: node_found)
           ping_tasks[edge_id] = Tasker.every(10.seconds) do
             socket.ping rescue nil
             core_sockets[edge_id].ping rescue nil
@@ -91,7 +112,7 @@ module PlaceOS::Api
 
     def add_core(
       edge_id : String,
-      current_node : HoundDog::Service::Node,
+      uri : URI,
       reconnect : Bool = false
     )
       # No need to change connection
@@ -101,7 +122,6 @@ module PlaceOS::Api
 
       Log.debug { {edge_id: edge_id, message: "adding core socket"} }
 
-      uri = current_node[:uri]
       uri.query = "edge_id=#{edge_id}"
       uri.path = "/api/core/v1/edge/control"
 
@@ -175,7 +195,7 @@ module PlaceOS::Api
       edge_socket.on_binary { |bytes| core_sockets[edge_id].stream &.write(bytes) }
     end
 
-    def rebalance(nodes : Array(HoundDog::Service::Node))
+    def rebalance
       Log.info { "rebalancing edge connections" }
       edge_lock.synchronize do
         sockets = edge_sockets.values + core_sockets.values

@@ -1,5 +1,4 @@
 require "./application"
-require "../utilities/core_discovery"
 
 require "pg-orm"
 require "search-ingest/client"
@@ -41,9 +40,6 @@ module PlaceOS::Api
       Promise.all(
         Promise.defer {
           check_resource?("redis") { ::PlaceOS::Driver::RedisStorage.with_redis &.ping }
-        },
-        Promise.defer {
-          check_resource?("etcd") { Discovery::Core.instance.etcd &.maintenance.status }
         },
         Promise.defer {
           check_resource?("postgres") { pg_healthcheck }

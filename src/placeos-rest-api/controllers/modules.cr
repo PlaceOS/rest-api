@@ -315,7 +315,6 @@ module PlaceOS::Api
         module_id: id,
         sys_id: sys_id,
         module_name: current_module.name,
-        discovery: self.class.core_discovery,
         user_id: current_user.id,
       ) { |module_id|
         Model::Module.find!(module_id).edge_id.as(String)

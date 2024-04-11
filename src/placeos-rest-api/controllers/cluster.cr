@@ -22,7 +22,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return the detailed status of the node including memory and CPU usage?", example: "true")]
       include_status : Bool = false
     ) : Array(NodeStatus)
-      details = self.class.core_discovery.node_hash
+      details = RemoteDriver.default_discovery.node_hash
 
       if include_status
         promises = details.map do |core_id, uri|
@@ -103,7 +103,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return the detailed status of the drivers running on the node?", example: "true")]
       include_status : Bool = false
     ) : Array(DriverStatus)
-      uri = self.class.core_discovery.node_hash[core_id]?
+      uri = RemoteDriver.default_discovery.node_hash[core_id]?
 
       Log.context.set(core_id: core_id, uri: uri.try &.to_s, include_status: include_status)
 
@@ -200,7 +200,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the name of the driver to terminate")]
       driver : String
     ) : Nil
-      uri = self.class.core_discovery.node_hash[core_id]
+      uri = RemoteDriver.default_discovery.node_hash[core_id]
       raise Error::NotFound.new("driver not found: #{driver}") unless Core::Client.client(uri, request_id, &.terminate(driver))
     end
   end

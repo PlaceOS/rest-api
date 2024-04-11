@@ -1,4 +1,4 @@
-require "hound-dog"
+require "redis_service_manager"
 require "tasker"
 
 require "./session"
@@ -10,13 +10,13 @@ module PlaceOS::Api::WebSocket
 
     private getter session_lock : Mutex = Mutex.new
     private getter sessions : Array(Session) { [] of Session }
-    private getter discovery : HoundDog::Discovery
+    private getter discovery : Clustering::Discovery
 
     private getter session_cleanup_period : Time::Span = 1.hours
 
     @session_cleaner : Tasker::Task?
 
-    def initialize(@discovery : HoundDog::Discovery)
+    def initialize(@discovery : Clustering::Discovery)
       spawn(name: "cleanup_sessions", same_thread: true) do
         cleanup_sessions
       end

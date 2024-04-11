@@ -1,5 +1,3 @@
-require "hound-dog"
-
 require "placeos-core-client"
 require "placeos-driver/proxy/system"
 
@@ -12,8 +10,6 @@ module PlaceOS::Api
   class Systems < Application
     include Utils::CoreHelper
     include Utils::Permissions
-
-    alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
     base "/api/engine/v2/systems/"
 
@@ -140,7 +136,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     # Websocket API session manager
-    class_getter session_manager : WebSocket::Manager { WebSocket::Manager.new(core_discovery) }
+    class_getter session_manager : WebSocket::Manager { WebSocket::Manager.new(RemoteDriver.default_discovery) }
 
     # list the systems in a cluster
     @[AC::Route::GET("/", converters: {features: ConvertStringArray, email: ConvertStringArray})]
@@ -410,7 +406,6 @@ module PlaceOS::Api
         sys_id: sys_id,
         module_name: module_name,
         index: index,
-        discovery: self.class.core_discovery,
         user_id: current_user.id,
       ) { |module_id|
         Model::Module.find!(module_id).edge_id.as(String)
@@ -543,9 +538,9 @@ module PlaceOS::Api
 
     # Use consistent hashing to determine the location of the module
     def self.locate_module(module_id : String) : URI
-      node = core_discovery.find?(module_id)
+      node = RemoteDriver.default_discovery.find?(module_id)
       raise "no core instances registered!" unless node
-      node[:uri]
+      node
     end
 
     # Determine URI for a system module

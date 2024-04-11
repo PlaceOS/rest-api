@@ -12,12 +12,6 @@ require "./telemetry"
 require "action-controller/server"
 
 module PlaceOS::Api
-  # Configure Service discovery
-  HoundDog.configure do |settings|
-    settings.etcd_host = Api::ETCD_HOST
-    settings.etcd_port = Api::ETCD_PORT
-  end
-
   filters = ["bearer_token", "secret", "password", "api-key"]
 
   # Add handlers that should run before your application

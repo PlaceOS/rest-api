@@ -174,7 +174,7 @@ module PlaceOS::Api
       tag = driver.id.as(String)
       repository_folder = driver.repository!.folder_name
 
-      nodes = core_discovery.node_hash
+      nodes = RemoteDriver.default_discovery.node_hash
       result = Promise.all(nodes.map { |name, uri|
         Promise.defer {
           status = begin

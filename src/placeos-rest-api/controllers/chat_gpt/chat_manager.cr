@@ -6,7 +6,6 @@ require "placeos-driver/storage"
 module PlaceOS::Api
   class ChatGPT::ChatManager
     Log = ::Log.for(self)
-    alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
     private getter ws_sockets = {} of UInt64 => {HTTP::WebSocket, String, OpenAI::Client, OpenAI::ChatCompletionRequest, OpenAI::FunctionExecutor}
     private getter ws_ping_tasks : Hash(UInt64, Tasker::Repeat(Nil)) = {} of UInt64 => Tasker::Repeat(Nil)
@@ -395,7 +394,6 @@ module PlaceOS::Api
         sys_id: chat.system_id,
         module_name: module_name,
         index: 1,
-        discovery: app.class.core_discovery,
         user_id: chat.user_id,
       ) { |module_id|
         Model::Module.find!(module_id).edge_id.as(String)

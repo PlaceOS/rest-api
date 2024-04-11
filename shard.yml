@@ -22,9 +22,9 @@ dependencies:
     version: ~> 0.2
 
   # Service discovery
-  hound-dog:
-    github: place-labs/hound-dog
-    version: ~> 2.6
+  redis_service_manager:
+    github: place-labs/redis_service_manager
+    version: ">= 3.0.0"
 
   # JSON Web Token support
   jwt:
@@ -48,7 +48,7 @@ dependencies:
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ~> 6.4
+    version: ~> 6.11
 
   # For frontends client
   placeos-frontend-loader:

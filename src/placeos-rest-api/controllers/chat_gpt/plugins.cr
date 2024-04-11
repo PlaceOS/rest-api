@@ -5,7 +5,6 @@ require "./chat_manager"
 module PlaceOS::Api
   class ChatGPT::Plugin < Application
     include Utils::CoreHelper
-    alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
 
     base "/api/engine/v2/chatgpt/plugin/:system_id"
 
@@ -111,7 +110,6 @@ module PlaceOS::Api
           sys_id: system_id,
           module_name: capability_id,
           index: 1,
-          discovery: Application.core_discovery,
           user_id: user_id,
         ) { |module_id|
           Model::Module.find!(module_id).edge_id.as(String)

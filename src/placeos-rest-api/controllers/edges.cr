@@ -38,7 +38,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    class_getter connection_manager : ConnectionManager { ConnectionManager.new(core_discovery) }
+    class_getter connection_manager : ConnectionManager { ConnectionManager.new(RemoteDriver.default_discovery) }
 
     # Validate the present of the id and check the secret before routing to core
 

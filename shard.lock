@@ -249,9 +249,9 @@ shards:
     git: https://github.com/placeos/core-client.git
     version: 1.0.6
 
-  placeos-driver:
+  placeos-driver: # Overridden
     git: https://github.com/placeos/driver.git
-    version: 6.9.19
+    version: 6.11.0+git.commit.9363dbec039d92ccc0ea5afdbaa549bc6bb14cdf
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -263,7 +263,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.44.1
+    version: 9.45.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -297,6 +297,10 @@ shards:
     git: https://github.com/caspiano/redis-cluster.cr.git
     version: 0.8.5
 
+  redis_service_manager:
+    git: https://github.com/place-labs/redis_service_manager.git
+    version: 3.1.0
+
   rendezvous-hash:
     git: https://github.com/caspiano/rendezvous-hash.git
     version: 0.3.1
@@ -315,7 +319,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.0+git.commit.59c8dbe71af8f977aafd53730626f311092bedb5
+    version: 2.11.1+git.commit.cbd994c938877bf5f5195fd2c40a12c149c88e41
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
