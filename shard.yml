@@ -48,7 +48,7 @@ dependencies:
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ~> 6.11
+    version: ">= 7.0.0"
 
   # For frontends client
   placeos-frontend-loader:

@@ -21,9 +21,3 @@ dependencies:
   ulid:
     github: place-labs/ulid
     branch: master
-
-  # clashes with placeos-compiler 4.9.3
-  # can remove once redis cluster management is released
-  placeos-driver:
-    github: placeos/driver
-    branch: master

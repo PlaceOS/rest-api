@@ -11,11 +11,6 @@ x-elastic-client-env: &elastic-client-env
   ELASTIC_HOST: ${ELASTIC_HOST:-elastic}
   ELASTIC_PORT: ${ELASTIC_PORT:-9200}
 
-x-etcd-client-env: &etcd-client-env
-  ETCD_HOST: ${ETCD_HOST:-etcd}
-  ETCD_PORT: ${ETCD_PORT:-2379}
-
-
 x-redis-client-env: &redis-client-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
@@ -46,7 +41,6 @@ services:
       - auth
       - core
       - elastic
-      - etcd
       - redis
       - postgres
       - migrator
@@ -60,7 +54,6 @@ services:
         *deployment-env,
         # Service Hosts
         *elastic-client-env,
-        *etcd-client-env,
         *redis-client-env,
         *postgresdb-client-env,
       ]
@@ -86,26 +79,6 @@ services:
     hostname: elasticvue
     ports:
       - 8080:8080
-
-  etcd:
-    image: quay.io/coreos/etcd:${ETCD_VERSION:-v3.5.4}
-    restart: always
-    hostname: etcd
-    healthcheck:
-      test: etcdctl endpoint health
-    environment:
-      ALLOW_NONE_AUTHENTICATION: "yes"
-      ETCD_NAME: "etcd"
-      ETCD_INITIAL_ADVERTISE_PEER_URLS: "http://etcd:2380"
-      ETCD_LISTEN_PEER_URLS: "http://0.0.0.0:2380"
-      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
-      ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
-      ETCD_INITIAL_CLUSTER_TOKEN: "etcd-cluster"
-      ETCD_INITIAL_CLUSTER=etcd: "http://etcd:2380"
-      ETCD_INITIAL_CLUSTER_STATE: "new"
-      TZ: $TZ
-    ports:
-      - 2379:2379
 
   redis:
     image: eqalpha/keydb
@@ -182,7 +155,6 @@ services:
     restart: always
     hostname: core
     depends_on:
-      - etcd
       - redis
       - migrator
       - postgres
@@ -196,7 +168,6 @@ services:
     environment:
       # Service Hosts
       <<: [
-        *etcd-client-env,
         *redis-client-env,
         *postgresdb-client-env,
         # Environment
