@@ -6,6 +6,8 @@ require "../error"
 require "../utilities/*"
 
 module PlaceOS::Api
+  alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver
+
   abstract class Application < ActionController::Base
     macro inherited
       Log = ::PlaceOS::Api::Log.for(self)
@@ -35,9 +37,6 @@ module PlaceOS::Api
 
     # Helpers for defining scope checks on controller actions
     include Utils::Scopes
-
-    # Core service discovery
-    class_getter core_discovery : Discovery::Core { Discovery::Core.instance }
 
     # Default sort for elasticsearch
     NAME_SORT_ASC = {"name.keyword" => {order: :asc}}

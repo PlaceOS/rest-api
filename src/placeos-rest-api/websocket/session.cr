@@ -1,4 +1,4 @@
-require "hound-dog"
+require "redis_service_manager"
 require "mutex"
 require "placeos-driver/proxy/remote_driver"
 require "tasker"
@@ -36,7 +36,7 @@ module PlaceOS::Api::WebSocket
       @ws : HTTP::WebSocket,
       @request_id : String,
       @user : Model::UserJWT,
-      @discovery : HoundDog::Discovery = HoundDog::Discovery.new(CORE_NAMESPACE)
+      @discovery : Clustering::Discovery = RemoteDriver.default_discovery
     )
       # Register event handlers
       ws.on_message do |message|

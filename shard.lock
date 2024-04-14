@@ -37,10 +37,6 @@ shards:
     git: https://github.com/spider-gazelle/bindata.git
     version: 2.0.0
 
-  clustering:
-    git: https://github.com/place-labs/clustering.git
-    version: 3.1.1
-
   connect-proxy:
     git: https://github.com/spider-gazelle/connect-proxy.git
     version: 2.0.0
@@ -89,10 +85,6 @@ shards:
     git: https://github.com/arcage/crystal-email.git
     version: 0.7.0
 
-  etcd:
-    git: https://github.com/place-labs/crystal-etcd.git
-    version: 1.2.5
-
   eventbus:
     git: https://github.com/spider-gazelle/eventbus.git
     version: 0.9.9+git.commit.ca8ef0c5e21ee15da079edd5bcea39bee7e07f26
@@ -132,10 +124,6 @@ shards:
   hot_topic:
     git: https://github.com/jgaskins/hot_topic.git
     version: 0.1.0+git.commit.3c901e77b6e000930398738260a2944b6f5785dc
-
-  hound-dog:
-    git: https://github.com/place-labs/hound-dog.git
-    version: 2.9.1
 
   http-params-serializable:
     git: https://github.com/place-labs/http-params-serializable.git
@@ -243,7 +231,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.13.1+git.commit.4e71add003df64596789c4f91ea5fc91cb55f616
+    version: 4.14.1+git.commit.ba445fa0e6c6b0a007fc927202eb155dc48e798a
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -251,7 +239,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 6.9.19
+    version: 7.0.0
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -263,7 +251,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.44.1
+    version: 9.45.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -297,6 +285,10 @@ shards:
     git: https://github.com/caspiano/redis-cluster.cr.git
     version: 0.8.5
 
+  redis_service_manager:
+    git: https://github.com/place-labs/redis_service_manager.git
+    version: 3.1.1
+
   rendezvous-hash:
     git: https://github.com/caspiano/rendezvous-hash.git
     version: 0.3.1
@@ -315,7 +307,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.0+git.commit.59c8dbe71af8f977aafd53730626f311092bedb5
+    version: 2.11.1+git.commit.cbd994c938877bf5f5195fd2c40a12c149c88e41
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
