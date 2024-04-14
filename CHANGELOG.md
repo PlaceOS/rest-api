@@ -2,6 +2,7 @@
 
 ### Feat
 
+- migrate to using redis service manager ([#380](https://github.com/PlaceOS/rest-api/pull/380))
 - **short_url**: add api routes ([#379](https://github.com/PlaceOS/rest-api/pull/379)) [PPT-1237]
 - integrate build service ([#370](https://github.com/PlaceOS/rest-api/pull/370))
 - **chat_gpt/plugin**: interaction API ([#378](https://github.com/PlaceOS/rest-api/pull/378))
