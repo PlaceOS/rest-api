@@ -119,32 +119,11 @@ module PlaceOS::Api
     # lists the drivers in a repository
     @[AC::Route::GET("/:id/drivers")]
     def drivers : Array(String)
-      Dir.cd(fetch_repo) do
-        Dir.glob("drivers/**/*.cr").select do |file|
-          !file.ends_with?("_spec.cr") && File.open(file) do |f|
-            f.each_line.any? &.includes?("PlaceOS::Driver")
-          rescue
-            false
-          end
-        end
-      end
-    end
-
-    private def fetch_repo
-      folder = Path.new(self.class.repository_dir, current_repo.id.as(String), current_repo.folder_name)
-      downloaded = Dir.exists?(folder)
-      Dir.mkdir_p(folder) unless downloaded
       password = current_repo.decrypt_password if current_repo.password.presence
       repo = GitRepository.new(current_repo.uri, current_repo.username, password)
-      git = GitRepository::Commands.new(folder.to_s)
-      unless downloaded
-        git.init
-        git.add_origin repo.repository
+      repo.file_list(path: "drivers/").select do |file|
+        file.ends_with?(".cr") && !file.ends_with?("_spec.cr") && !file.includes?("models")
       end
-      git.run_git("fetch", {"--all"})
-      git.checkout current_repo.branch rescue git.checkout repo.default_branch
-
-      folder
     end
 
     # Returns the commits for a repository or file

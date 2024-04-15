@@ -32,6 +32,7 @@ RUN shards install --production --ignore-crystal-version --skip-postinstall --sk
 
 # Add src
 COPY ./src /app/src
+RUN mkdir -p /app/tmp
 
 # Build application
 RUN UNAME_AT_COMPILE_TIME=true \
@@ -50,9 +51,6 @@ RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/* /usr/libexe
     done
 
 # Build a minimal docker image
-
-RUN mkdir /repositories && chown -R appuser /repositories
-
 FROM scratch
 WORKDIR /
 ENV PATH=$PATH:/
@@ -83,7 +81,7 @@ COPY --from=build /usr/libexec/git-core/ /usr/libexec/git-core/
 # Copy the app into place
 COPY --from=build /app/deps /
 COPY --from=build /app/bin /
-COPY --chown=appuser:appuser --from=build /repositories /repositories
+COPY --from=build --chown=10001:10001 /app/tmp /tmp
 # Use an unprivileged user.
 USER appuser:appuser
 
