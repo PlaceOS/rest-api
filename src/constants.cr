@@ -2,6 +2,8 @@ module PlaceOS::Api
   APP_NAME    = "rest-api"
   API_VERSION = "v2"
 
+  Log = ::Log.for(self)
+
   # Calculate version, build time, commit at compile time
   VERSION      = {{ system(%(shards version "#{__DIR__}")).chomp.stringify.downcase }}
   BUILD_TIME   = {{ system("date -u").stringify }}
@@ -54,4 +56,6 @@ module PlaceOS::Api
       "CHANGELOG is not generated for development builds"
     {% end %}
   end
+
+  class_getter? production : Bool = PROD
 end

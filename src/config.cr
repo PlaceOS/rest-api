@@ -4,8 +4,8 @@ class PlaceOS::Driver; end
 require "action-controller"
 
 # Application code
-require "./logging"
 require "./placeos-rest-api"
+require "./logging"
 require "./telemetry"
 
 # Server required after application controllers
