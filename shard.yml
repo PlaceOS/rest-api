@@ -110,6 +110,10 @@ dependencies:
   stumpy_png:
     github: stumpycr/stumpy_png
 
+  # For Loki Search
+  loki-client:
+    github: spider-gazelle/crystal-loki-client
+
 development_dependencies:
   # Linter
   ameba:
