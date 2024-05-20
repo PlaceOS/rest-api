@@ -1,5 +1,6 @@
 require "pinger"
 require "placeos-driver/storage"
+require "loki-client"
 
 require "./application"
 require "./drivers"
@@ -19,7 +20,7 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :create, :update, :destroy, :state, :show, :ping, :start, :stop]
-    before_action :check_support, only: [:state, :show, :ping]
+    before_action :check_support, only: [:state, :show, :ping, :show_error]
 
     ###############################################################################################
 
@@ -231,6 +232,25 @@ module PlaceOS::Api
       else
         current_module
       end
+    end
+
+    # return runtime error log of a module (if any) or 404
+    @[AC::Route::GET("/:id/error")]
+    def show_error : Array(String)
+      raise Error::NotFound.new("No associated error logs found for module '#{current_module.id}'") unless current_module.has_runtime_error
+      error_timestamp = current_module.error_timestamp || Time.utc
+
+      client = Loki::Client.from_env
+      labels = client.list_labels.data
+      stream = labels.try &.includes?("container") ? "container" : "app"
+      query = %({#{stream}="core"} | logfmt | source = "#{current_module.id}" | level = "[E]")
+      results = client.query_range(query, 20, error_timestamp - 1.hour, error_timestamp, Loki::Direction::Backward)
+      entries = Array(String).new
+      results.response_data.result.as(Loki::Model::Streams).each do |stream|
+        stream.entries.each { |entry| entries << (entry.line.try &.gsub("+ ", "") || "\n") }
+      end
+
+      entries
     end
 
     # update the details of a module
