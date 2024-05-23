@@ -121,7 +121,7 @@ module PlaceOS::Api
     def drivers : Array(String)
       password = current_repo.decrypt_password if current_repo.password.presence
       repo = GitRepository.new(current_repo.uri, current_repo.username, password)
-      repo.file_list(path: "drivers/").select do |file|
+      repo.file_list(ref: current_repo.branch, path: "drivers/").select do |file|
         file.ends_with?(".cr") && !file.ends_with?("_spec.cr") && !file.includes?("models")
       end
     end
