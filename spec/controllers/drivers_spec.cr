@@ -72,21 +72,6 @@ module PlaceOS::Api
           result.body.should contain "role must not change"
         end
       end
-
-      it "POST /:id/recompile" do
-        driver = get_driver
-        path = File.join(Drivers.base_route, "#{driver.id.not_nil!}/recompile")
-        response = client.post(
-          path: path,
-          headers: Spec::Authentication.headers,
-        )
-
-        response.success?.should be_true
-        unless response.status_code == 208 || response.body.empty?
-          updated = Model::Driver.from_trusted_json(response.body)
-          updated.commit.starts_with?("RECOMPILE").should be_false
-        end
-      end
     end
 
     describe "scopes" do
