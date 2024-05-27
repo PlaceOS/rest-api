@@ -23,7 +23,7 @@ module PlaceOS::Api::Spec
       doc.name = name
       doc.save!
       sleep 1
-      
+
       refresh_elastic({{ klass }}.table_name)
 
       doc.persisted?.should be_true
