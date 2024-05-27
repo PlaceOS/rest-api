@@ -58,6 +58,7 @@ module PlaceOS::Api
         ).each { |(id, count)| counts[id] = count }
       end
 
+      # ameba:disable Style/VerboseBlock
       results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }
       counts
     end
