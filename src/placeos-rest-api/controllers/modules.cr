@@ -246,8 +246,8 @@ module PlaceOS::Api
       query = %({#{stream}="core"} | logfmt | source = "#{current_module.id}" | level = "[E]")
       results = client.query_range(query, 20, error_timestamp - 1.hour, error_timestamp, Loki::Direction::Backward)
       entries = Array(String).new
-      results.response_data.result.as(Loki::Model::Streams).each do |stream|
-        stream.entries.each { |entry| entries << (entry.line.try &.gsub("+ ", "") || "\n") }
+      results.response_data.result.as(Loki::Model::Streams).each do |res_stream|
+        res_stream.entries.each { |entry| entries << (entry.line.try &.gsub("+ ", "") || "\n") }
       end
 
       entries
