@@ -99,6 +99,28 @@ module PlaceOS::Api
         updated = Model::Module.from_trusted_json(result.body)
         updated.id.should eq mod.id
       end
+
+      it "POST endpoint should discard read-only field updates" do
+        mod = PlaceOS::Model::Generator.module
+        mod_json = JSON.parse(mod.to_json)
+        mod_json.as_h["has_runtime_error"] = JSON::Any.new(true)
+        mod_json.as_h["error_timestamp"] = JSON::Any.new(0)
+
+        groups = [] of String
+        result = client.post(Modules.base_route, body: mod_json.to_json,
+          headers: Spec::Authentication.headers(sys_admin: true, support: true, groups: groups))
+        result.status_code.should eq 201
+        mod1 = PlaceOS::Model::Module.from_trusted_json(result.body)
+
+        result = client.get(path: File.join(Modules.base_route, mod1.id.as(String)),
+          headers: Spec::Authentication.headers)
+
+        result.status_code.should eq 200
+
+        mod2 = PlaceOS::Model::Module.from_json(result.body)
+        mod2.has_runtime_error.should be_false
+        mod2.error_timestamp.should be_nil
+      end
     end
 
     describe "index", tags: "search" do
