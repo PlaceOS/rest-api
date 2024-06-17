@@ -3,6 +3,12 @@ require "http/web_socket"
 require "../helper"
 
 module PlaceOS::Api
+  ::Spec.before_each do
+    PlaceOS::Model::Module.clear
+    PlaceOS::Model::Driver.clear
+    PlaceOS::Model::ControlSystem.clear
+  end
+
   def self.spec_add_module(system, mod, headers)
     mod_id = mod.id.as(String)
     path = Systems::NAMESPACE.first + "#{system.id}/module/#{mod_id}"
@@ -180,7 +186,7 @@ module PlaceOS::Api
             sys.modules = [module_id]
           end
           systems.each &.save!
-
+          sleep 1
           expected_ids = expected_systems.compact_map(&.id)
           total_ids = expected_ids.size
 

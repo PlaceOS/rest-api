@@ -5,7 +5,6 @@ version: "3.7"
 x-deployment-env: &deployment-env
   ENV: ${ENV:-development}
   SG_ENV: ${SG_ENV:-development}
-  TZ: $TZ
 
 x-elastic-client-env: &elastic-client-env
   ELASTIC_HOST: ${ELASTIC_HOST:-elastic}
@@ -25,6 +24,18 @@ x-postgresdb-client-env: &postgresdb-client-env
 
 x-search-ingest-client-env: &search-ingest-client-env
   SEARCH_INGEST_URI: ${SEARCH_INGEST_URI:-http://search-ingest:3000}
+
+x-s3-client-env: &s3-client-env
+  AWS_REGION: ${AWS_REGION:-"us-east-1"}
+  AWS_KEY: ${AWS_KEY:-"root"}
+  AWS_SECRET: ${AWS_SECRET:-"password"}
+  AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT:-"http://minio:9000"}
+  AWS_S3_BUCKET: ${AWS_S3_BUCKET:-"placeos-drivers-build-service"}
+
+x-build-api-env: &build-api-env
+  BUILD_API_HOST: ${BUILD_API_HOST:-build_service}
+  BUILD_API_PORT: ${BUILD_API_PORT:-3000}
+
 
 services:
   test: # Rest API
@@ -72,13 +83,6 @@ services:
       http.cors.allow-origin: http://localhost:8080
     ports:
       - 9200:9200
-
-  elasticvue:
-    image: cars10/elasticvue:latest
-    restart: always
-    hostname: elasticvue
-    ports:
-      - 8080:8080
 
   redis:
     image: eqalpha/keydb
@@ -147,7 +151,6 @@ services:
         *redis-client-env,
       ]
       COAUTH_NO_SSL: "true"
-      TZ: $TZ
       PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
@@ -158,6 +161,7 @@ services:
       - redis
       - migrator
       - postgres
+      - build_service
     ulimits:
       nofile: 40000
       core:
@@ -172,5 +176,45 @@ services:
         *postgresdb-client-env,
         # Environment
         *deployment-env,
+        # Build API
+        *build-api-env,
       ]
 
+  build_service:
+    image: placeos/build_service:nightly
+    restart: always
+    hostname: build_service
+    depends_on:
+      - minio
+      - testbucket
+    environment:
+      <<: *s3-client-env
+
+  minio:
+    image: minio/minio:latest
+    volumes:
+      - s3:/data
+    ports:
+      - 9000:9000
+      - 9090:9090
+    environment:
+      << : *s3-client-env
+      MINIO_ROOT_USER: $AWS_KEY
+      MINIO_ROOT_PASSWORD: $AWS_SECRET
+    command: server /data --console-address ":9090"
+
+  testbucket:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    environment:
+      << : *s3-client-env
+    entrypoint: >
+      sh -c '
+      sleep 3 &&
+      mc config host add s3 $AWS_S3_ENDPOINT $AWS_KEY $AWS_SECRET &&
+      mc mb -p s3/$AWS_S3_BUCKET &&
+      exit 0
+      '
+volumes:
+  s3:

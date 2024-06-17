@@ -53,11 +53,11 @@ def setup_system(repository_folder_name = "private-drivers")
   driver.repository = repository
   driver.save!
 
+  control_system = PlaceOS::Model::Generator.control_system.save!
+
   mod = PlaceOS::Model::Generator.module(driver: driver)
   mod.running = true
   mod.save!
-
-  control_system = PlaceOS::Model::Generator.control_system.save!
 
   mod.control_system = control_system
 

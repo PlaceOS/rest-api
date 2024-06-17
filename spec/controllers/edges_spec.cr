@@ -42,6 +42,9 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
+      ::Spec.before_each do
+        PlaceOS::Model::Edge.clear
+      end
       Spec.test_crd(Model::Edge, Edges)
 
       describe "create" do

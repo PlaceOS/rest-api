@@ -22,6 +22,7 @@ module PlaceOS::Api::Spec
       name = random_name
       doc.name = name
       doc.save!
+      sleep 1
 
       refresh_elastic({{ klass }}.table_name)
 
