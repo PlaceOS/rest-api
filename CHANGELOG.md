@@ -52,6 +52,7 @@
 
 ### Fix
 
+- **specs**: clean and fix specs ([#384](https://github.com/PlaceOS/rest-api/pull/384))
 - **repositories**: list the files on the correct branch ([#383](https://github.com/PlaceOS/rest-api/pull/383))
 - **logging**: PPT-1368 - logging to use placeos-log-backend ([#381](https://github.com/PlaceOS/rest-api/pull/381))
 - **repositories**: obtaining driver list
