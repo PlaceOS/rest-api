@@ -119,10 +119,9 @@ module PlaceOS::Api
     # lists the drivers in a repository
     @[AC::Route::GET("/:id/drivers")]
     def drivers : Array(String)
-      password = current_repo.decrypt_password if current_repo.password.presence
-      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
-      repo.file_list(ref: current_repo.branch, path: "drivers/").select do |file|
-        file.ends_with?(".cr") && !file.ends_with?("_spec.cr") && !file.includes?("models")
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = current_repo.decrypt_password if current_repo.password.presence
+        frontends_client.drivers(current_repo.uri, current_repo.branch, current_repo.username, password)
       end
     end
 
@@ -176,37 +175,37 @@ module PlaceOS::Api
     # returns the list of branches in the repository
     @[AC::Route::GET("/:id/branches")]
     def branches : Array(String)
-      password = current_repo.decrypt_password if current_repo.password.presence
-      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
-      repo.branches.keys
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = current_repo.decrypt_password if current_repo.password.presence
+        frontends_client.remote_branches(current_repo.uri, current_repo.username, password)
+      end
     end
 
     # returns the list of releases in the repository, i.e. github releases
     @[AC::Route::GET("/:id/releases")]
     def releases : Array(String)
-      password = current_repo.decrypt_password if current_repo.password.presence
-      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
-      if repo.is_a?(GitRepository::Releases)
-        repo.releases
-      else
-        [] of String
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = current_repo.decrypt_password if current_repo.password.presence
+        frontends_client.releases(current_repo.uri, current_repo.username, password)
       end
     end
 
     # Returns an array of tags for the repository
     @[AC::Route::GET("/:id/tags")]
     def tags : Array(String)
-      password = current_repo.decrypt_password if current_repo.password.presence
-      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
-      repo.tags.keys
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = current_repo.decrypt_password if current_repo.password.presence
+        frontends_client.tags(current_repo.uri, current_repo.username, password)
+      end
     end
 
     # returns the default branch of the specified repository
     @[AC::Route::GET("/:id/default_branch")]
     def default_branch : String
-      password = current_repo.decrypt_password if current_repo.password.presence
-      repo = GitRepository.new(current_repo.uri, current_repo.username, password)
-      repo.default_branch
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = current_repo.decrypt_password if current_repo.password.presence
+        frontends_client.default_branch(current_repo.uri, current_repo.username, password)
+      end
     end
 
     # Remote repository queries
@@ -230,15 +229,17 @@ module PlaceOS::Api
     # returns the default branch of the specified repository
     @[AC::Route::GET("/remote_default_branch")]
     def remote_default_branch : String
-      repo = GitRepository.new(repository_url, username, password)
-      repo.default_branch
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        frontends_client.default_branch(repository_url, username, password)
+      end
     end
 
     # lists the branches of the specified repository
     @[AC::Route::GET("/remote_branches")]
     def remote_branches : Array(String)
-      repo = GitRepository.new(repository_url, username, password)
-      repo.branches.keys
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        frontends_client.remote_branches(repository_url, username, password)
+      end
     end
 
     # lists the commits of the specified repository
@@ -258,8 +259,9 @@ module PlaceOS::Api
     # Returns an array of tags for the specified repository
     @[AC::Route::GET("/remote_tags")]
     def remote_tags : Array(String)
-      repo = GitRepository.new(repository_url, username, password)
-      repo.tags.keys
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        frontends_client.tags(repository_url, username, password)
+      end
     end
   end
 end
