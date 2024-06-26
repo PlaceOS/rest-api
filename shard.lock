@@ -245,9 +245,9 @@ shards:
     git: https://github.com/placeos/driver.git
     version: 7.2.0
 
-  placeos-frontend-loader: # Overridden
+  placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.53ecbc432c61c040088ec9ed683ca7d11a8ea539
+    version: 2.7.1+git.commit.83df0d403f6744f385eaea4c2161f8ec9a5ca2d0
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git

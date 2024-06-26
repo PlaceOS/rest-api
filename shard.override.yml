@@ -21,7 +21,3 @@ dependencies:
   ulid:
     github: place-labs/ulid
     branch: master
-
-  placeos-frontend-loader:
-    github: placeos/frontend-loader
-    branch: PPT-1413
