@@ -49,7 +49,6 @@ services:
       - ${PWD}/shard.yml:/app/shard.yml.input
       - ${PWD}/coverage:/app/coverage
     depends_on:
-      - auth
       - core
       - elastic
       - redis
@@ -68,7 +67,6 @@ services:
         *redis-client-env,
         *postgresdb-client-env,
       ]
-      # LOG_LEVEL: debug
 
   elastic:
     image: elasticsearch:${ELASTIC_VERSION:-7.17.6}
@@ -136,22 +134,6 @@ services:
         # Environment
         *deployment-env,
       ]
-
-  auth: # Authentication Service
-    image: placeos/auth:nightly
-    restart: always
-    hostname: auth
-    depends_on:
-      - redis
-      - migrator
-      - postgres
-    environment:
-      <<: [
-        *postgresdb-client-env,
-        *redis-client-env,
-      ]
-      COAUTH_NO_SSL: "true"
-      PLACE_URI: https://${PLACE_DOMAIN:-localhost:8443}
 
   core: # Module coordinator
     image: placeos/core:nightly
