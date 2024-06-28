@@ -10,7 +10,7 @@ module PlaceOS::Api
         model.persisted?.should be_true
         id = model.id.as(String)
 
-        params = HTTP::Params.encode({"q" => model.email.to_s})
+        params = HTTP::Params.encode({"q" => model.email.to_s, "fields" => "email,"})
         path = "#{Users.base_route}?#{params}"
 
         sleep 2

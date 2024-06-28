@@ -76,7 +76,7 @@ module PlaceOS::Api
       response.headers["Content-Range"] = "#{content_type} 0-#{size - 1}/#{size}"
     end
 
-    getter! search_params : Hash(String, String)
+    getter! search_params : Hash(String, String | Array(String))
 
     @[AC::Route::Filter(:before_action, only: [:index])]
     def build_search_params(
@@ -87,12 +87,15 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "deprecated, the starting offset of the result set. Used to implement pagination")]
       offset : UInt32 = 0_u32,
       @[AC::Param::Info(description: "a token for accessing the next page of results, provided in the `Link` header")]
-      ref : String? = nil
+      ref : String? = nil,
+      @[AC::Param::Info(description: "(Optional, comma separated array of strings) Array of fields you wish to search. Accepts wildcard expresssions and boost relevance score for matches for particular field using a caret ^ operator.")]
+      fields : String? = nil
     )
       search_params = {
         "q"      => query,
         "limit"  => limit.to_s,
         "offset" => offset.to_s,
+        "fields" => fields.try &.split(",") || [] of String,
       }
       search_params["ref"] = ref.not_nil! if ref.presence
       @search_params = search_params
