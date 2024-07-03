@@ -167,7 +167,7 @@ shards:
 
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
-    version: 1.13.0
+    version: 1.13.1
 
   office365:
     git: https://github.com/placeos/office365.git
