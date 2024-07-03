@@ -89,17 +89,16 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "a token for accessing the next page of results, provided in the `Link` header")]
       ref : String? = nil,
       @[AC::Param::Info(description: "(Optional, comma separated array of strings) Array of fields you wish to search. Accepts wildcard expresssions and boost relevance score for matches for particular field using a caret ^ operator.")]
-      fields : Array(String)? = nil
+      fields : Array(String) = [] of String
     )
       search_params = {
         "q"      => query,
         "limit"  => limit.to_s,
         "offset" => offset.to_s,
-        "fields" => fields || [] of String,
+        "fields" => fields,
       }
       search_params["ref"] = ref.not_nil! if ref.presence
       @search_params = search_params
-      p! search_params
     end
 
     # Callbacks
