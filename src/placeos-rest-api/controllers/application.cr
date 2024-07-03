@@ -78,7 +78,7 @@ module PlaceOS::Api
 
     getter! search_params : Hash(String, String | Array(String))
 
-    @[AC::Route::Filter(:before_action, only: [:index])]
+    @[AC::Route::Filter(:before_action, only: [:index], converters: {fields: ConvertStringArray})]
     def build_search_params(
       @[AC::Param::Info(name: "q", description: "returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)")]
       query : String = "*",
@@ -89,16 +89,17 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "a token for accessing the next page of results, provided in the `Link` header")]
       ref : String? = nil,
       @[AC::Param::Info(description: "(Optional, comma separated array of strings) Array of fields you wish to search. Accepts wildcard expresssions and boost relevance score for matches for particular field using a caret ^ operator.")]
-      fields : String? = nil
+      fields : Array(String)? = nil
     )
       search_params = {
         "q"      => query,
         "limit"  => limit.to_s,
         "offset" => offset.to_s,
-        "fields" => fields.try &.split(",") || [] of String,
+        "fields" => fields || [] of String,
       }
       search_params["ref"] = ref.not_nil! if ref.presence
       @search_params = search_params
+      p! search_params
     end
 
     # Callbacks
