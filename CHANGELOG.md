@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-1396 Add search fields options to index endpoints ([#387](https://github.com/PlaceOS/rest-api/pull/387))
 - PPT-1329: Removed git related methods from rest-api ([#386](https://github.com/PlaceOS/rest-api/pull/386))
 - PPT-1323 Added endpoint for module error retrieval ([#382](https://github.com/PlaceOS/rest-api/pull/382))
 - migrate to using redis service manager ([#380](https://github.com/PlaceOS/rest-api/pull/380))
