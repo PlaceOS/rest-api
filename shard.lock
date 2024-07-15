@@ -115,7 +115,7 @@ shards:
 
   habitat:
     git: https://github.com/luckyframework/habitat.git
-    version: 0.4.8
+    version: 0.4.9
 
   hardware:
     git: https://github.com/crystal-community/hardware.git
@@ -227,7 +227,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.14.4+git.commit.a6e461e70603c192a9b33839214c5795fd492033
+    version: 4.14.4+git.commit.2e7eb9c66eee9758f73fe7ccb87ffb0b2768a301
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -239,7 +239,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.45395fe926ab1170418b8de62906029e38423085
+    version: 2.7.1+git.commit.611ae99b0885092a0a545135b0e1b14335517476
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -303,7 +303,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.1+git.commit.0dafbea7ba5bef8500f9274157f62bb2122cdced
+    version: 2.11.1+git.commit.ff2733da5c41371f0e75c1d6e93578fabfd0d0a9
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
