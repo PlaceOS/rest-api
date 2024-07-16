@@ -51,6 +51,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -561,6 +571,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -1007,6 +1027,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -1485,6 +1515,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -1971,6 +2011,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -2704,6 +2754,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -3158,6 +3218,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -3612,6 +3682,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -4474,6 +4554,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -5249,6 +5339,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -5717,6 +5817,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -6321,6 +6431,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -6902,6 +7022,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -8065,6 +8195,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -9704,6 +9844,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -10997,6 +11147,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -11443,6 +11603,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -13449,6 +13619,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -13895,6 +14075,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -14630,6 +14820,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -15076,6 +15276,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -15890,6 +16100,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -16381,6 +16601,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -16875,6 +17105,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -18254,6 +18494,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -19561,6 +19811,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -19735,6 +19995,16 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
@@ -24223,6 +24493,12 @@ components:
           enum:
           - driver
           - interface
+          nullable: true
+        has_runtime_error:
+          type: boolean
+          nullable: true
+        error_message:
+          type: string
           nullable: true
         id:
           type: string
