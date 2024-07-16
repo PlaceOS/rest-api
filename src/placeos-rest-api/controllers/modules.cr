@@ -28,10 +28,10 @@ module PlaceOS::Api
     def find_current_module(id : String)
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_module = Model::Module.find!(id)
+      @current_module = ::PlaceOS::Model::Module.find!(id)
     end
 
-    getter! current_module : Model::Module
+    getter! current_module : ::PlaceOS::Model::Module
 
     # Permissions
     ###############################################################################################
@@ -44,11 +44,11 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless cs_id
 
       # find the org zone
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
-      zones = Model::ControlSystem.find!(cs_id).zones
+      zones = ::PlaceOS::Model::ControlSystem.find!(cs_id).zones
       raise Error::Forbidden.new unless zones.includes?(org_zone_id)
       raise Error::Forbidden.new unless check_access(current_user.groups, zones).admin?
     end
@@ -61,12 +61,12 @@ module PlaceOS::Api
       return if user_support?
 
       # find the org zone
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
       @org_zone_id = org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
       if control_system_id
-        zones = Model::ControlSystem.find!(control_system_id).zones
+        zones = ::PlaceOS::Model::ControlSystem.find!(control_system_id).zones
         raise Error::Forbidden.new unless zones.includes?(org_zone_id)
         raise Error::Forbidden.new unless check_access(current_user.groups, zones).can_manage?
       else
@@ -80,7 +80,7 @@ module PlaceOS::Api
     # Response helpers
     ###############################################################################################
 
-    record ControlSystemDetails, name : String, zone_data : Array(Model::Zone) do
+    record ControlSystemDetails, name : String, zone_data : Array(::PlaceOS::Model::Zone) do
       include JSON::Serializable
     end
 
@@ -89,7 +89,7 @@ module PlaceOS::Api
     end
 
     # extend the ControlSystem model to handle our return values
-    class Model::Module
+    class ::PlaceOS::Model::Module
       @[JSON::Field(key: "driver")]
       property driver_details : Api::Modules::DriverDetails? = nil
       property compiled : Bool? = nil
@@ -114,12 +114,12 @@ module PlaceOS::Api
       no_logic : Bool = false,
       @[AC::Param::Info(description: "return only running modules", example: "true")]
       running : Bool? = nil
-    ) : Array(Model::Module)
+    ) : Array(::PlaceOS::Model::Module)
       # if a system id is present we query the database directly
       if control_system_id
-        cs = Model::ControlSystem.find!(control_system_id)
+        cs = ::PlaceOS::Model::ControlSystem.find!(control_system_id)
         # Include subset of association data with results
-        results = Model::Module.find_all(cs.modules).compact_map do |mod|
+        results = ::PlaceOS::Model::Module.find_all(cs.modules).compact_map do |mod|
           next if (driver = mod.driver).nil?
 
           # Most human readable module data is contained in driver
@@ -128,13 +128,13 @@ module PlaceOS::Api
           mod
         end.to_a
 
-        set_collection_headers(results.size, Model::Module.table_name)
+        set_collection_headers(results.size, ::PlaceOS::Model::Module.table_name)
 
         return results
       end
 
       # we use Elasticsearch
-      elastic = Model::Module.elastic
+      elastic = ::PlaceOS::Model::Module.elastic
       query = elastic.query(search_params)
       query.minimum_should_match(1)
 
@@ -196,7 +196,7 @@ module PlaceOS::Api
         })
       end
 
-      query.has_parent(parent: Model::Driver, parent_index: Model::Driver.table_name)
+      query.has_parent(parent: ::PlaceOS::Model::Driver, parent_index: ::PlaceOS::Model::Driver.table_name)
 
       search_results = paginate_results(elastic, query)
 
@@ -209,7 +209,7 @@ module PlaceOS::Api
         # Include control system on Logic modules so it is possible
         # to display the inherited settings
         sys_field = if sys
-                      ControlSystemDetails.new(sys.name, Model::Zone.find_all(sys.zones).to_a)
+                      ControlSystemDetails.new(sys.name, ::PlaceOS::Model::Zone.find_all(sys.zones).to_a)
                     else
                       nil
                     end
@@ -225,7 +225,7 @@ module PlaceOS::Api
     def show(
       @[AC::Param::Info(description: "return the driver details along with the module?", example: "true")]
       complete : Bool = false
-    ) : Model::Module
+    ) : ::PlaceOS::Model::Module
       if complete && (driver = current_module.driver)
         current_module.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
         current_module
@@ -256,7 +256,7 @@ module PlaceOS::Api
     # update the details of a module
     @[AC::Route::PATCH("/:id", body: :mod)]
     @[AC::Route::PUT("/:id", body: :mod)]
-    def update(mod : Model::Module) : Model::Module
+    def update(mod : ::PlaceOS::Model::Module) : ::PlaceOS::Model::Module
       current = current_module
       can_modify?(current)
       current.assign_attributes(mod)
@@ -272,7 +272,7 @@ module PlaceOS::Api
 
     # add a new module / instance of a driver
     @[AC::Route::POST("/", body: :mod, status_code: HTTP::Status::CREATED)]
-    def create(mod : Model::Module) : Model::Module
+    def create(mod : ::PlaceOS::Model::Module) : ::PlaceOS::Model::Module
       can_modify?(mod)
       raise Error::ModelValidation.new(mod.errors) unless mod.save
       mod
@@ -287,7 +287,7 @@ module PlaceOS::Api
 
     # Receive the collated settings for a module
     @[AC::Route::GET("/:id/settings")]
-    def settings : Array(PlaceOS::Model::Settings)
+    def settings : Array(::PlaceOS::Model::Settings)
       Api::Settings.collated_settings(current_user, current_module)
     end
 
@@ -337,7 +337,7 @@ module PlaceOS::Api
         module_name: current_module.name,
         user_id: current_user.id,
       ) { |module_id|
-        Model::Module.find!(module_id).edge_id.as(String)
+        ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
       }.exec(
         security: driver_clearance(user_token),
         function: method,
@@ -413,7 +413,7 @@ module PlaceOS::Api
     # Helpers
     ############################################################################
 
-    def self.driver_compiled?(mod : Model::Module, request_id : String)
+    def self.driver_compiled?(mod : ::PlaceOS::Model::Module, request_id : String)
       if (driver = mod.driver).nil?
         Log.error { "failed to load Module<#{mod.id}>'s Driver<#{mod.driver_id}>" }
         return false
@@ -427,7 +427,7 @@ module PlaceOS::Api
       Api::Drivers.driver_compiled?(driver, repository, request_id, mod.id.as(String))
     end
 
-    def self.module_state(mod : Model::Module | String, key : String? = nil)
+    def self.module_state(mod : ::PlaceOS::Model::Module | String, key : String? = nil)
       id = mod.is_a?(String) ? mod : mod.id.as(String)
       storage = Driver::RedisStorage.new(id)
       key ? storage[key] : storage.to_h

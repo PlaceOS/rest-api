@@ -39,20 +39,20 @@ module PlaceOS::Api
       parent_id : String,
       @[AC::Param::Info(description: "the name of the metadata key", example: "config")]
       name : String? = nil
-    ) : Hash(String, Model::Metadata::Interface)
+    ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         raise Error::Forbidden.new unless name && guest_ids.includes?(parent_id)
       end
 
-      Model::Metadata.build_metadata(parent_id, name)
+      ::PlaceOS::Model::Metadata.build_metadata(parent_id, name)
     end
 
-    record Children, zone : Model::Zone, metadata : Hash(String, Model::Metadata::Interface) do
+    record Children, zone : ::PlaceOS::Model::Zone, metadata : Hash(String, ::PlaceOS::Model::Metadata::Interface) do
       include JSON::Serializable
 
       def initialize(@zone, metadata_key : String?)
-        @metadata = Model::Metadata.build_metadata(@zone, metadata_key)
+        @metadata = ::PlaceOS::Model::Metadata.build_metadata(@zone, metadata_key)
       end
     end
 
@@ -75,7 +75,7 @@ module PlaceOS::Api
       end
 
       Log.context.set(zone_id: parent_id)
-      current_zone = Model::Zone.find!(parent_id)
+      current_zone = ::PlaceOS::Model::Zone.find!(parent_id)
       current_zone.children.all.compact_map do |zone|
         Children.new(zone, name) if include_parent || zone.id != parent_id
       end
@@ -87,8 +87,8 @@ module PlaceOS::Api
     def merge(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be updated")]
       parent_id : String,
-      meta : Model::Metadata::Interface
-    ) : Model::Metadata::Interface
+      meta : ::PlaceOS::Model::Metadata::Interface
+    ) : ::PlaceOS::Model::Metadata::Interface
       mutate(parent_id, meta, merge: true)
     end
 
@@ -98,8 +98,8 @@ module PlaceOS::Api
     def update(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be replaced")]
       parent_id : String,
-      meta : Model::Metadata::Interface
-    ) : Model::Metadata::Interface
+      meta : ::PlaceOS::Model::Metadata::Interface
+    ) : ::PlaceOS::Model::Metadata::Interface
       mutate(parent_id, meta, merge: false)
     end
 
@@ -117,7 +117,7 @@ module PlaceOS::Api
     end
 
     # Find (otherwise create) then update (or patch) the Metadata.
-    protected def mutate(parent_id : String, metadata : Model::Metadata::Interface, merge : Bool)
+    protected def mutate(parent_id : String, metadata : ::PlaceOS::Model::Metadata::Interface, merge : Bool)
       # A name is required to lookup the metadata
       raise Error::ModelValidation.new({Error::Field.new(:name, "Name must not be empty")}) unless metadata.name.presence
 
@@ -138,7 +138,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "name", description: "the name of the metadata key", example: "config")]
       metadata_name : String
     ) : Nil
-      Model::Metadata.for(parent_id, metadata_name).each &.destroy
+      ::PlaceOS::Model::Metadata.for(parent_id, metadata_name).each &.destroy
 
       spawn do
         if metadata_name.empty?
@@ -165,10 +165,10 @@ module PlaceOS::Api
       limit : Int32 = 100,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
       offset : Int32 = 0
-    ) : Hash(String, Array(Model::Metadata::Interface))
-      history = Model::Metadata.build_history(parent_id, name, offset: offset, limit: limit)
+    ) : Hash(String, Array(::PlaceOS::Model::Metadata::Interface))
+      history = ::PlaceOS::Model::Metadata.build_history(parent_id, name, offset: offset, limit: limit)
 
-      total = Model::Metadata.for(parent_id, name).max_of?(&.history_count) || 0
+      total = ::PlaceOS::Model::Metadata.for(parent_id, name).max_of?(&.history_count) || 0
       range_start = offset
       range_end = (history.max_of?(&.last.size) || 0) + range_start
 
@@ -189,18 +189,18 @@ module PlaceOS::Api
     # Helpers
     ###########################################################################
 
-    def create_or_update(parent_id : String, interface : Model::Metadata::Interface, merge : Bool) : Model::Metadata
-      if metadata = Model::Metadata.for(parent_id, interface.name).first?
+    def create_or_update(parent_id : String, interface : ::PlaceOS::Model::Metadata::Interface, merge : Bool) : ::PlaceOS::Model::Metadata
+      if metadata = ::PlaceOS::Model::Metadata.for(parent_id, interface.name).first?
         # Check if the current user has access
         check_access_level(parent_id) unless metadata.user_can_update?(user_token)
 
         metadata.assign_from_interface(user_token, interface, merge)
       else
         # When creating a new metadata, must be at least a support user or own the metadata
-        check_access_level(parent_id) unless Model::Metadata.user_can_create?(parent_id, user_token)
+        check_access_level(parent_id) unless ::PlaceOS::Model::Metadata.user_can_create?(parent_id, user_token)
 
         # Create a new Metadata
-        Model::Metadata.from_interface(interface).tap do |model|
+        ::PlaceOS::Model::Metadata.from_interface(interface).tap do |model|
           # Set `parent_id` in create
           model.parent_id = parent_id
         end
@@ -212,7 +212,7 @@ module PlaceOS::Api
     # Fetch zones for system the current user has a role for
     def guest_ids
       sys_id = user_token.user.roles.last
-      Model::ControlSystem.find!(sys_id).zones + [sys_id]
+      ::PlaceOS::Model::ControlSystem.find!(sys_id).zones + [sys_id]
     end
 
     def check_access_level(zone_id : String, admin_required : Bool = false)
@@ -220,12 +220,12 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless zone_id.starts_with? "zone-"
 
       # find the org zone
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
       # check that the permissions apply to this zone
-      current_zone = Model::Zone.find!(zone_id)
+      current_zone = ::PlaceOS::Model::Zone.find!(zone_id)
       root_zone_id = current_zone.root_zone_id
 
       if root_zone_id == org_zone_id

@@ -18,32 +18,32 @@ module PlaceOS::Api
     def find_current_schema(id : String)
       Log.context.set(schema_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_schema = Model::JsonSchema.find!(id)
+      @current_schema = ::PlaceOS::Model::JsonSchema.find!(id)
     end
 
-    getter! current_schema : Model::JsonSchema
+    getter! current_schema : ::PlaceOS::Model::JsonSchema
 
     ###############################################################################################
 
     # return the list of schemas
     # schemas can be used to ensure metadata conforms to the desired state
     @[AC::Route::GET("/")]
-    def index : Array(Model::JsonSchema)
-      elastic = Model::JsonSchema.elastic
+    def index : Array(::PlaceOS::Model::JsonSchema)
+      elastic = ::PlaceOS::Model::JsonSchema.elastic
       query = elastic.query(search_params)
       paginate_results(elastic, query)
     end
 
     # return the details of a schema
     @[AC::Route::GET("/:id")]
-    def show : Model::JsonSchema
+    def show : ::PlaceOS::Model::JsonSchema
       current_schema
     end
 
     # update a schema details
     @[AC::Route::PATCH("/:id", body: :schema)]
     @[AC::Route::PUT("/:id", body: :schema)]
-    def update(schema : Model::JsonSchema) : Model::JsonSchema
+    def update(schema : ::PlaceOS::Model::JsonSchema) : ::PlaceOS::Model::JsonSchema
       current = current_schema
       current.assign_attributes(schema)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -52,7 +52,7 @@ module PlaceOS::Api
 
     # add a new schema
     @[AC::Route::POST("/", body: :schema, status_code: HTTP::Status::CREATED)]
-    def create(schema : Model::JsonSchema) : Model::JsonSchema
+    def create(schema : ::PlaceOS::Model::JsonSchema) : ::PlaceOS::Model::JsonSchema
       raise Error::ModelValidation.new(schema.errors) unless schema.save
       schema
     end

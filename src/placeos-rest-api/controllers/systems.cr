@@ -44,17 +44,17 @@ module PlaceOS::Api
           raise Error::NotFound.new("no system with email: #{sys_id}")
         end
       else
-        @current_control_system = Model::ControlSystem.find!(sys_id)
+        @current_control_system = ::PlaceOS::Model::ControlSystem.find!(sys_id)
       end
     end
 
-    getter! current_control_system : Model::ControlSystem
+    getter! current_control_system : ::PlaceOS::Model::ControlSystem
 
     @[AC::Route::Filter(:before_action, only: [:update, :create], body: :control_system_update)]
-    def parse_update_control_system(@control_system_update : Model::ControlSystem)
+    def parse_update_control_system(@control_system_update : ::PlaceOS::Model::ControlSystem)
     end
 
-    getter! control_system_update : Model::ControlSystem
+    getter! control_system_update : ::PlaceOS::Model::ControlSystem
 
     # Permissions
     ###############################################################################################
@@ -90,7 +90,7 @@ module PlaceOS::Api
 
     def check_access_level(zones : Array(String), admin_required : Bool = false)
       # find the org zone
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
@@ -112,12 +112,12 @@ module PlaceOS::Api
     ###############################################################################################
 
     # extend the ControlSystem model to handle our return values
-    class Model::ControlSystem
+    class ::PlaceOS::Model::ControlSystem
       @[JSON::Field(key: "zone_data")]
-      property zone_data_details : Array(Model::Zone)? = nil
+      property zone_data_details : Array(::PlaceOS::Model::Zone)? = nil
 
       @[JSON::Field(key: "module_data")]
-      property module_data_details : Array(Model::Module)? = nil
+      property module_data_details : Array(::PlaceOS::Model::Module)? = nil
 
       # source => list of playlists
       # i.e. zone-xyz => ["playlist-1", "playlist-2"]
@@ -126,11 +126,11 @@ module PlaceOS::Api
 
       # playlist-1 => [configuration, media list]
       @[JSON::Field(key: "playlist_config")]
-      property playlist_config : Hash(String, Tuple(Model::Playlist, Array(String)))? = nil
+      property playlist_config : Hash(String, Tuple(::PlaceOS::Model::Playlist, Array(String)))? = nil
 
       # media details (for caching)
       @[JSON::Field(key: "playlist_media")]
-      property playlist_media : Array(Model::Playlist::Item)? = nil
+      property playlist_media : Array(::PlaceOS::Model::Playlist::Item)? = nil
     end
 
     ###############################################################################################
@@ -157,9 +157,9 @@ module PlaceOS::Api
       zone_id : String? = nil,
       @[AC::Param::Info(description: "return systems which are public", example: "true")]
       public : Bool? = nil
-    ) : Array(Model::ControlSystem)
-      elastic = Model::ControlSystem.elastic
-      query = Model::ControlSystem.elastic.query(search_params)
+    ) : Array(::PlaceOS::Model::ControlSystem)
+      elastic = ::PlaceOS::Model::ControlSystem.elastic
+      query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
 
       # Filter systems by zone_id
       if zone_id
@@ -177,7 +177,7 @@ module PlaceOS::Api
 
       # Filter by trigger_id
       if trigger_id
-        query.has_child(Model::TriggerInstance)
+        query.has_child(::PlaceOS::Model::TriggerInstance)
         query.must({
           "trigger_id" => [trigger_id],
         })
@@ -230,9 +230,9 @@ module PlaceOS::Api
     def find_by_email(
       @[AC::Param::Info(name: "in", description: "comma seperated list of emails", example: "room1@org.com,room2@org.com")]
       emails : Array(String)
-    ) : Array(Model::ControlSystem)
-      systems = Model::ControlSystem.where(email: emails.map(&.strip.downcase)).to_a
-      set_collection_headers(systems.size, Model::ControlSystem.table_name)
+    ) : Array(::PlaceOS::Model::ControlSystem)
+      systems = ::PlaceOS::Model::ControlSystem.where(email: emails.map(&.strip.downcase)).to_a
+      set_collection_headers(systems.size, ::PlaceOS::Model::ControlSystem.table_name)
       systems
     end
 
@@ -241,7 +241,7 @@ module PlaceOS::Api
     def show(
       @[AC::Param::Info(description: "return the system with the zone, module and driver information collected", example: "true")]
       complete : Bool = false
-    ) : Model::ControlSystem
+    ) : ::PlaceOS::Model::ControlSystem
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         raise Error::Forbidden.new unless user_token.user.roles.includes?(current_control_system.id)
@@ -250,10 +250,10 @@ module PlaceOS::Api
 
       if complete
         sys = current_control_system
-        sys.zone_data_details = Model::Zone.find_all(current_control_system.zones).to_a
+        sys.zone_data_details = ::PlaceOS::Model::Zone.find_all(current_control_system.zones).to_a
 
         # extend the module details with the driver details
-        modules = Model::Module.find_all(current_control_system.modules).to_a.map do |mod|
+        modules = ::PlaceOS::Model::Module.find_all(current_control_system.modules).to_a.map do |mod|
           # Pick off driver name, and module_name from associated driver
           mod.driver_details = mod.driver.try do |driver|
             Api::Modules::DriverDetails.new(driver.name, driver.description, driver.module_name)
@@ -274,7 +274,7 @@ module PlaceOS::Api
     def update(
       @[AC::Param::Info(description: "must be provided to prevent overwriting newer config with old, in the case where multiple people might be editing a system", example: "3")]
       version : Int32
-    ) : Model::ControlSystem
+    ) : ::PlaceOS::Model::ControlSystem
       if version != current_control_system.version
         raise Error::Conflict.new("Attempting to edit an old System version")
       end
@@ -289,7 +289,7 @@ module PlaceOS::Api
 
     # adds a new system
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : Model::ControlSystem
+    def create : ::PlaceOS::Model::ControlSystem
       sys = control_system_update
       raise Error::ModelValidation.new(sys.errors) unless sys.save
       sys
@@ -305,7 +305,7 @@ module PlaceOS::Api
 
     # Return all zones for this system
     @[AC::Route::GET("/:sys_id/zones")]
-    def sys_zones : Array(Model::Zone)
+    def sys_zones : Array(::PlaceOS::Model::Zone)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
         raise Error::Forbidden.new unless user_token.user.roles.includes?(current_control_system.id)
@@ -313,12 +313,12 @@ module PlaceOS::Api
 
       # Save the DB hit if there are no zones on the system
       documents = if current_control_system.zones.empty?
-                    [] of Model::Zone
+                    [] of ::PlaceOS::Model::Zone
                   else
-                    Model::Zone.find_all(current_control_system.zones).to_a
+                    ::PlaceOS::Model::Zone.find_all(current_control_system.zones).to_a
                   end
 
-      set_collection_headers(documents.size, Model::Zone.table_name)
+      set_collection_headers(documents.size, ::PlaceOS::Model::Zone.table_name)
 
       documents
     end
@@ -328,13 +328,13 @@ module PlaceOS::Api
     def metadata(
       sys_id : String,
       name : String? = nil
-    ) : Hash(String, PlaceOS::Model::Metadata::Interface)
-      Model::Metadata.build_metadata(sys_id, name)
+    ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
+      ::PlaceOS::Model::Metadata.build_metadata(sys_id, name)
     end
 
     # Receive the collated settings for a system
     @[AC::Route::GET("/:sys_id/settings")]
-    def settings : Array(PlaceOS::Model::Settings)
+    def settings : Array(::PlaceOS::Model::Settings)
       Api::Settings.collated_settings(current_user, current_control_system)
     end
 
@@ -342,21 +342,21 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:sys_id/module/:module_id")]
     def add_module(
       module_id : String
-    ) : Model::ControlSystem
-      raise Error::NotFound.new unless Model::Module.exists?(module_id)
+    ) : ::PlaceOS::Model::ControlSystem
+      raise Error::NotFound.new unless ::PlaceOS::Model::Module.exists?(module_id)
 
-      module_present = current_control_system.modules.includes?(module_id) || Model::ControlSystem.add_module(current_control_system.id.as(String), module_id)
+      module_present = current_control_system.modules.includes?(module_id) || ::PlaceOS::Model::ControlSystem.add_module(current_control_system.id.as(String), module_id)
       raise "Failed to add ControlSystem Module" unless module_present
 
       # Return the latest version of the control system
-      Model::ControlSystem.find!(current_control_system.id.as(String))
+      ::PlaceOS::Model::ControlSystem.find!(current_control_system.id.as(String))
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
     @[AC::Route::DELETE("/:sys_id/module/:module_id", status_code: HTTP::Status::ACCEPTED)]
     def remove_module(
       module_id : String
-    ) : Model::ControlSystem
+    ) : ::PlaceOS::Model::ControlSystem
       if current_control_system.modules.includes?(module_id)
         current_control_system.remove_module(module_id)
         raise Error::ModelValidation.new(current_control_system.errors) unless current_control_system.save
@@ -382,8 +382,8 @@ module PlaceOS::Api
 
     # Toggle the running state of ControlSystem's Module
     #
-    protected def self.module_running_state(control_system : Model::ControlSystem, running : Bool)
-      Model::Module.where(id: control_system.modules, ignore_startstop: false).update_all(running: running)
+    protected def self.module_running_state(control_system : ::PlaceOS::Model::ControlSystem, running : Bool)
+      ::PlaceOS::Model::Module.where(id: control_system.modules, ignore_startstop: false).update_all(running: running)
     end
 
     # Driver Metadata, State and Status
@@ -408,7 +408,7 @@ module PlaceOS::Api
         index: index,
         user_id: current_user.id,
       ) { |module_id|
-        Model::Module.find!(module_id).edge_id.as(String)
+        ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
       }
 
       response_text, status_code = remote_driver.exec(
@@ -428,7 +428,7 @@ module PlaceOS::Api
     # Look-up a module types in a system, returning a count of each type
     @[AC::Route::GET("/:sys_id/types")]
     def types(sys_id : String) : Hash(String, Int32)
-      Model::Module
+      ::PlaceOS::Model::Module
         .in_control_system(sys_id)
         .tally_by(&.resolved_name)
     end

@@ -18,30 +18,30 @@ module PlaceOS::Api
     def find_current_storage(id : String)
       Log.context.set(storage_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_storage = Model::Storage.find!(id)
+      @current_storage = ::PlaceOS::Model::Storage.find!(id)
     end
 
-    getter! current_storage : Model::Storage
+    getter! current_storage : ::PlaceOS::Model::Storage
 
     # returns the list of available storages for provided authority
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "return storages which are in the authority provided", example: "auth-1234")]
       auth_id : String? = nil
-    ) : Array(Model::Storage)
-      Model::Storage.where(authority_id: auth_id).all.to_a
+    ) : Array(::PlaceOS::Model::Storage)
+      ::PlaceOS::Model::Storage.where(authority_id: auth_id).all.to_a
     end
 
     # returns the details of a Storage
     @[AC::Route::GET("/:id")]
-    def show : Model::Storage
+    def show : ::PlaceOS::Model::Storage
       current_storage
     end
 
     # updates a storage details
     @[AC::Route::PATCH("/:id", body: :storage)]
     @[AC::Route::PUT("/:id", body: :storage)]
-    def update(storage : Model::Storage) : Model::Storage
+    def update(storage : ::PlaceOS::Model::Storage) : ::PlaceOS::Model::Storage
       current = current_storage
       current.assign_attributes(storage)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -50,7 +50,7 @@ module PlaceOS::Api
 
     # adds a new storage
     @[AC::Route::POST("/", body: :storage, status_code: HTTP::Status::CREATED)]
-    def create(storage : Model::Storage) : Model::Storage
+    def create(storage : ::PlaceOS::Model::Storage) : ::PlaceOS::Model::Storage
       raise Error::ModelValidation.new(storage.errors) unless storage.save
       storage
     end

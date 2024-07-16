@@ -19,12 +19,12 @@ module PlaceOS::Api
     end
 
     getter chat_manager : ChatGPT::ChatManager { ChatGPT::ChatManager.new(self) }
-    getter! authority : Model::Authority?
+    getter! authority : ::PlaceOS::Model::Authority?
 
     # list user chats
     @[AC::Route::GET("/")]
-    def index : Array(Model::Chat)
-      Model::Chat.where(user_id: current_user.id.not_nil!).all.to_a
+    def index : Array(::PlaceOS::Model::Chat)
+      ::PlaceOS::Model::Chat.where(user_id: current_user.id.not_nil!).all.to_a
     end
 
     # show user chat history
@@ -33,12 +33,12 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return the chat messages associated with this chat id", example: "chats-xxxx")]
       id : String
     ) : Array(NamedTuple(role: String, content: String?, timestamp: Time))
-      unless chat = Model::Chat.find?(id)
+      unless chat = ::PlaceOS::Model::Chat.find?(id)
         Log.warn { {message: "Invalid chat id. Unable to find matching chat history", id: id, user: current_user.id} }
         raise Error::NotFound.new("Invalid chat id: #{id}")
       end
 
-      chat.messages.to_a.select!(&.role.in?([Model::ChatMessage::Role::User, Model::ChatMessage::Role::Assistant]))
+      chat.messages.to_a.select!(&.role.in?([Model::ChatMessage::Role::User, ::PlaceOS::Model::ChatMessage::Role::Assistant]))
         .map { |c| {role: c.role.to_s, content: c.content, timestamp: c.created_at} }
     end
 
@@ -51,7 +51,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "To resume previous chat session. Provide session chat id", example: "chats-xxxx")]
       resume : String? = nil
     ) : Nil
-      chat_manager.start_session(socket, (resume && PlaceOS::Model::Chat.find!(resume.not_nil!)) || nil, system_id)
+      chat_manager.start_session(socket, (resume && ::PlaceOS::Model::Chat.find!(resume.not_nil!)) || nil, system_id)
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e
@@ -64,7 +64,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the id of the chat to delete", example: "chats-xxxx")]
       id : String
     ) : Nil
-      unless chat = Model::Chat.find?(id)
+      unless chat = ::PlaceOS::Model::Chat.find?(id)
         Log.warn { {message: "Invalid chat id. Unable to find matching chat record", id: id, user: current_user.id} }
         raise Error::NotFound.new("Invalid chat id: #{id}")
       end

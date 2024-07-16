@@ -31,10 +31,10 @@ module PlaceOS::Api
     def find_current_edge(id : String)
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_edge = Model::Edge.find!(id)
+      @current_edge = ::PlaceOS::Model::Edge.find!(id)
     end
 
-    getter! current_edge : Model::Edge
+    getter! current_edge : ::PlaceOS::Model::Edge
 
     ###############################################################################################
 
@@ -45,7 +45,7 @@ module PlaceOS::Api
     # the websocket endpoint that edge devices use to connect to the cluster
     @[AC::Route::WebSocket("/control")]
     def edge_control(socket) : Nil
-      edge_id = Model::Edge.jwt_edge_id?(user_token)
+      edge_id = ::PlaceOS::Model::Edge.jwt_edge_id?(user_token)
 
       if edge_id.nil? || !Model::Edge.exists?(edge_id)
         raise Error::Forbidden.new("not an edge lord")
@@ -65,8 +65,8 @@ module PlaceOS::Api
     # list the edges in the system.
     # an edge can be thought of as a location and each edge location can have multiple nodes servicing it
     @[AC::Route::GET("/")]
-    def index : Array(Model::Edge)
-      elastic = Model::Edge.elastic
+    def index : Array(::PlaceOS::Model::Edge)
+      elastic = ::PlaceOS::Model::Edge.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
@@ -74,14 +74,14 @@ module PlaceOS::Api
 
     # return the details of an edge location
     @[AC::Route::GET("/:id")]
-    def show : Model::Edge
+    def show : ::PlaceOS::Model::Edge
       current_edge
     end
 
     # update the details of an edge location
     @[AC::Route::PATCH("/:id", body: :edge)]
     @[AC::Route::PUT("/:id", body: :edge)]
-    def update(edge : Model::Edge) : Model::Edge
+    def update(edge : ::PlaceOS::Model::Edge) : ::PlaceOS::Model::Edge
       current = current_edge
       current.assign_attributes(edge)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -90,9 +90,9 @@ module PlaceOS::Api
 
     # add a new edge location
     @[AC::Route::POST("/", body: :create_body, status_code: HTTP::Status::CREATED)]
-    def create(create_body : Model::Edge::CreateBody) : Model::Edge::KeyResponse
-      user = Model::User.find!(create_body.user_id || current_user.id.as(String))
-      new_edge = Model::Edge.for_user(
+    def create(create_body : ::PlaceOS::Model::Edge::CreateBody) : ::PlaceOS::Model::Edge::KeyResponse
+      user = ::PlaceOS::Model::User.find!(create_body.user_id || current_user.id.as(String))
+      new_edge = ::PlaceOS::Model::Edge.for_user(
         user: user,
         name: create_body.name,
         description: create_body.description

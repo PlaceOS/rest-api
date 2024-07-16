@@ -20,21 +20,21 @@ module PlaceOS::Api
     def current_url(id : String)
       Log.context.set(url_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_url = url = Model::Shortener.find!(id)
+      @current_url = url = ::PlaceOS::Model::Shortener.find!(id)
 
       # ensure the current user has access
       raise Error::Forbidden.new unless authority.id == url.authority_id
     end
 
-    getter! current_url : Model::Shortener
+    getter! current_url : ::PlaceOS::Model::Shortener
 
     @[AC::Route::Filter(:before_action, only: [:update, :create], body: :url_update)]
-    def parse_update_url(@url_update : Model::Shortener)
+    def parse_update_url(@url_update : ::PlaceOS::Model::Shortener)
     end
 
-    getter! url_update : Model::Shortener
+    getter! url_update : ::PlaceOS::Model::Shortener
 
-    getter authority : Model::Authority { current_authority.as(Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
 
     # Permissions
     ###############################################################################################
@@ -57,8 +57,8 @@ module PlaceOS::Api
 
     # list the short URLs for this domain
     @[AC::Route::GET("/")]
-    def index : Array(Model::Shortener)
-      elastic = Model::Shortener.elastic
+    def index : Array(::PlaceOS::Model::Shortener)
+      elastic = ::PlaceOS::Model::Shortener.elastic
       query = elastic.query(search_params)
       query.filter({
         "authority_id" => [authority.id.as(String)],
@@ -70,14 +70,14 @@ module PlaceOS::Api
 
     # return the details of the requested shortened URL
     @[AC::Route::GET("/:id")]
-    def show : Model::Shortener
+    def show : ::PlaceOS::Model::Shortener
       current_url
     end
 
     # update the details of a short URL
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
-    def update : Model::Shortener
+    def update : ::PlaceOS::Model::Shortener
       url = url_update
       current = current_url
       current_count = current.redirect_count
@@ -91,7 +91,7 @@ module PlaceOS::Api
 
     # add a new short URL
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : Model::Shortener
+    def create : ::PlaceOS::Model::Shortener
       url = url_update
       url.authority_id = authority.id
       url.user = current_user

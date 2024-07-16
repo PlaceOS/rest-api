@@ -21,10 +21,10 @@ module PlaceOS::Api
       def find_current_auth(id : String)
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
-        @current_auth = Model::{{auth_type.id}}Authentication.find!(id)
+        @current_auth = ::PlaceOS::Model::{{auth_type.id}}Authentication.find!(id)
       end
 
-      getter! current_auth : Model::{{auth_type.id}}Authentication
+      getter! current_auth : ::PlaceOS::Model::{{auth_type.id}}Authentication
 
       ###############################################################################################
 
@@ -33,8 +33,8 @@ module PlaceOS::Api
       def index(
         @[AC::Param::Info(description: "return authentications that belong to the provided domain", example: "auth-12345")]
         authority_id : String? = nil,
-      ) : Array(Model::{{auth_type.id}}Authentication)
-        elastic = Model::{{auth_type.id}}Authentication.elastic
+      ) : Array(::PlaceOS::Model::{{auth_type.id}}Authentication)
+        elastic = ::PlaceOS::Model::{{auth_type.id}}Authentication.elastic
         query = elastic.query(search_params)
 
         if authority = authority_id
@@ -49,14 +49,14 @@ module PlaceOS::Api
 
       # returns the details of a particular authentication
       @[AC::Route::GET("/:id")]
-      def show : Model::{{auth_type.id}}Authentication
+      def show : ::PlaceOS::Model::{{auth_type.id}}Authentication
         current_auth
       end
 
       # updates the details of an authentication
       @[AC::Route::PATCH("/:id", body: :auth)]
       @[AC::Route::PUT("/:id", body: :auth)]
-      def update(auth : Model::{{auth_type.id}}Authentication) : Model::{{auth_type.id}}Authentication
+      def update(auth : ::PlaceOS::Model::{{auth_type.id}}Authentication) : ::PlaceOS::Model::{{auth_type.id}}Authentication
         current = current_auth
         current.assign_attributes(auth)
         raise Error::ModelValidation.new(current.errors) unless current.save
@@ -65,7 +65,7 @@ module PlaceOS::Api
 
       # creates a new authentication method
       @[AC::Route::POST("/", body: :auth, status_code: HTTP::Status::CREATED)]
-      def create(auth : Model::{{auth_type.id}}Authentication) : Model::{{auth_type.id}}Authentication
+      def create(auth : ::PlaceOS::Model::{{auth_type.id}}Authentication) : ::PlaceOS::Model::{{auth_type.id}}Authentication
         raise Error::ModelValidation.new(auth.errors) unless auth.save
         auth
       end

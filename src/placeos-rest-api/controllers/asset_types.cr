@@ -16,7 +16,7 @@ module PlaceOS::Api
     private def confirm_access
       return if user_support?
 
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         access = check_access(current_user.groups, [zone_id])
@@ -32,14 +32,14 @@ module PlaceOS::Api
     def find_current_asset_type(id : String)
       Log.context.set(asset_type_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_asset_type = Model::AssetType.find!(id)
+      @current_asset_type = ::PlaceOS::Model::AssetType.find!(id)
     end
 
-    getter! current_asset_type : Model::AssetType
+    getter! current_asset_type : ::PlaceOS::Model::AssetType
 
     ###############################################################################################
 
-    def self.apply_counts(results : Array(Model::AssetType), zone_id : String? = nil) : Hash(String, Int64)
+    def self.apply_counts(results : Array(::PlaceOS::Model::AssetType), zone_id : String? = nil) : Hash(String, Int64)
       counts = {} of String => Int64
       return counts if results.empty?
       zone_id = zone_id.presence
@@ -74,8 +74,8 @@ module PlaceOS::Api
       category_id : String? = nil,
       @[AC::Param::Info(description: "filters the asset count to the zone provided", example: "zone-1234")]
       zone_id : String? = nil
-    ) : Array(Model::AssetType)
-      elastic = Model::AssetType.elastic
+    ) : Array(::PlaceOS::Model::AssetType)
+      elastic = ::PlaceOS::Model::AssetType.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
       results = paginate_results(elastic, query)
@@ -105,14 +105,14 @@ module PlaceOS::Api
 
     # show the selected asset type
     @[AC::Route::GET("/:id")]
-    def show : Model::AssetType
+    def show : ::PlaceOS::Model::AssetType
       current_asset_type
     end
 
     # udpate asset type details
     @[AC::Route::PATCH("/:id", body: :asset_type)]
     @[AC::Route::PUT("/:id", body: :asset_type)]
-    def update(asset_type : Model::AssetType) : Model::AssetType
+    def update(asset_type : ::PlaceOS::Model::AssetType) : ::PlaceOS::Model::AssetType
       current = current_asset_type
       current.assign_attributes(asset_type)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -121,7 +121,7 @@ module PlaceOS::Api
 
     # add new asset type
     @[AC::Route::POST("/", body: :asset_type, status_code: HTTP::Status::CREATED)]
-    def create(asset_type : Model::AssetType) : Model::AssetType
+    def create(asset_type : ::PlaceOS::Model::AssetType) : ::PlaceOS::Model::AssetType
       raise Error::ModelValidation.new(asset_type.errors) unless asset_type.save
       asset_type
     end

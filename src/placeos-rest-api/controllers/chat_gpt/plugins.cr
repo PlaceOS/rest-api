@@ -16,7 +16,7 @@ module PlaceOS::Api
       end
     end
 
-    getter! authority : Model::Authority?
+    getter! authority : ::PlaceOS::Model::Authority?
     getter system_id : String { route_params["system_id"] }
 
     class Details
@@ -42,9 +42,9 @@ module PlaceOS::Api
     @[AC::Route::GET("/capabilities")]
     def capabilities : Details
       user_id = current_user.id.as(String)
-      user = Model::User.find!(user_id)
+      user = ::PlaceOS::Model::User.find!(user_id)
 
-      if timezone = Model::ControlSystem.find!(system_id).timezone
+      if timezone = ::PlaceOS::Model::ControlSystem.find!(system_id).timezone
         now = Time.local(timezone)
       end
 
@@ -112,7 +112,7 @@ module PlaceOS::Api
           index: 1,
           user_id: user_id,
         ) { |module_id|
-          Model::Module.find!(module_id).edge_id.as(String)
+          ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
         }
 
         resp, _code = remote_driver.exec(

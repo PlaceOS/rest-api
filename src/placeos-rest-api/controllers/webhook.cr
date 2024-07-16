@@ -28,7 +28,7 @@ module PlaceOS::Api
       Log.context.set(trigger_instance_id: id)
 
       # Find will raise a 404 (not found) if there is an error
-      trigger_instance = Model::TriggerInstance.find!(id)
+      trigger_instance = ::PlaceOS::Model::TriggerInstance.find!(id)
       trigger = trigger_instance.trigger
 
       # Determine the validity of loaded TriggerInstance
@@ -44,8 +44,8 @@ module PlaceOS::Api
       @current_trigger = trigger
     end
 
-    getter! current_trigger_instance : Model::TriggerInstance
-    getter! current_trigger : Model::Trigger
+    getter! current_trigger_instance : ::PlaceOS::Model::TriggerInstance
+    getter! current_trigger : ::PlaceOS::Model::Trigger
     getter body_data : String = ""
 
     # Check if there are any execute params
@@ -75,7 +75,7 @@ module PlaceOS::Api
 
     # returns the details of a webhook trigger
     @[AC::Route::GET("/:id")]
-    def show : Model::Trigger
+    def show : ::PlaceOS::Model::Trigger
       current_trigger
     end
 
@@ -102,7 +102,7 @@ module PlaceOS::Api
             mod,
             index
           ) { |module_id|
-            Model::Module.find!(module_id).edge_id.as(String)
+            ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
           }
 
           header_data = request.headers.try(&.to_h) || Hash(String, Array(String)).new

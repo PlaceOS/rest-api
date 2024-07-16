@@ -18,16 +18,16 @@ module PlaceOS::Api
     def current_driver(id : String)
       Log.context.set(driver_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_driver = Model::Driver.find!(id)
+      @current_driver = ::PlaceOS::Model::Driver.find!(id)
     end
 
-    getter! current_driver : Model::Driver
+    getter! current_driver : ::PlaceOS::Model::Driver
 
     # Response helpers
     ###############################################################################################
 
     # extend the ControlSystem model to handle our return values
-    class Model::Driver
+    class ::PlaceOS::Model::Driver
       @[JSON::Field(key: "compilation_status")]
       property compilation_status_details : Hash(String, Bool)? = nil
     end
@@ -38,11 +38,11 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "filter by the type of driver", example: "Logic")]
-      role : Model::Driver::Role? = nil,
+      role : ::PlaceOS::Model::Driver::Role? = nil,
       @[AC::Param::Info(description: "list only drivers for which update is available", example: "true")]
       update_available : Bool? = nil
-    ) : Array(Model::Driver)
-      elastic = Model::Driver.elastic
+    ) : Array(::PlaceOS::Model::Driver)
+      elastic = ::PlaceOS::Model::Driver.elastic
       query = elastic.query(search_params)
 
       if role
@@ -67,7 +67,7 @@ module PlaceOS::Api
     def show(
       @[AC::Param::Info(name: "compilation_status", description: "check if the driver is compiled?", example: "false")]
       include_compilation_status : Bool = true
-    ) : Model::Driver
+    ) : ::PlaceOS::Model::Driver
       current_driver.compilation_status_details = Api::Drivers.compilation_status(current_driver, request_id) if include_compilation_status
       current_driver
     end
@@ -75,7 +75,7 @@ module PlaceOS::Api
     # udpate a drivers details
     @[AC::Route::PATCH("/:id", body: :driver)]
     @[AC::Route::PUT("/:id", body: :driver)]
-    def update(driver : Model::Driver) : Model::Driver
+    def update(driver : ::PlaceOS::Model::Driver) : ::PlaceOS::Model::Driver
       current = current_driver
       current.assign_attributes(driver)
       raise Error::ModelValidation.new({ActiveModel::Error.new(current_driver, :role, "Driver role must not change")}) if current_driver.role_changed?
@@ -85,7 +85,7 @@ module PlaceOS::Api
 
     # add a new driver to the cluster
     @[AC::Route::POST("/", body: :driver, status_code: HTTP::Status::CREATED)]
-    def create(driver : Model::Driver) : Model::Driver
+    def create(driver : ::PlaceOS::Model::Driver) : ::PlaceOS::Model::Driver
       raise Error::ModelValidation.new(driver.errors) unless driver.save
       driver
     end
@@ -100,7 +100,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/:id/recompile", status: {
       Nil => HTTP::Status::ALREADY_REPORTED,
     })]
-    def recompile : Model::Driver?
+    def recompile : ::PlaceOS::Model::Driver?
       if current_driver.commit.starts_with?("RECOMPILE")
         nil
       else
@@ -116,7 +116,7 @@ module PlaceOS::Api
       end
     end
 
-    def self.recompile(driver : Model::Driver)
+    def self.recompile(driver : ::PlaceOS::Model::Driver)
       # Set the repository commit hash to head
       driver.update_fields(commit: "RECOMPILE-#{driver.commit}")
 
@@ -152,7 +152,7 @@ module PlaceOS::Api
       end
     end
 
-    def self.driver_compiled?(driver : Model::Driver, repository : Model::Repository, request_id : String, key : String? = nil) : Bool
+    def self.driver_compiled?(driver : ::PlaceOS::Model::Driver, repository : ::PlaceOS::Model::Repository, request_id : String, key : String? = nil) : Bool
       Api::Systems.core_for(key.presence || driver.file_name, request_id) do |core_client|
         core_client.driver_compiled?(
           file_name: URI.encode_path(driver.file_name),
@@ -168,7 +168,7 @@ module PlaceOS::Api
 
     # Returns the compilation status of a driver across the cluster
     def self.compilation_status(
-      driver : Model::Driver,
+      driver : ::PlaceOS::Model::Driver,
       request_id : String? = "migrate to Log"
     ) : Hash(String, Bool)
       tag = driver.id.as(String)

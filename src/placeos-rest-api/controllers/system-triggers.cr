@@ -22,10 +22,10 @@ module PlaceOS::Api
     )
       Log.context.set(trigger_instance_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_sys_trig = Model::TriggerInstance.find!(id)
+      @current_sys_trig = ::PlaceOS::Model::TriggerInstance.find!(id)
     end
 
-    getter! current_sys_trig : Model::TriggerInstance
+    getter! current_sys_trig : ::PlaceOS::Model::TriggerInstance
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_system(
@@ -34,10 +34,10 @@ module PlaceOS::Api
     )
       Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
-      @current_system = Model::ControlSystem.find!(sys_id)
+      @current_system = ::PlaceOS::Model::ControlSystem.find!(sys_id)
     end
 
-    getter! current_system : Model::ControlSystem
+    getter! current_system : ::PlaceOS::Model::ControlSystem
 
     ###############################################################################################
 
@@ -56,8 +56,8 @@ module PlaceOS::Api
       trigger_id : String? = nil,
       @[AC::Param::Info(description: "return triggers updated before the time specified, unix epoch", example: "123456")]
       as_of : Int64? = nil
-    ) : Array(Model::TriggerInstance)
-      elastic = Model::TriggerInstance.elastic
+    ) : Array(::PlaceOS::Model::TriggerInstance)
+      elastic = ::PlaceOS::Model::TriggerInstance.elastic
       query = elastic.query(search_params)
 
       # Filter by system ID
@@ -88,7 +88,7 @@ module PlaceOS::Api
       end
 
       # Include parent documents in the search
-      query.has_parent(parent: Model::Trigger, parent_index: Model::Trigger.table_name)
+      query.has_parent(parent: ::PlaceOS::Model::Trigger, parent_index: ::PlaceOS::Model::Trigger.table_name)
 
       trigger_instances = paginate_results(elastic, query).map { |t| render_system_trigger(t, complete: complete) }
       trigger_instances
@@ -96,7 +96,7 @@ module PlaceOS::Api
 
     # return a particular trigger instance
     @[AC::Route::GET("/:trig_id")]
-    def show(complete : Bool = true) : Model::TriggerInstance
+    def show(complete : Bool = true) : ::PlaceOS::Model::TriggerInstance
       # Default to render extra association fields
       render_system_trigger(current_sys_trig, complete: complete)
     end
@@ -108,7 +108,7 @@ module PlaceOS::Api
     # update the details of a trigger instance
     @[AC::Route::PATCH("/:trig_id", body: :args)]
     @[AC::Route::PUT("/:trig_id", body: :args)]
-    def update(args : UpdateParams) : Model::TriggerInstance
+    def update(args : UpdateParams) : ::PlaceOS::Model::TriggerInstance
       current = current_sys_trig
       current.enabled = args.enabled.as(Bool) unless args.enabled.nil?
       current.important = args.important.as(Bool) unless args.important.nil?
@@ -120,10 +120,10 @@ module PlaceOS::Api
     # add a trigger to a system
     @[AC::Route::POST("/", body: :trig_inst, status_code: HTTP::Status::CREATED)]
     def create(
-      trig_inst : Model::TriggerInstance,
+      trig_inst : ::PlaceOS::Model::TriggerInstance,
       @[AC::Param::Info(description: "the id of the system", example: "sys-1234")]
       sys_id : String
-    ) : Model::TriggerInstance
+    ) : ::PlaceOS::Model::TriggerInstance
       trig_inst.control_system_id = sys_id
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save
       trig_inst
@@ -143,7 +143,7 @@ module PlaceOS::Api
     end
 
     # extend the ControlSystem model to handle our return values
-    class Model::TriggerInstance
+    class ::PlaceOS::Model::TriggerInstance
       property name : String? = nil
       @[JSON::Field(key: "control_system")]
       property control_system_details : Api::SystemTriggers::ControlSystemDetails? = nil
@@ -156,7 +156,7 @@ module PlaceOS::Api
     # Render a TriggerInstance
     # - excludes `webhook_secret` if authorized user has a support role (or lower)
     # - includes `name`, `id` of parent ControlSystem, and `name` of if `complete = true`
-    def render_system_trigger(trigger_instance : Model::TriggerInstance, complete : Bool = false)
+    def render_system_trigger(trigger_instance : ::PlaceOS::Model::TriggerInstance, complete : Bool = false)
       if complete && (cs = trigger_instance.control_system)
         trigger_instance.control_system_details = ControlSystemDetails.new(cs.name.as(String), cs.id.as(String))
       end

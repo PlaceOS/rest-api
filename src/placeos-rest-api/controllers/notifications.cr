@@ -32,7 +32,7 @@ module PlaceOS::Api
       end
     end
 
-    getter! authority : Model::Authority?
+    getter! authority : ::PlaceOS::Model::Authority?
 
     @[AC::Route::POST("/google")]
     def google

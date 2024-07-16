@@ -12,7 +12,7 @@ module PlaceOS::Api
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
 
-    def authorize! : Model::UserJWT
+    def authorize! : ::PlaceOS::Model::UserJWT
       unless (token = @user_token).nil?
         return token
       end
@@ -20,7 +20,7 @@ module PlaceOS::Api
       # check for X-API-Key use
       if token = request.headers["X-API-Key"]? || params["api-key"]? || cookies["api-key"]?.try(&.value)
         begin
-          api_key = Model::ApiKey.find_key!(token)
+          api_key = ::PlaceOS::Model::ApiKey.find_key!(token)
           user_token = api_key.build_jwt
           Log.context.set(api_key_id: api_key.id, api_key_name: api_key.name)
           ensure_matching_domain(user_token)
@@ -37,7 +37,7 @@ module PlaceOS::Api
       raise Error::Unauthorized.new unless token
 
       begin
-        @user_token = user_token = Model::UserJWT.decode(token)
+        @user_token = user_token = ::PlaceOS::Model::UserJWT.decode(token)
       rescue e : JWT::Error
         Log.warn(exception: e) { {message: "bearer malformed", action: "authorize!"} }
         # Request bearer was malformed
@@ -76,13 +76,13 @@ module PlaceOS::Api
     end
 
     # Obtains user referenced by user_token id
-    getter current_user : Model::User { Model::User.find!(user_token.id) }
+    getter current_user : ::PlaceOS::Model::User { ::PlaceOS::Model::User.find!(user_token.id) }
 
     # Obtains the authority for the request's host
-    getter current_authority : Model::Authority? { Model::Authority.find_by_domain(request.hostname.as(String)) }
+    getter current_authority : ::PlaceOS::Model::Authority? { ::PlaceOS::Model::Authority.find_by_domain(request.hostname.as(String)) }
 
     # Getter for user_token
-    getter user_token : Model::UserJWT { authorize! }
+    getter user_token : ::PlaceOS::Model::UserJWT { authorize! }
 
     # Read admin status from supplied request JWT
     def check_admin

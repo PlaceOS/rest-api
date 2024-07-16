@@ -30,12 +30,12 @@ module PlaceOS::Api::WebSocket
 
     private getter ws : HTTP::WebSocket
 
-    private getter user : Model::UserJWT
+    private getter user : ::PlaceOS::Model::UserJWT
 
     def initialize(
       @ws : HTTP::WebSocket,
       @request_id : String,
-      @user : Model::UserJWT,
+      @user : ::PlaceOS::Model::UserJWT,
       @discovery : Clustering::Discovery = RemoteDriver.default_discovery
     )
       # Register event handlers
@@ -89,7 +89,7 @@ module PlaceOS::Api::WebSocket
         discovery: @discovery,
         user_id: user.id,
       ) { |module_id|
-        Model::Module.find!(module_id).edge_id.as(String)
+        ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
       }.exec(
         security: @security_level,
         function: name,
@@ -212,7 +212,7 @@ module PlaceOS::Api::WebSocket
           discovery: @discovery,
           user_id: user.id,
         ) { |module_id|
-          Model::Module.find!(module_id).edge_id.as(String)
+          ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
         }
 
         ws = driver.debug
@@ -325,7 +325,7 @@ module PlaceOS::Api::WebSocket
 
       if module_name == "_TRIGGER_"
         # Ensure the trigger exists
-        trig = Model::TriggerInstance.find(name)
+        trig = ::PlaceOS::Model::TriggerInstance.find(name)
         unless trig.try(&.control_system_id) == system_id
           Log.warn { {message: "websocket binding attempted to access unknown trigger", trigger_instance_id: name} }
           respond error_response(request_id, :module_not_found, "no trigger instance #{name} in system #{system_id}")

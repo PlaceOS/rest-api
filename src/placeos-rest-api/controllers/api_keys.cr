@@ -18,10 +18,10 @@ module PlaceOS::Api
     def find_current_api_key(id : String)
       Log.context.set(api_key: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_api_key = Model::ApiKey.find!(id)
+      @current_api_key = ::PlaceOS::Model::ApiKey.find!(id)
     end
 
-    getter! current_api_key : Model::ApiKey
+    getter! current_api_key : ::PlaceOS::Model::ApiKey
 
     ###############################################################################################
 
@@ -30,8 +30,8 @@ module PlaceOS::Api
     def index(
       @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
       authority_id : String? = nil
-    ) : Array(Model::ApiKey::PublicResponse)
-      elastic = Model::ApiKey.elastic
+    ) : Array(::PlaceOS::Model::ApiKey::PublicResponse)
+      elastic = ::PlaceOS::Model::ApiKey.elastic
       query = elastic.query(search_params)
 
       if authority = authority_id
@@ -44,14 +44,14 @@ module PlaceOS::Api
 
     # returns the requested API key details
     @[AC::Route::GET("/:id")]
-    def show : Model::ApiKey::PublicResponse
+    def show : ::PlaceOS::Model::ApiKey::PublicResponse
       current_api_key.to_public_struct
     end
 
     # updates an API key name, description user or scopes
     @[AC::Route::PATCH("/:id", body: :api_key)]
     @[AC::Route::PUT("/:id", body: :api_key)]
-    def update(api_key : Model::ApiKey) : Model::ApiKey::PublicResponse
+    def update(api_key : ::PlaceOS::Model::ApiKey) : ::PlaceOS::Model::ApiKey::PublicResponse
       current = current_api_key
       current.assign_attributes(api_key)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -60,7 +60,7 @@ module PlaceOS::Api
 
     # create a new API key
     @[AC::Route::POST("/", body: :api_key, status_code: HTTP::Status::CREATED)]
-    def create(api_key : Model::ApiKey) : Model::ApiKey::PublicResponse
+    def create(api_key : ::PlaceOS::Model::ApiKey) : ::PlaceOS::Model::ApiKey::PublicResponse
       raise Error::ModelValidation.new(api_key.errors) unless api_key.save
       api_key.to_public_struct
     end
@@ -73,7 +73,7 @@ module PlaceOS::Api
 
     # obtain the a JSON JWT representation of the API key permissions
     @[AC::Route::GET("/inspect")]
-    def inspect_key : Model::UserJWT
+    def inspect_key : ::PlaceOS::Model::UserJWT
       authorize!
     end
   end

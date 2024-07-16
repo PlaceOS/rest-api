@@ -18,16 +18,16 @@ module PlaceOS::Api
     def find_current_asset(id : String)
       Log.context.set(asset_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_asset = Model::Asset.find!(id)
+      @current_asset = ::PlaceOS::Model::Asset.find!(id)
     end
 
-    getter! current_asset : Model::Asset
+    getter! current_asset : ::PlaceOS::Model::Asset
 
     @[AC::Route::Filter(:before_action, only: [:update, :destroy])]
     private def confirm_access
       return if user_support?
 
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         zones = [zone_id, current_asset.zone_id.as(String)]
@@ -53,8 +53,8 @@ module PlaceOS::Api
       barcode : String? = nil,
       @[AC::Param::Info(description: "return assets that have a matchng serial number", example: "1234567")]
       serial_number : String? = nil
-    ) : Array(Model::Asset)
-      elastic = Model::Asset.elastic
+    ) : Array(::PlaceOS::Model::Asset)
+      elastic = ::PlaceOS::Model::Asset.elastic
       query = elastic.query(search_params)
 
       if zone_id
@@ -87,7 +87,7 @@ module PlaceOS::Api
         })
       end
 
-      # query.has_parent(parent: Model::AssetType, parent_index: Model::AssetType.table_name)
+      # query.has_parent(parent: ::PlaceOS::Model::AssetType, parent_index: ::PlaceOS::Model::AssetType.table_name)
 
       query.sort({"id" => {order: :asc}})
       paginate_results(elastic, query)
@@ -95,14 +95,14 @@ module PlaceOS::Api
 
     # show the selected asset
     @[AC::Route::GET("/:id")]
-    def show : Model::Asset
+    def show : ::PlaceOS::Model::Asset
       current_asset
     end
 
     # udpate asset details
     @[AC::Route::PATCH("/:id", body: :asset)]
     @[AC::Route::PUT("/:id", body: :asset)]
-    def update(asset : Model::Asset) : Model::Asset
+    def update(asset : ::PlaceOS::Model::Asset) : ::PlaceOS::Model::Asset
       current = current_asset
       current.assign_attributes(asset)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -111,7 +111,7 @@ module PlaceOS::Api
 
     # add new asset
     @[AC::Route::POST("/", body: :asset, status_code: HTTP::Status::CREATED)]
-    def create(asset : Model::Asset) : Model::Asset
+    def create(asset : ::PlaceOS::Model::Asset) : ::PlaceOS::Model::Asset
       @current_asset = asset
       confirm_access
       raise Error::ModelValidation.new(asset.errors) unless asset.save
@@ -129,7 +129,7 @@ module PlaceOS::Api
 
     # add new assets
     @[AC::Route::POST("/bulk", body: :assets, status_code: HTTP::Status::CREATED)]
-    def bulk_create(assets : Array(Model::Asset)) : Array(Model::Asset)
+    def bulk_create(assets : Array(::PlaceOS::Model::Asset)) : Array(::PlaceOS::Model::Asset)
       assets.map do |asset|
         raise Error::ModelValidation.new(asset.errors) unless asset.save
         asset
@@ -139,7 +139,7 @@ module PlaceOS::Api
     # udpate asset details
     @[AC::Route::PATCH("/bulk", body: :assets)]
     @[AC::Route::PUT("/bulk", body: :assets)]
-    def bulk_update(assets : Array(Model::Asset)) : Array(Model::Asset)
+    def bulk_update(assets : Array(::PlaceOS::Model::Asset)) : Array(::PlaceOS::Model::Asset)
       assets.compact_map do |asset|
         if asset_id = asset.id
           current = find_current_asset(asset_id)

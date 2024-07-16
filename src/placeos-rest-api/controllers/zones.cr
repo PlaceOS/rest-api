@@ -21,9 +21,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     # extend the Zone model for the show function
-    class Model::Zone
+    class ::PlaceOS::Model::Zone
       @[JSON::Field(key: "trigger_data")]
-      property trigger_data_details : Array(Model::Trigger)? = nil
+      property trigger_data_details : Array(::PlaceOS::Model::Trigger)? = nil
     end
 
     ###############################################################################################
@@ -32,16 +32,16 @@ module PlaceOS::Api
     def current_zone(id : String)
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_zone = Model::Zone.find!(id)
+      @current_zone = ::PlaceOS::Model::Zone.find!(id)
     end
 
-    getter! current_zone : Model::Zone
+    getter! current_zone : ::PlaceOS::Model::Zone
 
     @[AC::Route::Filter(:before_action, only: [:update, :create], body: :zone_update)]
-    def parse_update_zone(@zone_update : Model::Zone)
+    def parse_update_zone(@zone_update : ::PlaceOS::Model::Zone)
     end
 
-    getter! zone_update : Model::Zone
+    getter! zone_update : ::PlaceOS::Model::Zone
 
     # Permissions
     ###############################################################################################
@@ -67,9 +67,9 @@ module PlaceOS::Api
       check_access_level(zone_update, admin_required: false)
     end
 
-    def check_access_level(zone : Model::Zone, admin_required : Bool = false)
+    def check_access_level(zone : ::PlaceOS::Model::Zone, admin_required : Bool = false)
       # find the org zone
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
       raise Error::Forbidden.new unless zone.persisted? || zone.parent_id.presence
@@ -100,8 +100,8 @@ module PlaceOS::Api
       parent_id : String? = nil,
       @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
       tags : Array(String)? = nil
-    ) : Array(Model::Zone)
-      elastic = Model::Zone.elastic
+    ) : Array(::PlaceOS::Model::Zone)
+      elastic = ::PlaceOS::Model::Zone.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
@@ -130,7 +130,7 @@ module PlaceOS::Api
     def show(
       @[AC::Param::Info(description: "also return any triggers associated with the zone", example: "true")]
       complete : Bool = false
-    ) : Model::Zone
+    ) : ::PlaceOS::Model::Zone
       # Include trigger data in response
       current_zone.trigger_data_details = current_zone.trigger_data if complete
       current_zone
@@ -139,7 +139,7 @@ module PlaceOS::Api
     # update the details of a zone
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
-    def update : Model::Zone
+    def update : ::PlaceOS::Model::Zone
       zone = zone_update
       current = current_zone
       current.assign_attributes(zone)
@@ -149,7 +149,7 @@ module PlaceOS::Api
 
     # add a new zone
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : Model::Zone
+    def create : ::PlaceOS::Model::Zone
       zone = zone_update
       raise Error::ModelValidation.new(zone.errors) unless zone.save
       zone
@@ -169,8 +169,8 @@ module PlaceOS::Api
       id : String,
       @[AC::Param::Info(description: "only return the metadata key we are interested in", example: "workplace-config")]
       name : String? = nil
-    ) : Hash(String, PlaceOS::Model::Metadata::Interface)
-      Model::Metadata.build_metadata(id, name)
+    ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
+      ::PlaceOS::Model::Metadata.build_metadata(id, name)
     end
 
     private enum ExecStatus
@@ -181,9 +181,9 @@ module PlaceOS::Api
 
     # Return triggers attached to current zone
     @[AC::Route::GET("/:id/triggers")]
-    def trigger_instances : Array(Model::Trigger)
+    def trigger_instances : Array(::PlaceOS::Model::Trigger)
       triggers = current_zone.trigger_data
-      set_collection_headers(triggers.size, Model::Trigger.table_name)
+      set_collection_headers(triggers.size, ::PlaceOS::Model::Trigger.table_name)
       triggers
     end
 
@@ -215,7 +215,7 @@ module PlaceOS::Api
             module_name: module_name,
             index: index
           ) { |module_id|
-            Model::Module.find!(module_id).edge_id.as(String)
+            ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
           }
 
           output, status_code = remote_driver.exec(

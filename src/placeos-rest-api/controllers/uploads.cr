@@ -21,7 +21,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
       id : String
     )
-      unless @current_upload = Model::Upload.find?(id)
+      unless @current_upload = ::PlaceOS::Model::Upload.find?(id)
         Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Invalid upload id: #{id}")
       end
@@ -33,7 +33,7 @@ module PlaceOS::Api
                if upload = @current_upload
                  upload.storage
                else
-                 Model::Storage.storage_or_default(authority.id)
+                 ::PlaceOS::Model::Storage.storage_or_default(authority.id)
                end
              rescue ex
                Log.error(exception: ex) { {message: ex.message || "Authority storage configuration not found", authority_id: authority.id} }
@@ -43,10 +43,10 @@ module PlaceOS::Api
       @signer = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
     end
 
-    getter! authority : Model::Authority?
-    getter! storage : Model::Storage?
+    getter! authority : ::PlaceOS::Model::Authority?
+    getter! storage : ::PlaceOS::Model::Storage?
     getter! signer : UploadSigner::AmazonS3?
-    getter! current_upload : Model::Upload?
+    getter! current_upload : ::PlaceOS::Model::Upload?
 
     # check the storage provider for a new file upload
     @[AC::Route::GET("/new")]
@@ -63,7 +63,7 @@ module PlaceOS::Api
     end
 
     record UploadInfo, file_name : String, file_size : String, file_id : String, file_mime : String? = nil,
-      file_path : String? = nil, permissions : Model::Upload::Permissions = Model::Upload::Permissions::None, public : Bool = true, expires : Int32 = 5 do
+      file_path : String? = nil, permissions : ::PlaceOS::Model::Upload::Permissions = ::PlaceOS::Model::Upload::Permissions::None, public : Bool = true, expires : Int32 = 5 do
       include JSON::Serializable
 
       def expires
@@ -100,7 +100,7 @@ module PlaceOS::Api
       user_email = current_user.email
       file_name = sanitize_filename(info.file_name)
 
-      if upload = Model::Upload.find_by?(uploaded_by: user_id, file_name: file_name, file_size: info.file_size, file_md5: info.file_id)
+      if upload = ::PlaceOS::Model::Upload.find_by?(uploaded_by: user_id, file_name: file_name, file_size: info.file_size, file_md5: info.file_id)
         visibility = upload.public ? :public : :private
         resp = if (resumable_id = upload.resumable_id) && upload.resumable
                  s3 = signer.get_parts(storage.bucket_name, upload.object_key, upload.file_size, resumable_id, get_headers(upload))
@@ -120,7 +120,7 @@ module PlaceOS::Api
         visibility = info.public ? :public : :private
         s3 = signer.sign_upload(storage.bucket_name, object_key, info.file_size, info.file_id, info.file_mime, visibility, info.expires, get_default_headers(info.file_mime, info.public))
 
-        upload = Model::Upload.create!(uploaded_by: user_id, uploaded_email: user_email, file_name: file_name, file_size: info.file_size, file_md5: info.file_id,
+        upload = ::PlaceOS::Model::Upload.create!(uploaded_by: user_id, uploaded_email: user_email, file_name: file_name, file_size: info.file_size, file_md5: info.file_id,
           file_path: info.file_path, storage_id: storage.id, permissions: info.permissions,
           object_key: object_key, object_options: object_options, public: info.public,
           resumable: signer.multipart?)
@@ -298,7 +298,7 @@ module PlaceOS::Api
 
       begin
         storage.check_file_ext(File.extname(file_name))
-      rescue error : PlaceOS::Model::Error
+      rescue error : ::PlaceOS::Model::Error
         raise AC::Route::Param::ValueError.new(
           error.message,
           "file_name",
@@ -309,7 +309,7 @@ module PlaceOS::Api
       if mime = file_mime
         begin
           storage.check_file_mime(mime)
-        rescue error : PlaceOS::Model::Error
+        rescue error : ::PlaceOS::Model::Error
           raise AC::Route::Param::ValueError.new(
             error.message,
             "file_mime",

@@ -21,9 +21,9 @@ module PlaceOS::Api
       system_id : String
     )
       system = if system_id.starts_with? "sys-"
-                 Model::ControlSystem.find!(system_id)
+                 ::PlaceOS::Model::ControlSystem.find!(system_id)
                else
-                 res = Model::ControlSystem.where(code: system_id).first?
+                 res = ::PlaceOS::Model::ControlSystem.where(code: system_id).first?
                  raise Error::NotFound.new("could not find room #{system_id}") unless res
                  res
                end
@@ -35,7 +35,7 @@ module PlaceOS::Api
       @current_control_system = system
     end
 
-    getter! current_control_system : Model::ControlSystem
+    getter! current_control_system : ::PlaceOS::Model::ControlSystem
 
     # Response helpers
     ###############################################################################################
@@ -46,7 +46,7 @@ module PlaceOS::Api
       property? success : Bool
     end
 
-    class PlaceOS::Api::Error
+    class ::PlaceOS::Api::Error
       class RecaptchaFailed < Error
       end
 
@@ -78,10 +78,10 @@ module PlaceOS::Api
       raise Error::GuestAccessDisabled.new("guest access not enabled") unless jwt_secret
 
       # captcha, name, phone, type, chat_to_user_id, room_id, guest_chat_id (user_id), session_id
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
       if recaptcha_secret = authority.internals["recaptcha_secret"]?.try(&.as_s)
         HTTP::Client.new("www.google.com", tls: true) do |client|
-          client.connect_timeout = 2
+          client.connect_timeout = 2.seconds
 
           begin
             captresp = client.post("/recaptcha/api/siteverify?secret=#{recaptcha_secret}&response=#{guest.captcha}")
@@ -132,7 +132,7 @@ module PlaceOS::Api
       system = current_control_system
       chat_system = system.id
       system.zones.each do |zone_id|
-        meta = Model::Metadata.build_metadata(zone_id, "bindings")
+        meta = ::PlaceOS::Model::Metadata.build_metadata(zone_id, "bindings")
         if payload = meta["bindings"]?.try(&.details)
           if chat_room = payload["chat_room"]?.try(&.as_s?)
             chat_system = chat_room
@@ -216,8 +216,8 @@ module PlaceOS::Api
     struct RoomDetails
       include JSON::Serializable
 
-      getter system : Model::ControlSystem
-      getter metadata : Hash(String, PlaceOS::Model::Metadata::Interface)
+      getter system : ::PlaceOS::Model::ControlSystem
+      getter metadata : Hash(String, ::PlaceOS::Model::Metadata::Interface)
 
       def initialize(@system, @metadata)
       end
@@ -232,15 +232,15 @@ module PlaceOS::Api
     ) : RoomDetails
       system = current_control_system
       authority = current_authority.not_nil!
-      meta = Model::Metadata.build_metadata(system.id.not_nil!, authority.internals["webrtc_public_metadata"]?.try(&.as_s?))
+      meta = ::PlaceOS::Model::Metadata.build_metadata(system.id.not_nil!, authority.internals["webrtc_public_metadata"]?.try(&.as_s?))
       RoomDetails.new(system, meta)
     end
 
     # this route provides a list of public chat rooms for the current domain
     @[AC::Route::GET("/rooms")]
-    def index : Array(Model::ControlSystem)
-      elastic = Model::ControlSystem.elastic
-      query = Model::ControlSystem.elastic.query(search_params)
+    def index : Array(::PlaceOS::Model::ControlSystem)
+      elastic = ::PlaceOS::Model::ControlSystem.elastic
+      query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
       query.must({
         "public" => [true],
       })

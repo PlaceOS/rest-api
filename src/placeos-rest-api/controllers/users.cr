@@ -38,13 +38,13 @@ module PlaceOS::Api
           # TODO: Remove user id query prefixing.
           # Remove after June 2023, added to help with 2022 user id migration
           id_lookup = lookup.starts_with?("#{Model::User.table_name}-") ? lookup : "#{Model::User.table_name}-#{lookup}"
-          Model::User.find?(id_lookup)
+          ::PlaceOS::Model::User.find?(id_lookup)
         when :email
-          Model::User.find_by_email(authority_id: authority, email: lookup)
+          ::PlaceOS::Model::User.find_by_email(authority_id: authority, email: lookup)
         when :login_name
-          Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
+          ::PlaceOS::Model::User.find_by_login_name(authority_id: authority, login_name: lookup)
         when :staff_id
-          Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
+          ::PlaceOS::Model::User.find_by_staff_id(authority_id: authority, staff_id: lookup)
         end
       }.first {
         # 404 if the `User` was not found
@@ -55,7 +55,7 @@ module PlaceOS::Api
       end
     end
 
-    getter! user : Model::User
+    getter! user : ::PlaceOS::Model::User
 
     # Check the user has access to the model
     @[AC::Route::Filter(:before_action, only: [:update])]
@@ -68,7 +68,7 @@ module PlaceOS::Api
 
     # Render the current user
     @[AC::Route::GET("/current")]
-    def current : Model::User::AdminResponse
+    def current : ::PlaceOS::Model::User::AdminResponse
       current_user.to_admin_struct
     rescue e : PgORM::Error::RecordNotFound
       raise Error::Unauthorized.new("user not found")
@@ -165,7 +165,7 @@ module PlaceOS::Api
     # CRUD
     ###############################################################################################
 
-    alias UserDetails = Model::User::AdminResponse | Model::User::PublicResponse | Model::User::AdminMetadataResponse | Model::User::PublicMetadataResponse
+    alias UserDetails = ::PlaceOS::Model::User::AdminResponse | ::PlaceOS::Model::User::PublicResponse | ::PlaceOS::Model::User::AdminMetadataResponse | ::PlaceOS::Model::User::PublicMetadataResponse
 
     # returns a list of users
     @[AC::Route::GET("/")]
@@ -177,7 +177,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
       authority_id : String? = nil
     ) : Array(UserDetails)
-      elastic = Model::User.elastic
+      elastic = ::PlaceOS::Model::User.elastic
       search_query = search_params
       search_query["q"] = %("#{search_query["q"]}") if search_query["q"]?.to_s.is_email?
       query = elastic.query(search_query)
@@ -223,13 +223,13 @@ module PlaceOS::Api
 
     # add a new local user
     @[AC::Route::POST("/", body: :new_user, status_code: HTTP::Status::CREATED)]
-    def create(new_user : JSON::Any) : Model::User
+    def create(new_user : JSON::Any) : ::PlaceOS::Model::User
       body = new_user.to_json
-      new_user = Model::User.from_json(body)
+      new_user = ::PlaceOS::Model::User.from_json(body)
       new_user.assign_admin_attributes_from_json(body)
 
       # allow sys-admins to create users on other domains
-      new_user.authority ||= current_authority.as(Model::Authority)
+      new_user.authority ||= current_authority.as(::PlaceOS::Model::Authority)
 
       raise Error::ModelValidation.new(new_user.errors) unless new_user.save
       new_user
@@ -238,7 +238,7 @@ module PlaceOS::Api
     # udpate a users profile
     @[AC::Route::PATCH("/:id", body: :new_user)]
     @[AC::Route::PUT("/:id", body: :new_user)]
-    def update(new_user : JSON::Any) : Model::User
+    def update(new_user : JSON::Any) : ::PlaceOS::Model::User
       # Allow additional attributes to be applied by admins
       # (the users themselves should not have access to these)
       body = new_user.to_json
@@ -281,9 +281,9 @@ module PlaceOS::Api
     def metadata(
       @[AC::Param::Info(description: "filter metadata by a particular entry", example: "department")]
       name : String? = nil
-    ) : Hash(String, PlaceOS::Model::Metadata::Interface)
+    ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
       parent_id = user.id.not_nil!
-      Model::Metadata.build_metadata(parent_id, name)
+      ::PlaceOS::Model::Metadata.build_metadata(parent_id, name)
     end
 
     # Returns the groups these users are in
@@ -291,12 +291,12 @@ module PlaceOS::Api
     def groups(
       @[AC::Param::Info(description: "the user emails whos group membership we are interested", example: "user1@org.com,user2@org.com")]
       emails : Array(String)
-    ) : Array(Model::User::GroupResponse)
+    ) : Array(::PlaceOS::Model::User::GroupResponse)
       unless (errors = self.class.validate_emails(emails)).empty?
         raise Error::ModelValidation.new(errors, "not all provided emails were valid")
       end
 
-      Model::User
+      ::PlaceOS::Model::User
         .find_by_emails(authority_id: current_user.authority_id.as(String), emails: emails)
         .map &.to_group_struct
     end
@@ -318,7 +318,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
       offset : Int32 = 0
-    ) : Array(Model::User)
+    ) : Array(::PlaceOS::Model::User)
       sql = <<-SQL
         from "user" u INNER JOIN "metadata" m ON m.parent_id = u.id AND
         jsonb_path_exists(m.details, $1) and  u.authority_id = $2
@@ -330,7 +330,7 @@ module PlaceOS::Api
 
       range_start = offset > 0 ? offset - 1 : 0
 
-      result = Model::User.find_all_by_sql(<<-SQL, args: [filter, current_user.authority_id])
+      result = ::PlaceOS::Model::User.find_all_by_sql(<<-SQL, args: [filter, current_user.authority_id])
         SELECT DISTINCT u.* #{sql} LIMIT #{limit} OFFSET #{range_start}
       SQL
 

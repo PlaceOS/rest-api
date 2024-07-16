@@ -18,21 +18,21 @@ module PlaceOS::Api
     def current_playlist(id : String)
       Log.context.set(playlist_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_playlist = playlist = Model::Playlist.find!(id)
+      @current_playlist = playlist = ::PlaceOS::Model::Playlist.find!(id)
 
       # ensure the current user has access
       raise Error::Forbidden.new unless authority.id == playlist.authority_id
     end
 
-    getter! current_playlist : Model::Playlist
+    getter! current_playlist : ::PlaceOS::Model::Playlist
 
     @[AC::Route::Filter(:before_action, only: [:update, :create], body: :playlist_update)]
-    def parse_update_playlist(@playlist_update : Model::Playlist)
+    def parse_update_playlist(@playlist_update : ::PlaceOS::Model::Playlist)
     end
 
-    getter! playlist_update : Model::Playlist
+    getter! playlist_update : ::PlaceOS::Model::Playlist
 
-    getter authority : Model::Authority { current_authority.as(Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
 
     # Permissions
     ###############################################################################################
@@ -55,8 +55,8 @@ module PlaceOS::Api
 
     # list media playlists uploaded for this domain
     @[AC::Route::GET("/")]
-    def index : Array(Model::Playlist)
-      elastic = Model::Playlist.elastic
+    def index : Array(::PlaceOS::Model::Playlist)
+      elastic = ::PlaceOS::Model::Playlist.elastic
       query = elastic.query(search_params)
       query.filter({
         "authority_id" => [authority.id.as(String)],
@@ -68,14 +68,14 @@ module PlaceOS::Api
 
     # return the details of the requested media playlist
     @[AC::Route::GET("/:id")]
-    def show : Model::Playlist
+    def show : ::PlaceOS::Model::Playlist
       current_playlist
     end
 
     # update the details of a media playlist
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
-    def update : Model::Playlist
+    def update : ::PlaceOS::Model::Playlist
       playlist = playlist_update
       current = current_playlist
       current.assign_attributes(playlist)
@@ -86,7 +86,7 @@ module PlaceOS::Api
 
     # add a new media playlist
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : Model::Playlist
+    def create : ::PlaceOS::Model::Playlist
       playlist = playlist_update
       playlist.authority_id = authority.id
       raise Error::ModelValidation.new(playlist.errors) unless playlist.save
@@ -104,20 +104,20 @@ module PlaceOS::Api
 
     # get the current list of media for the playlist
     @[AC::Route::GET("/:id/media")]
-    def media : Model::Playlist::Revision
-      media_revisions(1).first? || Model::Playlist::Revision.new
+    def media : ::PlaceOS::Model::Playlist::Revision
+      media_revisions(1).first? || ::PlaceOS::Model::Playlist::Revision.new
     end
 
     # returns the previous versions of a playlist
     @[AC::Route::GET("/:id/media/revisions")]
-    def media_revisions(limit : Int32 = 10) : Array(Model::Playlist::Revision)
+    def media_revisions(limit : Int32 = 10) : Array(::PlaceOS::Model::Playlist::Revision)
       current_playlist.revisions.limit(limit).to_a
     end
 
     # provide an update list of media for a playlist
     @[AC::Route::POST("/:id/media", body: :items)]
-    def update_media(items : Array(String)) : Model::Playlist::Revision
-      new_revision = Model::Playlist::Revision.new
+    def update_media(items : Array(String)) : ::PlaceOS::Model::Playlist::Revision
+      new_revision = ::PlaceOS::Model::Playlist::Revision.new
       new_revision.items = items
       new_revision.user = current_user
       new_revision.playlist_id = current_playlist.id

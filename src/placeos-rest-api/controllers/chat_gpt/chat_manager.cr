@@ -19,7 +19,7 @@ module PlaceOS::Api
     def initialize(@app)
     end
 
-    def start_session(ws : HTTP::WebSocket, existing_chat : PlaceOS::Model::Chat?, system_id : String)
+    def start_session(ws : HTTP::WebSocket, existing_chat : ::PlaceOS::Model::Chat?, system_id : String)
       ws_lock.synchronize do
         ws_id = ws.object_id
         if existing_socket = ws_sockets[ws_id]?
@@ -51,7 +51,7 @@ module PlaceOS::Api
     end
 
     private def manage_chat(ws : HTTP::WebSocket, message : String, system_id : String)
-      if timezone = Model::ControlSystem.find!(system_id).timezone
+      if timezone = ::PlaceOS::Model::ControlSystem.find!(system_id).timezone
         now = Time.local(timezone)
         message = "sent at: #{now}\nday of week: #{now.day_of_week}\n#{message}"
       end
@@ -59,7 +59,7 @@ module PlaceOS::Api
       ws_lock.synchronize do
         ws_id = ws.object_id
         _, chat_id, client, completion_req, executor = ws_sockets[ws_id]? || begin
-          chat = PlaceOS::Model::Chat.create!(user_id: app.current_user.id.as(String), system_id: system_id, summary: message)
+          chat = ::PlaceOS::Model::Chat.create!(user_id: app.current_user.id.as(String), system_id: system_id, summary: message)
           id = chat.id.as(String)
           c, e, req = setup(chat, driver_prompt(chat))
           ws_sockets[ws_id] = {ws, id, c, req, e}
@@ -274,22 +274,22 @@ module PlaceOS::Api
       @total_tokens = @total_tokens - discardable_tokens
     end
 
-    private def save_history(chat_id : String, role : PlaceOS::Model::ChatMessage::Role, message : String, tokens : Int32, func_name : String? = nil,
+    private def save_history(chat_id : String, role : ::PlaceOS::Model::ChatMessage::Role, message : String, tokens : Int32, func_name : String? = nil,
                              func_args : JSON::Any? = nil, call_id : String? = nil) : Nil
-      PlaceOS::Model::ChatMessage.create!(role: role, chat_id: chat_id, content: message, tokens: tokens, function_name: func_name,
+      ::PlaceOS::Model::ChatMessage.create!(role: role, chat_id: chat_id, content: message, tokens: tokens, function_name: func_name,
         function_args: func_args, tool_call_id: call_id)
     end
 
     private def save_history(chat_id : String, msg : OpenAI::ChatMessage)
-      save_history(chat_id, PlaceOS::Model::ChatMessage::Role.parse(msg.role.to_s), msg.content || "", msg.tokens, msg.name,
+      save_history(chat_id, ::PlaceOS::Model::ChatMessage::Role.parse(msg.role.to_s), msg.content || "", msg.tokens, msg.name,
         msg.tool_calls.try &.first.function.arguments, msg.tool_call_id)
     end
 
-    private def build_prompt(chat : PlaceOS::Model::Chat, chat_payload : Payload?)
+    private def build_prompt(chat : ::PlaceOS::Model::Chat, chat_payload : Payload?)
       messages = [] of OpenAI::ChatMessage
 
       if payload = chat_payload
-        user = Model::User.find!(chat.user_id)
+        user = ::PlaceOS::Model::User.find!(chat.user_id)
 
         messages << OpenAI::ChatMessage.new(
           role: :system,
@@ -337,7 +337,7 @@ module PlaceOS::Api
       messages
     end
 
-    private def driver_prompt(chat : PlaceOS::Model::Chat) : Payload
+    private def driver_prompt(chat : ::PlaceOS::Model::Chat) : Payload
       Payload.from_json grab_driver_status(chat, LLM_DRIVER, LLM_DRIVER_PROMPT)
     end
 
@@ -396,7 +396,7 @@ module PlaceOS::Api
         index: 1,
         user_id: chat.user_id,
       ) { |module_id|
-        Model::Module.find!(module_id).edge_id.as(String)
+        ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
       }
 
       remote_driver.exec(

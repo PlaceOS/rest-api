@@ -71,7 +71,7 @@ module PlaceOS::Api
           end
 
           socket.on_pong do |string|
-            Model::Edge.update(edge_id, {last_seen: Time.utc, online: true})
+            ::PlaceOS::Model::Edge.update(edge_id, {last_seen: Time.utc, online: true})
             begin
               core_sockets[edge_id].pong(string)
             rescue e
@@ -82,7 +82,7 @@ module PlaceOS::Api
       end
 
       socket.on_close do
-        Model::Edge.update(edge_id, {last_seen: Time.utc, online: false})
+        ::PlaceOS::Model::Edge.update(edge_id, {last_seen: Time.utc, online: false})
         edge_lock.synchronize { remove(edge_id) if socket == edge_sockets[edge_id]? }
       end
     rescue e

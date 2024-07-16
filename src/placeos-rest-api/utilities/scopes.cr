@@ -12,8 +12,8 @@ module PlaceOS::Api
       {% end %}
     end
 
-    alias Access = PlaceOS::Model::UserJWT::Scope::Access
-    alias UserJWT = PlaceOS::Model::UserJWT
+    alias Access = ::PlaceOS::Model::UserJWT::Scope::Access
+    alias UserJWT = ::PlaceOS::Model::UserJWT
 
     def self.can_scope_access?(user_token : UserJWT, scope : String, access : Access)
       user_token.get_access("public").includes?(access) || user_token.get_access(scope).includes?(access)

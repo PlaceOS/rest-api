@@ -21,10 +21,10 @@ module PlaceOS::Api
     def find_current_settings(id : String)
       Log.context.set(settings_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_settings = Model::Settings.find!(id)
+      @current_settings = ::PlaceOS::Model::Settings.find!(id)
     end
 
-    getter! current_settings : Model::Settings
+    getter! current_settings : ::PlaceOS::Model::Settings
 
     # Permissions
     ###############################################################################################
@@ -43,7 +43,7 @@ module PlaceOS::Api
 
     def check_access_level(parent_id : String, admin_required : Bool)
       # find the org zone
-      authority = current_authority.as(Model::Authority)
+      authority = current_authority.as(::PlaceOS::Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
@@ -51,22 +51,22 @@ module PlaceOS::Api
 
       # check if the user has access
       case parent_id
-      when .starts_with?(Model::ControlSystem.table_name)
-        zones = Model::ControlSystem.find!(parent_id).zones
+      when .starts_with?(::PlaceOS::Model::ControlSystem.table_name)
+        zones = ::PlaceOS::Model::ControlSystem.find!(parent_id).zones
         if zones.includes? org_zone_id
           access = check_access(current_user.groups, zones)
         end
-      when .starts_with?(Model::Module.table_name)
+      when .starts_with?(::PlaceOS::Model::Module.table_name)
         # NOTE:: duplicate of Modules#can_modify?
-        mod = Model::Module.find!(parent_id)
+        mod = ::PlaceOS::Model::Module.find!(parent_id)
         cs_id = mod.control_system_id
         raise Error::Forbidden.new unless cs_id
 
-        zones = Model::ControlSystem.find!(cs_id).zones
+        zones = ::PlaceOS::Model::ControlSystem.find!(cs_id).zones
         raise Error::Forbidden.new unless zones.includes?(org_zone_id)
         access = check_access(current_user.groups, zones)
-      when .starts_with?(Model::Zone.table_name)
-        zone = Model::Zone.find!(parent_id)
+      when .starts_with?(::PlaceOS::Model::Zone.table_name)
+        zone = ::PlaceOS::Model::Zone.find!(parent_id)
         root_zone_id = zone.root_zone_id
 
         if root_zone_id == org_zone_id
@@ -84,19 +84,19 @@ module PlaceOS::Api
     @[AC::Route::GET("/", converters: {parent_id: ConvertStringArray})]
     def index(
       parent_id : Array(String)? = nil
-    ) : Array(Model::Settings)
+    ) : Array(::PlaceOS::Model::Settings)
       if parents = parent_id
         parents.each { |pid| can_view?(pid) }
 
         # Directly search for model's settings
-        parent_settings = Model::Settings.for_parent(parents)
+        parent_settings = ::PlaceOS::Model::Settings.for_parent(parents)
         # Decrypt for the user
         parent_settings.each &.decrypt_for!(current_user)
         parent_settings
       else
         raise Error::Forbidden.new unless user_support?
 
-        elastic = Model::Settings.elastic
+        elastic = ::PlaceOS::Model::Settings.elastic
         query = elastic.query(search_params)
         paginate_results(elastic, query)
       end
@@ -104,7 +104,7 @@ module PlaceOS::Api
 
     # return the requested setting details
     @[AC::Route::GET("/:id")]
-    def show : Model::Settings
+    def show : ::PlaceOS::Model::Settings
       can_view?(current_settings.parent_id.as(String))
       current_settings.decrypt_for!(current_user)
     end
@@ -112,7 +112,7 @@ module PlaceOS::Api
     # udpate a setting
     @[AC::Route::PATCH("/:id", body: :setting)]
     @[AC::Route::PUT("/:id", body: :setting)]
-    def update(setting : Model::Settings) : Model::Settings
+    def update(setting : ::PlaceOS::Model::Settings) : ::PlaceOS::Model::Settings
       current = current_settings
       can_modify?(current)
 
@@ -126,7 +126,7 @@ module PlaceOS::Api
 
     # add a new setting
     @[AC::Route::POST("/", body: :setting, status_code: HTTP::Status::CREATED)]
-    def create(setting : Model::Settings) : Model::Settings
+    def create(setting : ::PlaceOS::Model::Settings) : ::PlaceOS::Model::Settings
       can_modify?(setting)
       setting.modified_by = current_user
       raise Error::ModelValidation.new(setting.errors) unless setting.save
@@ -146,7 +146,7 @@ module PlaceOS::Api
       limit : Int32 = 15,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
       offset : Int32 = 0
-    ) : Array(Model::Settings)
+    ) : Array(::PlaceOS::Model::Settings)
       history = current_settings.history(offset: offset, limit: limit).to_a
 
       total = current_settings.history_count
@@ -172,7 +172,7 @@ module PlaceOS::Api
 
     # Get an ordered hierarchy of Settings for the model
     #
-    def self.collated_settings(user : Model::User, model : Model::ControlSystem | Model::Module)
+    def self.collated_settings(user : ::PlaceOS::Model::User, model : ::PlaceOS::Model::ControlSystem | ::PlaceOS::Model::Module)
       model
         .settings_hierarchy
         .reverse!

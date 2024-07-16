@@ -19,26 +19,26 @@ module PlaceOS::Api
     def find_current_trigger(id : String)
       Log.context.set(trigger_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_trigger = Model::Trigger.find!(id)
+      @current_trigger = ::PlaceOS::Model::Trigger.find!(id)
     end
 
-    getter! current_trigger : Model::Trigger
+    getter! current_trigger : ::PlaceOS::Model::Trigger
 
     ###############################################################################################
 
     # returns the list of available triggers
     @[AC::Route::GET("/")]
-    def index : Array(Model::Trigger)
-      elastic = Model::Trigger.elastic
+    def index : Array(::PlaceOS::Model::Trigger)
+      elastic = ::PlaceOS::Model::Trigger.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
     end
 
     # update so we can provide instance details
-    class Model::Trigger
+    class ::PlaceOS::Model::Trigger
       @[JSON::Field(key: "trigger_instances")]
-      property trigger_instances_details : Array(Model::TriggerInstance)? = nil
+      property trigger_instances_details : Array(::PlaceOS::Model::TriggerInstance)? = nil
     end
 
     # returns the details of a trigger
@@ -46,7 +46,7 @@ module PlaceOS::Api
     def show(
       @[AC::Param::Info(name: "instances", description: "return the instances associated with this trigger", example: "true")]
       include_instances : Bool? = nil
-    ) : Model::Trigger
+    ) : ::PlaceOS::Model::Trigger
       trig = current_trigger
       trig.trigger_instances_details = trig.trigger_instances.to_a if include_instances
       trig
@@ -55,7 +55,7 @@ module PlaceOS::Api
     # updates a trigger details
     @[AC::Route::PATCH("/:id", body: :trig)]
     @[AC::Route::PUT("/:id", body: :trig)]
-    def update(trig : Model::Trigger) : Model::Trigger
+    def update(trig : ::PlaceOS::Model::Trigger) : ::PlaceOS::Model::Trigger
       current = current_trigger
       current.assign_attributes(trig)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -64,7 +64,7 @@ module PlaceOS::Api
 
     # adds a new trigger
     @[AC::Route::POST("/", body: :trig, status_code: HTTP::Status::CREATED)]
-    def create(trig : Model::Trigger) : Model::Trigger
+    def create(trig : ::PlaceOS::Model::Trigger) : ::PlaceOS::Model::Trigger
       raise Error::ModelValidation.new(trig.errors) unless trig.save
       trig
     end
@@ -77,9 +77,9 @@ module PlaceOS::Api
 
     # Get instances of a trigger, how many systems are using a trigger
     @[AC::Route::GET("/:id/instances")]
-    def instances : Array(Model::TriggerInstance)
+    def instances : Array(::PlaceOS::Model::TriggerInstance)
       instances = current_trigger.trigger_instances.to_a
-      set_collection_headers(instances.size, Model::TriggerInstance.table_name)
+      set_collection_headers(instances.size, ::PlaceOS::Model::TriggerInstance.table_name)
       instances
     end
   end

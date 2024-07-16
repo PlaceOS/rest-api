@@ -21,32 +21,32 @@ module PlaceOS::Api
     def find_current_broker(id : String)
       Log.context.set(broker_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_broker = Model::Broker.find!(id)
+      @current_broker = ::PlaceOS::Model::Broker.find!(id)
     end
 
-    getter! current_broker : Model::Broker
+    getter! current_broker : ::PlaceOS::Model::Broker
 
     ###############################################################################################
 
     # returns the list of MQTT brokers receiving state information
     @[AC::Route::GET("/")]
-    def collection : Array(Model::Broker)
+    def collection : Array(::PlaceOS::Model::Broker)
       # named collection, not index as we don't support query params on this route
-      brokers = Model::Broker.all.to_a
-      set_collection_headers(brokers.size, Model::Broker.table_name)
+      brokers = ::PlaceOS::Model::Broker.all.to_a
+      set_collection_headers(brokers.size, ::PlaceOS::Model::Broker.table_name)
       brokers
     end
 
     # returns the details of the selected broker
     @[AC::Route::GET("/:id")]
-    def show : Model::Broker
+    def show : ::PlaceOS::Model::Broker
       current_broker
     end
 
     # updates the details of a broker
     @[AC::Route::PATCH("/:id", body: :broker)]
     @[AC::Route::PUT("/:id", body: :broker)]
-    def update(broker : Model::Broker) : Model::Broker
+    def update(broker : ::PlaceOS::Model::Broker) : ::PlaceOS::Model::Broker
       current = current_broker
       current.assign_attributes(broker)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -55,7 +55,7 @@ module PlaceOS::Api
 
     # adds a new broker
     @[AC::Route::POST("/", body: :broker, status_code: HTTP::Status::CREATED)]
-    def create(broker : Model::Broker) : Model::Broker
+    def create(broker : ::PlaceOS::Model::Broker) : ::PlaceOS::Model::Broker
       raise Error::ModelValidation.new(broker.errors) unless broker.save
       broker
     end

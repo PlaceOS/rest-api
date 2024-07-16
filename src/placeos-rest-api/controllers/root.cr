@@ -104,13 +104,13 @@ module PlaceOS::Api
 
     # provides the version of this service
     @[AC::Route::GET("/version")]
-    def version : PlaceOS::Model::Version
+    def version : ::PlaceOS::Model::Version
       Root.version
     end
 
     # provides the core node versions
     @[AC::Route::GET("/cluster/versions")]
-    def cluster_version : Array(PlaceOS::Model::Version)
+    def cluster_version : Array(::PlaceOS::Model::Version)
       Root.construct_versions
     end
 
@@ -125,8 +125,8 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    class_getter version : PlaceOS::Model::Version do
-      PlaceOS::Model::Version.new(
+    class_getter version : ::PlaceOS::Model::Version do
+      ::PlaceOS::Model::Version.new(
         service: APP_NAME,
         commit: BUILD_COMMIT,
         version: VERSION,
@@ -136,8 +136,8 @@ module PlaceOS::Api
 
     SERVICES = %w(core dispatch frontend_loader rest_api search_ingest source triggers)
 
-    def self.construct_versions : Array(PlaceOS::Model::Version)
-      version_channel = Channel(PlaceOS::Model::Version?).new
+    def self.construct_versions : Array(::PlaceOS::Model::Version)
+      version_channel = Channel(::PlaceOS::Model::Version?).new
       {% for service in SERVICES %}
         spawn do
           %version = begin
@@ -152,42 +152,42 @@ module PlaceOS::Api
         end
       {% end %}
 
-      Array(PlaceOS::Model::Version?).new(SERVICES.size) do
+      Array(::PlaceOS::Model::Version?).new(SERVICES.size) do
         version_channel.receive
       end.compact
     end
 
-    class_getter rest_api_version : PlaceOS::Model::Version = Root.version
+    class_getter rest_api_version : ::PlaceOS::Model::Version = Root.version
 
-    protected def self.frontend_loader_version : PlaceOS::Model::Version
+    protected def self.frontend_loader_version : ::PlaceOS::Model::Version
       FrontendLoader::Client.client(&.version)
     end
 
-    protected def self.search_ingest_version : PlaceOS::Model::Version
+    protected def self.search_ingest_version : ::PlaceOS::Model::Version
       SearchIngest::Client.client(&.version)
     end
 
-    protected def self.core_version : PlaceOS::Model::Version
+    protected def self.core_version : ::PlaceOS::Model::Version
       Api::Systems.core_for("version", &.version)
     end
 
-    protected def self.triggers_version : PlaceOS::Model::Version
+    protected def self.triggers_version : ::PlaceOS::Model::Version
       trigger_uri = TRIGGERS_URI.dup
       trigger_uri.path = "/api/triggers/v2/version"
       response = HTTP::Client.get trigger_uri
-      PlaceOS::Model::Version.from_json(response.body)
+      ::PlaceOS::Model::Version.from_json(response.body)
     end
 
-    protected def self.dispatch_version : PlaceOS::Model::Version
+    protected def self.dispatch_version : ::PlaceOS::Model::Version
       uri = URI.new(host: PLACE_DISPATCH_HOST, port: PLACE_DISPATCH_PORT, scheme: "http")
       response = HTTP::Client.get "#{uri}/api/dispatch/v1/version"
-      PlaceOS::Model::Version.from_json(response.body)
+      ::PlaceOS::Model::Version.from_json(response.body)
     end
 
-    protected def self.source_version : PlaceOS::Model::Version
+    protected def self.source_version : ::PlaceOS::Model::Version
       uri = URI.new(host: PLACE_SOURCE_HOST, port: PLACE_SOURCE_PORT, scheme: "http")
       response = HTTP::Client.get "#{uri}/api/source/v1/version"
-      PlaceOS::Model::Version.from_json(response.body)
+      ::PlaceOS::Model::Version.from_json(response.body)
     end
 
     # Can be used in a similar manner to a webhook for drivers

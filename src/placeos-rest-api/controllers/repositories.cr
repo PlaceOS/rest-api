@@ -22,7 +22,7 @@ module PlaceOS::Api
     def find_current_repo(id : String)
       Log.context.set(repository_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_repo = Model::Repository.find!(id)
+      @current_repo = ::PlaceOS::Model::Repository.find!(id)
     end
 
     @[AC::Route::Filter(:before_action, only: [:drivers, :details])]
@@ -32,15 +32,15 @@ module PlaceOS::Api
       end
     end
 
-    getter! current_repo : Model::Repository
+    getter! current_repo : ::PlaceOS::Model::Repository
     class_property repository_dir : String = File.expand_path("./repositories")
 
     ###############################################################################################
 
     # lists the repositories added to the system
     @[AC::Route::GET("/")]
-    def index : Array(Model::Repository)
-      elastic = Model::Repository.elastic
+    def index : Array(::PlaceOS::Model::Repository)
+      elastic = ::PlaceOS::Model::Repository.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
@@ -48,14 +48,14 @@ module PlaceOS::Api
 
     # returns the details of a saved repository
     @[AC::Route::GET("/:id")]
-    def show : Model::Repository
+    def show : ::PlaceOS::Model::Repository
       current_repo
     end
 
     # updates a repositories details
     @[AC::Route::PATCH("/:id", body: :repo)]
     @[AC::Route::PUT("/:id", body: :repo)]
-    def update(repo : Model::Repository) : Model::Repository
+    def update(repo : ::PlaceOS::Model::Repository) : ::PlaceOS::Model::Repository
       current = current_repo
       current.assign_attributes(repo)
 
@@ -65,7 +65,7 @@ module PlaceOS::Api
 
     # adds a new repository, either a frontends or driver repository
     @[AC::Route::POST("/", body: :repo, status_code: HTTP::Status::CREATED)]
-    def create(repo : Model::Repository) : Model::Repository
+    def create(repo : ::PlaceOS::Model::Repository) : ::PlaceOS::Model::Repository
       raise Error::ModelValidation.new(repo.errors) unless repo.save
       repo
     end
@@ -89,7 +89,7 @@ module PlaceOS::Api
       end
     end
 
-    def self.pull_repository(repository : Model::Repository, timeout = 1.minute)
+    def self.pull_repository(repository : ::PlaceOS::Model::Repository, timeout = 1.minute)
       # Trigger a pull event
       spawn do
         sleep 0.1
@@ -144,7 +144,7 @@ module PlaceOS::Api
       )
     end
 
-    def self.commits(repository : Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil, branch : String? = nil)
+    def self.commits(repository : ::PlaceOS::Model::Repository, request_id : String, number_of_commits : Int32? = nil, file_name : String? = nil, branch : String? = nil)
       # Dial the frontends service which can provide all the details
       FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
         password = repository.decrypt_password if repository.password.presence

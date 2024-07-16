@@ -17,10 +17,10 @@ module PlaceOS::Api
     def find_current_app(id : String)
       Log.context.set(application_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_app = Model::DoorkeeperApplication.find!(id.to_i)
+      @current_app = ::PlaceOS::Model::DoorkeeperApplication.find!(id.to_i)
     end
 
-    getter! current_app : Model::DoorkeeperApplication
+    getter! current_app : ::PlaceOS::Model::DoorkeeperApplication
 
     ###############################################################################################
 
@@ -29,8 +29,8 @@ module PlaceOS::Api
     def index(
       @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
       authority_id : String? = nil
-    ) : Array(Model::DoorkeeperApplication)
-      elastic = Model::DoorkeeperApplication.elastic
+    ) : Array(::PlaceOS::Model::DoorkeeperApplication)
+      elastic = ::PlaceOS::Model::DoorkeeperApplication.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
@@ -46,14 +46,14 @@ module PlaceOS::Api
 
     # show the details of the applications
     @[AC::Route::GET("/:id")]
-    def show : Model::DoorkeeperApplication
+    def show : ::PlaceOS::Model::DoorkeeperApplication
       current_app
     end
 
     # udpate an application
     @[AC::Route::PATCH("/:id", body: :app)]
     @[AC::Route::PUT("/:id", body: :app)]
-    def update(app : Model::DoorkeeperApplication) : Model::DoorkeeperApplication
+    def update(app : ::PlaceOS::Model::DoorkeeperApplication) : ::PlaceOS::Model::DoorkeeperApplication
       current = current_app
       current.assign_attributes(app)
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -62,7 +62,7 @@ module PlaceOS::Api
 
     # add a new user interface application
     @[AC::Route::POST("/", body: :app, status_code: HTTP::Status::CREATED)]
-    def create(app : Model::DoorkeeperApplication) : Model::DoorkeeperApplication
+    def create(app : ::PlaceOS::Model::DoorkeeperApplication) : ::PlaceOS::Model::DoorkeeperApplication
       raise Error::ModelValidation.new(app.errors) unless app.save
       app
     end

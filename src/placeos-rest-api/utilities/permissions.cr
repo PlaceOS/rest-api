@@ -39,7 +39,7 @@ module PlaceOS::Api::Utils::Permissions
   # https://docs.google.com/document/d/1OaZljpjLVueFitmFWx8xy8BT8rA2lITyPsIvSYyNNW8/edit#
   # See the section on user-permissions
   def check_access(groups : Array(String), zones : Array(String))
-    metadatas = Model::Metadata.where(
+    metadatas = ::PlaceOS::Model::Metadata.where(
       parent_id: zones,
       name: "permissions"
     ).to_a.to_h { |meta| {meta.parent_id, meta} }

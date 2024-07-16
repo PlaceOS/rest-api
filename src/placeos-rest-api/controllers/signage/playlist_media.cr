@@ -19,21 +19,21 @@ module PlaceOS::Api
     def current_item(id : String)
       Log.context.set(item_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_item = item = Model::Playlist::Item.find!(id)
+      @current_item = item = ::PlaceOS::Model::Playlist::Item.find!(id)
 
       # ensure the current user has access
       raise Error::Forbidden.new unless authority.id == item.authority_id
     end
 
-    getter! current_item : Model::Playlist::Item
+    getter! current_item : ::PlaceOS::Model::Playlist::Item
 
     @[AC::Route::Filter(:before_action, only: [:update, :create], body: :item_update)]
-    def parse_update_item(@item_update : Model::Playlist::Item)
+    def parse_update_item(@item_update : ::PlaceOS::Model::Playlist::Item)
     end
 
-    getter! item_update : Model::Playlist::Item
+    getter! item_update : ::PlaceOS::Model::Playlist::Item
 
-    getter authority : Model::Authority { current_authority.as(Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
 
     # Permissions
     ###############################################################################################
@@ -56,8 +56,8 @@ module PlaceOS::Api
 
     # list media items uploaded for this domain
     @[AC::Route::GET("/")]
-    def index : Array(Model::Playlist::Item)
-      elastic = Model::Playlist::Item.elastic
+    def index : Array(::PlaceOS::Model::Playlist::Item)
+      elastic = ::PlaceOS::Model::Playlist::Item.elastic
       query = elastic.query(search_params)
       query.filter({
         "authority_id" => [authority.id.as(String)],
@@ -69,14 +69,14 @@ module PlaceOS::Api
 
     # return the details of the requested media item
     @[AC::Route::GET("/:id")]
-    def show : Model::Playlist::Item
+    def show : ::PlaceOS::Model::Playlist::Item
       current_item
     end
 
     # update the details of a media item
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
-    def update : Model::Playlist::Item
+    def update : ::PlaceOS::Model::Playlist::Item
       item = item_update
       current = current_item
       current.assign_attributes(item)
@@ -87,7 +87,7 @@ module PlaceOS::Api
 
     # add a new media item
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : Model::Playlist::Item
+    def create : ::PlaceOS::Model::Playlist::Item
       item = item_update
       item.authority_id = authority.id
       raise Error::ModelValidation.new(item.errors) unless item.save
@@ -101,7 +101,7 @@ module PlaceOS::Api
         {current_item.media, current_item.thumbnail}.each do |upload|
           next unless upload
 
-          storage = upload.storage || Model::Storage.storage_or_default(authority.id)
+          storage = upload.storage || ::PlaceOS::Model::Storage.storage_or_default(authority.id)
           signer = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
           signer.delete_file(storage.bucket_name, upload.object_key, upload.resumable_id)
           upload.destroy
