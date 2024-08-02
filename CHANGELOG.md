@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **systems**: add a filter for signage systems
 - add crystal 1.13 support
 - PPT-1396 Add search fields options to index endpoints ([#387](https://github.com/PlaceOS/rest-api/pull/387))
 - PPT-1329: Removed git related methods from rest-api ([#386](https://github.com/PlaceOS/rest-api/pull/386))
