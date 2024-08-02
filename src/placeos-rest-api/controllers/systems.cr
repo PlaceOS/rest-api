@@ -156,7 +156,9 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return systems which are in the zone provided", example: "zone-1234")]
       zone_id : String? = nil,
       @[AC::Param::Info(description: "return systems which are public", example: "true")]
-      public : Bool? = nil
+      public : Bool? = nil,
+      @[AC::Param::Info(description: "return systems which are signage", example: "true")]
+      signage : Bool? = nil
     ) : Array(::PlaceOS::Model::ControlSystem)
       elastic = ::PlaceOS::Model::ControlSystem.elastic
       query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
@@ -217,6 +219,13 @@ module PlaceOS::Api
       if public
         query.should({
           "public" => [true],
+        })
+      end
+
+      # filter by signage
+      if public
+        query.should({
+          "signage" => [true],
         })
       end
 

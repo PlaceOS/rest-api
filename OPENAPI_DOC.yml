@@ -8165,6 +8165,14 @@ paths:
         schema:
           type: boolean
           nullable: true
+      - name: signage
+        in: query
+        description: return systems which are signage
+        example: "true"
+        required: false
+        schema:
+          type: boolean
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
