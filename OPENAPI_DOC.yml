@@ -5477,6 +5477,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/domains/lookup/{email}:
+    get:
+      summary: Find the domain name by looking into domain registerd email domains.
+      tags:
+      - Domains
+      operationId: PlaceOS::Api::Domains_lookup
+      parameters:
+      - name: email
+        in: path
+        description: User email to lookup domain for
+        example: user@domain.com
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/String'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/domains/{id}:
     get:
       summary: show the selected domain
@@ -20891,6 +20962,11 @@ components:
               additionalProperties:
                 type: object
               nullable: true
+            email_domains:
+              type: array
+              items:
+                type: string
+              nullable: true
             id:
               type: string
               nullable: true
@@ -21836,9 +21912,16 @@ components:
           additionalProperties:
             type: object
           nullable: true
+        email_domains:
+          type: array
+          items:
+            type: string
+          nullable: true
         id:
           type: string
           nullable: true
+    String:
+      type: string
     PlaceOS__Model__Driver:
       type: object
       properties:
@@ -22396,8 +22479,6 @@ components:
         id:
           type: string
           nullable: true
-    String:
-      type: string
     Array_JSON__Any_:
       type: array
       items:
