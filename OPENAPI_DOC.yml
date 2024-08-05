@@ -20891,6 +20891,11 @@ components:
               additionalProperties:
                 type: object
               nullable: true
+            email_domains:
+              type: array
+              items:
+                type: string
+              nullable: true
             id:
               type: string
               nullable: true
@@ -21835,6 +21840,11 @@ components:
           type: object
           additionalProperties:
             type: object
+          nullable: true
+        email_domains:
+          type: array
+          items:
+            type: string
           nullable: true
         id:
           type: string
@@ -23382,6 +23392,10 @@ components:
               authority_id:
                 type: string
                 nullable: true
+              video_length:
+                type: integer
+                format: Int32
+                nullable: true
               start_time:
                 type: integer
                 format: Int32
@@ -24660,6 +24674,10 @@ components:
         authority_id:
           type: string
           nullable: true
+        video_length:
+          type: integer
+          format: Int32
+          nullable: true
         start_time:
           type: integer
           format: Int32
@@ -25785,6 +25803,10 @@ components:
                 nullable: true
               authority_id:
                 type: string
+                nullable: true
+              video_length:
+                type: integer
+                format: Int32
                 nullable: true
               start_time:
                 type: integer
@@ -28242,6 +28264,10 @@ components:
                     nullable: true
                   authority_id:
                     type: string
+                    nullable: true
+                  video_length:
+                    type: integer
+                    format: Int32
                     nullable: true
                   start_time:
                     type: integer
