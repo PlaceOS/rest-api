@@ -10,12 +10,12 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :show]
+    before_action :check_admin, except: [:index, :show, :lookup]
     before_action :check_support, only: [:index, :show]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    @[AC::Route::Filter(:before_action, except: [:index, :lookup, :create])]
     def find_current_domain(id : String)
       Log.context.set(authority_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -33,6 +33,21 @@ module PlaceOS::Api
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
+    end
+
+    # skip authentication for the lookup
+    skip_action :authorize!, only: :lookup
+    skip_action :set_user_id, only: :lookup
+
+    # Find the domain name by looking into domain registerd email domains.
+    @[AC::Route::GET("/lookup/:email")]
+    def lookup(
+      @[AC::Param::Info(name: "email", description: "User email to lookup domain for", example: "user@domain.com")]
+      email : String
+    ) : String
+      authority = ::PlaceOS::Model::Authority.find_by_email(email)
+      raise Error::NotFound.new("No matching domain found") unless authority
+      authority.domain
     end
 
     # show the selected domain
