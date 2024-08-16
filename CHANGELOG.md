@@ -56,6 +56,7 @@
 
 ### Fix
 
+- **signage/playlists**: sort by name
 - **signage/playlist_media**: don't cleanup media still in use
 - **specs**: clean and fix specs ([#384](https://github.com/PlaceOS/rest-api/pull/384))
 - **repositories**: list the files on the correct branch ([#383](https://github.com/PlaceOS/rest-api/pull/383))
