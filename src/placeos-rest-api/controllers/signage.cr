@@ -31,8 +31,13 @@ module PlaceOS::Api
         system.playlist_mappings = playlist_map
 
         # get the playlist configuration (default timeouts etc) and media lists (latest revisions)
-        playlist_details = ::PlaceOS::Model::Playlist.where(id: playlist_ids).to_a
-        playlist_items = ::PlaceOS::Model::Playlist::Revision.revisions(playlist_ids)
+        if playlist_ids.empty?
+          playlist_details = [] of ::PlaceOS::Model::Playlist
+          playlist_items = [] of ::PlaceOS::Model::Playlist::Revision
+        else
+          playlist_details = ::PlaceOS::Model::Playlist.where(id: playlist_ids).to_a
+          playlist_items = ::PlaceOS::Model::Playlist::Revision.revisions(playlist_ids)
+        end
 
         playlist_config = Hash(String, Tuple(::PlaceOS::Model::Playlist, Array(String))).new(playlist_details.size) { raise "no default" }
         playlist_details.each do |playlist|
@@ -44,7 +49,12 @@ module PlaceOS::Api
 
         # grab all the media details that should be cached / used in the media lists
         media_ids = playlist_config.values.flat_map(&.[](1)).uniq!
-        system.playlist_media = ::PlaceOS::Model::Playlist::Item.where(id: media_ids).to_a
+
+        if media_ids.empty?
+          system.playlist_media = [] of ::PlaceOS::Model::Playlist::Item
+        else
+          system.playlist_media = ::PlaceOS::Model::Playlist::Item.where(id: media_ids).to_a
+        end
 
         # ensure response caching is configured correctly
         response.headers["Cache-Control"] = "no-cache"
