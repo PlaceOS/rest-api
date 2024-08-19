@@ -56,6 +56,7 @@
 
 ### Fix
 
+- **signage**: errors when no playlists scheduled
 - **signage**: caching and cache busting updates
 - **signage/playlists**: name field sort
 - **signage/playlists**: sort by name
