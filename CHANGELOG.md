@@ -56,6 +56,7 @@
 
 ### Fix
 
+- **signage**: caching and cache busting updates
 - **signage/playlists**: name field sort
 - **signage/playlists**: sort by name
 - **signage/playlist_media**: don't cleanup media still in use
