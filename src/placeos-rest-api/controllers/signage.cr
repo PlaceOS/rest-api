@@ -47,6 +47,7 @@ module PlaceOS::Api
         system.playlist_media = ::PlaceOS::Model::Playlist::Item.where(id: media_ids).to_a
 
         # ensure response caching is configured correctly
+        response.headers["Cache-Control"] = "no-cache"
         system
       end
     end
