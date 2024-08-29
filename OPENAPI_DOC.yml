@@ -20793,8 +20793,8 @@ components:
               format: Int64
               nullable: true
             last_login:
-              type: string
-              format: date-time
+              type: integer
+              format: Int64
               nullable: true
             work_preferences:
               type: array
@@ -20803,20 +20803,27 @@ components:
                 properties:
                   day_of_week:
                     type: integer
-                    format: Int64
-                  start_time:
-                    type: number
-                    format: Float64
-                  end_time:
-                    type: number
-                    format: Float64
-                  location:
-                    type: string
+                    format: Int32
+                  blocks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        start_time:
+                          type: number
+                          format: Float64
+                        end_time:
+                          type: number
+                          format: Float64
+                        location:
+                          type: string
+                      required:
+                      - start_time
+                      - end_time
+                      - location
                 required:
                 - day_of_week
-                - start_time
-                - end_time
-                - location
+                - blocks
               nullable: true
             work_overrides:
               type: object
@@ -20825,20 +20832,27 @@ components:
                 properties:
                   day_of_week:
                     type: integer
-                    format: Int64
-                  start_time:
-                    type: number
-                    format: Float64
-                  end_time:
-                    type: number
-                    format: Float64
-                  location:
-                    type: string
+                    format: Int32
+                  blocks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        start_time:
+                          type: number
+                          format: Float64
+                        end_time:
+                          type: number
+                          format: Float64
+                        location:
+                          type: string
+                      required:
+                      - start_time
+                      - end_time
+                      - location
                 required:
                 - day_of_week
-                - start_time
-                - end_time
-                - location
+                - blocks
               nullable: true
             authority_id:
               type: string
@@ -23328,6 +23342,7 @@ components:
                 default_animation:
                   type: string
                   enum:
+                  - default
                   - cut
                   - cross_fade
                   - slide_top
@@ -23346,19 +23361,19 @@ components:
                   format: Int32
                   nullable: true
                 valid_from:
-                  type: string
-                  format: date-time
+                  type: integer
+                  format: Int64
                   nullable: true
                 valid_until:
-                  type: string
-                  format: date-time
+                  type: integer
+                  format: Int64
                   nullable: true
                 play_hours:
                   type: string
                   nullable: true
                 play_at:
-                  type: string
-                  format: date-time
+                  type: integer
+                  format: Int64
                   nullable: true
                 play_cron:
                   type: string
@@ -23407,6 +23422,7 @@ components:
               animation:
                 type: string
                 enum:
+                - default
                 - cut
                 - cross_fade
                 - slide_top
@@ -23445,12 +23461,12 @@ components:
                 format: Int64
                 nullable: true
               valid_from:
-                type: string
-                format: date-time
+                type: integer
+                format: Int64
                 nullable: true
               valid_until:
-                type: string
-                format: date-time
+                type: integer
+                format: Int64
                 nullable: true
               id:
                 type: string
@@ -24689,6 +24705,7 @@ components:
         animation:
           type: string
           enum:
+          - default
           - cut
           - cross_fade
           - slide_top
@@ -24727,12 +24744,12 @@ components:
           format: Int64
           nullable: true
         valid_from:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
           nullable: true
         valid_until:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
           nullable: true
         id:
           type: string
@@ -24776,6 +24793,7 @@ components:
         default_animation:
           type: string
           enum:
+          - default
           - cut
           - cross_fade
           - slide_top
@@ -24794,19 +24812,19 @@ components:
           format: Int32
           nullable: true
         valid_from:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
           nullable: true
         valid_until:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
           nullable: true
         play_hours:
           type: string
           nullable: true
         play_at:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
           nullable: true
         play_cron:
           type: string
@@ -25740,6 +25758,7 @@ components:
                 default_animation:
                   type: string
                   enum:
+                  - default
                   - cut
                   - cross_fade
                   - slide_top
@@ -25758,19 +25777,19 @@ components:
                   format: Int32
                   nullable: true
                 valid_from:
-                  type: string
-                  format: date-time
+                  type: integer
+                  format: Int64
                   nullable: true
                 valid_until:
-                  type: string
-                  format: date-time
+                  type: integer
+                  format: Int64
                   nullable: true
                 play_hours:
                   type: string
                   nullable: true
                 play_at:
-                  type: string
-                  format: date-time
+                  type: integer
+                  format: Int64
                   nullable: true
                 play_cron:
                   type: string
@@ -25819,6 +25838,7 @@ components:
               animation:
                 type: string
                 enum:
+                - default
                 - cut
                 - cross_fade
                 - slide_top
@@ -25857,12 +25877,12 @@ components:
                 format: Int64
                 nullable: true
               valid_from:
-                type: string
-                format: date-time
+                type: integer
+                format: Int64
                 nullable: true
               valid_until:
-                type: string
-                format: date-time
+                type: integer
+                format: Int64
                 nullable: true
               id:
                 type: string
@@ -26539,20 +26559,27 @@ components:
             properties:
               day_of_week:
                 type: integer
-                format: Int64
-              start_time:
-                type: number
-                format: Float64
-              end_time:
-                type: number
-                format: Float64
-              location:
-                type: string
+                format: Int32
+              blocks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    start_time:
+                      type: number
+                      format: Float64
+                    end_time:
+                      type: number
+                      format: Float64
+                    location:
+                      type: string
+                  required:
+                  - start_time
+                  - end_time
+                  - location
             required:
             - day_of_week
-            - start_time
-            - end_time
-            - location
+            - blocks
         work_overrides:
           type: object
           additionalProperties:
@@ -26560,20 +26587,27 @@ components:
             properties:
               day_of_week:
                 type: integer
-                format: Int64
-              start_time:
-                type: number
-                format: Float64
-              end_time:
-                type: number
-                format: Float64
-              location:
-                type: string
+                format: Int32
+              blocks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    start_time:
+                      type: number
+                      format: Float64
+                    end_time:
+                      type: number
+                      format: Float64
+                    location:
+                      type: string
+                  required:
+                  - start_time
+                  - end_time
+                  - location
             required:
             - day_of_week
-            - start_time
-            - end_time
-            - location
+            - blocks
         authority_id:
           type: string
           nullable: true
@@ -26683,20 +26717,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           work_overrides:
             type: object
             additionalProperties:
@@ -26704,20 +26745,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           authority_id:
             type: string
             nullable: true
@@ -26814,20 +26862,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           work_overrides:
             type: object
             additionalProperties:
@@ -26835,20 +26890,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           authority_id:
             type: string
             nullable: true
@@ -26929,20 +26991,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           work_overrides:
             type: object
             additionalProperties:
@@ -26950,20 +27019,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           authority_id:
             type: string
             nullable: true
@@ -27042,20 +27118,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           work_overrides:
             type: object
             additionalProperties:
@@ -27063,20 +27146,27 @@ components:
               properties:
                 day_of_week:
                   type: integer
-                  format: Int64
-                start_time:
-                  type: number
-                  format: Float64
-                end_time:
-                  type: number
-                  format: Float64
-                location:
-                  type: string
+                  format: Int32
+                blocks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start_time:
+                        type: number
+                        format: Float64
+                      end_time:
+                        type: number
+                        format: Float64
+                      location:
+                        type: string
+                    required:
+                    - start_time
+                    - end_time
+                    - location
               required:
               - day_of_week
-              - start_time
-              - end_time
-              - location
+              - blocks
           authority_id:
             type: string
             nullable: true
@@ -27193,8 +27283,8 @@ components:
           format: Int64
           nullable: true
         last_login:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
           nullable: true
         work_preferences:
           type: array
@@ -27203,20 +27293,27 @@ components:
             properties:
               day_of_week:
                 type: integer
-                format: Int64
-              start_time:
-                type: number
-                format: Float64
-              end_time:
-                type: number
-                format: Float64
-              location:
-                type: string
+                format: Int32
+              blocks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    start_time:
+                      type: number
+                      format: Float64
+                    end_time:
+                      type: number
+                      format: Float64
+                    location:
+                      type: string
+                  required:
+                  - start_time
+                  - end_time
+                  - location
             required:
             - day_of_week
-            - start_time
-            - end_time
-            - location
+            - blocks
           nullable: true
         work_overrides:
           type: object
@@ -27225,20 +27322,27 @@ components:
             properties:
               day_of_week:
                 type: integer
-                format: Int64
-              start_time:
-                type: number
-                format: Float64
-              end_time:
-                type: number
-                format: Float64
-              location:
-                type: string
+                format: Int32
+              blocks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    start_time:
+                      type: number
+                      format: Float64
+                    end_time:
+                      type: number
+                      format: Float64
+                    location:
+                      type: string
+                  required:
+                  - start_time
+                  - end_time
+                  - location
             required:
             - day_of_week
-            - start_time
-            - end_time
-            - location
+            - blocks
           nullable: true
         authority_id:
           type: string
@@ -28201,6 +28305,7 @@ components:
                     default_animation:
                       type: string
                       enum:
+                      - default
                       - cut
                       - cross_fade
                       - slide_top
@@ -28219,19 +28324,19 @@ components:
                       format: Int32
                       nullable: true
                     valid_from:
-                      type: string
-                      format: date-time
+                      type: integer
+                      format: Int64
                       nullable: true
                     valid_until:
-                      type: string
-                      format: date-time
+                      type: integer
+                      format: Int64
                       nullable: true
                     play_hours:
                       type: string
                       nullable: true
                     play_at:
-                      type: string
-                      format: date-time
+                      type: integer
+                      format: Int64
                       nullable: true
                     play_cron:
                       type: string
@@ -28280,6 +28385,7 @@ components:
                   animation:
                     type: string
                     enum:
+                    - default
                     - cut
                     - cross_fade
                     - slide_top
@@ -28318,12 +28424,12 @@ components:
                     format: Int64
                     nullable: true
                   valid_from:
-                    type: string
-                    format: date-time
+                    type: integer
+                    format: Int64
                     nullable: true
                   valid_until:
-                    type: string
-                    format: date-time
+                    type: integer
+                    format: Int64
                     nullable: true
                   id:
                     type: string
