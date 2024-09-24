@@ -17611,43 +17611,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/uploads/new:
+  /api/engine/v2/uploads:
     get:
-      summary: check the storage provider for a new file upload
+      summary: returns the list of uploads for current domain authority
       tags:
       - Uploads
-      operationId: PlaceOS::Api::Uploads_storage_name
+      operationId: PlaceOS::Api::Uploads_index
       parameters:
-      - name: file_name
+      - name: file_search
         in: query
-        description: Name of file which will be uploaded to cloud storage
-        example: test.jpeg
-        required: true
-        schema:
-          type: string
-      - name: file_size
-        in: query
-        description: Size of file which will be uploaded to cloud storage
-        example: "1234"
-        required: true
-        schema:
-          type: integer
-          format: Int64
-      - name: file_mime
-        in: query
-        description: Mime-Type of file which will be uploaded to cloud storage
-        example: image/jpeg
+        description: filters results to returns ones where file_name contains this
+          search string
+        example: my-file
         required: false
         schema:
           type: string
           nullable: true
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        required: false
+        schema:
+          type: integer
+          format: Int32
+      - name: offset
+        in: query
+        description: the starting offset of the result set. Used to implement pagination
+        required: false
+        schema:
+          type: integer
+          format: Int32
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        required: false
+        schema:
+          type: string
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        required: false
+        schema:
+          type: string
+          nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NamedTuple_residence__String_'
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Upload'
         409:
           description: Conflict
           content:
@@ -17698,7 +17725,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/uploads:
     post:
       summary: initiate a new upload
       tags:
@@ -17718,6 +17744,93 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/_NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____part_list__Array_Int32___part_data__Hash_String__JSON__Any___upload_id__String___Nil__residence__String____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__residence__String__'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads/new:
+    get:
+      summary: check the storage provider for a new file upload
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads_storage_name
+      parameters:
+      - name: file_name
+        in: query
+        description: Name of file which will be uploaded to cloud storage
+        example: test.jpeg
+        required: true
+        schema:
+          type: string
+      - name: file_size
+        in: query
+        description: Size of file which will be uploaded to cloud storage
+        example: "1234"
+        required: true
+        schema:
+          type: integer
+          format: Int64
+      - name: file_mime
+        in: query
+        description: Mime-Type of file which will be uploaded to cloud storage
+        example: image/jpeg
+        required: false
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_residence__String_'
         409:
           description: Conflict
           content:
@@ -22162,6 +22275,9 @@ components:
                     items:
                       type: string
                     nullable: true
+                  place_id:
+                    type: string
+                    nullable: true
                   parent_id:
                     type: string
                     nullable: true
@@ -22616,6 +22732,9 @@ components:
                 items:
                   type: string
                 nullable: true
+              place_id:
+                type: string
+                nullable: true
               parent_id:
                 type: string
                 nullable: true
@@ -23032,6 +23151,9 @@ components:
                           type: array
                           items:
                             type: string
+                          nullable: true
+                        place_id:
+                          type: string
                           nullable: true
                         parent_id:
                           type: string
@@ -23542,6 +23664,9 @@ components:
           items:
             type: string
           nullable: true
+        place_id:
+          type: string
+          nullable: true
         parent_id:
           type: string
           nullable: true
@@ -24004,6 +24129,9 @@ components:
               type: array
               items:
                 type: string
+              nullable: true
+            place_id:
+              type: string
               nullable: true
             parent_id:
               type: string
@@ -25032,6 +25160,9 @@ components:
                 items:
                   type: string
                 nullable: true
+              place_id:
+                type: string
+                nullable: true
               parent_id:
                 type: string
                 nullable: true
@@ -25448,6 +25579,9 @@ components:
                           type: array
                           items:
                             type: string
+                          nullable: true
+                        place_id:
+                          type: string
                           nullable: true
                         parent_id:
                           type: string
@@ -26264,6 +26398,81 @@ components:
               id:
                 type: string
                 nullable: true
+          nullable: true
+        id:
+          type: string
+          nullable: true
+    PlaceOS__Model__Upload:
+      type: object
+      properties:
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
+          nullable: true
+        uploaded_email:
+          type: string
+          format: email
+          nullable: true
+        file_name:
+          type: string
+          nullable: true
+        file_size:
+          type: integer
+          format: Int64
+          nullable: true
+        file_path:
+          type: string
+          nullable: true
+        object_key:
+          type: string
+          nullable: true
+        file_md5:
+          type: string
+          nullable: true
+        public:
+          type: boolean
+          nullable: true
+        permissions:
+          type: string
+          enum:
+          - none
+          - admin
+          - support
+          nullable: true
+        object_options:
+          type: object
+          additionalProperties:
+            type: object
+          nullable: true
+        resumable_id:
+          type: string
+          nullable: true
+        resumable:
+          type: boolean
+          nullable: true
+        part_list:
+          type: array
+          items:
+            type: integer
+            format: Int32
+          nullable: true
+        part_data:
+          type: object
+          additionalProperties:
+            type: object
+          nullable: true
+        upload_complete:
+          type: boolean
+          nullable: true
+        storage_id:
+          type: string
+          nullable: true
+        uploaded_by:
+          type: string
           nullable: true
         id:
           type: string
@@ -27579,6 +27788,9 @@ components:
                     items:
                       type: string
                     nullable: true
+                  place_id:
+                    type: string
+                    nullable: true
                   parent_id:
                     type: string
                     nullable: true
@@ -27995,6 +28207,9 @@ components:
                               type: array
                               items:
                                 type: string
+                              nullable: true
+                            place_id:
+                              type: string
                               nullable: true
                             parent_id:
                               type: string

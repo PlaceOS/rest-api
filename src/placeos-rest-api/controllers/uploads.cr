@@ -27,7 +27,7 @@ module PlaceOS::Api
       end
     end
 
-    @[AC::Route::Filter(:before_action)]
+    @[AC::Route::Filter(:before_action, except: [:index])]
     def get_storage
       unless @storage = begin
                if upload = @current_upload
@@ -47,6 +47,49 @@ module PlaceOS::Api
     getter! storage : ::PlaceOS::Model::Storage?
     getter! signer : UploadSigner::AmazonS3?
     getter! current_upload : ::PlaceOS::Model::Upload?
+
+    # returns the list of uploads for current domain authority
+    @[AC::Route::GET("/")]
+    def index(
+      @[AC::Param::Info(description: "filters results to returns ones where file_name contains this search string", example: "my-file")]
+      file_search : String? = nil,
+      @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
+      limit : Int32 = 100,
+      @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
+      offset : Int32 = 0
+    ) : Array(::PlaceOS::Model::Upload)
+      table_name = ::PlaceOS::Model::Upload.table_name
+      s = ::PlaceOS::Model::Storage.storage_or_default(authority.id)
+      where = "WHERE u.storage_id = $1 "
+      where += file_search.nil? ? "" : "AND u.file_name LIKE '%#{file_search}%'"
+
+      uploads = ::PlaceOS::Model::Upload.find_all_by_sql(<<-SQL, s.id.as(String), limit, offset)
+      WITH total AS (
+        SELECT COUNT(u.*) AS total_count
+        FROM "#{table_name}" u
+        #{where}
+      )
+        SELECT u.*, t.total_count FROM "#{table_name}" u
+        CROSS JOIN total t
+        #{where}
+        LIMIT $2 OFFSET $3;
+      SQL
+
+      return uploads if uploads.empty?
+
+      total_rec = uploads.first.extra_attributes["total_count"].as(Int64)
+      range_end = offset + (limit >= total_rec ? total_rec : limit) - 1
+      response.headers["X-Total-Count"] = total_rec.to_s
+      response.headers["Content-Range"] = "items #{offset}-#{range_end}/#{total_rec}"
+
+      if range_end + 1 < total_rec
+        query_params["offset"] = limit.to_s
+        query_params["limit"] = limit.to_s
+        response.headers["Link"] = %(<#{base_route}?#{query_params}>; rel="next")
+      end
+
+      uploads
+    end
 
     # check the storage provider for a new file upload
     @[AC::Route::GET("/new")]
