@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-1518 Added Uploads Listing Controller ([#391](https://github.com/PlaceOS/rest-api/pull/391))
 - **systems**: add a filter for signage systems
 - add crystal 1.13 support
 - PPT-1396 Add search fields options to index endpoints ([#387](https://github.com/PlaceOS/rest-api/pull/387))
