@@ -17998,7 +17998,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil_'
+                $ref: '#/components/schemas/NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil_'
         409:
           description: Conflict
           content:
@@ -18227,7 +18227,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/_NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__'
+                $ref: '#/components/schemas/_NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil__'
         409:
           description: Conflict
           content:
@@ -26586,7 +26586,7 @@ components:
         - type
         - signature
         - residence
-    ? NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil_
+    ? NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil_
     : type: object
       properties:
         type:
@@ -26607,6 +26607,9 @@ components:
           - url
           - headers
         upload_id:
+          type: string
+          nullable: true
+        body:
           type: string
           nullable: true
       required:
@@ -26635,6 +26638,9 @@ components:
               part:
                 type: integer
                 format: Int32
+              block_id:
+                type: string
+                nullable: true
             required:
             - md5
             - part
@@ -26648,7 +26654,7 @@ components:
         part_update:
           type: boolean
           nullable: true
-    ? _NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__
+    ? _NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil__
     : anyOf:
       - type: object
         properties:
@@ -26676,6 +26682,9 @@ components:
             - url
             - headers
           upload_id:
+            type: string
+            nullable: true
+          body:
             type: string
             nullable: true
         required:
