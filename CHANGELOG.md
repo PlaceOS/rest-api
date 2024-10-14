@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-1518 Added Uploads Listing Controller ([#391](https://github.com/PlaceOS/rest-api/pull/391))
 - **systems**: add a filter for signage systems
 - add crystal 1.13 support
 - PPT-1396 Add search fields options to index endpoints ([#387](https://github.com/PlaceOS/rest-api/pull/387))
@@ -56,6 +57,11 @@
 
 ### Fix
 
+- **signage**: errors when no playlists scheduled
+- **signage**: caching and cache busting updates
+- **signage/playlists**: name field sort
+- **signage/playlists**: sort by name
+- **signage/playlist_media**: don't cleanup media still in use
 - **specs**: clean and fix specs ([#384](https://github.com/PlaceOS/rest-api/pull/384))
 - **repositories**: list the files on the correct branch ([#383](https://github.com/PlaceOS/rest-api/pull/383))
 - **logging**: PPT-1368 - logging to use placeos-log-backend ([#381](https://github.com/PlaceOS/rest-api/pull/381))

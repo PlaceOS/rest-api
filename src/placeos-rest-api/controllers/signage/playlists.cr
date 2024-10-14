@@ -62,7 +62,7 @@ module PlaceOS::Api
         "authority_id" => [authority.id.as(String)],
       })
       query.search_field "name"
-      query.sort({"created_at" => {order: :desc}})
+      query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
     end
 
