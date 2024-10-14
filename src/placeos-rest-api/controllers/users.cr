@@ -263,7 +263,7 @@ module PlaceOS::Api
       else
         user_id = user.id
         user.destroy
-        spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: user_id}) }
+        spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: user_id}) }
       end
     end
 

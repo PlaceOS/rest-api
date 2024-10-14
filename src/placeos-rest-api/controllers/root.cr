@@ -208,10 +208,11 @@ module PlaceOS::Api
                   ""
                 end
 
-      path = Path["placeos/"].join(channel).to_s
-      Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
-
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
+      [Path["placeos/"].join(channel).to_s, Path["placeos/#{current_authority.not_nil!.id}/"].join(channel).to_s].each do |path|
+        # path = Path["placeos/#{current_authority.not_nil!.id}/"].join(channel).to_s
+        Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
+        ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)
+      end
     end
 
     # maps the database tables to indexes in elasticsearch

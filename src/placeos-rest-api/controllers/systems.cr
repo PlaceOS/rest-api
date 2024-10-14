@@ -309,7 +309,7 @@ module PlaceOS::Api
     def destroy : Nil
       cs_id = current_control_system.id
       current_control_system.destroy
-      spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: cs_id}) }
+      spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: cs_id}) }
     end
 
     # Return all zones for this system

@@ -160,7 +160,7 @@ module PlaceOS::Api
     def destroy : Nil
       zone_id = current_zone.id
       current_zone.destroy
-      spawn { Api::Metadata.signal_metadata(:destroy_all, {parent_id: zone_id}) }
+      spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: zone_id}) }
     end
 
     # return metadata associcated with the selected zone
