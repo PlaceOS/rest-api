@@ -2,6 +2,7 @@ require "mime"
 require "upload-signer"
 require "placeos-models/storage"
 require "placeos-models/upload"
+require "xml"
 require "./application"
 
 module PlaceOS::Api
@@ -40,12 +41,12 @@ module PlaceOS::Api
                raise Error::NotFound.new(ex.message || "Authority storage configuration not found")
              end
       end
-      @signer = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+      @signer = UploadSigner.signer(UploadSigner::StorageType.from_value(storage.storage_type.value), storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
     end
 
     getter! authority : ::PlaceOS::Model::Authority?
     getter! storage : ::PlaceOS::Model::Storage?
-    getter! signer : UploadSigner::AmazonS3?
+    getter! signer : UploadSigner::Storage?
     getter! current_upload : ::PlaceOS::Model::Upload?
 
     # returns the list of uploads for current domain authority
@@ -192,8 +193,9 @@ module PlaceOS::Api
         end
       end
 
-      s3 = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
-      object_url = s3.get_object(storage.bucket_name, current_upload.object_key, expiry * 60)
+      us = UploadSigner.signer(UploadSigner::StorageType.from_value(storage.storage_type.value), storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+
+      object_url = us.get_object(storage.bucket_name, current_upload.object_key, expiry * 60)
 
       redirect_to object_url, status: :see_other
     end
@@ -211,24 +213,37 @@ module PlaceOS::Api
     ) : NamedTuple(
       type: Symbol,
       signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
-      upload_id: String | Nil)
+      upload_id: String | Nil, body: String | Nil)
       if (resumable_id = current_upload.resumable_id) && current_upload.resumable
         if part.strip == "finish"
           s3 = signer.commit_file(storage.bucket_name, current_upload.object_key, resumable_id, get_headers(current_upload))
-          {type: :finish, signature: s3, upload_id: current_upload.id}
+          finish_body = nil
+          if storage.storage_type == PlaceOS::Model::Storage::Type::Azure
+            if part_data = current_upload.part_data
+              block_ids = [] of String
+              parts = part_data.keys.sort!
+              parts.each do |ppart|
+                block_ids << part_data[ppart].as_h["block_id"].as_s
+              end
+              finish_body = block_list_xml(block_ids)
+            else
+              raise AC::Route::Param::ValueError.new("missing part_data information. Required for AzureStorage")
+            end
+          end
+          {type: :finish, signature: s3, upload_id: current_upload.id, body: finish_body}
         else
           unless md5 = file_id
             raise AC::Route::Param::ValueError.new("Missing MD5 hash of file part", "file_id", "required except for the `finish` part")
           end
           s3 = signer.set_part(storage.bucket_name, current_upload.object_key, current_upload.file_size, md5, part, resumable_id, get_headers(current_upload))
-          {type: :part_upload, signature: s3, upload_id: current_upload.id}
+          {type: :part_upload, signature: s3, upload_id: current_upload.id, body: nil}
         end
       else
         raise AC::Route::Param::ValueError.new("upload is not resumable, no part available")
       end
     end
 
-    record PartInfo, md5 : String, part : Int32 do
+    record PartInfo, md5 : String, part : Int32, block_id : String? do
       include JSON::Serializable
     end
 
@@ -248,7 +263,7 @@ module PlaceOS::Api
     ) : NamedTuple(
       type: Symbol,
       signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
-      upload_id: String | Nil) | NamedTuple(ok: Bool)
+      upload_id: String | Nil, body: String | Nil) | NamedTuple(ok: Bool)
       raise AC::Route::Param::ValueError.new("upload is not resumable") unless current_upload.resumable
 
       if part_list = info.part_list
@@ -358,6 +373,16 @@ module PlaceOS::Api
             "file_mime",
             storage.mime_filter.join(",")
           )
+        end
+      end
+    end
+
+    private def block_list_xml(block_ids)
+      XML.build(encoding: "UTF-8") do |xml|
+        xml.element("BlockList") do
+          block_ids.each do |tag|
+            xml.element("Latest") { xml.text(tag) }
+          end
         end
       end
     end
