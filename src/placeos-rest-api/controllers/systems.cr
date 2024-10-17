@@ -223,7 +223,7 @@ module PlaceOS::Api
       end
 
       # filter by signage
-      if public
+      if signage
         query.should({
           "signage" => [true],
         })
