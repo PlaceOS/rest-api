@@ -103,17 +103,21 @@ module PlaceOS::Api
       mutate(parent_id, meta, merge: false)
     end
 
-    SIGNAL_CHANNEL = "placeos/metadata/changed"
+    UNSCOPED_SIGNAL_CHANNEL = "placeos/metadata/changed"
+    SCOPED_SIGNAL_CHANNEL   = "placeos/%s/metadata/changed"
 
-    protected def self.signal_metadata(action : Symbol, metadata) : Nil
+    protected def self.signal_metadata(authority : String, action : Symbol, metadata) : Nil
       payload = {
         action:   action,
         metadata: metadata,
       }.to_json
 
-      Log.info { "signalling #{SIGNAL_CHANNEL} with #{payload.bytesize} bytes" }
+      Log.info { "signalling #{UNSCOPED_SIGNAL_CHANNEL} with #{payload.bytesize} bytes" }
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(UNSCOPED_SIGNAL_CHANNEL, payload)
 
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(SIGNAL_CHANNEL, payload)
+      signal_channel = sprintf(SCOPED_SIGNAL_CHANNEL, authority)
+      Log.info { "signalling #{signal_channel} with #{payload.bytesize} bytes" }
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(signal_channel, payload)
     end
 
     # Find (otherwise create) then update (or patch) the Metadata.
@@ -126,7 +130,7 @@ module PlaceOS::Api
       metadata
 
       payload = metadata.interface
-      spawn { self.class.signal_metadata(:update, payload) }
+      spawn { self.class.signal_metadata(current_authority.not_nil!.id.to_s, :update, payload) }
       payload
     end
 
@@ -142,11 +146,11 @@ module PlaceOS::Api
 
       spawn do
         if metadata_name.empty?
-          self.class.signal_metadata(:destroy_all, {
+          self.class.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {
             parent_id: parent_id,
           })
         else
-          self.class.signal_metadata(:destroy, {
+          self.class.signal_metadata(current_authority.not_nil!.id.to_s, :destroy, {
             parent_id: parent_id,
             name:      metadata_name,
           })

@@ -52,7 +52,34 @@ module PlaceOS::Api
     end
 
     describe "POST /signal" do
-      it "writes an arbitrary payload to a redis subscription" do
+      it "writes an arbitrary payload to a redis subscription on scoped channel" do
+        user, headers = Spec::Authentication.authenticated
+        subscription_channel = "#{user.authority.as(Model::Authority).id}/test"
+        channel = Channel(String).new
+        subs = PlaceOS::Driver::Subscriptions.new
+
+        _subscription = subs.channel subscription_channel do |_, message|
+          channel.send(message)
+        end
+
+        params = HTTP::Params{"channel" => "test"}
+        result = client.post(File.join(Root.base_route, "signal?#{params}"), body: "hello", headers: headers)
+        result.status_code.should eq 200
+
+        begin
+          select
+          when message = channel.receive
+            message.should eq "hello"
+          when timeout 2.seconds
+            raise "timeout"
+          end
+        ensure
+          subs.terminate
+        end
+      end
+
+      it "writes an arbitrary payload to a redis subscription on un-scoped channel" do
+        _, headers = Spec::Authentication.authenticated
         subscription_channel = "test"
         channel = Channel(String).new
         subs = PlaceOS::Driver::Subscriptions.new
@@ -62,7 +89,7 @@ module PlaceOS::Api
         end
 
         params = HTTP::Params{"channel" => subscription_channel}
-        result = client.post(File.join(Root.base_route, "signal?#{params}"), body: "hello", headers: Spec::Authentication.headers)
+        result = client.post(File.join(Root.base_route, "signal?#{params}"), body: "hello", headers: headers)
         result.status_code.should eq 200
 
         begin
@@ -83,19 +110,20 @@ module PlaceOS::Api
       end
 
       context "guest users" do
-        _, guest_header = Spec::Authentication.authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::Scope::GUEST])
-
         it "prevented access to non-guest channels " do
+          _, guest_header = Spec::Authentication.authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::Scope::GUEST])
+
           result = client.post(File.join(Root.base_route, "signal?channel=dummy"), body: "hello", headers: guest_header)
           result.status_code.should eq 403
         end
 
         it "allowed access to guest channels" do
+          guest, guest_header = Spec::Authentication.authentication(sys_admin: false, support: false, scope: [PlaceOS::Model::UserJWT::Scope::GUEST])
           subscription_channel = "/guest/dummy"
           channel = Channel(String).new
           subs = PlaceOS::Driver::Subscriptions.new
 
-          _subscription = subs.channel subscription_channel do |_, message|
+          _subscription = subs.channel "#{guest.authority.as(Model::Authority).id}#{subscription_channel}" do |_, message|
             channel.send(message)
           end
 
