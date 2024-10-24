@@ -31,7 +31,7 @@ module PlaceOS::Api
 
     protected def ping_sockets
       loop do
-        sleep 30
+        sleep 30.seconds
 
         # ping the sockets to ensure connectivity
         begin
@@ -245,7 +245,7 @@ module PlaceOS::Api
 
       # find the users websocket
       spawn do
-        sleep 1
+        sleep 1.second
         redis_publish("placeos/internal/chat/kick_user", {user_id, "call ended"})
       end
     end

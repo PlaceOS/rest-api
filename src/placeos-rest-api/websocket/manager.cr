@@ -17,10 +17,10 @@ module PlaceOS::Api::WebSocket
     @session_cleaner : Tasker::Task?
 
     def initialize(@discovery : Clustering::Discovery)
-      spawn(name: "cleanup_sessions", same_thread: true) do
+      spawn(name: "cleanup_sessions") do
         cleanup_sessions
       end
-      spawn(name: "ping_sockets", same_thread: true) do
+      spawn(name: "ping_sockets") do
         ping_sockets
       end
     end
@@ -56,7 +56,7 @@ module PlaceOS::Api::WebSocket
 
     protected def ping_sockets
       loop do
-        sleep 80
+        sleep 80.seconds
         begin
           connections = session_lock.synchronize { sessions.dup }
           connections.each do |session|

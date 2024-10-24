@@ -92,7 +92,7 @@ module PlaceOS::Api
     def self.pull_repository(repository : ::PlaceOS::Model::Repository, timeout = 1.minute)
       # Trigger a pull event
       spawn do
-        sleep 0.1
+        sleep 100.milliseconds
         repository.pull!
       end
 

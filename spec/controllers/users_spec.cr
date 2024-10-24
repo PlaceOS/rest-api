@@ -13,7 +13,7 @@ module PlaceOS::Api
         params = HTTP::Params.encode({"q" => model.email.to_s, "fields" => "email,"})
         path = "#{Users.base_route}?#{params}"
 
-        sleep 2
+        sleep 2.seconds
 
         result = client.get(
           path: path,

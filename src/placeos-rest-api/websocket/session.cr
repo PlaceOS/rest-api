@@ -41,7 +41,7 @@ module PlaceOS::Api::WebSocket
       # Register event handlers
       ws.on_message do |message|
         Log.trace { {frame: "TEXT", text: message} }
-        spawn(same_thread: true) do
+        spawn do
           on_message(message)
         end
       end
@@ -63,7 +63,7 @@ module PlaceOS::Api::WebSocket
       @cache_cleaner = Tasker.instance.every(cache_timeout) { clear_caches }
 
       # Perform writes
-      spawn(name: "socket_writes_#{request_id}", same_thread: true) { run_writes }
+      spawn(name: "socket_writes_#{request_id}") { run_writes }
     end
 
     # WebSocket API Handlers
@@ -240,7 +240,7 @@ module PlaceOS::Api::WebSocket
           end
         end
 
-        spawn(same_thread: true) { ws.run }
+        spawn { ws.run }
         debug_sessions[{system_id, module_name, index}] = ws
       else
         Log.trace { "reusing existing debug socket" }

@@ -23,7 +23,7 @@ module PlaceOS::Api
           to_user: "server",
           value: nil
         ).to_json)
-        sleep 0.5
+        sleep 500.milliseconds
         updates.size.should eq 2
 
         sessions = CallDetails::SESSIONS
@@ -37,7 +37,7 @@ module PlaceOS::Api
           body: transfer,
           headers: Spec::Authentication.headers,
         )
-        sleep 0.5
+        sleep 500.milliseconds
         updates.size.should eq 3
         updates[-1].value.should eq transfer
 
@@ -48,7 +48,7 @@ module PlaceOS::Api
           body: {reason: "bad user"}.to_json,
           headers: Spec::Authentication.headers,
         )
-        sleep 0.5
+        sleep 500.milliseconds
         updates.size.should eq 4
         ws.closed?.should be_true
       end

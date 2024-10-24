@@ -179,7 +179,7 @@ shards:
 
   openai:
     git: https://github.com/spider-gazelle/crystal-openai.git
-    version: 0.9.1+git.commit.bf862d19e3c9a84cd6dd01bbec6b06931697a6d3
+    version: 0.9.2+git.commit.df5b615fb3514117c7c4530624aff0f8f7c15477
 
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
@@ -243,7 +243,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.0222bb2d930170e2fdc2b78165851026b6edfb5e
+    version: 2.7.1+git.commit.f1a29dbc4a249c88a7f9e6e4d91fd5c297a16677
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -255,7 +255,7 @@ shards:
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
-    version: 3.1.0
+    version: 3.1.1
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
@@ -307,7 +307,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.2+git.commit.877632eaa87e4967ba1758a5e9dd000e1e0f951f
+    version: 2.11.2+git.commit.9d65ed4afd399b9f5659330bf001c1df82258d42
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

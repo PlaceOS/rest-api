@@ -95,13 +95,13 @@ module PlaceOS::Api
             result = PlaceOS::Api::Repositories.pull_repository(repo, 10.seconds)
           end
 
-          sleep 1
+          sleep 1.second
           repo.reload!
           repo.deployed_commit_hash.should be_nil
           repo.deployed_commit_hash = "123456"
           repo.save!
 
-          sleep 1
+          sleep 1.second
           result.should_not be_nil
           if output = result
             output[1].should eq "123456"

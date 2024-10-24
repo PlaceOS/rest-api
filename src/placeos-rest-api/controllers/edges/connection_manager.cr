@@ -28,7 +28,7 @@ module PlaceOS::Api
       current_nodes = core_discovery.nodes
       loop do
         begin
-          sleep 6
+          sleep 6.seconds
           new_nodes = core_discovery.nodes
           if current_nodes != new_nodes
             current_nodes = new_nodes
@@ -40,7 +40,7 @@ module PlaceOS::Api
       end
     rescue error
       Log.warn(exception: error) { "error starting rebalance detection loop" }
-      sleep 1
+      sleep 1.seconds
       spawn { detect_rebalance }
     end
 
@@ -174,7 +174,7 @@ module PlaceOS::Api
 
       Log.debug { {edge_id: edge_id, message: "successfully added edge to core connection"} }
 
-      spawn(same_thread: true) do
+      spawn do
         begin
           socket.run
         rescue e

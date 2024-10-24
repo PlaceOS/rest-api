@@ -186,7 +186,7 @@ module PlaceOS::Api
             sys.modules = [module_id]
           end
           systems.each &.save!
-          sleep 1
+          sleep 1.second
           expected_ids = expected_systems.compact_map(&.id)
           total_ids = expected_ids.size
 

@@ -6,7 +6,7 @@ require "placeos-driver/proxy/remote_driver"
 class PlaceOS::Api::ClusteredSessions
   def initialize
     sleep_time = 60 + rand(50)
-    spawn { touch_sessions(sleep_time) }
+    spawn { touch_sessions(sleep_time.seconds) }
   end
 
   # we track local sessions and keep those keys alive in redis
@@ -73,7 +73,7 @@ class PlaceOS::Api::ClusteredSessions
     end
   end
 
-  def touch_sessions(sleep_time : Int32)
+  def touch_sessions(sleep_time : Time::Span)
     loop do
       begin
         sleep sleep_time
