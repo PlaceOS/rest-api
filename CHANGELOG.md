@@ -59,6 +59,7 @@
 
 ### Fix
 
+- **systems**: use must for public and signage filters
 - **signage**: errors when no playlists scheduled
 - **signage**: caching and cache busting updates
 - **signage/playlists**: name field sort
