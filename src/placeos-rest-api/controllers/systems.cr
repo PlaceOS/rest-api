@@ -217,15 +217,15 @@ module PlaceOS::Api
 
       # filter by public
       if public
-        query.should({
+        query.must({
           "public" => [true],
         })
       end
 
       # filter by signage
-      if signage
-        query.should({
-          "signage" => [true],
+      unless signage.nil?
+        query.must({
+          "signage" => [signage],
         })
       end
 

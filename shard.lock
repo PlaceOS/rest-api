@@ -179,7 +179,7 @@ shards:
 
   openai:
     git: https://github.com/spider-gazelle/crystal-openai.git
-    version: 0.9.2+git.commit.df5b615fb3514117c7c4530624aff0f8f7c15477
+    version: 0.9.2+git.commit.539c57f8c2ed03461ad108886c338741a173c965
 
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
@@ -231,7 +231,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.14.5+git.commit.95324fca915c361c1815ad7eda73be1e7cddb205
+    version: 4.14.5+git.commit.9e4fcb79aca6ee9deec9c46d8121ce6830bf77de
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -239,11 +239,11 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.2.14
+    version: 7.2.16
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.f1a29dbc4a249c88a7f9e6e4d91fd5c297a16677
+    version: 2.7.1+git.commit.b95767d5e0f4b2ecb75ed2b652c4642395ba7fd7
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -275,7 +275,7 @@ shards:
 
   raven:
     git: https://github.com/sija/raven.cr.git
-    version: 1.9.4+git.commit.4c3e13760f830a2cc5ab80b24eb02bd9342e5411
+    version: 1.9.4+git.commit.59020d2838c19e769d7fb5e0ee3a242cd9fdb055
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
@@ -307,7 +307,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.2+git.commit.9d65ed4afd399b9f5659330bf001c1df82258d42
+    version: 2.11.2+git.commit.98b2e3a0ff631be378abdfb313b7645a6c4691a5
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
