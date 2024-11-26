@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 7.4.3
+    version: 7.5.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -15,7 +15,7 @@ shards:
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
-    version: 1.6.3
+    version: 1.6.4
 
   any_hash:
     git: https://github.com/sija/any_hash.cr.git
@@ -231,19 +231,19 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.14.5+git.commit.3fafd33ac39abc2027f33bbbce3e9b7442907b1c
+    version: 4.16.0+git.commit.5fc50051ca6250930059028aeacbc8007244b23f
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
-    version: 1.0.6
+    version: 1.1.0
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.2.16
+    version: 7.2.18
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.b95767d5e0f4b2ecb75ed2b652c4642395ba7fd7
+    version: 2.7.1+git.commit.a8bf2b8c4489693405e7be59eb07dd8d103d14d4
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -267,7 +267,7 @@ shards:
 
   protobuf:
     git: https://github.com/jeromegn/protobuf.cr.git
-    version: 2.3.0
+    version: 2.3.1
 
   qr-code:
     git: https://github.com/spider-gazelle/qr-code.git
@@ -307,7 +307,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.2+git.commit.119945c8289385744f46c937691d670584411407
+    version: 2.11.2+git.commit.6fc646dfeb8ef4157d35a64496d5824dbdc25659
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
@@ -323,7 +323,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.6.1
+    version: 1.7.0
 
   stumpy_core:
     git: https://github.com/stumpycr/stumpy_core.git
