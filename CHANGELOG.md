@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-1701 refactored recompile/reload logic ([#395](https://github.com/PlaceOS/rest-api/pull/395))
 - PPT-1517 Add Azure Storage support ([#392](https://github.com/PlaceOS/rest-api/pull/392))
 - PPT-1470 Add lookup by email endpoint in domains controller ([#388](https://github.com/PlaceOS/rest-api/pull/388))
 - PPT-1518 Added Uploads Listing Controller ([#391](https://github.com/PlaceOS/rest-api/pull/391))
