@@ -97,32 +97,71 @@ module PlaceOS::Api
     end
 
     # force recompile a driver, useful if libraries and supporting files have been updated
-    @[AC::Route::POST("/:id/recompile", status: {
-      Nil => HTTP::Status::ALREADY_REPORTED,
-    })]
-    def recompile : ::PlaceOS::Model::Driver?
-      if current_driver.commit.starts_with?("RECOMPILE")
-        nil
-      else
-        if recompiled = Drivers.recompile(current_driver)
-          if recompiled.destroyed?
-            raise Error::NotFound.new("driver was deleted")
-          else
-            recompiled
-          end
-        else
-          raise IO::TimeoutError.new("time exceeded waiting for driver to recompile")
-        end
+    @[AC::Route::POST("/:id/recompile")]
+    def recompile : String
+      if (repository = current_driver.repository).nil?
+        Log.error { {repository_id: current_driver.repository_id, message: "failed to load driver's repository"} }
+        raise "failed to load driver's repository"
       end
+
+      resp = self.class.driver_recompile(current_driver, repository, request_id)
+
+      unless 200 <= resp.first <= 299
+        render status: resp.first, text: resp.last
+      end
+
+      resp = self.class.driver_reload(current_driver, request_id)
+
+      render status: resp.first, text: resp.last
     end
 
-    def self.recompile(driver : ::PlaceOS::Model::Driver)
-      # Set the repository commit hash to head
-      driver.update_fields(commit: "RECOMPILE-#{driver.commit}")
+    def self.driver_recompile(driver : ::PlaceOS::Model::Driver, repository : ::PlaceOS::Model::Repository, request_id : String)
+      Api::Systems.core_for(driver.file_name, request_id) do |core_client|
+        core_client.driver_recompile(
+          file_name: URI.encode_path(driver.file_name),
+          commit: driver.commit,
+          repository: repository.folder_name,
+          tag: driver.id.as(String),
+        )
+      end
+    rescue e
+      Log.error(exception: e) { "failed to request driver recompilation from core" }
+      {500, e.message || "failed to request driver recompilation"}
+    end
 
-      # Wait until the commit hash is not head with a timeout of 90 seconds
-      Utils::Changefeeds.await_model_change(driver, timeout: 90.seconds) do |update|
-        update.destroyed? || !update.recompile_commit?
+    def self.driver_reload(driver : ::PlaceOS::Model::Driver, request_id : String) : Tuple(Int32, String)
+      cores = RemoteDriver.default_discovery.node_hash
+      channel = Channel(Tuple(Int32, String)).new(cores.size)
+      cores.each do |cid, core_uri|
+        ->(core_id : String, uri : URI) do
+          spawn do
+            client = PlaceOS::Core::Client.new(uri: uri, request_id: request_id)
+            resp = client.driver_reload(driver.id.as(String))
+            channel.send(resp)
+          rescue error
+            Log.error(exception: error) { {
+              message:    "failure to request a driver reload on core node",
+              core_uri:   uri.to_s,
+              core_id:    core_id,
+              driver:     driver.id.as(String),
+              request_id: request_id,
+            } }
+            channel.send({500, "failed to request a driver reload on core #{uri}: error: #{error.message}"})
+          end
+        end.call(cid, core_uri)
+      end
+
+      resps = cores.map do |_, _|
+        channel.receive
+      end
+
+      if resps.all? { |resp| 200 <= resp.first <= 299 }
+        {200, resps.last.last}
+      elsif resps.all? { |resp| resp.first >= 300 }
+        {422, "Unable to reload driver on all core cluster"}
+      else
+        failed = resps.reject { |resp| 200 <= resp.first <= 299 }
+        {417, failed.first.last}
       end
     end
 
