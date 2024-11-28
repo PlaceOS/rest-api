@@ -151,8 +151,6 @@ module PlaceOS::Api
         end.call(cid, core_uri)
       end
 
-      Fiber.yield
-
       resps = cores.map do |_, _|
         channel.receive
       end
