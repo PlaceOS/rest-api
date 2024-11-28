@@ -1,4 +1,3 @@
-require "wait_group"
 require "./application"
 
 module PlaceOS::Api
@@ -132,26 +131,27 @@ module PlaceOS::Api
 
     def self.driver_reload(driver : ::PlaceOS::Model::Driver, request_id : String) : Tuple(Int32, String)
       cores = RemoteDriver.default_discovery.node_hash
-      wg = WaitGroup.new
       channel = Channel(Tuple(Int32, String)).new(cores.size)
-      cores.each do |core_id, uri|
-        wg.spawn do
-          client = PlaceOS::Core::Client.new(uri: uri, request_id: request_id)
-          resp = client.driver_reload(driver.id.as(String))
-          channel.send(resp)
-        rescue error
-          Log.error(exception: error) { {
-            message:    "failure to request a driver reload on core node",
-            core_uri:   uri.to_s,
-            core_id:    core_id,
-            driver:     driver.id.as(String),
-            request_id: request_id,
-          } }
-          channel.send({500, "failed to request a driver reload on core #{uri}: error: #{error.message}"})
-        end
+      cores.each do |cid, core_uri|
+        ->(core_id : String, uri : URI) do
+          spawn do
+            client = PlaceOS::Core::Client.new(uri: uri, request_id: request_id)
+            resp = client.driver_reload(driver.id.as(String))
+            channel.send(resp)
+          rescue error
+            Log.error(exception: error) { {
+              message:    "failure to request a driver reload on core node",
+              core_uri:   uri.to_s,
+              core_id:    core_id,
+              driver:     driver.id.as(String),
+              request_id: request_id,
+            } }
+            channel.send({500, "failed to request a driver reload on core #{uri}: error: #{error.message}"})
+          end
+        end.call(cid, core_uri)
       end
 
-      wg.wait
+      Fiber.yield
 
       resps = cores.map do |_, _|
         channel.receive
