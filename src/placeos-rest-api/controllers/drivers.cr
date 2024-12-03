@@ -115,6 +115,13 @@ module PlaceOS::Api
       render status: resp.first, text: resp.last
     end
 
+    # download and reload driver on core cluster, useful when reloading a re-compiled driver
+    @[AC::Route::POST("/:id/reload")]
+    def reload : String
+      resp = self.class.driver_reload(current_driver, request_id)
+      render status: resp.first, text: resp.last
+    end
+
     def self.driver_recompile(driver : ::PlaceOS::Model::Driver, repository : ::PlaceOS::Model::Repository, request_id : String)
       Api::Systems.core_for(driver.file_name, request_id) do |core_client|
         core_client.driver_recompile(
