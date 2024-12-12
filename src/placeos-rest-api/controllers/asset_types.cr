@@ -40,7 +40,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     # list the asset types
-    @[AC::Route::GET("/")]
+    @[AC::Route::GET("/", response_type: Array(::PlaceOS::Model::AssetType))]
     def index(
       @[AC::Param::Info(description: "return assets with the provided brand name", example: "Ford")]
       brand : String? = nil,
@@ -104,7 +104,7 @@ module PlaceOS::Api
       result = PgORM::Database.connection do |db|
         db.query_one sql, &.read(JSON::PullParser).read_raw
       end
-      render text: result
+      render json: result
     end
 
     # show the selected asset type
