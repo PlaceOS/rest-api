@@ -39,32 +39,8 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    def self.apply_counts(results : Array(::PlaceOS::Model::AssetType), zone_id : String? = nil) : Hash(String, Int64)
-      counts = {} of String => Int64
-      return counts if results.empty?
-      zone_id = zone_id.presence
-
-      sql_query = %{
-        SELECT asset_type_id, COUNT(*) as child_count
-        FROM asset
-        WHERE asset_type_id IN ('#{results.map(&.id).join("','")}') #{zone_id ? "AND zone_id = '#{zone_id.gsub(/['";]/, "")}'" : ""}
-        GROUP BY asset_type_id
-      }
-
-      PgORM::Database.connection do |db|
-        db.query_all(
-          sql_query,
-          as: {String, Int64}
-        ).each { |(id, count)| counts[id] = count }
-      end
-
-      # ameba:disable Style/VerboseBlock
-      results.each { |type| type.asset_count = counts[type.id]? || 0_i64 }
-      counts
-    end
-
     # list the asset types
-    @[AC::Route::GET("/")]
+    @[AC::Route::GET("/", response_type: Array(::PlaceOS::Model::AssetType))]
     def index(
       @[AC::Param::Info(description: "return assets with the provided brand name", example: "Ford")]
       brand : String? = nil,
@@ -74,33 +50,61 @@ module PlaceOS::Api
       category_id : String? = nil,
       @[AC::Param::Info(description: "filters the asset count to the zone provided", example: "zone-1234")]
       zone_id : String? = nil
-    ) : Array(::PlaceOS::Model::AssetType)
-      elastic = ::PlaceOS::Model::AssetType.elastic
-      query = elastic.query(search_params)
-      query.sort(NAME_SORT_ASC)
-      results = paginate_results(elastic, query)
+    ) : String
+      conditions = [] of String
+      conditions << "at.brand == '#{brand}'" if brand
+      conditions << "at.model_number == '#{model_number}'" if model_number
+      conditions << "at.category_id == '#{category_id}'" if category_id
+      conditions << "a.zone_id = '#{zone_id}'" if zone_id
 
-      if brand
-        query.must({
-          "brand" => [brand],
-        })
+      where = conditions.empty? ? "" : "AND #{conditions.join(" AND ")}"
+
+      sql = <<-SQL
+      SELECT
+          json_agg(
+              jsonb_strip_nulls(
+                  json_build_object(
+                      'id', id,
+                      'name', name,
+                      'brand', CASE WHEN brand IS NOT NULL THEN brand ELSE NULL END,
+                      'description', CASE WHEN description IS NOT NULL THEN description ELSE NULL END,
+                      'model_number', CASE WHEN model_number IS NOT NULL THEN model_number ELSE NULL END,
+                      'images', CASE WHEN images IS NOT NULL THEN images ELSE NULL END,
+                      'category_id', CASE WHEN category_id IS NOT NULL THEN category_id ELSE NULL END,
+                      'created_at', created_at,
+                      'updated_at', updated_at,
+                      'asset_count', asset_count
+                  )::jsonb
+              )
+          ) AS result
+      FROM (
+          SELECT
+              at.id,
+              at.name,
+              at.brand,
+              at.description,
+              at.model_number,
+              at.images,
+              at.category_id,
+              EXTRACT(EPOCH FROM at.created_at)::bigint AS created_at,
+              EXTRACT(EPOCH FROM at.updated_at)::bigint AS updated_at,
+              COALESCE(COUNT(a.id), 0) AS asset_count
+          FROM
+              asset_type at
+          LEFT JOIN
+              asset a
+          ON
+              at.id = a.asset_type_id
+          #{where}
+          GROUP BY
+              at.id, at.name, at.brand, at.description, at.model_number, at.images, at.category_id, at.created_at, at.updated_at
+      ) subquery;
+      SQL
+
+      result = PgORM::Database.connection do |db|
+        db.query_one sql, &.read(JSON::PullParser).read_raw
       end
-
-      if model_number
-        query.must({
-          "model_number" => [model_number],
-        })
-      end
-
-      if category_id
-        query.must({
-          "category_id" => [category_id],
-        })
-      end
-
-      # optimise the rendering of the counts, avoid the N + 1 problem
-      self.class.apply_counts(results, zone_id)
-      results
+      render json: result
     end
 
     # show the selected asset type

@@ -5,22 +5,27 @@ module PlaceOS::Api
     Spec.test_404(AssetTypes.base_route, model_name: Model::AssetType.table_name, headers: Spec::Authentication.headers, clz: Int64)
 
     describe "index", tags: "search" do
-      Spec.test_base_index(Model::AssetType, AssetTypes)
-
-      it "optimally solves the N+1 problem" do
+      it "should return json when get request is invoked" do
+        PlaceOS::Model::Asset.clear
+        PlaceOS::Model::AssetType.clear
         asset = PlaceOS::Model::Generator.asset.save!
+        params = HTTP::Params.encode({"zone_id" => asset.zone_id.to_s})
+        path = "#{AssetTypes.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+        result.status_code.should eq(200)
+        body = JSON.parse(result.body)
+        body.as_a?.should_not be_nil
+        body.as_a.size.should be >= 1
+        body.as_a.first["asset_count"].should eq(1)
 
-        asset.should_not be_nil
-        asset.persisted?.should be_true
-
-        asset_type = asset.asset_type.as(PlaceOS::Model::AssetType)
-
-        counts = PlaceOS::Api::AssetTypes.apply_counts([asset_type])
-        counts[asset_type.id].should eq 1
-        asset_type.@asset_count.should eq 1
-
-        PlaceOS::Api::AssetTypes.apply_counts([asset_type], "zone-22222222")
-        asset_type.@asset_count.should eq 0
+        params = HTTP::Params.encode({"zone_id" => "zone-000000"})
+        path = "#{AssetTypes.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+        result.status_code.should eq(200)
+        body = JSON.parse(result.body)
+        body.as_a?.should_not be_nil
+        body.as_a.size.should be >= 1
+        body.as_a.first["asset_count"].should eq(0)
       end
     end
 
