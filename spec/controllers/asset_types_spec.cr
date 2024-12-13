@@ -6,6 +6,8 @@ module PlaceOS::Api
 
     describe "index", tags: "search" do
       it "should return json when get request is invoked" do
+        PlaceOS::Model::Asset.clear
+        PlaceOS::Model::AssetType.clear
         asset = PlaceOS::Model::Generator.asset.save!
         params = HTTP::Params.encode({"zone_id" => asset.zone_id.to_s})
         path = "#{AssetTypes.base_route}?#{params}"
