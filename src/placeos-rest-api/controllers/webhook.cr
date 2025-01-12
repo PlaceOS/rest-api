@@ -119,7 +119,7 @@ module PlaceOS::Api
             function: method,
             args: args,
             request_id: request_id,
-            user_id: "webhook #{current_trigger_instance.id}"
+            user_id: "webhook.#{current_trigger_instance.id}"
           )
 
           # We expect that the method being called is aware of its role as a trigger
