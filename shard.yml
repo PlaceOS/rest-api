@@ -70,11 +70,6 @@ dependencies:
     github: spider-gazelle/promise
     version: ~> 3.0
 
-  # Sentry integration
-  raven:
-    github: Sija/raven.cr
-    branch: master
-
   # ORM for PostgreSQL built on active-model
   pg-orm:
     github: spider-gazelle/pg-orm

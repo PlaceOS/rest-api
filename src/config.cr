@@ -6,7 +6,6 @@ require "action-controller"
 # Application code
 require "./placeos-rest-api"
 require "./logging"
-require "./telemetry"
 
 # Server required after application controllers
 require "action-controller/server"
@@ -17,7 +16,6 @@ module PlaceOS::Api
   # Add handlers that should run before your application
   ActionController::Server.before(
     ActionController::ErrorHandler.new(Api.production?, ["X-Request-ID"]),
-    Raven::ActionController::ErrorHandler.new,
     ActionController::LogHandler.new(filters, ms: true)
   )
 end

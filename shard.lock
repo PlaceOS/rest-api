@@ -17,10 +17,6 @@ shards:
     git: https://github.com/crystal-ameba/ameba.git
     version: 1.6.4
 
-  any_hash:
-    git: https://github.com/sija/any_hash.cr.git
-    version: 0.2.5
-
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
     version: 0.8.3
@@ -65,10 +61,6 @@ shards:
     git: https://github.com/naqvis/crystar.git
     version: 0.4.0
 
-  csuuid:
-    git: https://github.com/wyhaines/csuuid.cr.git
-    version: 1.0.2
-
   db:
     git: https://github.com/crystal-lang/crystal-db.git
     version: 0.13.1
@@ -76,10 +68,6 @@ shards:
   debug:
     git: https://github.com/sija/debug.cr.git
     version: 2.0.4
-
-  defined:
-    git: https://github.com/wyhaines/defined.cr.git
-    version: 0.3.6
 
   dtls:
     git: https://github.com/spider-gazelle/crystal-dtls.git
@@ -161,10 +149,6 @@ shards:
     git: https://github.com/aca-labs/murmur3.git
     version: 0.1.1+git.commit.7cbe25c0ca8d052c9d98c377c824dcb0e038c790
 
-  nbchannel:
-    git: https://github.com/wyhaines/nbchannel.cr.git
-    version: 0.1.0
-
   neuroplastic:
     git: https://github.com/spider-gazelle/neuroplastic.git
     version: 1.13.1
@@ -181,25 +165,9 @@ shards:
     git: https://github.com/spider-gazelle/openssl_ext.git
     version: 2.4.4
 
-  opentelemetry-api:
-    git: https://github.com/wyhaines/opentelemetry-api.cr.git
-    version: 0.5.2+git.commit.77c9232ca6ff7de52529f309a0cb20b8459f7b20
-
-  opentelemetry-instrumentation:
-    git: https://github.com/wyhaines/opentelemetry-instrumentation.cr.git
-    version: 0.6.0+git.commit.6978cfe19aa590fb61fd7fdc0a25eb0c78674309
-
-  opentelemetry-sdk: # Overridden
-    git: https://github.com/wyhaines/opentelemetry-sdk.cr.git
-    version: 0.6.4+git.commit.c7237732135f6d0cab84abc6bb6d438c9f8f9d66
-
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
     version: 1.1.0
-
-  parse_date:
-    git: https://github.com/wyhaines/parsedate.cr.git
-    version: 0.1.2
 
   pegmatite:
     git: https://github.com/jemc/crystal-pegmatite.git
@@ -227,7 +195,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.17.1+git.commit.8fd9d6b456a4af465d9267e5dcd437502641b53e
+    version: 4.17.1+git.commit.8881868d7f3659a66eee99befa3c559bb570d761
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -239,11 +207,11 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.0870660239fcc8dec3a75bfc4f5825df9ade9559
+    version: 2.7.1+git.commit.1a7962eee87b9b07fd587594e1ddfeaa0cca7864
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
-    version: 0.11.4
+    version: 0.13.0
 
   placeos-models:
     git: https://github.com/placeos/models.git
@@ -261,17 +229,9 @@ shards:
     git: https://github.com/spider-gazelle/promise.git
     version: 3.2.0
 
-  protobuf:
-    git: https://github.com/jeromegn/protobuf.cr.git
-    version: 2.3.1
-
   qr-code:
     git: https://github.com/spider-gazelle/qr-code.git
     version: 1.0.3
-
-  raven:
-    git: https://github.com/sija/raven.cr.git
-    version: 1.9.4+git.commit.a43f45229d1ee8030f8f07b101cb159896273195
 
   redis:
     git: https://github.com/stefanwille/crystal-redis.git
@@ -303,7 +263,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.2+git.commit.6b64206b8869d59cf5332e297004ab60713ebb1f
+    version: 2.11.2+git.commit.efc46748648f93e1bf2211288eb7b675beac69be
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
@@ -312,10 +272,6 @@ shards:
   simple_retry:
     git: https://github.com/spider-gazelle/simple_retry.git
     version: 1.1.1
-
-  splay_tree_map:
-    git: https://github.com/wyhaines/splay_tree_map.cr.git
-    version: 0.3.0
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
@@ -333,10 +289,6 @@ shards:
     git: https://github.com/spider-gazelle/tasker.git
     version: 2.1.4
 
-  time-ext:
-    git: https://github.com/wyhaines/time-ext.cr.git
-    version: 1.0.1
-
   timecop:
     git: https://github.com/crystal-community/timecop.cr.git
     version: 0.5.0
@@ -344,10 +296,6 @@ shards:
   tokenizer:
     git: https://github.com/spider-gazelle/tokenizer.git
     version: 1.1.1
-
-  tracer:
-    git: https://github.com/wyhaines/tracer.cr.git
-    version: 0.3.2
 
   ulid: # Overridden
     git: https://github.com/place-labs/ulid.git
