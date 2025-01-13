@@ -61,6 +61,7 @@
 
 ### Fix
 
+- **metadata**: modify permissions check on edit
 - **webhook**: don't include spaces in user_id
 - **asset_types**: Refactor endpoint to respect zone_id param ([#397](https://github.com/PlaceOS/rest-api/pull/397))
 - **systems**: use must for public and signage filters
