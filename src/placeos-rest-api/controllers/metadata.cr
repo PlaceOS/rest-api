@@ -19,9 +19,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     # Does the user making the request have permissions to modify the data
-    @[AC::Route::Filter(:before_action, only: [:update, :destroy])]
-    def check_modify_permissions(
-      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be modified")]
+    @[AC::Route::Filter(:before_action, only: [:destroy])]
+    def check_delete_permissions(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be destroyed")]
       parent_id : String
     )
       return if user_support? || parent_id == user_token.id
