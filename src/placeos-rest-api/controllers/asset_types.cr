@@ -102,9 +102,9 @@ module PlaceOS::Api
       SQL
 
       result = PgORM::Database.connection do |db|
-        db.query_one sql, &.read(JSON::PullParser).read_raw
+        db.query_one sql, &.read(JSON::PullParser?).try &.read_raw
       end
-      render json: result
+      render json: result || "[]"
     end
 
     # show the selected asset type
