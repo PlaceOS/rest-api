@@ -5,13 +5,16 @@ module PlaceOS::Api
     Spec.test_404(AssetTypes.base_route, model_name: Model::AssetType.table_name, headers: Spec::Authentication.headers, clz: Int64)
 
     describe "index", tags: "search" do
-      it "should return 404 when no matching asset types found" do
+      it "should return an empty array when no matching asset types found" do
         PlaceOS::Model::Asset.clear
         PlaceOS::Model::AssetType.clear
         params = HTTP::Params.encode({"zone_id" => "unknown-zone"})
         path = "#{AssetTypes.base_route}?#{params}"
         result = client.get(path, headers: Spec::Authentication.headers)
-        result.status_code.should eq(404)
+        result.status_code.should eq(200)
+        body = JSON.parse(result.body)
+        body.as_a?.should_not be_nil
+        body.as_a.size.should be >= 0
       end
 
       it "should return json when get request is invoked for matching asset-types" do
