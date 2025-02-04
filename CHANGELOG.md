@@ -61,6 +61,7 @@
 
 ### Fix
 
+- **asset_types**: PPT-1803 index endpoint when no matching entries found ([#398](https://github.com/PlaceOS/rest-api/pull/398))
 - **metadata**: modify permissions check on edit
 - **webhook**: don't include spaces in user_id
 - **asset_types**: Refactor endpoint to respect zone_id param ([#397](https://github.com/PlaceOS/rest-api/pull/397))
