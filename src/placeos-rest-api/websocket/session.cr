@@ -5,9 +5,12 @@ require "tasker"
 
 require "../error"
 require "../utilities/params"
+require "../utilities/permissions"
 
 module PlaceOS::Api::WebSocket
   class Session
+    include Utils::Permissions
+
     Log = ::Log.for(self)
 
     # Class level subscriptions to modules
@@ -69,6 +72,31 @@ module PlaceOS::Api::WebSocket
     # WebSocket API Handlers
     ##############################################################################
 
+    protected def elevate_security(system_id : String, default : Driver::Proxy::RemoteDriver::Clearance) : Driver::Proxy::RemoteDriver::Clearance
+      return default if default.admin?
+
+      # check if this user has elevated privaleges on this system
+      authority = ::PlaceOS::Model::Authority.find_by_domain(user.domain)
+      org_zone_id = authority.try(&.config["org_zone"]?.try(&.as_s?))
+      return default unless org_zone_id
+
+      system = ::PlaceOS::Model::ControlSystem.find!(system_id)
+      zones = system.zones
+      return default unless zones.includes?(org_zone_id)
+
+      access = check_access(user.user.roles, zones)
+      case access
+      in .deny?
+        raise "you have been denied access to this system"
+      in .none?
+        default
+      in .manage?
+        Driver::Proxy::RemoteDriver::Clearance::Support
+      in .admin?
+        Driver::Proxy::RemoteDriver::Clearance::Admin
+      end
+    end
+
     # Grab core url for the module and dial an exec request
     #
     def exec(
@@ -82,6 +110,8 @@ module PlaceOS::Api::WebSocket
       args = [] of JSON::Any if args.nil?
       Log.debug { {message: "exec", args: args.to_json} }
 
+      security = elevate_security(system_id, @security_level)
+
       response, response_code = Driver::Proxy::RemoteDriver.new(
         sys_id: system_id,
         module_name: module_name,
@@ -91,7 +121,7 @@ module PlaceOS::Api::WebSocket
       ) { |module_id|
         ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
       }.exec(
-        security: @security_level,
+        security: security,
         function: name,
         args: args,
         request_id: @request_id

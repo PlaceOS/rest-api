@@ -1,6 +1,6 @@
 ARG CRYSTAL_VERSION=latest
 
-FROM placeos/crystal:$CRYSTAL_VERSION as build
+FROM placeos/crystal:$CRYSTAL_VERSION AS build
 WORKDIR /app
 
 # Set the commit via a build arg
