@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **websocket/session**: allow privalege escalation
 - PPT-1733 Add reload driver endpoint ([#396](https://github.com/PlaceOS/rest-api/pull/396))
 - PPT-1701 refactored recompile/reload logic ([#395](https://github.com/PlaceOS/rest-api/pull/395))
 - PPT-1517 Add Azure Storage support ([#392](https://github.com/PlaceOS/rest-api/pull/392))
