@@ -179,7 +179,7 @@ shards:
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
-    version: 1.1.2+git.commit.7714bb4d3e57fadcfded9d2e17247b5d3506e379
+    version: 1.1.2+git.commit.f14936937ad0787a75d04d9fed23ffab11e4c42d
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -195,7 +195,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.17.1+git.commit.4b529a23a57c039134e084fdbf658d198e1fb69e
+    version: 4.17.1+git.commit.c6b33066f414eeb60b9f94ce661f4f37d3b1b08b
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
