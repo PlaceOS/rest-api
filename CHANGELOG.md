@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **systems**: start and stop local modules [PPT-1872] ([#399](https://github.com/PlaceOS/rest-api/pull/399))
 - **websocket/session**: allow privalege escalation
 - PPT-1733 Add reload driver endpoint ([#396](https://github.com/PlaceOS/rest-api/pull/396))
 - PPT-1701 refactored recompile/reload logic ([#395](https://github.com/PlaceOS/rest-api/pull/395))
