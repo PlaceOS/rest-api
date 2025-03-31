@@ -17,21 +17,18 @@ paths:
         in: query
         description: the ID of the domain to be listed
         example: auth-12345
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -39,7 +36,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -47,7 +43,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -56,7 +51,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -544,14 +538,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -559,7 +551,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -567,7 +558,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -576,7 +566,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -1000,14 +989,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -1015,7 +1002,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -1023,7 +1009,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -1032,7 +1017,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -1457,7 +1441,6 @@ paths:
         in: query
         description: return assets with the provided brand name
         example: Ford
-        required: false
         schema:
           type: string
           nullable: true
@@ -1465,7 +1448,6 @@ paths:
         in: query
         description: return assets with the provided model number
         example: Model 2
-        required: false
         schema:
           type: string
           nullable: true
@@ -1473,7 +1455,6 @@ paths:
         in: query
         description: return asset types in the category provided
         example: category_id-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -1481,21 +1462,18 @@ paths:
         in: query
         description: filters the asset count to the zone provided
         example: zone-1234
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -1503,7 +1481,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -1511,7 +1488,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -1520,7 +1496,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -1945,7 +1920,6 @@ paths:
         in: query
         description: return assets which are in the zone provided
         example: zone-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -1953,7 +1927,6 @@ paths:
         in: query
         description: return assets that match the asset type id provided
         example: asset_type-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -1961,7 +1934,6 @@ paths:
         in: query
         description: return assets that match the purchase order id provided
         example: asset_purchase_order-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -1969,7 +1941,6 @@ paths:
         in: query
         description: return assets that have a matchng barcode
         example: "1234567"
-        required: false
         schema:
           type: string
           nullable: true
@@ -1977,21 +1948,18 @@ paths:
         in: query
         description: return assets that have a matchng serial number
         example: "1234567"
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -1999,7 +1967,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -2007,7 +1974,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -2016,7 +1982,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -2720,21 +2685,18 @@ paths:
         in: query
         description: return authentications that belong to the provided domain
         example: auth-12345
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -2742,7 +2704,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -2750,7 +2711,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -2759,7 +2719,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -3184,21 +3143,18 @@ paths:
         in: query
         description: return authentications that belong to the provided domain
         example: auth-12345
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -3206,7 +3162,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -3214,7 +3169,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -3223,7 +3177,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -3648,21 +3601,18 @@ paths:
         in: query
         description: return authentications that belong to the provided domain
         example: auth-12345
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -3670,7 +3620,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -3678,7 +3627,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -3687,7 +3635,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -4527,14 +4474,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -4542,7 +4487,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -4550,7 +4494,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -4559,7 +4502,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -4780,7 +4722,6 @@ paths:
         in: query
         description: To resume previous chat session. Provide session chat id
         example: chats-xxxx
-        required: false
         schema:
           type: string
           nullable: true
@@ -5090,7 +5031,6 @@ paths:
         description: return the detailed status of the node including memory and CPU
           usage?
         example: "true"
-        required: false
         schema:
           type: boolean
       responses:
@@ -5169,7 +5109,6 @@ paths:
         in: query
         description: return the detailed status of the drivers running on the node?
         example: "true"
-        required: false
         schema:
           type: boolean
       responses:
@@ -5312,14 +5251,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -5327,7 +5264,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -5335,7 +5271,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -5344,7 +5279,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -5840,7 +5774,6 @@ paths:
         in: query
         description: filter by the type of driver
         example: Logic
-        required: false
         schema:
           type: string
           enum:
@@ -5854,21 +5787,18 @@ paths:
         in: query
         description: list only drivers for which update is available
         example: "true"
-        required: false
         schema:
           type: boolean
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -5876,7 +5806,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -5884,7 +5813,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -5893,7 +5821,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -6042,7 +5969,6 @@ paths:
         in: query
         description: check if the driver is compiled?
         example: "false"
-        required: false
         schema:
           type: boolean
       responses:
@@ -6534,7 +6460,6 @@ paths:
       parameters:
       - name: parent_id
         in: query
-        required: false
         schema:
           type: array
           items:
@@ -6543,14 +6468,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -6558,7 +6481,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -6566,7 +6488,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -6575,7 +6496,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -7005,14 +6925,12 @@ paths:
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: Int32
       - name: offset
         in: query
         description: the starting offset of the result set. Used to implement pagination
-        required: false
         schema:
           type: integer
           format: Int32
@@ -7085,7 +7003,6 @@ paths:
       - name: as_of
         in: query
         description: only return modules updated before this time (unix epoch)
-        required: false
         schema:
           type: integer
           format: Int64
@@ -7095,7 +7012,6 @@ paths:
         description: only return modules running in this system (query params are
           ignored if this is provided)
         example: sys-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -7103,7 +7019,6 @@ paths:
         in: query
         description: only return modules with a particular connected state
         example: "true"
-        required: false
         schema:
           type: boolean
           nullable: true
@@ -7111,7 +7026,6 @@ paths:
         in: query
         description: only return instances of this driver
         example: driver-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -7120,28 +7034,24 @@ paths:
         description: do not return logic modules (return only modules that can exist
           in multiple systems)
         example: "true"
-        required: false
         schema:
           type: boolean
       - name: running
         in: query
         description: return only running modules
         example: "true"
-        required: false
         schema:
           type: boolean
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -7149,7 +7059,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -7157,7 +7066,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -7166,7 +7074,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -7315,7 +7222,6 @@ paths:
         in: query
         description: return the driver details along with the module?
         example: "true"
-        required: false
         schema:
           type: boolean
       responses:
@@ -8238,7 +8144,6 @@ paths:
         description: return only bookable or non-bookable rooms (returns both when
           not specified)
         example: "true"
-        required: false
         schema:
           type: boolean
           nullable: true
@@ -8246,7 +8151,6 @@ paths:
         in: query
         description: return only rooms with capacity equal or greater than that provided
         example: "5"
-        required: false
         schema:
           type: integer
           format: Int32
@@ -8256,7 +8160,6 @@ paths:
         description: return only systems whos resource address match one of the emails
           provided
         example: room@org.com,room2@org.com
-        required: false
         schema:
           type: array
           items:
@@ -8266,7 +8169,6 @@ paths:
         in: query
         description: return only rooms who have all of the features requested
         example: whiteboard,vidconf,display
-        required: false
         schema:
           type: array
           items:
@@ -8276,7 +8178,6 @@ paths:
         in: query
         description: return only systems which have the module id provided
         example: mod-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -8284,7 +8185,6 @@ paths:
         in: query
         description: return systems which are using the trigger id provided
         example: trig-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -8292,7 +8192,6 @@ paths:
         in: query
         description: return systems which are in the zone provided
         example: zone-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -8300,7 +8199,6 @@ paths:
         in: query
         description: return systems which are public
         example: "true"
-        required: false
         schema:
           type: boolean
           nullable: true
@@ -8308,21 +8206,18 @@ paths:
         in: query
         description: return systems which are signage
         example: "true"
-        required: false
         schema:
           type: boolean
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -8330,7 +8225,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -8338,7 +8232,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -8347,7 +8240,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -8572,7 +8464,6 @@ paths:
         description: return the system with the zone, module and driver information
           collected
         example: "true"
-        required: false
         schema:
           type: boolean
       responses:
@@ -8948,7 +8839,6 @@ paths:
           type: string
       - name: name
         in: query
-        required: false
         schema:
           type: string
           nullable: true
@@ -9239,6 +9129,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: single_occurrence
+        in: query
+        description: start modules that only occur in the selected system
+        example: "false"
+        schema:
+          type: boolean
       responses:
         200:
           description: OK
@@ -9304,6 +9200,12 @@ paths:
         required: true
         schema:
           type: string
+      - name: single_occurrence
+        in: query
+        description: stop modules that only occur in the selected system
+        example: "false"
+        schema:
+          type: boolean
       responses:
         200:
           description: OK
@@ -9765,7 +9667,6 @@ paths:
       parameters:
       - name: fixed_device
         in: query
-        required: false
         schema:
           type: boolean
       responses:
@@ -9964,14 +9865,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -9979,7 +9878,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -9987,7 +9885,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -9996,7 +9893,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -10498,7 +10394,6 @@ paths:
         in: query
         description: the name of the metadata key
         example: config
-        required: false
         schema:
           type: string
           nullable: true
@@ -10810,14 +10705,12 @@ paths:
         in: query
         description: the parent metadata is included in the results by default
         example: "false"
-        required: false
         schema:
           type: boolean
       - name: name
         in: query
         description: filter for a particular metadata key
         example: config
-        required: false
         schema:
           type: string
           nullable: true
@@ -10897,7 +10790,6 @@ paths:
         in: query
         description: the name of the metadata key
         example: config
-        required: false
         schema:
           type: string
           nullable: true
@@ -10905,14 +10797,12 @@ paths:
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: Int32
       - name: offset
         in: query
         description: the starting offset of the result set. Used to implement pagination
-        required: false
         schema:
           type: integer
           format: Int32
@@ -11068,7 +10958,6 @@ paths:
           - all
       - name: clientid
         in: query
-        required: false
         schema:
           type: string
           nullable: true
@@ -11260,21 +11149,18 @@ paths:
         in: query
         description: the ID of the domain to be listed
         example: auth-12345
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -11282,7 +11168,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -11290,7 +11175,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -11299,7 +11183,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -11723,14 +11606,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -11738,7 +11619,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -11746,7 +11626,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -11755,7 +11634,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -12393,7 +12271,6 @@ paths:
         in: query
         description: the maximum number of commits to return
         example: "50"
-        required: false
         schema:
           type: integer
           format: Int32
@@ -12402,7 +12279,6 @@ paths:
         in: query
         description: the path to the file we want commits for
         example: path/to/file.cr
-        required: false
         schema:
           type: string
           nullable: true
@@ -12410,7 +12286,6 @@ paths:
         in: query
         description: the branch to grab commits from
         example: main
-        required: false
         schema:
           type: string
           nullable: true
@@ -12855,7 +12730,6 @@ paths:
         in: query
         description: a username for access if required
         example: steve
-        required: false
         schema:
           type: string
           nullable: true
@@ -12863,7 +12737,6 @@ paths:
         in: query
         description: the password or access token as required
         example: ab34cfe4567
-        required: false
         schema:
           type: string
           nullable: true
@@ -12942,7 +12815,6 @@ paths:
         in: query
         description: a username for access if required
         example: steve
-        required: false
         schema:
           type: string
           nullable: true
@@ -12950,7 +12822,6 @@ paths:
         in: query
         description: the password or access token as required
         example: ab34cfe4567
-        required: false
         schema:
           type: string
           nullable: true
@@ -13024,7 +12895,6 @@ paths:
         in: query
         description: the branch to grab commits from
         example: main
-        required: false
         schema:
           type: string
           nullable: true
@@ -13032,7 +12902,6 @@ paths:
         in: query
         description: the number of commits to return
         example: "50"
-        required: false
         schema:
           type: integer
           format: Int32
@@ -13047,7 +12916,6 @@ paths:
         in: query
         description: a username for access if required
         example: steve
-        required: false
         schema:
           type: string
           nullable: true
@@ -13055,7 +12923,6 @@ paths:
         in: query
         description: the password or access token as required
         example: ab34cfe4567
-        required: false
         schema:
           type: string
           nullable: true
@@ -13136,7 +13003,6 @@ paths:
         in: query
         description: a username for access if required
         example: steve
-        required: false
         schema:
           type: string
           nullable: true
@@ -13144,7 +13010,6 @@ paths:
         in: query
         description: the password or access token as required
         example: ab34cfe4567
-        required: false
         schema:
           type: string
           nullable: true
@@ -13610,7 +13475,6 @@ paths:
         in: query
         description: backfill the database after re-indexing?
         example: "true"
-        required: false
         schema:
           type: boolean
       responses:
@@ -13739,14 +13603,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -13754,7 +13616,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -13762,7 +13623,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -13771,7 +13631,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -14195,14 +14054,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -14210,7 +14067,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -14218,7 +14074,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -14227,7 +14082,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -14786,7 +14640,6 @@ paths:
       - name: size
         in: query
         description: size of the QR code in pixels. Between 72px and 512px
-        required: false
         schema:
           type: integer
           format: Int32
@@ -14859,7 +14712,6 @@ paths:
       - name: format
         in: query
         description: file format of the response
-        required: false
         schema:
           type: string
           enum:
@@ -14868,7 +14720,6 @@ paths:
       - name: size
         in: query
         description: size of the QR code in pixels. Between 72px and 512px
-        required: false
         schema:
           type: integer
           format: Int32
@@ -14940,14 +14791,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -14955,7 +14804,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -14963,7 +14811,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -14972,7 +14819,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -15396,14 +15242,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -15411,7 +15255,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -15419,7 +15262,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -15428,7 +15270,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -15999,7 +15840,6 @@ paths:
           type: string
       - name: limit
         in: query
-        required: false
         schema:
           type: integer
           format: Int32
@@ -16213,21 +16053,18 @@ paths:
         in: query
         description: return storages which are in the authority provided
         example: auth-1234
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -16235,7 +16072,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -16243,7 +16079,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -16252,7 +16087,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -16684,28 +16518,24 @@ paths:
         in: query
         description: provide the control system details?
         example: "false"
-        required: false
         schema:
           type: boolean
       - name: important
         in: query
         description: only return triggers marked as important?
         example: "true"
-        required: false
         schema:
           type: boolean
       - name: triggered
         in: query
         description: only return triggers that have recently been triggered?
         example: "true"
-        required: false
         schema:
           type: boolean
       - name: trigger_id
         in: query
         description: filter by a particular trigger type
         example: trig-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -16713,7 +16543,6 @@ paths:
         in: query
         description: return triggers updated before the time specified, unix epoch
         example: "123456"
-        required: false
         schema:
           type: integer
           format: Int64
@@ -16721,14 +16550,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -16736,7 +16563,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -16744,7 +16570,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -16753,7 +16578,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -16916,7 +16740,6 @@ paths:
           type: string
       - name: complete
         in: query
-        required: false
         schema:
           type: boolean
       responses:
@@ -17225,14 +17048,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -17240,7 +17061,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -17248,7 +17068,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -17257,7 +17076,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -17406,7 +17224,6 @@ paths:
         in: query
         description: return the instances associated with this trigger
         example: "true"
-        required: false
         schema:
           type: boolean
           nullable: true
@@ -17762,7 +17579,6 @@ paths:
         description: filters results to returns ones where file_name contains this
           search string
         example: my-file
-        required: false
         schema:
           type: string
           nullable: true
@@ -17770,28 +17586,24 @@ paths:
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: Int32
       - name: offset
         in: query
         description: the starting offset of the result set. Used to implement pagination
-        required: false
         schema:
           type: integer
           format: Int32
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: ref
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -17800,7 +17612,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -17959,7 +17770,6 @@ paths:
         in: query
         description: Mime-Type of file which will be uploaded to cloud storage
         example: image/jpeg
-        required: false
         schema:
           type: string
           nullable: true
@@ -18038,7 +17848,6 @@ paths:
         in: query
         description: Link expiry period in minutes.
         example: "60"
-        required: false
         schema:
           type: integer
           format: Int32
@@ -18127,7 +17936,6 @@ paths:
         in: query
         description: MD5 of the part which will be uploaded to cloud storage
         example: pxdXsOVpn6+SAcvZoZQphQ==
-        required: false
         schema:
           type: string
           nullable: true
@@ -18348,7 +18156,6 @@ paths:
         in: query
         description: the next file part which we need a signed URL for
         example: part2
-        required: false
         schema:
           type: string
           nullable: true
@@ -18356,7 +18163,6 @@ paths:
         in: query
         description: MD5 of the next part
         example: pxdXsOVpn6+SAcvZoZQphQ==
-        required: false
         schema:
           type: string
           nullable: true
@@ -18706,35 +18512,30 @@ paths:
         in: query
         description: include soft deleted users in the results
         example: "true"
-        required: false
         schema:
           type: boolean
       - name: include_metadata
         in: query
         description: include user metadata in the response
         example: "true"
-        required: false
         schema:
           type: boolean
       - name: authority_id
         in: query
         description: admin users can view other domains, ignored for other users
         example: auth-12345
-        required: false
         schema:
           type: string
           nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -18742,7 +18543,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -18750,7 +18550,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -18759,7 +18558,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -18910,7 +18708,6 @@ paths:
         in: query
         description: include user metadata in the response
         example: "true"
-        required: false
         schema:
           type: boolean
       responses:
@@ -19061,7 +18858,6 @@ paths:
           type: string
       - name: force_removal
         in: query
-        required: false
         schema:
           type: boolean
       responses:
@@ -19278,7 +19074,6 @@ paths:
         in: query
         description: filter metadata by a particular entry
         example: department
-        required: false
         schema:
           type: string
           nullable: true
@@ -19437,14 +19232,12 @@ paths:
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: Int32
       - name: offset
         in: query
         description: the starting offset of the result set. Used to implement pagination
-        required: false
         schema:
           type: integer
           format: Int32
@@ -19897,7 +19690,6 @@ paths:
           type: string
       - name: session_id
         in: path
-        required: false
         schema:
           type: string
           nullable: true
@@ -20044,14 +19836,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -20059,7 +19849,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -20067,7 +19856,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -20076,7 +19864,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -20211,7 +19998,6 @@ paths:
         in: query
         description: only return zones who have this zone as a parent
         example: zone-1234
-        required: false
         schema:
           type: string
           nullable: true
@@ -20219,7 +20005,6 @@ paths:
         in: query
         description: return zones with particular tags
         example: building,level
-        required: false
         schema:
           type: array
           items:
@@ -20228,14 +20013,12 @@ paths:
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
-        required: false
         schema:
           type: string
       - name: limit
         in: query
         description: the maximum number of results to return
         example: "10000"
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -20243,7 +20026,6 @@ paths:
         in: query
         description: deprecated, the starting offset of the result set. Used to implement
           pagination
-        required: false
         schema:
           type: integer
           format: UInt32
@@ -20251,7 +20033,6 @@ paths:
         in: query
         description: a token for accessing the next page of results, provided in the
           `Link` header
-        required: false
         schema:
           type: string
           nullable: true
@@ -20260,7 +20041,6 @@ paths:
         description: (Optional, comma separated array of strings) Array of fields
           you wish to search. Accepts wildcard expresssions and boost relevance score
           for matches for particular field using a caret ^ operator.
-        required: false
         schema:
           type: array
           items:
@@ -20409,7 +20189,6 @@ paths:
         in: query
         description: also return any triggers associated with the zone
         example: "true"
-        required: false
         schema:
           type: boolean
       responses:
@@ -20697,7 +20476,6 @@ paths:
         in: query
         description: only return the metadata key we are interested in
         example: workplace-config
-        required: false
         schema:
           type: string
           nullable: true

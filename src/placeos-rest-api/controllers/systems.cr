@@ -379,20 +379,27 @@ module PlaceOS::Api
 
     # Start modules
     @[AC::Route::POST("/:sys_id/start")]
-    def start : Nil
-      Systems.module_running_state(running: true, control_system: current_control_system)
+    def start(
+      @[AC::Param::Info(description: "start modules that only occur in the selected system", example: "false")]
+      single_occurrence : Bool = true
+    ) : Nil
+      Systems.module_running_state(running: true, control_system: current_control_system, single_occurrence: single_occurrence)
     end
 
     # Stop modules
     @[AC::Route::POST("/:sys_id/stop")]
-    def stop : Nil
-      Systems.module_running_state(running: false, control_system: current_control_system)
+    def stop(
+      @[AC::Param::Info(description: "stop modules that only occur in the selected system", example: "false")]
+      single_occurrence : Bool = true
+    ) : Nil
+      Systems.module_running_state(running: false, control_system: current_control_system, single_occurrence: single_occurrence)
     end
 
     # Toggle the running state of ControlSystem's Module
     #
-    protected def self.module_running_state(control_system : ::PlaceOS::Model::ControlSystem, running : Bool)
-      ::PlaceOS::Model::Module.where(id: control_system.modules, ignore_startstop: false).update_all(running: running)
+    protected def self.module_running_state(control_system : ::PlaceOS::Model::ControlSystem, running : Bool, single_occurrence : Bool = true)
+      modules = single_occurrence ? control_system.modules_with_single_occurrence.map(&.id) : control_system.modules
+      ::PlaceOS::Model::Module.where(id: modules, ignore_startstop: false).update_all(running: running)
     end
 
     # Driver Metadata, State and Status
