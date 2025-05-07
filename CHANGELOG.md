@@ -2,6 +2,7 @@
 
 ### Feat
 
+- PPT-2031 add endpoint to return unique zone tags ([#403](https://github.com/PlaceOS/rest-api/pull/403))
 - **systems**: start and stop local modules [PPT-1872] ([#399](https://github.com/PlaceOS/rest-api/pull/399))
 - **websocket/session**: allow privalege escalation
 - PPT-1733 Add reload driver endpoint ([#396](https://github.com/PlaceOS/rest-api/pull/396))
