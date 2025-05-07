@@ -28,7 +28,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :metadata])]
+    @[AC::Route::Filter(:before_action, except: [:index, :tags, :create, :metadata])]
     def current_zone(id : String)
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -99,7 +99,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "only return zones who have this zone as a parent", example: "zone-1234")]
       parent_id : String? = nil,
       @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
-      tags : Array(String)? = nil
+      tags : Array(String)? = nil,
     ) : Array(::PlaceOS::Model::Zone)
       elastic = ::PlaceOS::Model::Zone.elastic
       query = elastic.query(search_params)
@@ -125,11 +125,20 @@ module PlaceOS::Api
       paginate_results(elastic, query)
     end
 
+    # returns unique zone tags
+    @[AC::Route::GET("/tags")]
+    def tags : Array(String)
+      unique_tags = PgORM::Database.connection do |db|
+        db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone ) as unnested", &.read(String)
+      end
+      unique_tags.split(',')
+    end
+
     # return the details of the zone
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(description: "also return any triggers associated with the zone", example: "true")]
-      complete : Bool = false
+      complete : Bool = false,
     ) : ::PlaceOS::Model::Zone
       # Include trigger data in response
       current_zone.trigger_data_details = current_zone.trigger_data if complete
@@ -168,7 +177,7 @@ module PlaceOS::Api
     def metadata(
       id : String,
       @[AC::Param::Info(description: "only return the metadata key we are interested in", example: "workplace-config")]
-      name : String? = nil
+      name : String? = nil,
     ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
       ::PlaceOS::Model::Metadata.build_metadata(id, name)
     end
@@ -202,7 +211,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
       module_slug : String,
       @[AC::Param::Info(description: "the method to execute on the module", example: "power")]
-      method : String
+      method : String,
     ) : ZoneExecResponse
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
 

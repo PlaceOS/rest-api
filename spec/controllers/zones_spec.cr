@@ -8,6 +8,14 @@ module PlaceOS::Api
       Spec.test_base_index(klass: Model::Zone, controller_klass: Zones)
     end
 
+    describe "tags", tags: "search" do
+      result = client.get(path: "#{Zones.base_route}tags", headers: Spec::Authentication.headers)
+      result.success?.should be_true
+      list = JSON.parse(result.body)
+      list.as_a?.should_not be_nil
+      list.as_a.size.should be > 0
+    end
+
     describe "CRUD operations", tags: "crud" do
       Spec.test_crd(klass: Model::Zone, controller_klass: Zones)
 
