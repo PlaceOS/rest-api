@@ -64,6 +64,7 @@
 
 ### Fix
 
+- **systems**: prevent bypass of email downcase ([#402](https://github.com/PlaceOS/rest-api/pull/402))
 - **Dockerfile**: make git certificate store is explicit
 - **asset_types**: PPT-1803 index endpoint when no matching entries found ([#398](https://github.com/PlaceOS/rest-api/pull/398))
 - **metadata**: modify permissions check on edit
