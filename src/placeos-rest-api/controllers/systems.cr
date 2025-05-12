@@ -50,7 +50,7 @@ module PlaceOS::Api
 
     getter! current_control_system : ::PlaceOS::Model::ControlSystem
 
-    @[AC::Route::Filter(:before_action, only: [:update, :create], body: :control_system_update)]
+    @[AC::Route::Filter(:before_action, only: [:update, :create], body: :control_system)]
     def parse_update_control_system(control_system : ::PlaceOS::Model::ControlSystem)
       # prevent bypass of email initialisation
       if email = control_system.email
