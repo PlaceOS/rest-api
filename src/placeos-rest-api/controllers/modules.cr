@@ -1,6 +1,7 @@
 require "pinger"
-require "placeos-driver/storage"
 require "loki-client"
+require "placeos-driver/storage"
+require "placeos-driver/proxy/remote_driver"
 
 require "./application"
 require "./drivers"
@@ -56,7 +57,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:index])]
     def check_view_permissions(
       @[AC::Param::Info(description: "only return modules running in this system (query params are ignored if this is provided)", example: "sys-1234")]
-      control_system_id : String? = nil
+      control_system_id : String? = nil,
     )
       return if user_support?
 
@@ -95,6 +96,7 @@ module PlaceOS::Api
       property compiled : Bool? = nil
       @[JSON::Field(key: "control_system")]
       property control_system_details : Api::Modules::ControlSystemDetails? = nil
+      property core_node : String? = nil
     end
 
     ###############################################################################################
@@ -113,7 +115,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "do not return logic modules (return only modules that can exist in multiple systems)", example: "true")]
       no_logic : Bool = false,
       @[AC::Param::Info(description: "return only running modules", example: "true")]
-      running : Bool? = nil
+      running : Bool? = nil,
     ) : Array(::PlaceOS::Model::Module)
       # if a system id is present we query the database directly
       if control_system_id
@@ -224,8 +226,11 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(description: "return the driver details along with the module?", example: "true")]
-      complete : Bool = false
+      complete : Bool = false,
     ) : ::PlaceOS::Model::Module
+      running_on = self.class.locate_module(current_module.id.as(String)) rescue nil
+      current_module.core_node = running_on
+
       if complete && (driver = current_module.driver)
         current_module.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
         current_module
@@ -327,7 +332,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the name of the methodm we want to execute")]
       method : String,
       @[AC::Param::Info(description: "the arguments we want to provide to the method")]
-      args : Array(JSON::Any)
+      args : Array(JSON::Any),
     ) : Nil
       sys_id = current_module.control_system_id || ""
 
@@ -376,7 +381,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id/state/:key")]
     def state_lookup(
       @[AC::Param::Info(description: "that name of the status we are after")]
-      key : String
+      key : String,
     ) : String
       self.class.module_state(current_module, key).as(String)
     end
@@ -431,6 +436,13 @@ module PlaceOS::Api
       id = mod.is_a?(String) ? mod : mod.id.as(String)
       storage = Driver::RedisStorage.new(id)
       key ? storage[key] : storage.to_h
+    end
+
+    # Use consistent hashing to determine the location of the module
+    def self.locate_module(module_id : String) : String?
+      node = RemoteDriver.default_discovery.find?(module_id)
+      return nil unless node
+      node.to_s
     end
   end
 end

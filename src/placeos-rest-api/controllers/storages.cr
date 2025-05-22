@@ -27,7 +27,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "return storages which are in the authority provided", example: "auth-1234")]
-      auth_id : String? = nil
+      auth_id : String? = nil,
     ) : Array(::PlaceOS::Model::Storage)
       ::PlaceOS::Model::Storage.where(authority_id: auth_id).all.to_a
     end

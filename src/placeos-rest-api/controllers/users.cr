@@ -21,7 +21,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, except: [:index, :create, :current, :resource_token, :groups, :search])]
     def find_user(
       @[AC::Param::Info(name: "id", description: "the id of the user", example: "user-1234")]
-      lookup : String
+      lookup : String,
     )
       # Index ordering to use for resolving the user.
       ordering = if lookup.is_email?
@@ -175,7 +175,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "include user metadata in the response", example: "true")]
       include_metadata : Bool = false,
       @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
-      authority_id : String? = nil
+      authority_id : String? = nil,
     ) : Array(UserDetails)
       elastic = ::PlaceOS::Model::User.elastic
       search_query = search_params
@@ -211,7 +211,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(description: "include user metadata in the response", example: "true")]
-      include_metadata : Bool = false
+      include_metadata : Bool = false,
     ) : UserDetails
       # We only want to provide limited "public" information
       if user_admin?
@@ -255,7 +255,7 @@ module PlaceOS::Api
     # Destroy user, revoke authentication.
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy(
-      force_removal : Bool = false
+      force_removal : Bool = false,
     ) : Nil
       if !force_removal && current_authority.try &.internals["soft_delete"]? == true
         user.deleted = true
@@ -280,7 +280,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id/metadata")]
     def metadata(
       @[AC::Param::Info(description: "filter metadata by a particular entry", example: "department")]
-      name : String? = nil
+      name : String? = nil,
     ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
       parent_id = user.id.not_nil!
       ::PlaceOS::Model::Metadata.build_metadata(parent_id, name)
@@ -290,7 +290,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/groups", converters: {emails: ConvertStringArray})]
     def groups(
       @[AC::Param::Info(description: "the user emails whos group membership we are interested", example: "user1@org.com,user2@org.com")]
-      emails : Array(String)
+      emails : Array(String),
     ) : Array(::PlaceOS::Model::User::GroupResponse)
       unless (errors = self.class.validate_emails(emails)).empty?
         raise Error::ModelValidation.new(errors, "not all provided emails were valid")
@@ -317,7 +317,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
       limit : Int32 = 100,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
-      offset : Int32 = 0
+      offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::User)
       sql = <<-SQL
         from "user" u INNER JOIN "metadata" m ON m.parent_id = u.id AND

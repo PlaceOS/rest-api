@@ -113,7 +113,7 @@ module PlaceOS::Api
     def add_core(
       edge_id : String,
       uri : URI,
-      reconnect : Bool = false
+      reconnect : Bool = false,
     )
       # No need to change connection
       if !reconnect && core_sockets.has_key?(edge_id)

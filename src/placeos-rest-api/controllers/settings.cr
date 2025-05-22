@@ -83,7 +83,7 @@ module PlaceOS::Api
     # list the settings associated with the provided parent object
     @[AC::Route::GET("/", converters: {parent_id: ConvertStringArray})]
     def index(
-      parent_id : Array(String)? = nil
+      parent_id : Array(String)? = nil,
     ) : Array(::PlaceOS::Model::Settings)
       if parents = parent_id
         parents.each { |pid| can_view?(pid) }
@@ -145,7 +145,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
       limit : Int32 = 15,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
-      offset : Int32 = 0
+      offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Settings)
       history = current_settings.history(offset: offset, limit: limit).to_a
 

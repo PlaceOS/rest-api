@@ -39,7 +39,7 @@ module PlaceOS::Api::WebSocket
       @ws : HTTP::WebSocket,
       @request_id : String,
       @user : ::PlaceOS::Model::UserJWT,
-      @discovery : Clustering::Discovery = RemoteDriver.default_discovery
+      @discovery : Clustering::Discovery = RemoteDriver.default_discovery,
     )
       # Register event handlers
       ws.on_message do |message|
@@ -105,7 +105,7 @@ module PlaceOS::Api::WebSocket
       module_name : String,
       index : Int32,
       name : String,
-      args : Array(JSON::Any)?
+      args : Array(JSON::Any)?,
     )
       args = [] of JSON::Any if args.nil?
       Log.debug { {message: "exec", args: args.to_json} }
@@ -156,7 +156,7 @@ module PlaceOS::Api::WebSocket
       system_id : String,
       module_name : String,
       index : Int32,
-      name : String
+      name : String,
     )
       Log.debug { "binding to module" }
       begin
@@ -201,7 +201,7 @@ module PlaceOS::Api::WebSocket
       system_id : String,
       module_name : String,
       index : Int32,
-      name : String
+      name : String,
     )
       Log.debug { "unbind module" }
 
@@ -228,7 +228,7 @@ module PlaceOS::Api::WebSocket
       system_id : String,
       module_name : String,
       index : Int32,
-      name : String
+      name : String,
     )
       # NOTE: In the interest of saving a redis lookup, the frontend passes
       #       the module_id, rather than name.
@@ -289,7 +289,7 @@ module PlaceOS::Api::WebSocket
       system_id : String,
       module_name : String,
       index : Int32,
-      name : String
+      name : String,
     )
       socket = debug_sessions.delete({system_id, module_name, index})
       # Close the socket if it was present
@@ -495,7 +495,7 @@ module PlaceOS::Api::WebSocket
       request_id : Int64?,
       error_code : Response::ErrorCode?,
       message : String?,
-      response_code : Int32? = 500
+      response_code : Int32? = 500,
     )
       Api::WebSocket::Session::Response.new(
         id: request_id || 0_i64,

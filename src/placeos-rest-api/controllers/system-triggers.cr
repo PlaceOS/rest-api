@@ -18,7 +18,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_sys_trig(
       @[AC::Param::Info(name: "trig_id", description: "the id of the trigger", example: "trig-1234")]
-      id : String
+      id : String,
     )
       Log.context.set(trigger_instance_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -30,7 +30,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_system(
       @[AC::Param::Info(description: "the id of the system", example: "sys-1234")]
-      sys_id : String
+      sys_id : String,
     )
       Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
@@ -55,7 +55,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "filter by a particular trigger type", example: "trig-1234")]
       trigger_id : String? = nil,
       @[AC::Param::Info(description: "return triggers updated before the time specified, unix epoch", example: "123456")]
-      as_of : Int64? = nil
+      as_of : Int64? = nil,
     ) : Array(::PlaceOS::Model::TriggerInstance)
       elastic = ::PlaceOS::Model::TriggerInstance.elastic
       query = elastic.query(search_params)
@@ -122,7 +122,7 @@ module PlaceOS::Api
     def create(
       trig_inst : ::PlaceOS::Model::TriggerInstance,
       @[AC::Param::Info(description: "the id of the system", example: "sys-1234")]
-      sys_id : String
+      sys_id : String,
     ) : ::PlaceOS::Model::TriggerInstance
       trig_inst.control_system_id = sys_id
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save

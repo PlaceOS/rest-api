@@ -180,7 +180,7 @@ end
 
 # Binds to the system websocket endpoint
 #
-def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) {}, &)
+def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) { }, &)
   host = "localhost"
   bearer = auth["Authorization"].split(' ').last
   path = File.join(base, "control?bearer_token=#{bearer}")

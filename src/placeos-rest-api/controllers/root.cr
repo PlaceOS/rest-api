@@ -195,7 +195,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/signal")]
     def signal(
       @[AC::Param::Info(description: "the path we would like to send data to", example: "/my/data/channel")]
-      channel : String
+      channel : String,
     ) : Nil
       if user_token.guest_scope?
         raise Error::Forbidden.new("guest scopes can only signal paths that include '/guest/'") unless channel.includes?("/guest/")
@@ -219,7 +219,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/reindex")]
     def reindex(
       @[AC::Param::Info(description: "backfill the database after re-indexing?", example: "true")]
-      backfill : Bool = false
+      backfill : Bool = false,
     ) : Nil
       success = SearchIngest::Client.client &.reindex(backfill: backfill)
       raise "reindex failed" unless success
