@@ -133,7 +133,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the path to the file we want commits for", example: "path/to/file.cr")]
       driver : String? = nil,
       @[AC::Param::Info(description: "the branch to grab commits from", example: "main")]
-      branch : String? = nil
+      branch : String? = nil,
     ) : Array(GitRepository::Commit)
       Api::Repositories.commits(
         repository: current_repo,
@@ -159,7 +159,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "driver", description: "the file we would like metadata for", example: "path/to/file.cr")]
       driver_filename : String,
       @[AC::Param::Info(description: "the commit level of the file", example: "3f67a66")]
-      commit : String
+      commit : String,
     ) : Nil
       # Request to core:
       # "/api/core/v1/drivers/#{file_name}/details?repository=#{repository}&commit=#{commit_hash}"
@@ -218,7 +218,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "a username for access if required", example: "steve")]
       @username : String? = nil,
       @[AC::Param::Info(description: "the password or access token as required", example: "ab34cfe4567")]
-      @password : String? = nil
+      @password : String? = nil,
     )
     end
 
@@ -248,7 +248,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the branch to grab commits from", example: "main")]
       branch : String? = nil,
       @[AC::Param::Info(description: "the number of commits to return", example: "50")]
-      depth : Int32 = 50
+      depth : Int32 = 50,
     ) : Array(GitRepository::Commit)
       query_branch = branch || remote_default_branch
       FrontendLoader::Client.client(request_id: request_id) do |frontends_client|

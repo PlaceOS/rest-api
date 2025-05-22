@@ -45,7 +45,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(name: "instances", description: "return the instances associated with this trigger", example: "true")]
-      include_instances : Bool? = nil
+      include_instances : Bool? = nil,
     ) : ::PlaceOS::Model::Trigger
       trig = current_trigger
       trig.trigger_instances_details = trig.trigger_instances.to_a if include_instances

@@ -31,7 +31,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(description: "return the chat messages associated with this chat id", example: "chats-xxxx")]
-      id : String
+      id : String,
     ) : Array(NamedTuple(role: String, content: String?, timestamp: Time))
       unless chat = ::PlaceOS::Model::Chat.find?(id)
         Log.warn { {message: "Invalid chat id. Unable to find matching chat history", id: id, user: current_user.id} }
@@ -49,7 +49,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the system id the LLM driver resides", example: "sys-xxxx")]
       system_id : String,
       @[AC::Param::Info(description: "To resume previous chat session. Provide session chat id", example: "chats-xxxx")]
-      resume : String? = nil
+      resume : String? = nil,
     ) : Nil
       chat_manager.start_session(socket, (resume && ::PlaceOS::Model::Chat.find!(resume.not_nil!)) || nil, system_id)
     rescue e : RemoteDriver::Error
@@ -62,7 +62,7 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy(
       @[AC::Param::Info(description: "the id of the chat to delete", example: "chats-xxxx")]
-      id : String
+      id : String,
     ) : Nil
       unless chat = ::PlaceOS::Model::Chat.find?(id)
         Log.warn { {message: "Invalid chat id. Unable to find matching chat record", id: id, user: current_user.id} }

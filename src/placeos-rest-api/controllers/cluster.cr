@@ -20,7 +20,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def nodes(
       @[AC::Param::Info(description: "return the detailed status of the node including memory and CPU usage?", example: "true")]
-      include_status : Bool = false
+      include_status : Bool = false,
     ) : Array(NodeStatus)
       details = RemoteDriver.default_discovery.node_hash
 
@@ -101,7 +101,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "specifies the core node we want to send the request to")]
       core_id : String,
       @[AC::Param::Info(description: "return the detailed status of the drivers running on the node?", example: "true")]
-      include_status : Bool = false
+      include_status : Bool = false,
     ) : Array(DriverStatus)
       uri = RemoteDriver.default_discovery.node_hash[core_id]?
 
@@ -168,7 +168,7 @@ module PlaceOS::Api
     def self.driver_status(
       key : String,
       loaded : PlaceOS::Core::Client::Loaded,
-      status : PlaceOS::Core::Client::DriverStatus? = nil
+      status : PlaceOS::Core::Client::DriverStatus? = nil,
     ) : DriverStatus
       edge_modules = loaded.edge
       local_modules = loaded.local
@@ -198,10 +198,31 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "specifies the core node we want to send the request to")]
       core_id : String,
       @[AC::Param::Info(description: "the name of the driver to terminate")]
-      driver : String
+      driver : String,
     ) : Nil
       uri = RemoteDriver.default_discovery.node_hash[core_id]
       raise Error::NotFound.new("driver not found: #{driver}") unless Core::Client.client(uri, request_id, &.terminate(driver))
+    end
+
+    record Versions, old_version : String? = nil, new_version : String? = nil do
+      include JSON::Serializable
+    end
+
+    VERSION_KEY = "{service_core}_version"
+
+    # forces the core nodes to perform a cluster rebalance
+    # can be useful for debugging when monitoring the logs
+    @[AC::Route::POST("/rebalance")]
+    def rebalance : Versions
+      ::PlaceOS::Driver::RedisStorage.with_redis do |client|
+        old_version = client.get(VERSION_KEY)
+        raise "no existing core version, core may not be running" unless old_version
+        core_count = old_version.split("-", 2)[0]
+        new_version = "#{core_count}-#{Random.new.random_bytes(8).hexstring}"
+        client.set(VERSION_KEY, new_version)
+
+        Versions.new(old_version, new_version)
+      end
     end
   end
 end

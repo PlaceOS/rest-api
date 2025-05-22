@@ -22,7 +22,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:destroy])]
     def check_delete_permissions(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be destroyed")]
-      parent_id : String
+      parent_id : String,
     )
       return if user_support? || parent_id == user_token.id
       check_access_level(parent_id, admin_required: true)
@@ -38,7 +38,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
       parent_id : String,
       @[AC::Param::Info(description: "the name of the metadata key", example: "config")]
-      name : String? = nil
+      name : String? = nil,
     ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
@@ -67,7 +67,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the parent metadata is included in the results by default", example: "false")]
       include_parent : Bool = true,
       @[AC::Param::Info(description: "filter for a particular metadata key", example: "config")]
-      name : String? = nil
+      name : String? = nil,
     ) : Array(Children)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
@@ -87,7 +87,7 @@ module PlaceOS::Api
     def merge(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be updated")]
       parent_id : String,
-      meta : ::PlaceOS::Model::Metadata::Interface
+      meta : ::PlaceOS::Model::Metadata::Interface,
     ) : ::PlaceOS::Model::Metadata::Interface
       mutate(parent_id, meta, merge: true)
     end
@@ -98,7 +98,7 @@ module PlaceOS::Api
     def update(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be replaced")]
       parent_id : String,
-      meta : ::PlaceOS::Model::Metadata::Interface
+      meta : ::PlaceOS::Model::Metadata::Interface,
     ) : ::PlaceOS::Model::Metadata::Interface
       mutate(parent_id, meta, merge: false)
     end
@@ -140,7 +140,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
       parent_id : String,
       @[AC::Param::Info(name: "name", description: "the name of the metadata key", example: "config")]
-      metadata_name : String
+      metadata_name : String,
     ) : Nil
       ::PlaceOS::Model::Metadata.for(parent_id, metadata_name).each &.destroy
 
@@ -168,7 +168,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
       limit : Int32 = 100,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
-      offset : Int32 = 0
+      offset : Int32 = 0,
     ) : Hash(String, Array(::PlaceOS::Model::Metadata::Interface))
       history = ::PlaceOS::Model::Metadata.build_history(parent_id, name, offset: offset, limit: limit)
 

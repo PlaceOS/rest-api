@@ -56,7 +56,7 @@ module PlaceOS::Api
   end
 end
 
-def signaller(on_message : Proc(String, _) = ->(_msg : String) {}, &)
+def signaller(on_message : Proc(String, _) = ->(_msg : String) { }, &)
   host = "localhost"
   bearer = PlaceOS::Api::Spec::Authentication.headers["Authorization"].split(' ').last
   path = File.join(PlaceOS::Api::WebRTC.base_route, "signaller?bearer_token=#{bearer}")

@@ -49,7 +49,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return asset types in the category provided", example: "category_id-1234")]
       category_id : String? = nil,
       @[AC::Param::Info(description: "filters the asset count to the zone provided", example: "zone-1234")]
-      zone_id : String? = nil
+      zone_id : String? = nil,
     ) : String
       conditions = [] of String
       conditions << "at.brand == '#{brand}'" if brand

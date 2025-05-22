@@ -18,7 +18,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:guest_entry, :public_room])]
     def find_current_control_system(
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
-      system_id : String
+      system_id : String,
     )
       system = if system_id.starts_with? "sys-"
                  ::PlaceOS::Model::ControlSystem.find!(system_id)
@@ -72,7 +72,7 @@ module PlaceOS::Api
     def guest_entry(
       guest : GuestParticipant,
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
-      system_id : String
+      system_id : String,
     ) : Nil
       jwt_secret = JWT_SECRET
       raise Error::GuestAccessDisabled.new("guest access not enabled") unless jwt_secret
@@ -200,7 +200,7 @@ module PlaceOS::Api
     def transfer_guest(
       user_id : String,
       session_id : String? = nil,
-      body : JSON::Any? = nil
+      body : JSON::Any? = nil,
     ) : Nil | Bool
       result = MANAGER.transfer(user_id, session_id, body.try &.to_json)
       case result
@@ -228,7 +228,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/room/:system_id")]
     def public_room(
       @[AC::Param::Info(description: "either a system id or a unique permalink", example: "sys-12345")]
-      system_id : String
+      system_id : String,
     ) : RoomDetails
       system = current_control_system
       authority = current_authority.not_nil!

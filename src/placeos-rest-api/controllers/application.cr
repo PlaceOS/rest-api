@@ -89,7 +89,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "a token for accessing the next page of results, provided in the `Link` header")]
       ref : String? = nil,
       @[AC::Param::Info(description: "(Optional, comma separated array of strings) Array of fields you wish to search. Accepts wildcard expresssions and boost relevance score for matches for particular field using a caret ^ operator.")]
-      fields : Array(String) = [] of String
+      fields : Array(String) = [] of String,
     )
       search_params = {
         "q"      => query,

@@ -5241,6 +5241,73 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/cluster/rebalance:
+    post:
+      summary: forces the core nodes to perform a cluster rebalance
+      description: 'forces the core nodes to perform a cluster rebalance
+
+        can be useful for debugging when monitoring the logs'
+      tags:
+      - Cluster
+      operationId: PlaceOS::Api::Cluster_rebalance
+      parameters: []
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Cluster__Versions'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/domains:
     get:
       summary: list the domains
@@ -21915,6 +21982,15 @@ components:
       - driver
       - local
       - edge
+    PlaceOS__Api__Cluster__Versions:
+      type: object
+      properties:
+        old_version:
+          type: string
+          nullable: true
+        new_version:
+          type: string
+          nullable: true
     PlaceOS__Model__Authority:
       type: object
       properties:
@@ -22517,6 +22593,9 @@ components:
           required:
           - name
           - zone_data
+          nullable: true
+        core_node:
+          type: string
           nullable: true
         id:
           type: string
@@ -23395,6 +23474,9 @@ components:
                 required:
                 - name
                 - zone_data
+                nullable: true
+              core_node:
+                type: string
                 nullable: true
               id:
                 type: string
@@ -25826,6 +25908,9 @@ components:
                 required:
                 - name
                 - zone_data
+                nullable: true
+              core_node:
+                type: string
                 nullable: true
               id:
                 type: string
@@ -28466,6 +28551,9 @@ components:
                     required:
                     - name
                     - zone_data
+                    nullable: true
+                  core_node:
+                    type: string
                     nullable: true
                   id:
                     type: string

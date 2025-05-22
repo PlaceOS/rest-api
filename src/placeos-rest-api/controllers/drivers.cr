@@ -40,7 +40,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "filter by the type of driver", example: "Logic")]
       role : ::PlaceOS::Model::Driver::Role? = nil,
       @[AC::Param::Info(description: "list only drivers for which update is available", example: "true")]
-      update_available : Bool? = nil
+      update_available : Bool? = nil,
     ) : Array(::PlaceOS::Model::Driver)
       elastic = ::PlaceOS::Model::Driver.elastic
       query = elastic.query(search_params)
@@ -66,7 +66,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(name: "compilation_status", description: "check if the driver is compiled?", example: "false")]
-      include_compilation_status : Bool = true
+      include_compilation_status : Bool = true,
     ) : ::PlaceOS::Model::Driver
       current_driver.compilation_status_details = Api::Drivers.compilation_status(current_driver, request_id) if include_compilation_status
       current_driver
@@ -215,7 +215,7 @@ module PlaceOS::Api
     # Returns the compilation status of a driver across the cluster
     def self.compilation_status(
       driver : ::PlaceOS::Model::Driver,
-      request_id : String? = "migrate to Log"
+      request_id : String? = "migrate to Log",
     ) : Hash(String, Bool)
       tag = driver.id.as(String)
       repository_folder = driver.repository!.folder_name

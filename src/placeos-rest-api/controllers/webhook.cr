@@ -23,7 +23,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action)]
     def find_hook(
       id : String,
-      secret : String
+      secret : String,
     )
       Log.context.set(trigger_instance_id: id)
 
@@ -57,7 +57,7 @@ module PlaceOS::Api
       @mod : String? = nil,
       @index : Int32 = 1,
       @method : String? = nil,
-      @binary : Bool = false
+      @binary : Bool = false,
     )
     end
 

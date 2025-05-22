@@ -133,7 +133,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id/qr_code.png")]
     def png_qr(
       @[AC::Param::Info(description: "size of the QR code in pixels. Between 72px and 512px")]
-      size : Int32 = 256
+      size : Int32 = 256,
     ) : Nil
       # remove the "uri-" prefix from the id
       id = current_url.id.as(String)[4..-1]
@@ -158,7 +158,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "file format of the response")]
       format : Format = Format::SVG,
       @[AC::Param::Info(description: "size of the QR code in pixels. Between 72px and 512px")]
-      size : Int32 = 256
+      size : Int32 = 256,
     ) : Nil
       response.headers["Content-Disposition"] = "inline"
 

@@ -43,7 +43,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/lookup/:email")]
     def lookup(
       @[AC::Param::Info(name: "email", description: "User email to lookup domain for", example: "user@domain.com")]
-      email : String
+      email : String,
     ) : String
       authority = ::PlaceOS::Model::Authority.find_by_email(email)
       raise Error::NotFound.new("No matching domain found") unless authority

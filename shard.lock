@@ -19,7 +19,7 @@ shards:
 
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
-    version: 0.9.0
+    version: 0.10.0
 
   awscr-signer:
     git: https://github.com/taylorfinnell/awscr-signer.git
@@ -155,7 +155,7 @@ shards:
 
   office365:
     git: https://github.com/placeos/office365.git
-    version: 1.25.6
+    version: 1.25.7
 
   openai:
     git: https://github.com/spider-gazelle/crystal-openai.git
@@ -179,7 +179,7 @@ shards:
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
-    version: 2.0.1
+    version: 2.0.3
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -195,7 +195,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.18.0+git.commit.6bd576061d06171e1adc208c4513ab511dd1db96
+    version: 4.19.0+git.commit.b35fd9e7ff1f5396a7a63f96dc315171c5d27c1a
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -203,7 +203,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.9.6
+    version: 7.10.2
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git

@@ -52,7 +52,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return assets that have a matchng barcode", example: "1234567")]
       barcode : String? = nil,
       @[AC::Param::Info(description: "return assets that have a matchng serial number", example: "1234567")]
-      serial_number : String? = nil
+      serial_number : String? = nil,
     ) : Array(::PlaceOS::Model::Asset)
       elastic = ::PlaceOS::Model::Asset.elastic
       query = elastic.query(search_params)

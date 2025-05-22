@@ -72,7 +72,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/function_schema/:capability_id")]
     def function_schema(
       @[AC::Param::Info(description: "The ID of the capability, exactly as provided in the capability list")]
-      capability_id : String
+      capability_id : String,
     ) : Array(FunctionSchema)
       module_name, index = RemoteDriver.get_parts(capability_id)
 
@@ -101,7 +101,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "The name of the function to call")]
       function_name : String,
       @[AC::Param::Info(description: "a JSON string representing the named arguments of the function, as per the JSON schema provided")]
-      payload : NamedTuple(function_params: String)
+      payload : NamedTuple(function_params: String),
     ) : NamedTuple(response: String) | RequestError
       user_id = current_user.id
 
