@@ -28,7 +28,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
-      authority_id : String? = nil
+      authority_id : String? = nil,
     ) : Array(::PlaceOS::Model::DoorkeeperApplication)
       elastic = ::PlaceOS::Model::DoorkeeperApplication.elastic
       query = elastic.query(search_params)

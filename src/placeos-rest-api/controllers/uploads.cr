@@ -20,7 +20,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:get_link, :edit, :update, :finished, :destroy])]
     def get_upload(
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
-      id : String
+      id : String,
     )
       unless @current_upload = ::PlaceOS::Model::Upload.find?(id)
         Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
@@ -57,7 +57,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
       limit : Int32 = 100,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
-      offset : Int32 = 0
+      offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Upload)
       table_name = ::PlaceOS::Model::Upload.table_name
       s = ::PlaceOS::Model::Storage.storage_or_default(authority.id)
@@ -100,7 +100,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "Size of file which will be uploaded to cloud storage", example: "1234")]
       file_size : Int64,
       @[AC::Param::Info(description: "Mime-Type of file which will be uploaded to cloud storage", example: "image/jpeg")]
-      file_mime : String?
+      file_mime : String?,
     ) : NamedTuple(residence: String)
       allowed?(file_name, file_name)
       {residence: signer.name}
@@ -177,7 +177,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id/url")]
     def get_link(
       @[AC::Param::Info(description: "Link expiry period in minutes.", example: "60")]
-      expiry : Int32 = TEMP_LINK_DEFAULT_MINUTES
+      expiry : Int32 = TEMP_LINK_DEFAULT_MINUTES,
     )
       max_expiry = TEMP_LINK_MAX_MINUTES
       expiry = expiry > max_expiry ? max_expiry : expiry
@@ -209,7 +209,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "file part which will be uploaded to cloud storage", example: "part1")]
       part : String,
       @[AC::Param::Info(description: "MD5 of the part which will be uploaded to cloud storage", example: "pxdXsOVpn6+SAcvZoZQphQ==")]
-      file_id : String?
+      file_id : String?,
     ) : NamedTuple(
       type: Symbol,
       signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
@@ -259,7 +259,7 @@ module PlaceOS::Api
       part : String?,
       @[AC::Param::Info(description: "MD5 of the next part", example: "pxdXsOVpn6+SAcvZoZQphQ==")]
       file_id : String?,
-      info : UpdateInfo
+      info : UpdateInfo,
     ) : NamedTuple(
       type: Symbol,
       signature: NamedTuple(verb: String, url: String, headers: Hash(String, String)),
@@ -300,7 +300,7 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy(
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
-      id : String
+      id : String,
     ) : Nil
       signer.delete_file(storage.bucket_name, current_upload.object_key, current_upload.resumable_id)
       current_upload.destroy

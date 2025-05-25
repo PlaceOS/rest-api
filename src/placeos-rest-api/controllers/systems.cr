@@ -32,7 +32,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy, :sys_zones, :settings, :add_module, :remove_module, :start, :stop])]
     def find_current_control_system(
-      sys_id : String
+      sys_id : String,
     )
       Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
@@ -163,7 +163,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return systems which are public", example: "true")]
       public : Bool? = nil,
       @[AC::Param::Info(description: "return systems which are signage", example: "true")]
-      signage : Bool? = nil
+      signage : Bool? = nil,
     ) : Array(::PlaceOS::Model::ControlSystem)
       elastic = ::PlaceOS::Model::ControlSystem.elastic
       query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
@@ -243,7 +243,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/with_emails", converters: {emails: ConvertStringArray})]
     def find_by_email(
       @[AC::Param::Info(name: "in", description: "comma seperated list of emails", example: "room1@org.com,room2@org.com")]
-      emails : Array(String)
+      emails : Array(String),
     ) : Array(::PlaceOS::Model::ControlSystem)
       systems = ::PlaceOS::Model::ControlSystem.where(email: emails.map(&.strip.downcase)).to_a
       set_collection_headers(systems.size, ::PlaceOS::Model::ControlSystem.table_name)
@@ -254,7 +254,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:sys_id")]
     def show(
       @[AC::Param::Info(description: "return the system with the zone, module and driver information collected", example: "true")]
-      complete : Bool = false
+      complete : Bool = false,
     ) : ::PlaceOS::Model::ControlSystem
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
@@ -287,7 +287,7 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:sys_id")]
     def update(
       @[AC::Param::Info(description: "must be provided to prevent overwriting newer config with old, in the case where multiple people might be editing a system", example: "3")]
-      version : Int32
+      version : Int32,
     ) : ::PlaceOS::Model::ControlSystem
       if version != current_control_system.version
         raise Error::Conflict.new("Attempting to edit an old System version")
@@ -341,7 +341,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:sys_id/metadata")]
     def metadata(
       sys_id : String,
-      name : String? = nil
+      name : String? = nil,
     ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
       ::PlaceOS::Model::Metadata.build_metadata(sys_id, name)
     end
@@ -355,7 +355,7 @@ module PlaceOS::Api
     # Adds the module to the system if it doesn't already exist
     @[AC::Route::PUT("/:sys_id/module/:module_id")]
     def add_module(
-      module_id : String
+      module_id : String,
     ) : ::PlaceOS::Model::ControlSystem
       raise Error::NotFound.new unless ::PlaceOS::Model::Module.exists?(module_id)
 
@@ -369,7 +369,7 @@ module PlaceOS::Api
     # Removes the module from the system and deletes it if not used elsewhere
     @[AC::Route::DELETE("/:sys_id/module/:module_id", status_code: HTTP::Status::ACCEPTED)]
     def remove_module(
-      module_id : String
+      module_id : String,
     ) : ::PlaceOS::Model::ControlSystem
       if current_control_system.modules.includes?(module_id)
         current_control_system.remove_module(module_id)
@@ -386,7 +386,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/:sys_id/start")]
     def start(
       @[AC::Param::Info(description: "start modules that only occur in the selected system", example: "false")]
-      single_occurrence : Bool = true
+      single_occurrence : Bool = true,
     ) : Nil
       Systems.module_running_state(running: true, control_system: current_control_system, single_occurrence: single_occurrence)
     end
@@ -395,7 +395,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/:sys_id/stop")]
     def stop(
       @[AC::Param::Info(description: "stop modules that only occur in the selected system", example: "false")]
-      single_occurrence : Bool = true
+      single_occurrence : Bool = true,
     ) : Nil
       Systems.module_running_state(running: false, control_system: current_control_system, single_occurrence: single_occurrence)
     end
@@ -418,7 +418,7 @@ module PlaceOS::Api
       module_slug : String,
       @[AC::Param::Info(description: "the method to execute on the module", example: "power")]
       method : String,
-      args : Array(JSON::Any)
+      args : Array(JSON::Any),
     ) : Nil
       module_name, index = RemoteDriver.get_parts(module_slug)
       Log.context.set(module_name: module_name, index: index, method: method)
@@ -459,7 +459,7 @@ module PlaceOS::Api
     def state(
       sys_id : String,
       @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
-      module_slug : String
+      module_slug : String,
     ) : Hash(String, String)
       module_name, index = RemoteDriver.get_parts(module_slug)
       self.class.module_state(sys_id, module_name, index) || {} of String => String
@@ -472,7 +472,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
       module_slug : String,
       @[AC::Param::Info(description: "the status key we are interested in", example: "power_state")]
-      key : String
+      key : String,
     ) : JSON::Any
       module_name, index = RemoteDriver.get_parts(module_slug)
       JSON.parse(self.class.module_state(sys_id, module_name, index, key).as(String?) || "null")
@@ -488,7 +488,7 @@ module PlaceOS::Api
     def functions(
       sys_id : String,
       @[AC::Param::Info(description: "the combined module class and index, index is optional and defaults to 1", example: "Display_2")]
-      module_slug : String
+      module_slug : String,
     ) : Hash(String, FunctionDetails)
       module_name, index = RemoteDriver.get_parts(module_slug)
       metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(

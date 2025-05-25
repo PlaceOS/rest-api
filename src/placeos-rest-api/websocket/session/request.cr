@@ -19,7 +19,7 @@ struct PlaceOS::Api::WebSocket::Session::Request < PlaceOS::Api::WebSocket::Sess
     @command,
     @name,
     @index = 1,
-    @args = nil
+    @args = nil,
   )
   end
 
