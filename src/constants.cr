@@ -37,6 +37,11 @@ module PlaceOS::Api
   TEMP_LINK_MAX_MINUTES     = ENV["TEMP_LINK_MAX_MINUTES"]?.try(&.to_i) || 1440
   TEMP_LINK_DEFAULT_MINUTES = ENV["TEMP_LINK_DEFAULT_MINUTES"]?.try(&.to_i) || TEMP_LINK_MAX_MINUTES
 
+  # PlaceOS Tenant App
+  PLACE_APP_TENANT_ID     = ENV["PLACE_APP_TENANT_ID"]? || ""
+  PLACE_APP_CLIENT_ID     = ENV["PLACE_APP_CLIENT_ID"]? || ""
+  PLACE_APP_CLIENT_SECRET = ENV["PLACE_APP_CLIENT_SECRET"]? || ""
+
   # CHANGELOG
   #################################################################################################
 
