@@ -17,7 +17,7 @@ module PlaceOS::Api
       end
     end
 
-    @[AC::Route::Filter(:before_action, only: [:get_link, :edit, :update, :finished, :destroy])]
+    @[AC::Route::Filter(:before_action, only: [:get_link, :download_proxy_file_contents, :edit, :update, :finished, :destroy])]
     def get_upload(
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
       id : String,
