@@ -5244,9 +5244,8 @@ paths:
   /api/engine/v2/cluster/rebalance:
     post:
       summary: forces the core nodes to perform a cluster rebalance
-      description: 'forces the core nodes to perform a cluster rebalance
-
-        can be useful for debugging when monitoring the logs'
+      description: "forces the core nodes to perform a cluster rebalance\r\ncan be
+        useful for debugging when monitoring the logs"
       tags:
       - Cluster
       operationId: PlaceOS::Api::Cluster_rebalance
@@ -7835,10 +7834,8 @@ paths:
   /api/engine/v2/modules/{id}/exec/{method}:
     post:
       summary: Executes a command on a module
-      description: 'Executes a command on a module
-
-        The `/systems/` route can be used to introspect modules for the list of methods
-        and argument requirements'
+      description: "Executes a command on a module\r\nThe `/systems/` route can be
+        used to introspect modules for the list of methods and argument requirements"
       tags:
       - Modules
       operationId: PlaceOS::Api::Modules_execute
@@ -8130,9 +8127,8 @@ paths:
   /api/engine/v2/modules/{id}/load:
     post:
       summary: Loads the module if not already loaded
-      description: 'Loads the module if not already loaded
-
-        If the module is already running, it will be updated to latest settings.'
+      description: "Loads the module if not already loaded\r\nIf the module is already
+        running, it will be updated to latest settings."
       tags:
       - Modules
       operationId: PlaceOS::Api::Modules_load
@@ -9645,9 +9641,8 @@ paths:
   /api/engine/v2/systems/{sys_id}/functions/{module_slug}:
     get:
       summary: Lists functions available on the driver
-      description: 'Lists functions available on the driver
-
-        Filters higher privilege functions.'
+      description: "Lists functions available on the driver\r\nFilters higher privilege
+        functions."
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems_functions
@@ -9725,9 +9720,8 @@ paths:
   /api/engine/v2/systems/control:
     get:
       summary: the websocket API endpoint
-      description: 'the websocket API endpoint
-
-        use this to interact with systems and modules efficiently'
+      description: "the websocket API endpoint\r\nuse this to interact with systems
+        and modules efficiently"
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems_control
@@ -10443,10 +10437,8 @@ paths:
   /api/engine/v2/metadata/{id}:
     get:
       summary: Fetch metadata for a model
-      description: 'Fetch metadata for a model
-
-
-        Filter for a specific metadata by name via `name` param'
+      description: "Fetch metadata for a model\r\n\r\nFilter for a specific metadata
+        by name via `name` param"
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_show
@@ -10523,9 +10515,8 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     put:
       summary: replace the metadata with this new metadata
-      description: 'replace the metadata with this new metadata
-
-        udpates are signalled on the `placeos/metadata/changed` channel'
+      description: "replace the metadata with this new metadata\r\nudpates are signalled
+        on the `placeos/metadata/changed` channel"
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_update
@@ -10673,9 +10664,8 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     patch:
       summary: update only the keys provided on the selected metadata
-      description: 'update only the keys provided on the selected metadata
-
-        udpates are signalled on the `placeos/metadata/changed` channel'
+      description: "update only the keys provided on the selected metadata\r\nudpates
+        are signalled on the `placeos/metadata/changed` channel"
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_merge
@@ -10752,12 +10742,9 @@ paths:
   /api/engine/v2/metadata/{id}/children:
     get:
       summary: Fetch metadata for Zone children
-      description: 'Fetch metadata for Zone children
-
-
-        Filter for a specific metadata by name via `name` param.
-
-        Includes the parent metadata by default via `include_parent` param.'
+      description: "Fetch metadata for Zone children\r\n\r\nFilter for a specific
+        metadata by name via `name` param.\r\nIncludes the parent metadata by default
+        via `include_parent` param."
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_children_metadata
@@ -10933,9 +10920,8 @@ paths:
   /api/engine/v2/mqtt/user:
     post:
       summary: 'For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode'
-      description: 'For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
-
-        jwt_response_mode: status, jwt_params_mode: form'
+      description: "For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode\r\njwt_response_mode:
+        status, jwt_params_mode: form"
       tags:
       - MQTT
       operationId: PlaceOS::Api::MQTT_mqtt_user
@@ -10997,10 +10983,8 @@ paths:
     post:
       summary: 'Sends a form with the following params: topic, clientid, acc (1: read,
         2: write, 3: readwrite, 4: subscribe)'
-      description: 'Sends a form with the following params: topic, clientid, acc (1:
-        read, 2: write, 3: readwrite, 4: subscribe)
-
-        example payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A'
+      description: "Sends a form with the following params: topic, clientid, acc (1:
+        read, 2: write, 3: readwrite, 4: subscribe)\r\nexample payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A"
       tags:
       - MQTT
       operationId: PlaceOS::Api::MQTT_mqtt_access
@@ -12186,10 +12170,8 @@ paths:
   /api/engine/v2/repositories/interfaces:
     get:
       summary: Determine loaded interfaces and their current commit
-      description: 'Determine loaded interfaces and their current commit
-
-
-        Returns a hash of folder_name to commit'
+      description: "Determine loaded interfaces and their current commit\r\n\r\nReturns
+        a hash of folder_name to commit"
       tags:
       - Repositories
       operationId: PlaceOS::Api::Repositories_loaded_interfaces
@@ -12418,9 +12400,8 @@ paths:
   /api/engine/v2/repositories/{id}/details:
     get:
       summary: Returns the metadata of the driver
-      description: 'Returns the metadata of the driver
-
-        For payload information, look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults'
+      description: "Returns the metadata of the driver\r\nFor payload information,
+        look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults"
       tags:
       - Repositories
       operationId: PlaceOS::Api::Repositories_details
@@ -13464,9 +13445,8 @@ paths:
   /api/engine/v2/signal:
     post:
       summary: Can be used in a similar manner to a webhook for drivers
-      description: 'Can be used in a similar manner to a webhook for drivers
-
-        pushes arbitrary data to channels in redis'
+      description: "Can be used in a similar manner to a webhook for drivers\r\npushes
+        arbitrary data to channels in redis"
       tags:
       - Root
       operationId: PlaceOS::Api::Root_signal
@@ -17105,6 +17085,203 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/admin_consent/{id}:
+    get:
+      tags:
+      - TenantConsent
+      operationId: PlaceOS::Api::TenantConsent_index
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: deprecated, the starting offset of the result set. Used to implement
+          pagination
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        schema:
+          type: string
+          nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_url__String_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/admin_consent/callback:
+    get:
+      tags:
+      - TenantConsent
+      operationId: PlaceOS::Api::TenantConsent_azure_admin_consent_callback
+      parameters:
+      - name: tenant
+        in: query
+        description: Azure AD tenant identifier
+        example: abc123
+        schema:
+          type: string
+          nullable: true
+      - name: admin_consent
+        in: query
+        description: Indicates if admin consent was granted
+        example: "True"
+        schema:
+          type: boolean
+          nullable: true
+      - name: state
+        in: query
+        description: Custom state (sent in state param)
+        example: uuid-1234
+        schema:
+          type: string
+          nullable: true
+      - name: error
+        in: query
+        description: Error code if consent failed
+        example: access_denied
+        schema:
+          type: string
+          nullable: true
+      - name: error_description
+        in: query
+        description: Description of the error
+        example: The admin denied the request
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/triggers:
     get:
       summary: returns the list of available triggers
@@ -17971,6 +18148,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads/{id}/download:
+    get:
+      summary: proxy the data from the remote server
+      description: 'proxy the data from the remote server
+
+
+        this should not be used typically, it''s only useful for dumb devices and
+        firewall rules'
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads_download_proxy_file_contents
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: "null"
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/uploads/{id}/edit:
     get:
       summary: obtain a signed request for each chunk of the file being uploaded.
@@ -18357,13 +18604,10 @@ paths:
   /api/engine/v2/users/resource_token:
     post:
       summary: Obtain a token to the current users SSO resources
-      description: 'Obtain a token to the current users SSO resources
-
-        this token is used for delegated access to things like MS Graph API or Google
-        API in the context of the user
-
-        we only make this token available to the current user (admin users don''t
-        have access)'
+      description: "Obtain a token to the current users SSO resources\r\nthis token
+        is used for delegated access to things like MS Graph API or Google API in
+        the context of the user\r\nwe only make this token available to the current
+        user (admin users don't have access)"
       tags:
       - Users
       operationId: PlaceOS::Api::Users_resource_token
@@ -18428,9 +18672,8 @@ paths:
   /api/engine/v2/users/{id}/resource_token:
     post:
       summary: Obtain a token to the specified users SSO resources
-      description: 'Obtain a token to the specified users SSO resources
-
-        requires the PlaceOS ''users'' scope to be specified explicity for access'
+      description: "Obtain a token to the specified users SSO resources\r\nrequires
+        the PlaceOS 'users' scope to be specified explicity for access"
       tags:
       - Users
       operationId: PlaceOS::Api::Users_user_resource_token
@@ -18501,9 +18744,8 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
       summary: removes the saved resource token of a user
-      description: 'removes the saved resource token of a user
-
-        a new one can be obtained via SSO authentication'
+      description: "removes the saved resource token of a user\r\na new one can be
+        obtained via SSO authentication"
       tags:
       - Users
       operationId: PlaceOS::Api::Users_delete_resource_token
@@ -19279,11 +19521,8 @@ paths:
   /api/engine/v2/users/metadata/search:
     get:
       summary: Search User metadata with provided JSON Path query.
-      description: 'Search User metadata with provided JSON Path query.
-
-        query need to follow JSONPath query expression as described in
-
-        https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html'
+      description: "Search User metadata with provided JSON Path query.\r\nquery need
+        to follow JSONPath query expression as described in\r\nhttps://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html"
       tags:
       - Users
       operationId: PlaceOS::Api::Users_search
@@ -19444,11 +19683,9 @@ paths:
   /api/engine/v2/webrtc/guest_entry/{system_id}:
     post:
       summary: this route provides guest access to an anonymous chat room
-      description: 'this route provides guest access to an anonymous chat room
-
-        the guest participant details will be forwarded to any listening systems
-
-        additional fields provided as part of the guest post will also be forwarded'
+      description: "this route provides guest access to an anonymous chat room\r\nthe
+        guest participant details will be forwarded to any listening systems\r\nadditional
+        fields provided as part of the guest post will also be forwarded"
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_guest_entry
@@ -19522,9 +19759,8 @@ paths:
   /api/engine/v2/webrtc/guest/exit:
     post:
       summary: Guest users should call this route when ending a call gracefully
-      description: 'Guest users should call this route when ending a call gracefully
-
-        it will remove the authentication token and close any open websockets'
+      description: "Guest users should call this route when ending a call gracefully\r\nit
+        will remove the authentication token and close any open websockets"
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_guest_exit
@@ -19585,11 +19821,8 @@ paths:
   /api/engine/v2/webrtc/kick/{user_id}/{session_id}:
     post:
       summary: Call ended for the user
-      description: 'Call ended for the user
-
-        similar to guest exit without the token expiration
-
-        other members of the call will stop communicating with them'
+      description: "Call ended for the user\r\nsimilar to guest exit without the token
+        expiration\r\nother members of the call will stop communicating with them"
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_kick_user
@@ -19737,9 +19970,8 @@ paths:
   /api/engine/v2/webrtc/transfer/{user_id}/{session_id}:
     post:
       summary: for authorised users to move people from one chat to another
-      description: 'for authorised users to move people from one chat to another
-
-        the body can be used to pass any custom connection details'
+      description: "for authorised users to move people from one chat to another\r\nthe
+        body can be used to pass any custom connection details"
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_transfer_guest
@@ -19822,9 +20054,8 @@ paths:
   /api/engine/v2/webrtc/room/{system_id}:
     get:
       summary: this route provides the details of a public chat room
-      description: 'this route provides the details of a public chat room
-
-        it takes either the system `id` or `code` for a more friendly lookup'
+      description: "this route provides the details of a public chat room\r\nit takes
+        either the system `id` or `code` for a more friendly lookup"
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_public_room
@@ -26248,6 +26479,13 @@ components:
         exec_enabled:
           type: boolean
           nullable: true
+    NamedTuple_url__String_:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+      - url
     PlaceOS__Model__Trigger:
       type: object
       properties:
@@ -28848,7 +29086,7 @@ components:
           nullable: true
       required:
       - error
-      description: Provides details on available data formats
+      description: "Provides details on available data formats\r"
     PlaceOS__Api__Application__ParameterError:
       type: object
       properties:
@@ -28862,4 +29100,4 @@ components:
           nullable: true
       required:
       - error
-      description: Provides details on which parameter is missing or invalid
+      description: "Provides details on which parameter is missing or invalid\r"

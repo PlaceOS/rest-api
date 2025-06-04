@@ -173,12 +173,7 @@ module PlaceOS::Api
       end
     end
 
-    # obtain a temporary link to a private resource
-    @[AC::Route::GET("/:id/url")]
-    def get_link(
-      @[AC::Param::Info(description: "Link expiry period in minutes.", example: "60")]
-      expiry : Int32 = TEMP_LINK_DEFAULT_MINUTES,
-    )
+    protected def generate_temp_url(expiry : Int32 = TEMP_LINK_DEFAULT_MINUTES)
       max_expiry = TEMP_LINK_MAX_MINUTES
       expiry = expiry > max_expiry ? max_expiry : expiry
       unless storage = current_upload.storage
@@ -194,10 +189,43 @@ module PlaceOS::Api
       end
 
       us = UploadSigner.signer(UploadSigner::StorageType.from_value(storage.storage_type.value), storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+      us.get_object(storage.bucket_name, current_upload.object_key, expiry * 60)
+    end
 
-      object_url = us.get_object(storage.bucket_name, current_upload.object_key, expiry * 60)
-
+    # obtain a temporary link to a private resource
+    @[AC::Route::GET("/:id/url")]
+    def get_link(
+      @[AC::Param::Info(description: "Link expiry period in minutes.", example: "60")]
+      expiry : Int32 = TEMP_LINK_DEFAULT_MINUTES,
+    )
+      object_url = generate_temp_url(expiry)
       redirect_to object_url, status: :see_other
+    end
+
+    # proxy the data from the remote server
+    #
+    # this should not be used typically, it's only useful for dumb devices and firewall rules
+    @[AC::Route::GET("/:id/download")]
+    def download_proxy_file_contents
+      object_url = generate_temp_url
+      @__render_called__ = true
+
+      HTTP::Client.get(object_url) do |upstream_response|
+        # Set the response status code
+        response.status_code = upstream_response.status_code
+
+        # Copy headers from the upstream response, excluding 'Transfer-Encoding'
+        upstream_response.headers.each do |key, value|
+          response.headers[key] = value unless key.downcase == "transfer-encoding"
+        end
+
+        # Stream the response body directly to the client
+        if body_io = upstream_response.body_io?
+          IO.copy(body_io, response)
+        else
+          response.print upstream_response.body
+        end
+      end
     end
 
     # obtain a signed request for each chunk of the file being uploaded.
