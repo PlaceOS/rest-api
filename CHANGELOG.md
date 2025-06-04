@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **uploads**: add proxy download function
 - PPT-2000 Add Azure 1-click integration ([#400](https://github.com/PlaceOS/rest-api/pull/400))
 - add cluster rebalance and module node details ([#404](https://github.com/PlaceOS/rest-api/pull/404))
 - PPT-2031 add endpoint to return unique zone tags ([#403](https://github.com/PlaceOS/rest-api/pull/403))
