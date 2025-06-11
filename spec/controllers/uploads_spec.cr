@@ -43,6 +43,62 @@ module PlaceOS::Api
       uploads.size.should eq(2)
     end
 
+    it "should support tag filtering on list of uploads" do
+      s = Model::Generator.storage.save!
+
+      Model::Generator.upload(file_name: "some_file", storage_id: s.id).save!
+      Model::Generator.upload(file_name: "some_file2", storage_id: s.id).save!
+      tagged = Model::Generator.upload(file_name: "my_file", storage_id: s.id)
+      tagged.tags = ["staff", "email1@domain.com"]
+      tagged.save!
+      tagged = Model::Generator.upload(file_name: "my_file2", storage_id: s.id)
+      tagged.tags = ["staff", "email2@domain.com"]
+      tagged.save!
+
+      params = HTTP::Params.encode({
+        "tags" => "staff",
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.success?.should be_true
+      result.headers["X-Total-Count"].should eq "2"
+      result.headers["Content-Range"].should eq "items 0-1/2"
+      result.headers["Link"]?.should be_nil
+      uploads = Array(Model::Upload).from_json(result.body)
+      uploads.size.should eq(2)
+
+      params = HTTP::Params.encode({
+        "tags" => "staff,email1@domain.com",
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.success?.should be_true
+      result.headers["X-Total-Count"].should eq "1"
+      result.headers["Content-Range"].should eq "items 0-0/1"
+      result.headers["Link"]?.should be_nil
+      uploads = Array(Model::Upload).from_json(result.body)
+      uploads.size.should eq(1)
+
+      params = HTTP::Params.encode({
+        "file_search" => "my_file",
+        "tags"        => "staff",
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.success?.should be_true
+      result.headers["X-Total-Count"].should eq "2"
+      result.headers["Content-Range"].should eq "items 0-1/2"
+      result.headers["Link"]?.should be_nil
+      uploads = Array(Model::Upload).from_json(result.body)
+      uploads.size.should eq(2)
+    end
+
     it "new should return the Storage Provider" do
       Model::Generator.storage.save!
       params = HTTP::Params.encode({
