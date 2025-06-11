@@ -5244,8 +5244,9 @@ paths:
   /api/engine/v2/cluster/rebalance:
     post:
       summary: forces the core nodes to perform a cluster rebalance
-      description: "forces the core nodes to perform a cluster rebalance\r\ncan be
-        useful for debugging when monitoring the logs"
+      description: 'forces the core nodes to perform a cluster rebalance
+
+        can be useful for debugging when monitoring the logs'
       tags:
       - Cluster
       operationId: PlaceOS::Api::Cluster_rebalance
@@ -7834,8 +7835,10 @@ paths:
   /api/engine/v2/modules/{id}/exec/{method}:
     post:
       summary: Executes a command on a module
-      description: "Executes a command on a module\r\nThe `/systems/` route can be
-        used to introspect modules for the list of methods and argument requirements"
+      description: 'Executes a command on a module
+
+        The `/systems/` route can be used to introspect modules for the list of methods
+        and argument requirements'
       tags:
       - Modules
       operationId: PlaceOS::Api::Modules_execute
@@ -8127,8 +8130,9 @@ paths:
   /api/engine/v2/modules/{id}/load:
     post:
       summary: Loads the module if not already loaded
-      description: "Loads the module if not already loaded\r\nIf the module is already
-        running, it will be updated to latest settings."
+      description: 'Loads the module if not already loaded
+
+        If the module is already running, it will be updated to latest settings.'
       tags:
       - Modules
       operationId: PlaceOS::Api::Modules_load
@@ -9641,8 +9645,9 @@ paths:
   /api/engine/v2/systems/{sys_id}/functions/{module_slug}:
     get:
       summary: Lists functions available on the driver
-      description: "Lists functions available on the driver\r\nFilters higher privilege
-        functions."
+      description: 'Lists functions available on the driver
+
+        Filters higher privilege functions.'
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems_functions
@@ -9720,8 +9725,9 @@ paths:
   /api/engine/v2/systems/control:
     get:
       summary: the websocket API endpoint
-      description: "the websocket API endpoint\r\nuse this to interact with systems
-        and modules efficiently"
+      description: 'the websocket API endpoint
+
+        use this to interact with systems and modules efficiently'
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems_control
@@ -10437,8 +10443,10 @@ paths:
   /api/engine/v2/metadata/{id}:
     get:
       summary: Fetch metadata for a model
-      description: "Fetch metadata for a model\r\n\r\nFilter for a specific metadata
-        by name via `name` param"
+      description: 'Fetch metadata for a model
+
+
+        Filter for a specific metadata by name via `name` param'
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_show
@@ -10515,8 +10523,9 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     put:
       summary: replace the metadata with this new metadata
-      description: "replace the metadata with this new metadata\r\nudpates are signalled
-        on the `placeos/metadata/changed` channel"
+      description: 'replace the metadata with this new metadata
+
+        udpates are signalled on the `placeos/metadata/changed` channel'
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_update
@@ -10664,8 +10673,9 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     patch:
       summary: update only the keys provided on the selected metadata
-      description: "update only the keys provided on the selected metadata\r\nudpates
-        are signalled on the `placeos/metadata/changed` channel"
+      description: 'update only the keys provided on the selected metadata
+
+        udpates are signalled on the `placeos/metadata/changed` channel'
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_merge
@@ -10742,9 +10752,12 @@ paths:
   /api/engine/v2/metadata/{id}/children:
     get:
       summary: Fetch metadata for Zone children
-      description: "Fetch metadata for Zone children\r\n\r\nFilter for a specific
-        metadata by name via `name` param.\r\nIncludes the parent metadata by default
-        via `include_parent` param."
+      description: 'Fetch metadata for Zone children
+
+
+        Filter for a specific metadata by name via `name` param.
+
+        Includes the parent metadata by default via `include_parent` param.'
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_children_metadata
@@ -10920,8 +10933,9 @@ paths:
   /api/engine/v2/mqtt/user:
     post:
       summary: 'For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode'
-      description: "For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode\r\njwt_response_mode:
-        status, jwt_params_mode: form"
+      description: 'For MQTT JWT access: https://github.com/iegomez/mosquitto-go-auth#remote-mode
+
+        jwt_response_mode: status, jwt_params_mode: form'
       tags:
       - MQTT
       operationId: PlaceOS::Api::MQTT_mqtt_user
@@ -10983,8 +10997,10 @@ paths:
     post:
       summary: 'Sends a form with the following params: topic, clientid, acc (1: read,
         2: write, 3: readwrite, 4: subscribe)'
-      description: "Sends a form with the following params: topic, clientid, acc (1:
-        read, 2: write, 3: readwrite, 4: subscribe)\r\nexample payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A"
+      description: 'Sends a form with the following params: topic, clientid, acc (1:
+        read, 2: write, 3: readwrite, 4: subscribe)
+
+        example payload: acc=4&clientid=clientId-NwsUNfV30&topic=%2A'
       tags:
       - MQTT
       operationId: PlaceOS::Api::MQTT_mqtt_access
@@ -12170,8 +12186,10 @@ paths:
   /api/engine/v2/repositories/interfaces:
     get:
       summary: Determine loaded interfaces and their current commit
-      description: "Determine loaded interfaces and their current commit\r\n\r\nReturns
-        a hash of folder_name to commit"
+      description: 'Determine loaded interfaces and their current commit
+
+
+        Returns a hash of folder_name to commit'
       tags:
       - Repositories
       operationId: PlaceOS::Api::Repositories_loaded_interfaces
@@ -12400,8 +12418,9 @@ paths:
   /api/engine/v2/repositories/{id}/details:
     get:
       summary: Returns the metadata of the driver
-      description: "Returns the metadata of the driver\r\nFor payload information,
-        look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults"
+      description: 'Returns the metadata of the driver
+
+        For payload information, look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults'
       tags:
       - Repositories
       operationId: PlaceOS::Api::Repositories_details
@@ -13445,8 +13464,9 @@ paths:
   /api/engine/v2/signal:
     post:
       summary: Can be used in a similar manner to a webhook for drivers
-      description: "Can be used in a similar manner to a webhook for drivers\r\npushes
-        arbitrary data to channels in redis"
+      description: 'Can be used in a similar manner to a webhook for drivers
+
+        pushes arbitrary data to channels in redis'
       tags:
       - Root
       operationId: PlaceOS::Api::Root_signal
@@ -17839,6 +17859,15 @@ paths:
         schema:
           type: integer
           format: Int32
+      - name: tags
+        in: query
+        description: return uploads with particular tags
+        example: staff,email
+        schema:
+          type: array
+          items:
+            type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -18162,9 +18191,11 @@ paths:
       parameters:
       - name: id
         in: path
+        description: upload id of the upload
+        example: uploads-XXX
         required: true
         schema:
-          type: "null"
+          type: string
       responses:
         200:
           description: OK
@@ -18604,10 +18635,13 @@ paths:
   /api/engine/v2/users/resource_token:
     post:
       summary: Obtain a token to the current users SSO resources
-      description: "Obtain a token to the current users SSO resources\r\nthis token
-        is used for delegated access to things like MS Graph API or Google API in
-        the context of the user\r\nwe only make this token available to the current
-        user (admin users don't have access)"
+      description: 'Obtain a token to the current users SSO resources
+
+        this token is used for delegated access to things like MS Graph API or Google
+        API in the context of the user
+
+        we only make this token available to the current user (admin users don''t
+        have access)'
       tags:
       - Users
       operationId: PlaceOS::Api::Users_resource_token
@@ -18672,8 +18706,9 @@ paths:
   /api/engine/v2/users/{id}/resource_token:
     post:
       summary: Obtain a token to the specified users SSO resources
-      description: "Obtain a token to the specified users SSO resources\r\nrequires
-        the PlaceOS 'users' scope to be specified explicity for access"
+      description: 'Obtain a token to the specified users SSO resources
+
+        requires the PlaceOS ''users'' scope to be specified explicity for access'
       tags:
       - Users
       operationId: PlaceOS::Api::Users_user_resource_token
@@ -18744,8 +18779,9 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
       summary: removes the saved resource token of a user
-      description: "removes the saved resource token of a user\r\na new one can be
-        obtained via SSO authentication"
+      description: 'removes the saved resource token of a user
+
+        a new one can be obtained via SSO authentication'
       tags:
       - Users
       operationId: PlaceOS::Api::Users_delete_resource_token
@@ -19521,8 +19557,11 @@ paths:
   /api/engine/v2/users/metadata/search:
     get:
       summary: Search User metadata with provided JSON Path query.
-      description: "Search User metadata with provided JSON Path query.\r\nquery need
-        to follow JSONPath query expression as described in\r\nhttps://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html"
+      description: 'Search User metadata with provided JSON Path query.
+
+        query need to follow JSONPath query expression as described in
+
+        https://www.ietf.org/archive/id/draft-ietf-jsonpath-base-14.html'
       tags:
       - Users
       operationId: PlaceOS::Api::Users_search
@@ -19683,9 +19722,11 @@ paths:
   /api/engine/v2/webrtc/guest_entry/{system_id}:
     post:
       summary: this route provides guest access to an anonymous chat room
-      description: "this route provides guest access to an anonymous chat room\r\nthe
-        guest participant details will be forwarded to any listening systems\r\nadditional
-        fields provided as part of the guest post will also be forwarded"
+      description: 'this route provides guest access to an anonymous chat room
+
+        the guest participant details will be forwarded to any listening systems
+
+        additional fields provided as part of the guest post will also be forwarded'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_guest_entry
@@ -19759,8 +19800,9 @@ paths:
   /api/engine/v2/webrtc/guest/exit:
     post:
       summary: Guest users should call this route when ending a call gracefully
-      description: "Guest users should call this route when ending a call gracefully\r\nit
-        will remove the authentication token and close any open websockets"
+      description: 'Guest users should call this route when ending a call gracefully
+
+        it will remove the authentication token and close any open websockets'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_guest_exit
@@ -19821,8 +19863,11 @@ paths:
   /api/engine/v2/webrtc/kick/{user_id}/{session_id}:
     post:
       summary: Call ended for the user
-      description: "Call ended for the user\r\nsimilar to guest exit without the token
-        expiration\r\nother members of the call will stop communicating with them"
+      description: 'Call ended for the user
+
+        similar to guest exit without the token expiration
+
+        other members of the call will stop communicating with them'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_kick_user
@@ -19970,8 +20015,9 @@ paths:
   /api/engine/v2/webrtc/transfer/{user_id}/{session_id}:
     post:
       summary: for authorised users to move people from one chat to another
-      description: "for authorised users to move people from one chat to another\r\nthe
-        body can be used to pass any custom connection details"
+      description: 'for authorised users to move people from one chat to another
+
+        the body can be used to pass any custom connection details'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_transfer_guest
@@ -20054,8 +20100,9 @@ paths:
   /api/engine/v2/webrtc/room/{system_id}:
     get:
       summary: this route provides the details of a public chat room
-      description: "this route provides the details of a public chat room\r\nit takes
-        either the system `id` or `code` for a more friendly lookup"
+      description: 'this route provides the details of a public chat room
+
+        it takes either the system `id` or `code` for a more friendly lookup'
       tags:
       - WebRTC
       operationId: PlaceOS::Api::WebRTC_public_room
@@ -21182,6 +21229,9 @@ components:
             support:
               type: boolean
               nullable: true
+            locatable:
+              type: boolean
+              nullable: true
             login_count:
               type: integer
               format: Int64
@@ -21249,6 +21299,9 @@ components:
                 - blocks
               nullable: true
             authority_id:
+              type: string
+              nullable: true
+            photo_upload_id:
               type: string
               nullable: true
             admin_destroy_lock:
@@ -26393,6 +26446,9 @@ components:
         endpoint:
           type: string
           nullable: true
+        is_default:
+          type: boolean
+          nullable: true
         ext_filter:
           type: array
           items:
@@ -26780,6 +26836,11 @@ components:
         upload_complete:
           type: boolean
           nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
         storage_id:
           type: string
           nullable: true
@@ -26822,6 +26883,10 @@ components:
         expires:
           type: integer
           format: Int32
+        tags:
+          type: array
+          items:
+            type: string
       required:
       - file_name
       - file_size
@@ -26829,6 +26894,7 @@ components:
       - permissions
       - public
       - expires
+      - tags
     ? _NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____part_list__Array_Int32___part_data__Hash_String__JSON__Any___upload_id__String___Nil__residence__String____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__residence__String__
     : anyOf:
       - type: object
@@ -27075,6 +27141,8 @@ components:
           type: boolean
         support:
           type: boolean
+        locatable:
+          type: boolean
         login_count:
           type: integer
           format: Int64
@@ -27141,6 +27209,9 @@ components:
         authority_id:
           type: string
           nullable: true
+        photo_upload_id:
+          type: string
+          nullable: true
         id:
           type: string
           nullable: true
@@ -27152,6 +27223,7 @@ components:
       - groups
       - sys_admin
       - support
+      - locatable
       - login_count
       - work_preferences
       - work_overrides
@@ -27233,6 +27305,8 @@ components:
             type: boolean
           support:
             type: boolean
+          locatable:
+            type: boolean
           login_count:
             type: integer
             format: Int64
@@ -27299,6 +27373,9 @@ components:
           authority_id:
             type: string
             nullable: true
+          photo_upload_id:
+            type: string
+            nullable: true
           id:
             type: string
             nullable: true
@@ -27310,6 +27387,7 @@ components:
         - groups
         - sys_admin
         - support
+        - locatable
         - login_count
         - work_preferences
         - work_overrides
@@ -27378,6 +27456,8 @@ components:
             type: boolean
           support:
             type: boolean
+          locatable:
+            type: boolean
           login_count:
             type: integer
             format: Int64
@@ -27442,6 +27522,9 @@ components:
               - day_of_week
               - blocks
           authority_id:
+            type: string
+            nullable: true
+          photo_upload_id:
             type: string
             nullable: true
           id:
@@ -27455,6 +27538,7 @@ components:
         - groups
         - sys_admin
         - support
+        - locatable
         - login_count
         - work_preferences
         - work_overrides
@@ -27507,6 +27591,8 @@ components:
             type: array
             items:
               type: string
+          locatable:
+            type: boolean
           login_count:
             type: integer
             format: Int64
@@ -27573,6 +27659,9 @@ components:
           authority_id:
             type: string
             nullable: true
+          photo_upload_id:
+            type: string
+            nullable: true
           id:
             type: string
             nullable: true
@@ -27582,6 +27671,7 @@ components:
         - email
         - deleted
         - groups
+        - locatable
         - login_count
         - work_preferences
         - work_overrides
@@ -27634,6 +27724,8 @@ components:
             type: array
             items:
               type: string
+          locatable:
+            type: boolean
           login_count:
             type: integer
             format: Int64
@@ -27700,6 +27792,9 @@ components:
           authority_id:
             type: string
             nullable: true
+          photo_upload_id:
+            type: string
+            nullable: true
           id:
             type: string
             nullable: true
@@ -27709,6 +27804,7 @@ components:
         - email
         - deleted
         - groups
+        - locatable
         - login_count
         - work_preferences
         - work_overrides
@@ -27808,6 +27904,9 @@ components:
         support:
           type: boolean
           nullable: true
+        locatable:
+          type: boolean
+          nullable: true
         login_count:
           type: integer
           format: Int64
@@ -27875,6 +27974,9 @@ components:
             - blocks
           nullable: true
         authority_id:
+          type: string
+          nullable: true
+        photo_upload_id:
           type: string
           nullable: true
         admin_destroy_lock:
@@ -29086,7 +29188,7 @@ components:
           nullable: true
       required:
       - error
-      description: "Provides details on available data formats\r"
+      description: Provides details on available data formats
     PlaceOS__Api__Application__ParameterError:
       type: object
       properties:
@@ -29100,4 +29202,4 @@ components:
           nullable: true
       required:
       - error
-      description: "Provides details on which parameter is missing or invalid\r"
+      description: Provides details on which parameter is missing or invalid

@@ -49,8 +49,11 @@ module PlaceOS::Api
     getter! signer : UploadSigner::Storage?
     getter! current_upload : ::PlaceOS::Model::Upload?
 
+    # allow A–Z a–z 0–9 and .!#$%&'*+-/=?^_`{|}~@
+    TAG_ALLOW_REGEX = /^[A-Za-z0-9.!#$%&'*+\-\/=?\^_`{|}~@]+$/
+
     # returns the list of uploads for current domain authority
-    @[AC::Route::GET("/")]
+    @[AC::Route::GET("/", converters: {tags: ConvertStringArray})]
     def index(
       @[AC::Param::Info(description: "filters results to returns ones where file_name contains this search string", example: "my-file")]
       file_search : String? = nil,
@@ -58,24 +61,66 @@ module PlaceOS::Api
       limit : Int32 = 100,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
       offset : Int32 = 0,
+      @[AC::Param::Info(description: "return uploads with particular tags", example: "staff,email")]
+      tags : Array(String)? = nil,
     ) : Array(::PlaceOS::Model::Upload)
-      table_name = ::PlaceOS::Model::Upload.table_name
-      s = ::PlaceOS::Model::Storage.storage_or_default(authority.id)
-      where = "WHERE u.storage_id = $1 "
-      where += file_search.nil? ? "" : "AND u.file_name LIKE '%#{file_search}%'"
+      # validate each incoming tag
+      if tags
+        tags.each do |tag|
+          unless tag.match(TAG_ALLOW_REGEX)
+            raise ArgumentError.new("Invalid tag (only letters, digits and .!#$%&'*+-/=?^_`{|}~@ allowed): #{tag}")
+          end
+        end
+      end
 
-      uploads = ::PlaceOS::Model::Upload.find_all_by_sql(<<-SQL, s.id.as(String), limit, offset)
+      # 1. Prepare table name and storage
+      table_name = ::PlaceOS::Model::Upload.table_name
+      storage = ::PlaceOS::Model::Storage.storage_or_default(authority.id)
+
+      # 2. Build conditions and bind params
+      conditions = ["u.storage_id = $1"]
+      params = [] of String | Int32
+      params << storage.id.as(String)
+
+      # 2a. Optional filename search (unchanged)
+      if file_search
+        conditions << "u.file_name LIKE '%#{file_search}%'"
+      end
+
+      # 2b. Optional tags filter: require array to contain all provided tags
+      if tags && !tags.empty?
+        idx = params.size + 1
+        conditions << "u.tags @> $#{idx}::text[]"
+        # safe Postgres array literal—no injections since tags contain only allowed chars
+        pg_array_literal = "{" + tags.join(",") + "}"
+        params << pg_array_literal
+      end
+
+      where_clause = "WHERE " + conditions.join(" AND ")
+
+      # 3. Compute placeholder numbers for LIMIT/OFFSET
+      limit_idx = params.size + 1
+      offset_idx = params.size + 2
+
+      # 4. Assemble full SQL (with CTE for total_count)
+      sql = <<-SQL
       WITH total AS (
         SELECT COUNT(u.*) AS total_count
         FROM "#{table_name}" u
-        #{where}
+        #{where_clause}
       )
         SELECT u.*, t.total_count FROM "#{table_name}" u
         CROSS JOIN total t
-        #{where}
-        LIMIT $2 OFFSET $3;
+        #{where_clause}
+        LIMIT $#{limit_idx} OFFSET $#{offset_idx};
       SQL
 
+      # 5. Append limit and offset params
+      params << limit
+      params << offset
+
+      # 6. Execute
+      uploads = ::PlaceOS::Model::Upload.find_all_by_sql(sql, args: params)
       return uploads if uploads.empty?
 
       total_rec = uploads.first.extra_attributes["total_count"].as(Int64)
@@ -107,7 +152,8 @@ module PlaceOS::Api
     end
 
     record UploadInfo, file_name : String, file_size : String, file_id : String, file_mime : String? = nil,
-      file_path : String? = nil, permissions : ::PlaceOS::Model::Upload::Permissions = ::PlaceOS::Model::Upload::Permissions::None, public : Bool = true, expires : Int32 = 5 do
+      file_path : String? = nil, permissions : ::PlaceOS::Model::Upload::Permissions = ::PlaceOS::Model::Upload::Permissions::None,
+      public : Bool = true, expires : Int32 = 5, tags : Array(String) = [] of String do
       include JSON::Serializable
 
       def expires
@@ -167,7 +213,7 @@ module PlaceOS::Api
         upload = ::PlaceOS::Model::Upload.create!(uploaded_by: user_id, uploaded_email: user_email, file_name: file_name, file_size: info.file_size, file_md5: info.file_id,
           file_path: info.file_path, storage_id: storage.id, permissions: info.permissions,
           object_key: object_key, object_options: object_options, public: info.public,
-          resumable: signer.multipart?)
+          resumable: signer.multipart?, tags: info.tags)
 
         {type: (signer.multipart? ? :chunked_upload : :direct_upload), signature: s3, upload_id: upload.id, residence: signer.name}
       end
