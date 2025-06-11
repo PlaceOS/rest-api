@@ -93,7 +93,6 @@ module PlaceOS::Api
     class ::PlaceOS::Model::Module
       @[JSON::Field(key: "driver")]
       property driver_details : Api::Modules::DriverDetails? = nil
-      property compiled : Bool? = nil
       @[JSON::Field(key: "control_system")]
       property control_system_details : Api::Modules::ControlSystemDetails? = nil
       property core_node : String? = nil
@@ -126,7 +125,6 @@ module PlaceOS::Api
 
           # Most human readable module data is contained in driver
           mod.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
-          mod.compiled = Api::Modules.driver_compiled?(mod, request_id)
           mod
         end.to_a
 

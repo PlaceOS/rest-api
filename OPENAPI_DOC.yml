@@ -22547,9 +22547,6 @@ components:
           required:
           - name
           nullable: true
-        compiled:
-          type: boolean
-          nullable: true
         control_system:
           type: object
           properties:
@@ -23427,9 +23424,6 @@ components:
                     nullable: true
                 required:
                 - name
-                nullable: true
-              compiled:
-                type: boolean
                 nullable: true
               control_system:
                 type: object
@@ -25861,9 +25855,6 @@ components:
                     nullable: true
                 required:
                 - name
-                nullable: true
-              compiled:
-                type: boolean
                 nullable: true
               control_system:
                 type: object
@@ -28560,9 +28551,6 @@ components:
                         nullable: true
                     required:
                     - name
-                    nullable: true
-                  compiled:
-                    type: boolean
                     nullable: true
                   control_system:
                     type: object
