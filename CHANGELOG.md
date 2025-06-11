@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **uploads**: add a tagging support ([#405](https://github.com/PlaceOS/rest-api/pull/405))
 - **uploads**: add proxy download function
 - PPT-2000 Add Azure 1-click integration ([#400](https://github.com/PlaceOS/rest-api/pull/400))
 - add cluster rebalance and module node details ([#404](https://github.com/PlaceOS/rest-api/pull/404))
