@@ -43,7 +43,7 @@ module PlaceOS::Api
       uploads.size.should eq(2)
     end
 
-    it "should support tag filtering on list of uploads", focus: true do
+    it "should support tag filtering on list of uploads" do
       s = Model::Generator.storage.save!
 
       Model::Generator.upload(file_name: "some_file", storage_id: s.id).save!
