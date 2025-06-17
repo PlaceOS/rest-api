@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **uploads**: add cache helpers ([#406](https://github.com/PlaceOS/rest-api/pull/406))
 - **uploads**: add a tagging support ([#405](https://github.com/PlaceOS/rest-api/pull/405))
 - **uploads**: add proxy download function
 - PPT-2000 Add Azure 1-click integration ([#400](https://github.com/PlaceOS/rest-api/pull/400))
