@@ -153,7 +153,8 @@ module PlaceOS::Api
 
     record UploadInfo, file_name : String, file_size : String, file_id : String, file_mime : String? = nil,
       file_path : String? = nil, permissions : ::PlaceOS::Model::Upload::Permissions = ::PlaceOS::Model::Upload::Permissions::None,
-      public : Bool = true, expires : Int32 = 5, tags : Array(String) = [] of String do
+      public : Bool = true, expires : Int32 = 5, tags : Array(String) = [] of String, cache_etag : String? = nil,
+      cache_modified : Time? = nil do
       include JSON::Serializable
 
       def expires
@@ -213,7 +214,8 @@ module PlaceOS::Api
         upload = ::PlaceOS::Model::Upload.create!(uploaded_by: user_id, uploaded_email: user_email, file_name: file_name, file_size: info.file_size, file_md5: info.file_id,
           file_path: info.file_path, storage_id: storage.id, permissions: info.permissions,
           object_key: object_key, object_options: object_options, public: info.public,
-          resumable: signer.multipart?, tags: info.tags)
+          resumable: signer.multipart?, tags: info.tags, cache_etag: info.cache_etag,
+          cache_modified: info.cache_modified)
 
         {type: (signer.multipart? ? :chunked_upload : :direct_upload), signature: s3, upload_id: upload.id, residence: signer.name}
       end

@@ -1,7 +1,4 @@
-version: "3.7"
-
 # YAML Anchors
-
 x-deployment-env: &deployment-env
   ENV: ${ENV:-development}
   SG_ENV: ${SG_ENV:-development}

@@ -151,10 +151,11 @@ module PlaceOS::Api
     it "post should return the pre-signed signature" do
       Model::Generator.storage.save!
       params = {
-        "file_name" => "some_file_name.jpg",
-        "file_size" => "500",
-        "file_id"   => "some_file_md5_hash",
-        "file_mime" => "image/jpeg",
+        "file_name"  => "some_file_name.jpg",
+        "file_size"  => "500",
+        "file_id"    => "some_file_md5_hash",
+        "file_mime"  => "image/jpeg",
+        "cache_etag" => "12345",
       }
 
       resp = client.post(Uploads.base_route,
@@ -167,7 +168,10 @@ module PlaceOS::Api
       sig = info["signature"].as_h
       sig["verb"].as_s.should eq("PUT")
       sig["url"].as_s.should_not be_nil
-      Model::Upload.find?(info["upload_id"].as_s).should_not be_nil
+      model = Model::Upload.find?(info["upload_id"].as_s)
+      model.should_not be_nil
+      raise "will never raise" unless model
+      model.cache_etag.should eq "12345"
     end
 
     it "post should return the pre-signed signature for multi-part" do
