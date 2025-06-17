@@ -26792,6 +26792,13 @@ components:
         file_md5:
           type: string
           nullable: true
+        cache_etag:
+          type: string
+          nullable: true
+        cache_modified:
+          type: string
+          format: date-time
+          nullable: true
         public:
           type: boolean
           nullable: true
@@ -26854,7 +26861,10 @@ components:
         file_name:
           type: string
         file_size:
-          type: string
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: string
         file_id:
           type: string
         file_mime:
@@ -26878,6 +26888,13 @@ components:
           type: array
           items:
             type: string
+        cache_etag:
+          type: string
+          nullable: true
+        cache_modified:
+          type: string
+          format: date-time
+          nullable: true
       required:
       - file_name
       - file_size

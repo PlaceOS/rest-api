@@ -151,7 +151,7 @@ module PlaceOS::Api
       {residence: signer.name}
     end
 
-    record UploadInfo, file_name : String, file_size : String, file_id : String, file_mime : String? = nil,
+    record UploadInfo, file_name : String, file_size : String | Int64, file_id : String, file_mime : String? = nil,
       file_path : String? = nil, permissions : ::PlaceOS::Model::Upload::Permissions = ::PlaceOS::Model::Upload::Permissions::None,
       public : Bool = true, expires : Int32 = 5, tags : Array(String) = [] of String, cache_etag : String? = nil,
       cache_modified : Time? = nil do
