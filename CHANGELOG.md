@@ -69,6 +69,7 @@
 
 ### Fix
 
+- **uploads**: file_size should support Int type
 - **modules**: remove compiled flag for performance
 - **uploads**: before_action required for download proxy
 - **systems**: prevent bypass of email downcase ([#402](https://github.com/PlaceOS/rest-api/pull/402))
