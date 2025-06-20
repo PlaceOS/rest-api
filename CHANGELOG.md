@@ -69,6 +69,7 @@
 
 ### Fix
 
+- **shard.lock**: revert changes to azblob
 - **uploads**: file_size should support Int type
 - **modules**: remove compiled flag for performance
 - **uploads**: before_action required for download proxy
