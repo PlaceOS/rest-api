@@ -190,7 +190,7 @@ module PlaceOS::Api
     @[AC::Route::Exception(PgORM::Error::RecordInvalid, status_code: HTTP::Status::UNPROCESSABLE_ENTITY)]
     def validation_failed(error) : CommonError
       Log.debug(exception: error) { error.message }
-      CommonError.new(error, Api.production?)
+      CommonError.new(error, !Api.production?)
     end
 
     # ========================
