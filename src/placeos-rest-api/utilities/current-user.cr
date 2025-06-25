@@ -13,7 +13,7 @@ module PlaceOS::Api
     # Throws Error::MissingBearer and JWT::Error.
 
     def authorize! : ::PlaceOS::Model::UserJWT
-      unless (token = @user_token).nil?
+      if token = @user_token
         return token
       end
 
@@ -37,11 +37,20 @@ module PlaceOS::Api
       raise Error::Unauthorized.new unless token
 
       begin
-        @user_token = user_token = ::PlaceOS::Model::UserJWT.decode(token)
+        user_token = ::PlaceOS::Model::UserJWT.decode(token)
+        if !user_token.guest_scope? && (user_model = ::PlaceOS::Model::User.find(user_token.id))
+          logged_out_at = user_model.logged_out_at
+          if logged_out_at && (logged_out_at >= user_token.iat)
+            raise JWT::Error.new("logged out")
+          end
+          @current_user = user_model
+        end
+
+        @user_token = user_token
       rescue e : JWT::Error
-        Log.warn(exception: e) { {message: "bearer malformed", action: "authorize!"} }
+        Log.warn(exception: e) { {message: "bearer invalid", action: "authorize!"} }
         # Request bearer was malformed
-        raise Error::Unauthorized.new "bearer malformed"
+        raise Error::Unauthorized.new(e.message || "bearer invalid")
       end
 
       ensure_matching_domain(user_token)
@@ -75,8 +84,17 @@ module PlaceOS::Api
       end
     end
 
+    @current_user : ::PlaceOS::Model::User? = nil
+
     # Obtains user referenced by user_token id
-    getter current_user : ::PlaceOS::Model::User { ::PlaceOS::Model::User.find!(user_token.id) }
+    def current_user : ::PlaceOS::Model::User
+      user = @current_user
+      return user if user
+
+      # authorize sets current user
+      @user_token || authorize!
+      @current_user.as(::PlaceOS::Model::User)
+    end
 
     # Obtains the authority for the request's host
     getter current_authority : ::PlaceOS::Model::Authority? { ::PlaceOS::Model::Authority.find_by_domain(request.hostname.as(String)) }
