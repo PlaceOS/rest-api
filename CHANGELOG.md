@@ -70,6 +70,7 @@
 
 ### Fix
 
+- **utilities/current-user**: when using an x-api-key
 - **application**: logging backtraces in production
 - **shard.lock**: revert changes to azblob
 - **uploads**: file_size should support Int type
