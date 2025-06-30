@@ -25,6 +25,7 @@ module PlaceOS::Api
           Log.context.set(api_key_id: api_key.id, api_key_name: api_key.name)
           ensure_matching_domain(user_token)
           @user_token = user_token
+          @current_user = ::PlaceOS::Model::User.find(user_token.id)
           return user_token
         rescue e
           Log.warn(exception: e) { {message: "bad or unknown X-API-Key", action: "authorize!"} }
