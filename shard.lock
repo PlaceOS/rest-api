@@ -95,7 +95,7 @@ shards:
 
   git-repository:
     git: https://github.com/place-labs/git-repository.git
-    version: 1.4.1
+    version: 1.5.0
 
   google:
     git: https://github.com/placeos/google.git
@@ -195,7 +195,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.19.0+git.commit.03beef3e5450c91f15009fda76578c0552c15c5a
+    version: 4.19.0+git.commit.5d73a729c0947a6ba2c1e4a220e33ab801bf0285
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -203,11 +203,11 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.11.1
+    version: 7.11.3
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.519999abe31318f67911e1f333d3cb471e87c512
+    version: 2.7.1+git.commit.876a800d844cd1409a0b6872ebcd42f4e74e27ba
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -215,7 +215,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.70.0
+    version: 9.71.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -263,7 +263,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.2+git.commit.ec2fe05026df3916bd6ba819a2fd8b6be946ecd6
+    version: 2.11.2+git.commit.3ebce0b0f4d40384e7010a2c221debd955268569
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
