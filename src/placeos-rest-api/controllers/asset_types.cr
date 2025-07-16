@@ -52,9 +52,9 @@ module PlaceOS::Api
       zone_id : String? = nil,
     ) : String
       conditions = [] of String
-      conditions << "at.brand == '#{brand}'" if brand
-      conditions << "at.model_number == '#{model_number}'" if model_number
-      conditions << "at.category_id == '#{category_id}'" if category_id
+      conditions << "at.brand = '#{brand}'" if brand
+      conditions << "at.model_number = '#{model_number}'" if model_number
+      conditions << "at.category_id = '#{category_id}'" if category_id
       conditions << "a.zone_id = '#{zone_id}'" if zone_id
 
       where = conditions.empty? ? "" : "AND #{conditions.join(" AND ")}"
