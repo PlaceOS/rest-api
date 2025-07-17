@@ -26,10 +26,10 @@ module PlaceOS::Api::Utils::Permissions
       case
       when (is_deny = deny.try(&.map!(&.downcase))) && !(is_deny & groups).empty?
         {false, Permission::Deny}
-      when (can_manage = manage.try(&.map!(&.downcase))) && !(can_manage & groups).empty?
-        {true, Permission::Manage}
       when (can_admin = admin.try(&.map!(&.downcase))) && !(can_admin & groups).empty?
         {true, Permission::Admin}
+      when (can_manage = manage.try(&.map!(&.downcase))) && !(can_manage & groups).empty?
+        {true, Permission::Manage}
       else
         {true, Permission::None}
       end
