@@ -148,7 +148,7 @@ module PlaceOS::Api
           path: "#{Signage.base_route}/playlists/#{playlist_id}/approve",
           headers: Spec::Authentication.headers,
         )
-        approved.success?.should be_true
+        approved.status_code.should eq 200
         revision.reload!
         revision.approved.should be_true
 
