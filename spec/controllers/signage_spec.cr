@@ -22,6 +22,7 @@ module PlaceOS::Api
         item2_id = item2.id.as(String)
 
         revision.items = [item1_id, item2_id]
+        revision.approved = true
         revision.save!
         playlist = revision.playlist.as(Model::Playlist)
         playlist_id = playlist.id.as(String)
@@ -67,6 +68,7 @@ module PlaceOS::Api
         item2_id = item2.id.as(String)
 
         revision.items = [item1_id, item2_id]
+        revision.approved = true
         revision.save!
         playlist = revision.playlist.as(Model::Playlist)
         playlist_id = playlist.id.as(String)
