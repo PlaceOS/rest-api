@@ -109,7 +109,7 @@ module PlaceOS::Api
         item2.play_count.should eq 2
       end
 
-      it "can approve digital signage playlists" do
+      it "can approve digital signage playlists", focus: true do
         revision = Model::Generator.revision
 
         item = Model::Generator.item
@@ -143,6 +143,9 @@ module PlaceOS::Api
         json["playlist_config"][playlist_id][0]["id"].should eq playlist_id
         json["playlist_config"][playlist_id][1].should eq [] of String
 
+        # skip forward a moment to avoid a 304
+        sleep 1
+
         # we should now approve the playlist
         approved = client.post(
           path: "#{Signage.base_route}/playlists/#{playlist_id}/approve",
@@ -155,6 +158,8 @@ module PlaceOS::Api
         revision.reload!
         revision.approved.should be_true
         revision.updated_at.should_not eq updated_at
+
+        system.playlists_last_updated.should eq revision.updated_at
 
         # the route should have modified
         headers["If-Modified-Since"] = result.headers["Last-Modified"]
