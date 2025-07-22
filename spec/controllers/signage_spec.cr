@@ -108,6 +108,65 @@ module PlaceOS::Api
         item2.reload!
         item2.play_count.should eq 2
       end
+
+      it "can approve digital signage playlists" do
+        revision = Model::Generator.revision
+
+        item = Model::Generator.item
+        item.save!
+        item1_id = item.id.as(String)
+        item2 = Model::Generator.item
+        item2.save!
+        item2_id = item2.id.as(String)
+
+        revision.items = [item1_id, item2_id]
+        revision.save!
+        revision.approved.should be_false
+        playlist = revision.playlist.as(Model::Playlist)
+        playlist_id = playlist.id.as(String)
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.playlists = [playlist_id]
+        system.save!
+        system_id = system.id.as(String)
+
+        headers = Spec::Authentication.headers
+
+        result = client.get(
+          path: "#{Signage.base_route}/#{system_id}",
+          headers: headers,
+        )
+
+        json = JSON.parse result.body
+        json["playlist_mappings"].should eq({system_id => [playlist_id]})
+        json["playlist_config"][playlist_id][0]["id"].should eq playlist_id
+        json["playlist_config"][playlist_id][1].should eq [] of String
+
+        # we should now approve the playlist
+        approved = client.post(
+          path: "#{Signage.base_route}/#{system_id}/media/approve",
+          headers: Spec::Authentication.headers,
+        )
+        approved.success?.should be_true
+        revision.reload!
+        revision.approved.should be_true
+
+        # the route should have modified
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        result = client.get(
+          path: "#{Signage.base_route}/#{system_id}",
+          headers: headers,
+        )
+        result.status_code.should_not eq 304
+
+        json = JSON.parse result.body
+        json["playlist_mappings"].should eq({system_id => [playlist_id]})
+        json["playlist_config"][playlist_id][0]["id"].should eq playlist_id
+        json["playlist_config"][playlist_id][1].should eq [item1_id, item2_id]
+        json["playlist_media"][0]["id"].should eq item1_id
+        json["playlist_media"][1]["id"].should eq item2_id
+      end
     end
   end
 end
