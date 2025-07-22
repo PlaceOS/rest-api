@@ -109,7 +109,7 @@ module PlaceOS::Api
         item2.play_count.should eq 2
       end
 
-      it "can approve digital signage playlists", focus: true do
+      it "can approve digital signage playlists" do
         revision = Model::Generator.revision
 
         item = Model::Generator.item
