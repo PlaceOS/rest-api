@@ -148,7 +148,7 @@ module PlaceOS::Api
 
         # we should now approve the playlist
         approved = client.post(
-          path: "#{Signage.base_route}/playlists/#{playlist_id}/approve",
+          path: "#{Signage.base_route}/playlists/#{playlist_id}/media/approve",
           headers: Spec::Authentication.headers,
         )
         approved.status_code.should eq 200

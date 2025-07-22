@@ -105,18 +105,6 @@ module PlaceOS::Api
       current_playlist.destroy
     end
 
-    # approve a playlist for publication on displays
-    @[AC::Route::POST("/:id/approve")]
-    def approve_media : Bool
-      ensure_access(admin: true)
-      revision = media_revisions(1).first?
-      raise Error::NotFound.new("no media in playlist") unless revision
-
-      revision.approver = current_user
-      raise Error::ModelValidation.new(revision.errors) unless revision.save
-      true
-    end
-
     # Playlist Revisions
     # ==================
 
@@ -141,6 +129,18 @@ module PlaceOS::Api
       new_revision.playlist_id = current_playlist.id
       raise Error::ModelValidation.new(new_revision.errors) unless new_revision.save
       new_revision
+    end
+
+    # approve a playlist for publication on displays
+    @[AC::Route::POST("/:id/media/approve")]
+    def approve_media : Bool
+      ensure_access(admin: true)
+      revision = media_revisions(1).first?
+      raise Error::NotFound.new("no media in playlist") unless revision
+
+      revision.approver = current_user
+      raise Error::ModelValidation.new(revision.errors) unless revision.save
+      true
     end
   end
 end
