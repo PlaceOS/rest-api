@@ -404,6 +404,7 @@ module PlaceOS::Api
     #
     protected def self.module_running_state(control_system : ::PlaceOS::Model::ControlSystem, running : Bool, single_occurrence : Bool = true)
       modules = single_occurrence ? control_system.modules_with_single_occurrence.map(&.id) : control_system.modules
+      return if modules.empty?
       ::PlaceOS::Model::Module.where(id: modules, ignore_startstop: false).update_all(running: running)
     end
 
