@@ -149,8 +149,12 @@ module PlaceOS::Api
           headers: Spec::Authentication.headers,
         )
         approved.status_code.should eq 200
+
+        # revision timestamp should have changed
+        updated_at = revision.updated_at
         revision.reload!
         revision.approved.should be_true
+        revision.updated_at.should_not eq updated_at
 
         # the route should have modified
         headers["If-Modified-Since"] = result.headers["Last-Modified"]
