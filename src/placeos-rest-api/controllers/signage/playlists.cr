@@ -39,15 +39,21 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def check_access_level
+      ensure_access
+    end
+
+    # find the org zone
+    getter org_zone_id : String do
+      zone_id = authority.config["org_zone"]?.try(&.as_s?)
+      raise Error::Forbidden.new unless zone_id
+      zone_id
+    end
+
+    def ensure_access(admin : Bool = false)
       return if user_support?
-
-      # find the org zone
-      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      raise Error::Forbidden.new unless org_zone_id
-
       access = check_access(current_user.groups, [org_zone_id])
-      return if access.can_manage?
-
+      granted = admin ? access.admin? : access.can_manage?
+      return if granted
       raise Error::Forbidden.new
     end
 
@@ -97,6 +103,18 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_playlist.destroy
+    end
+
+    # approve a playlist for publication on displays
+    @[AC::Route::POST("/:id/approve")]
+    def approve_media : Bool
+      ensure_access(admin: true)
+      revision = media_revisions(1).first?
+      raise Error::NotFound.new("no media in playlist") unless revision
+
+      revision.approver = current_user
+      raise Error::ModelValidation.new(revision.errors) unless revision.save
+      true
     end
 
     # Playlist Revisions

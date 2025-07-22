@@ -15750,6 +15750,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/playlists/{id}/approve:
+    post:
+      summary: approve a playlist for publication on displays
+      tags:
+      - Playlist
+      operationId: PlaceOS::Api::Playlist_approve_media
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bool'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media:
     get:
       summary: get the current list of media for the playlist
@@ -21240,6 +21309,10 @@ components:
               type: integer
               format: Int64
               nullable: true
+            logged_out_at:
+              type: string
+              format: date-time
+              nullable: true
             work_preferences:
               type: array
               items:
@@ -22484,6 +22557,13 @@ components:
         makebreak:
           type: boolean
           nullable: true
+        analytics_enabled:
+          type: boolean
+          nullable: true
+        analytics_interval_minutes:
+          type: integer
+          format: Int32
+          nullable: true
         uri:
           type: string
           nullable: true
@@ -23361,6 +23441,13 @@ components:
                 nullable: true
               makebreak:
                 type: boolean
+                nullable: true
+              analytics_enabled:
+                type: boolean
+                nullable: true
+              analytics_interval_minutes:
+                type: integer
+                format: Int32
                 nullable: true
               uri:
                 type: string
@@ -25327,6 +25414,19 @@ components:
         user_name:
           type: string
           nullable: true
+        approved:
+          type: boolean
+          nullable: true
+        approved_by_id:
+          type: string
+          nullable: true
+        approved_by_name:
+          type: string
+          nullable: true
+        approved_by_email:
+          type: string
+          format: email
+          nullable: true
         items:
           type: array
           items:
@@ -25792,6 +25892,13 @@ components:
                 nullable: true
               makebreak:
                 type: boolean
+                nullable: true
+              analytics_enabled:
+                type: boolean
+                nullable: true
+              analytics_interval_minutes:
+                type: integer
+                format: Int32
                 nullable: true
               uri:
                 type: string
@@ -27923,6 +28030,10 @@ components:
           type: integer
           format: Int64
           nullable: true
+        logged_out_at:
+          type: string
+          format: date-time
+          nullable: true
         work_preferences:
           type: array
           items:
@@ -28505,6 +28616,13 @@ components:
                     nullable: true
                   makebreak:
                     type: boolean
+                    nullable: true
+                  analytics_enabled:
+                    type: boolean
+                    nullable: true
+                  analytics_interval_minutes:
+                    type: integer
+                    format: Int32
                     nullable: true
                   uri:
                     type: string
