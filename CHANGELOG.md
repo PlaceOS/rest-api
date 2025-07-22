@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage/playlists**: add approvals ([#409](https://github.com/PlaceOS/rest-api/pull/409))
 - **utilities/current-user**: JWT invalidation
 - **uploads**: add cache helpers ([#406](https://github.com/PlaceOS/rest-api/pull/406))
 - **uploads**: add a tagging support ([#405](https://github.com/PlaceOS/rest-api/pull/405))
