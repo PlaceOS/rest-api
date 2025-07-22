@@ -39,7 +39,6 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def check_access_level
-      return if user_support?
       ensure_access
     end
 
@@ -51,6 +50,7 @@ module PlaceOS::Api
     end
 
     def ensure_access(admin : Bool = false)
+      return if user_support?
       access = check_access(current_user.groups, [org_zone_id])
       granted = admin ? access.admin? : access.can_manage?
       return if granted
