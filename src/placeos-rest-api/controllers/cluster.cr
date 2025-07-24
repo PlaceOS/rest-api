@@ -49,15 +49,29 @@ module PlaceOS::Api
         # ]
         Promise.all(promises).get.compact
       else
-        # [ { "uri": <uri>, "id": <id> }, ... ]
-        details.map do |id, uri|
-          NodeStatus.new(
-            id: id,
-            uri: uri,
-            load: nil.as(PlaceOS::Core::Client::Load?),
-            status: nil.as(PlaceOS::Core::Client::CoreStatus?),
-          )
+        # # [ { "uri": <uri>, "id": <id> }, ... ]
+        # details.map do |id, uri|
+        #   NodeStatus.new(
+        #     id: id,
+        #     uri: uri,
+        #     load: nil.as(PlaceOS::Core::Client::Load?),
+        #     status: nil.as(PlaceOS::Core::Client::CoreStatus?),
+        #   )
+        # end
+
+        promises = details.map do |core_id, uri|
+          Promise.defer {
+            Cluster.node_load(core_id, uri, request_id)
+          }.catch { |error|
+            Log.error(exception: error) { {
+              message:  "failure to request a core node's status",
+              core_uri: uri.to_s,
+              core_id:  core_id,
+            } }
+            nil
+          }
         end
+        Promise.all(promises).get.compact
       end
     end
 
@@ -78,6 +92,21 @@ module PlaceOS::Api
           load: client.core_load,
           # Get the cluster details (number of drivers running, errors etc)
           status: client.core_status,
+        )
+      end
+    rescue e
+      Log.warn(exception: e) { {message: "failed to request core status", uri: uri.to_s, core_id: core_id} }
+      nil
+    end
+
+    def self.node_load(core_id : String, uri : URI, request_id : String) : NodeStatus?
+      Core::Client.client(uri, request_id) do |client|
+        NodeStatus.new(
+          id: core_id,
+          uri: uri,
+          # Get the cluster load
+          load: client.core_load,
+          status: nil
         )
       end
     rescue e
