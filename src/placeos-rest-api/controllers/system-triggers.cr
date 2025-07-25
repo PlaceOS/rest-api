@@ -101,7 +101,7 @@ module PlaceOS::Api
       render_system_trigger(current_sys_trig, complete: complete)
     end
 
-    record UpdateParams, enabled : Bool?, important : Bool?, exec_enabled : Bool? do
+    record UpdateParams, enabled : Bool?, important : Bool?, exec_enabled : Bool?, playlists : Array(String)? do
       include JSON::Serializable
     end
 
@@ -113,6 +113,14 @@ module PlaceOS::Api
       current.enabled = args.enabled.as(Bool) unless args.enabled.nil?
       current.important = args.important.as(Bool) unless args.important.nil?
       current.exec_enabled = args.exec_enabled.as(Bool) unless args.exec_enabled.nil?
+      # validate the playlist ids
+      if playlists = args.playlists
+        if playlists.empty?
+          current.playlists = playlists
+        else
+          current.playlists = ::PlaceOS::Model::Playlist.find_all(playlists).map(&.id.as(String))
+        end
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -125,6 +133,9 @@ module PlaceOS::Api
       sys_id : String,
     ) : ::PlaceOS::Model::TriggerInstance
       trig_inst.control_system_id = sys_id
+      if (playlists = trig_inst.playlists) && !playlists.empty?
+        trig_inst.playlists = ::PlaceOS::Model::Playlist.find_all(playlists).map(&.id.as(String))
+      end
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save
       trig_inst
     end
