@@ -71,6 +71,7 @@
 
 ### Fix
 
+- **signage/triggers**: playlist application
 - **utilities/permissions**: should select highest permisson first
 - **utilities/current-user**: when using an x-api-key
 - **application**: logging backtraces in production
