@@ -18318,6 +18318,83 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/uploads/{id}/download/{api_key}/{file_name}:
+    get:
+      summary: a traditional looking route for downloading files
+      tags:
+      - Uploads
+      operationId: PlaceOS::Api::Uploads_download_simple_route
+      parameters:
+      - name: id
+        in: path
+        description: upload id of the upload
+        example: uploads-XXX
+        required: true
+        schema:
+          type: string
+      - name: api_key
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: file_name
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/uploads/{id}/edit:
     get:
       summary: obtain a signed request for each chunk of the file being uploaded.
@@ -22557,13 +22634,6 @@ components:
         makebreak:
           type: boolean
           nullable: true
-        analytics_enabled:
-          type: boolean
-          nullable: true
-        analytics_interval_minutes:
-          type: integer
-          format: Int32
-          nullable: true
         uri:
           type: string
           nullable: true
@@ -23441,13 +23511,6 @@ components:
                 nullable: true
               makebreak:
                 type: boolean
-                nullable: true
-              analytics_enabled:
-                type: boolean
-                nullable: true
-              analytics_interval_minutes:
-                type: integer
-                format: Int32
                 nullable: true
               uri:
                 type: string
@@ -25892,13 +25955,6 @@ components:
                 nullable: true
               makebreak:
                 type: boolean
-                nullable: true
-              analytics_enabled:
-                type: boolean
-                nullable: true
-              analytics_interval_minutes:
-                type: integer
-                format: Int32
                 nullable: true
               uri:
                 type: string
@@ -28621,13 +28677,6 @@ components:
                     nullable: true
                   makebreak:
                     type: boolean
-                    nullable: true
-                  analytics_enabled:
-                    type: boolean
-                    nullable: true
-                  analytics_interval_minutes:
-                    type: integer
-                    format: Int32
                     nullable: true
                   uri:
                     type: string

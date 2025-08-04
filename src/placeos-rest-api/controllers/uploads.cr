@@ -17,7 +17,7 @@ module PlaceOS::Api
       end
     end
 
-    @[AC::Route::Filter(:before_action, only: [:get_link, :download_proxy_file_contents, :edit, :update, :finished, :destroy])]
+    @[AC::Route::Filter(:before_action, only: [:get_link, :download_proxy_file_contents, :download_simple_route, :edit, :update, :finished, :destroy])]
     def get_upload(
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
       id : String,
@@ -274,6 +274,21 @@ module PlaceOS::Api
           response.print upstream_response.body
         end
       end
+    end
+
+    # skip authentication for the lookup
+    skip_action :authorize!, only: :download_simple_route
+    skip_action :set_user_id, only: :download_simple_route
+
+    # a traditional looking route for downloading files
+    @[AC::Route::GET("/:id/download/:api_key/*:file_name")]
+    def download_simple_route(api_key : String, file_name : String)
+      # check api key
+      request.headers["X-API-Key"] = api_key
+      authorize!
+
+      response.headers["Content-Disposition"] = %(attachment; filename="#{file_name}")
+      download_proxy_file_contents
     end
 
     # obtain a signed request for each chunk of the file being uploaded.
