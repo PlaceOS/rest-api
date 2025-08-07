@@ -72,6 +72,7 @@
 
 ### Fix
 
+- **asset_types**: [PPT-1631] use single = in sql ([#408](https://github.com/PlaceOS/rest-api/pull/408))
 - **signage/triggers**: playlist application
 - **utilities/permissions**: should select highest permisson first
 - **utilities/current-user**: when using an x-api-key
