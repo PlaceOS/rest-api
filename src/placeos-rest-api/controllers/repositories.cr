@@ -125,6 +125,18 @@ module PlaceOS::Api
       end
     end
 
+    # lists the folders tree in a repository
+    @[AC::Route::GET("/:id/folders")]
+    def folders(
+      @[AC::Param::Info(description: "include dots folders, default to false", example: "true")]
+      include_dots : Bool = false,
+    ) : Array(String)
+      FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
+        password = current_repo.decrypt_password if current_repo.password.presence
+        frontends_client.folders(current_repo.uri, current_repo.branch, current_repo.username, password, include_dots)
+      end
+    end
+
     # Returns the commits for a repository or file
     @[AC::Route::GET("/:id/commits")]
     def commits(
