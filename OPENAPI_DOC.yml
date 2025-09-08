@@ -10757,7 +10757,9 @@ paths:
 
         Filter for a specific metadata by name via `name` param.
 
-        Includes the parent metadata by default via `include_parent` param.'
+        Includes the parent metadata by default via `include_parent` param.
+        
+        Filter zones by tags via `tags` param.'
       tags:
       - Metadata
       operationId: PlaceOS::Api::Metadata_children_metadata
@@ -10781,6 +10783,14 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: tags
+        in: query
+        description: return zones with particular tags
+        example: building,level
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         200:
           description: OK
