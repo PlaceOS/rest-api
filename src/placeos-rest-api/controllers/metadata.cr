@@ -60,7 +60,8 @@ module PlaceOS::Api
     #
     # Filter for a specific metadata by name via `name` param.
     # Includes the parent metadata by default via `include_parent` param.
-    @[AC::Route::GET("/:id/children")]
+    # Filter zones by tags via `tags` param.
+    @[AC::Route::GET("/:id/children", converters: {tags: ConvertStringArray})]
     def children_metadata(
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be returned")]
       parent_id : String,
@@ -68,6 +69,8 @@ module PlaceOS::Api
       include_parent : Bool = true,
       @[AC::Param::Info(description: "filter for a particular metadata key", example: "config")]
       name : String? = nil,
+      @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
+      tags : Array(String)? = nil,
     ) : Array(Children)
       # Guest JWTs include the control system id that they have access to
       if user_token.guest_scope?
@@ -76,8 +79,33 @@ module PlaceOS::Api
 
       Log.context.set(zone_id: parent_id)
       current_zone = ::PlaceOS::Model::Zone.find!(parent_id)
-      current_zone.children.all.compact_map do |zone|
-        Children.new(zone, name) if include_parent || zone.id != parent_id
+
+      # Get children zones with optional tag filtering
+      children_zones = if (filter_tags = tags) && !filter_tags.empty?
+                         # Start with all children zones
+                         zones = current_zone.children.to_a
+                         
+                         # Filter zones that contain any of the filter tags
+                         zones.select do |zone|
+                           zone_tags = zone.tags || Set(String).new
+                           filter_tags.any? { |tag| zone_tags.includes?(tag) }
+                         end
+                       else
+                         current_zone.children.all.to_a
+                       end
+
+      children_zones.compact_map do |zone|
+        next unless include_parent || zone.id != parent_id
+        
+        children_obj = Children.new(zone, name)
+        
+        # If name filter is provided and tags filter is also provided,
+        # only include zones that have metadata matching the name filter
+        if name && tags && !tags.empty?
+          next if children_obj.metadata.empty?
+        end
+        
+        children_obj
       end
     end
 
