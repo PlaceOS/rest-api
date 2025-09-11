@@ -187,7 +187,7 @@ shards:
 
   place_calendar:
     git: https://github.com/placeos/calendar.git
-    version: 4.26.0
+    version: 4.28.0
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -195,11 +195,11 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.19.0+git.commit.d62bb48c466089e1e6de6cc747d344d7bbd6cf91
+    version: 4.20.0+git.commit.5fa0d87d0e029a29249843b6d040bf1b56890d52
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
-    version: 1.1.0
+    version: 1.2.1
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
@@ -215,7 +215,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.73.0
+    version: 9.74.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
