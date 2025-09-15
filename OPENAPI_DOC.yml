@@ -18398,6 +18398,10 @@ paths:
   /api/engine/v2/uploads/{id}/download/{api_key}/{file_name}:
     get:
       summary: a traditional looking route for downloading files
+      description: 'a traditional looking route for downloading files
+
+
+        the API key route param can be Base64 encoded.'
       tags:
       - Uploads
       operationId: PlaceOS::Api::Uploads_download_simple_route

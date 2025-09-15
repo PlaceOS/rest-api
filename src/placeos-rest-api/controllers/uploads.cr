@@ -281,8 +281,13 @@ module PlaceOS::Api
     skip_action :set_user_id, only: :download_simple_route
 
     # a traditional looking route for downloading files
+    #
+    # the API key route param can be Base64 encoded.
     @[AC::Route::GET("/:id/download/:api_key/*:file_name")]
     def download_simple_route(api_key : String, file_name : String)
+      # decode the API key
+      api_key = Base64.decode_string(api_key).strip rescue api_key
+
       # check api key
       request.headers["X-API-Key"] = api_key
       authorize!
