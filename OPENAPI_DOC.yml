@@ -4464,6 +4464,151 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/build/monitor:
+    get:
+      tags:
+      - BuildMonitor
+      operationId: PlaceOS::Api::BuildMonitor_monitor
+      parameters:
+      - name: state
+        in: query
+        description: state of job to return. One of [pending,running,cancelled error,done].
+          Defaults to 'pending'
+        example: pending
+        schema:
+          type: string
+          enum:
+          - pending
+          - running
+          - cancelled
+          - error
+          - done
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_Array_PlaceOS__Api__BuildMonitor__TaskStatus____String_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/build/cancel/{job}:
+    delete:
+      tags:
+      - BuildMonitor
+      operationId: PlaceOS::Api::BuildMonitor_cancel
+      parameters:
+      - name: job
+        in: path
+        description: ID of previously submitted compilation job
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__BuildMonitor__CancelStatus'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/chatgpt:
     get:
       summary: list user chats
@@ -22116,6 +22261,55 @@ components:
         id:
           type: string
           nullable: true
+    _Array_PlaceOS__Api__BuildMonitor__TaskStatus____String_:
+      anyOf:
+      - type: array
+        items:
+          type: object
+          properties:
+            state:
+              type: string
+              enum:
+              - pending
+              - running
+              - cancelled
+              - error
+              - done
+            id:
+              type: string
+            message:
+              type: string
+            driver:
+              type: string
+            repo:
+              type: string
+            branch:
+              type: string
+            commit:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+          required:
+          - state
+          - id
+          - message
+          - driver
+          - repo
+          - branch
+          - commit
+          - timestamp
+      - type: string
+    PlaceOS__Api__BuildMonitor__CancelStatus:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+      required:
+      - status
+      - message
     PlaceOS__Model__Chat:
       type: object
       properties:
