@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **uploads**: simple route to support base64 encoded api-keys
 - [PPT-2172] Add endpoint to retrieve repo folder tree ([#411](https://github.com/PlaceOS/rest-api/pull/411))
 - **uploads**: add simple download route
 - **signage/playlists**: add approvals ([#409](https://github.com/PlaceOS/rest-api/pull/409))
