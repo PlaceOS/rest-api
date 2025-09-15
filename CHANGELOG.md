@@ -2,6 +2,7 @@
 
 ### Feat
 
+- [PPT-1758] Added build service monitor functionality ([#413](https://github.com/PlaceOS/rest-api/pull/413))
 - **uploads**: simple route to support base64 encoded api-keys
 - [PPT-2172] Add endpoint to retrieve repo folder tree ([#411](https://github.com/PlaceOS/rest-api/pull/411))
 - **uploads**: add simple download route
