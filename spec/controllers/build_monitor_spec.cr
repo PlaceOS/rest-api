@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe "BuildMonitor" do
-    describe "GET /", focus: true do
+    describe "GET /" do
       it "responds to monitor request" do
         path = "#{BuildMonitor.base_route}monitor"
         result = client.get(path, headers: Spec::Authentication.headers)
