@@ -18540,7 +18540,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
-  /api/engine/v2/uploads/{id}/download/{api_key}/{file_name}:
+  /api/engine/v2/uploads/{id}/download/{api_key}/{inline}/{file_name}:
     get:
       summary: a traditional looking route for downloading files
       description: 'a traditional looking route for downloading files
@@ -18563,9 +18563,13 @@ paths:
         required: true
         schema:
           type: string
+      - name: inline
+        in: path
+        required: true
+        schema:
+          type: boolean
       - name: file_name
         in: query
-        required: true
         schema:
           type: string
       responses:

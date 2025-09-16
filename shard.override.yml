@@ -9,8 +9,8 @@ dependencies:
     github: place-labs/CrystalEmail
     version: ~> 0.2
 
-  opentelemetry-sdk:
-    github: wyhaines/opentelemetry-sdk.cr
+  lucky_router:
+    github: luckyframework/lucky_router
     branch: main
 
   # For core client
