@@ -9,10 +9,6 @@ dependencies:
     github: place-labs/CrystalEmail
     version: ~> 0.2
 
-  lucky_router:
-    github: luckyframework/lucky_router
-    branch: main
-
   # For core client
   placeos-core-client:
     github: placeos/core-client
