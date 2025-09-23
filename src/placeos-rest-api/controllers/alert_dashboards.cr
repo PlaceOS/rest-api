@@ -80,7 +80,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/", body: :dashboard, status_code: HTTP::Status::CREATED)]
     def create(dashboard : ::PlaceOS::Model::AlertDashboard) : ::PlaceOS::Model::AlertDashboard
       # Set authority_id if not provided
-      if !dashboard.authority_id && !user_support?
+      if !user_support? || dashboard.authority_id.presence.nil?
         dashboard.authority_id = authority.id
       end
 
