@@ -1550,6 +1550,15 @@ paths:
       - AssetCategories
       operationId: PlaceOS::Api::AssetCategories_index
       parameters:
+      - name: hidden
+        in: query
+        description: Filter categories by hidden status. `true` returns only hidden
+          categories, `false` returns only non-hidden categories, and `nil` returns
+          all categories.
+        example: "true"
+        schema:
+          type: boolean
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -23073,6 +23082,9 @@ components:
         description:
           type: string
           nullable: true
+        hidden:
+          type: boolean
+          nullable: true
         parent_category_id:
           type: string
           nullable: true
@@ -23175,6 +23187,58 @@ components:
         barcode:
           type: string
           nullable: true
+        name:
+          type: string
+          nullable: true
+        client_ids:
+          type: object
+          nullable: true
+        map_id:
+          type: string
+          nullable: true
+        bookable:
+          type: boolean
+          nullable: true
+        accessible:
+          type: boolean
+          nullable: true
+        zones:
+          type: array
+          items:
+            type: string
+          nullable: true
+        place_groups:
+          type: array
+          items:
+            type: string
+          nullable: true
+        assigned_to:
+          type: string
+          nullable: true
+        assigned_name:
+          type: string
+          nullable: true
+        features:
+          type: array
+          items:
+            type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        security_system_groups:
+          type: array
+          items:
+            type: string
+          nullable: true
+        parent_id:
+          type: string
+          nullable: true
         asset_type_id:
           type: string
           nullable: true
@@ -23210,6 +23274,58 @@ components:
             type: object
             nullable: true
           barcode:
+            type: string
+            nullable: true
+          name:
+            type: string
+            nullable: true
+          client_ids:
+            type: object
+            nullable: true
+          map_id:
+            type: string
+            nullable: true
+          bookable:
+            type: boolean
+            nullable: true
+          accessible:
+            type: boolean
+            nullable: true
+          zones:
+            type: array
+            items:
+              type: string
+            nullable: true
+          place_groups:
+            type: array
+            items:
+              type: string
+            nullable: true
+          assigned_to:
+            type: string
+            nullable: true
+          assigned_name:
+            type: string
+            nullable: true
+          features:
+            type: array
+            items:
+              type: string
+            nullable: true
+          images:
+            type: array
+            items:
+              type: string
+            nullable: true
+          notes:
+            type: string
+            nullable: true
+          security_system_groups:
+            type: array
+            items:
+              type: string
+            nullable: true
+          parent_id:
             type: string
             nullable: true
           asset_type_id:
