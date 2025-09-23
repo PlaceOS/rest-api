@@ -2,6 +2,7 @@
 
 ### Feat
 
+- [PPT-2077] Added alert & dashboard controllers ([#414](https://github.com/PlaceOS/rest-api/pull/414))
 - [PPT-1758] Added build service monitor functionality ([#413](https://github.com/PlaceOS/rest-api/pull/413))
 - **uploads**: simple route to support base64 encoded api-keys
 - [PPT-2172] Add endpoint to retrieve repo folder tree ([#411](https://github.com/PlaceOS/rest-api/pull/411))
