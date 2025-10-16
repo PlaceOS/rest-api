@@ -1,4 +1,5 @@
 require "./application"
+require "git-repository"
 
 module PlaceOS::Api
   class Drivers < Application
@@ -7,10 +8,10 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index, :show, :readme]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :show]
+    before_action :check_admin, except: [:index, :show, :readme]
 
     ###############################################################################################
 
@@ -22,6 +23,11 @@ module PlaceOS::Api
     end
 
     getter! current_driver : ::PlaceOS::Model::Driver
+
+    getter! current_repo : ::PlaceOS::Model::Repository
+    # class_property repository_dir : String = File.expand_path("./repositories")
+
+
 
     # Response helpers
     ###############################################################################################
@@ -70,6 +76,41 @@ module PlaceOS::Api
     ) : ::PlaceOS::Model::Driver
       current_driver.compilation_status_details = Api::Drivers.compilation_status(current_driver, request_id) if include_compilation_status
       current_driver
+    end
+
+    # get the readme for a driver
+    @[AC::Route::GET("/:id/readme")]
+    def readme : String
+      # Get the repository for the current driver
+      if (repository = current_driver.repository).nil?
+        Log.error { {repository_id: current_driver.repository_id, message: "failed to load driver's repository"} }
+        raise "failed to load driver's repository"
+      end
+
+      # Construct the readme file path from the driver's file_name
+      # e.g., "drivers/place/auto_release.cr" -> "drivers/place/auto_release_readme.md"
+      driver_file_name = current_driver.file_name
+      readme_path = driver_file_name.chomp(".cr") + "_readme.md"
+
+      # Create GitRepository instance
+      repository_path = File.join(Repositories.repository_dir, repository.folder_name)
+      git_repo = GitRepository.new(repository_path)
+
+      # Check if the readme file exists using the driver's commit
+      files = git_repo.file_list(ref: current_driver.commit, path: readme_path)
+      file_exists = !files.empty?
+
+      if file_exists
+        # Use file_contents to fetch the readme file
+        begin
+          git_repo.file_contents(ref: current_driver.commit, path: readme_path)
+        rescue e
+          Log.error(exception: e) { {readme_path: readme_path, message: "failed to fetch readme file contents"} }
+          raise Error::NotFound.new("Failed to fetch README file contents: #{e.message}")
+        end
+      else
+        raise Error::NotFound.new("README file not found: #{readme_path}")
+      end
     end
 
     # udpate a drivers details
