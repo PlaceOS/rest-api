@@ -41,9 +41,19 @@ module PlaceOS::Api
 
     # list the asset categories
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::AssetCategory)
+    def index(
+      @[AC::Param::Info(description: "Filter categories by hidden status. `true` returns only hidden categories, `false` returns only non-hidden categories, and `nil` returns all categories.",
+        example: "true")]
+      hidden : Bool? = nil,
+    ) : Array(::PlaceOS::Model::AssetCategory)
       elastic = ::PlaceOS::Model::AssetCategory.elastic
       query = elastic.query(search_params)
+
+      if value = hidden
+        query.must({
+          "hidden" => [value],
+        })
+      end
       query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
     end

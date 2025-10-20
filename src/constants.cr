@@ -30,8 +30,8 @@ module PlaceOS::Api
   # Open AI
   OPENAI_API_KEY    = ENV["OPENAI_API_KEY"]?
   OPENAI_API_BASE   = ENV["OPENAI_API_BASE"]? # Set this to Azure URL only if Azure OpenAI is used
-  OPENAI_API_MODEL  = ENV["OPENAI_API_MODEL"]? || "gpt-4o"
-  OPENAI_MAX_TOKENS = ENV["OPENAI_MAX_TOKENS"]?.try(&.to_i) || 11264
+  OPENAI_API_MODEL  = ENV["OPENAI_API_MODEL"]? || "gpt-5-mini"
+  OPENAI_MAX_TOKENS = ENV["OPENAI_MAX_TOKENS"]?.try(&.to_i) || 400_000
 
   # Upload temporary links
   TEMP_LINK_MAX_MINUTES     = ENV["TEMP_LINK_MAX_MINUTES"]?.try(&.to_i) || 1440

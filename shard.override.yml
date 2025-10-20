@@ -9,10 +9,6 @@ dependencies:
     github: place-labs/CrystalEmail
     version: ~> 0.2
 
-  opentelemetry-sdk:
-    github: wyhaines/opentelemetry-sdk.cr
-    branch: main
-
   # For core client
   placeos-core-client:
     github: placeos/core-client
