@@ -73,6 +73,10 @@ shards:
     git: https://github.com/spider-gazelle/crystal-dtls.git
     version: 0.9.1
 
+  ed25519:
+    git: https://github.com/spider-gazelle/ed25519.git
+    version: 1.1.0
+
   email:
     git: https://github.com/arcage/crystal-email.git
     version: 0.7.1
@@ -95,7 +99,7 @@ shards:
 
   git-repository:
     git: https://github.com/place-labs/git-repository.git
-    version: 1.6.0
+    version: 1.7.0
 
   google:
     git: https://github.com/placeos/google.git
@@ -131,7 +135,7 @@ shards:
 
   jwt:
     git: https://github.com/crystal-community/jwt.git
-    version: 1.6.1
+    version: 1.7.1
 
   log_helper:
     git: https://github.com/spider-gazelle/log_helper.git
@@ -163,7 +167,7 @@ shards:
 
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
-    version: 2.4.4
+    version: 2.6.3
 
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
@@ -179,7 +183,7 @@ shards:
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
-    version: 2.0.4
+    version: 2.0.5
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -203,11 +207,11 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.11.6
+    version: 7.13.2
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.57f36cfb54f4ff1088ea9e76b000951ade401466
+    version: 2.7.1+git.commit.528a985032f6f7d184f3e87331d0b518f467a379
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -263,7 +267,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.2+git.commit.553cfa983718ca10a33864773bb1d11b55b7f9ad
+    version: 2.11.3+git.commit.073e390a5a7326658f30f03d73edee9d6f6e5ca6
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
