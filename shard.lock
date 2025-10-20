@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 7.6.0
+    version: 7.6.1
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -73,6 +73,10 @@ shards:
     git: https://github.com/spider-gazelle/crystal-dtls.git
     version: 0.9.1
 
+  ed25519:
+    git: https://github.com/spider-gazelle/ed25519.git
+    version: 1.1.0
+
   email:
     git: https://github.com/arcage/crystal-email.git
     version: 0.7.1
@@ -95,7 +99,7 @@ shards:
 
   git-repository:
     git: https://github.com/place-labs/git-repository.git
-    version: 1.5.0
+    version: 1.7.0
 
   google:
     git: https://github.com/placeos/google.git
@@ -131,7 +135,7 @@ shards:
 
   jwt:
     git: https://github.com/crystal-community/jwt.git
-    version: 1.6.1
+    version: 1.7.1
 
   log_helper:
     git: https://github.com/spider-gazelle/log_helper.git
@@ -143,7 +147,7 @@ shards:
 
   lucky_router:
     git: https://github.com/luckyframework/lucky_router.git
-    version: 0.6.0
+    version: 0.6.1
 
   murmur3:
     git: https://github.com/aca-labs/murmur3.git
@@ -163,7 +167,7 @@ shards:
 
   openssl_ext:
     git: https://github.com/spider-gazelle/openssl_ext.git
-    version: 2.4.4
+    version: 2.6.3
 
   pars: # Overridden
     git: https://github.com/spider-gazelle/pars.git
@@ -179,7 +183,7 @@ shards:
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
-    version: 2.0.3
+    version: 2.0.5
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -187,7 +191,7 @@ shards:
 
   place_calendar:
     git: https://github.com/placeos/calendar.git
-    version: 4.26.0
+    version: 4.28.0
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -195,19 +199,19 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.19.0+git.commit.d62bb48c466089e1e6de6cc747d344d7bbd6cf91
+    version: 4.20.1+git.commit.7bbcb3e5b11ac6dab9991e16c689c7594a4f2655
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
-    version: 1.1.0
+    version: 1.2.1
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.11.4
+    version: 7.13.2
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.a7609824cb43c8077d24a97801c6600fa1f6395c
+    version: 2.7.1+git.commit.528a985032f6f7d184f3e87331d0b518f467a379
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -215,7 +219,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.72.3
+    version: 9.76.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -263,7 +267,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.2+git.commit.6213b2f66d2ff9814cefbfdf9224d0e138505d21
+    version: 2.11.3+git.commit.073e390a5a7326658f30f03d73edee9d6f6e5ca6
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
