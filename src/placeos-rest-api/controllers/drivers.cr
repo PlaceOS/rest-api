@@ -25,9 +25,8 @@ module PlaceOS::Api
     getter! current_driver : ::PlaceOS::Model::Driver
 
     getter! current_repo : ::PlaceOS::Model::Repository
+
     # class_property repository_dir : String = File.expand_path("./repositories")
-
-
 
     # Response helpers
     ###############################################################################################
