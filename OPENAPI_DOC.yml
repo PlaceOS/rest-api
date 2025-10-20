@@ -6307,6 +6307,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/drivers/{id}/readme:
+    get:
+      summary: get the readme for a driver
+      tags:
+      - Drivers
+      operationId: PlaceOS::Api::Drivers_readme
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/String'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/drivers/{id}/recompile:
     post:
       summary: force recompile a driver, useful if libraries and supporting files
@@ -21639,6 +21708,9 @@ components:
         description:
           type: string
           nullable: true
+        hidden:
+          type: boolean
+          nullable: true
         parent_category_id:
           type: string
           nullable: true
@@ -21741,6 +21813,58 @@ components:
         barcode:
           type: string
           nullable: true
+        name:
+          type: string
+          nullable: true
+        client_ids:
+          type: object
+          nullable: true
+        map_id:
+          type: string
+          nullable: true
+        bookable:
+          type: boolean
+          nullable: true
+        accessible:
+          type: boolean
+          nullable: true
+        zones:
+          type: array
+          items:
+            type: string
+          nullable: true
+        place_groups:
+          type: array
+          items:
+            type: string
+          nullable: true
+        assigned_to:
+          type: string
+          nullable: true
+        assigned_name:
+          type: string
+          nullable: true
+        features:
+          type: array
+          items:
+            type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        security_system_groups:
+          type: array
+          items:
+            type: string
+          nullable: true
+        parent_id:
+          type: string
+          nullable: true
         asset_type_id:
           type: string
           nullable: true
@@ -21776,6 +21900,58 @@ components:
             type: object
             nullable: true
           barcode:
+            type: string
+            nullable: true
+          name:
+            type: string
+            nullable: true
+          client_ids:
+            type: object
+            nullable: true
+          map_id:
+            type: string
+            nullable: true
+          bookable:
+            type: boolean
+            nullable: true
+          accessible:
+            type: boolean
+            nullable: true
+          zones:
+            type: array
+            items:
+              type: string
+            nullable: true
+          place_groups:
+            type: array
+            items:
+              type: string
+            nullable: true
+          assigned_to:
+            type: string
+            nullable: true
+          assigned_name:
+            type: string
+            nullable: true
+          features:
+            type: array
+            items:
+              type: string
+            nullable: true
+          images:
+            type: array
+            items:
+              type: string
+            nullable: true
+          notes:
+            type: string
+            nullable: true
+          security_system_groups:
+            type: array
+            items:
+              type: string
+            nullable: true
+          parent_id:
             type: string
             nullable: true
           asset_type_id:
@@ -25155,6 +25331,9 @@ components:
           enum:
           - driver
           - interface
+          nullable: true
+        root_path:
+          type: string
           nullable: true
         has_runtime_error:
           type: boolean
