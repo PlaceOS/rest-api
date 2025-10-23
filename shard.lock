@@ -35,7 +35,7 @@ shards:
 
   bindata:
     git: https://github.com/spider-gazelle/bindata.git
-    version: 2.1.0
+    version: 2.1.1
 
   connect-proxy:
     git: https://github.com/spider-gazelle/connect-proxy.git
@@ -199,7 +199,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.20.1+git.commit.7bbcb3e5b11ac6dab9991e16c689c7594a4f2655
+    version: 4.20.1+git.commit.0fbb8c7b15c44a11f775b25a7bfd408ae47f1f75
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -207,7 +207,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.13.3
+    version: 7.14.0
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
