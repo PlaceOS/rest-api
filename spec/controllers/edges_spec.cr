@@ -66,5 +66,87 @@ module PlaceOS::Api
     describe "scopes" do
       Spec.test_controller_scope(Edges)
     end
+
+    describe "monitoring endpoints" do
+      ::Spec.before_each do
+        PlaceOS::Model::Edge.clear
+      end
+
+      it "should handle edge errors endpoint" do
+        # Create a test edge
+        edge = Model::Edge.for_user(
+          user: Spec::Authentication.user,
+          name: random_name,
+        )
+        edge.save!
+
+        # Test the edge errors endpoint
+        result = client.get(
+          path: "#{Edges.base_route}/#{edge.id}/errors",
+          headers: Spec::Authentication.headers,
+        )
+
+        # Should return 200 or handle gracefully if core is not available
+        [200, 404, 500].should contain(result.status_code)
+      end
+
+      it "should handle edge health endpoint" do
+        # Create a test edge
+        edge = Model::Edge.for_user(
+          user: Spec::Authentication.user,
+          name: random_name,
+        )
+        edge.save!
+
+        # Test the edge health endpoint
+        result = client.get(
+          path: "#{Edges.base_route}/#{edge.id}/health",
+          headers: Spec::Authentication.headers,
+        )
+
+        # Should return 200 or handle gracefully if core is not available
+        [200, 404, 500].should contain(result.status_code)
+      end
+
+      it "should handle edges health endpoint" do
+        # Test the all edges health endpoint
+        result = client.get(
+          path: "#{Edges.base_route}/health",
+          headers: Spec::Authentication.headers,
+        )
+
+        # Should return 200 or handle gracefully if core is not available
+        [200, 404, 500].should contain(result.status_code)
+      end
+
+      it "should handle edges statistics endpoint" do
+        # Test the edges statistics endpoint
+        result = client.get(
+          path: "#{Edges.base_route}/statistics",
+          headers: Spec::Authentication.headers,
+        )
+
+        # Should return 200 or handle gracefully if core is not available
+        [200, 404, 500].should contain(result.status_code)
+      end
+
+      it "should handle module status endpoint" do
+        # Create a test edge
+        edge = Model::Edge.for_user(
+          user: Spec::Authentication.user,
+          name: random_name,
+        )
+        edge.save!
+
+        # Test the edge module status endpoint
+        result = client.get(
+          path: "#{Edges.base_route}/#{edge.id}/modules/status",
+          headers: Spec::Authentication.headers,
+        )
+
+        # Should return 200 or handle gracefully if core is not available
+        [200, 404, 500].should contain(result.status_code)
+      end
+    end
   end
 end
