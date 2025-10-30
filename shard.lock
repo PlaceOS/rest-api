@@ -199,7 +199,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.eaa0356451447f9d9a7938e129025458534caa5b
+    version: 4.21.0+git.commit.f265a7e903215ff94cca2d5d722c6b287c3833e9
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.bc270b9c24452639ab4bb1f277fb57ea03265d81
+    version: 2.7.1+git.commit.ad484f46c8af671421f7f5b4704eccca7e30250e
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -227,7 +227,7 @@ shards:
 
   pool:
     git: https://github.com/ysbaddaden/pool.git
-    version: 0.3.0
+    version: 0.2.4
 
   promise:
     git: https://github.com/spider-gazelle/promise.git
@@ -237,9 +237,9 @@ shards:
     git: https://github.com/spider-gazelle/qr-code.git
     version: 1.0.3
 
-  redis:
+  redis: # Overridden
     git: https://github.com/stefanwille/crystal-redis.git
-    version: 2.7.0+git.commit.e81d33945592688c07add1274b811c06d0e4ee26
+    version: 2.9.1
 
   redis-cluster:
     git: https://github.com/place-labs/redis-cluster.cr.git
@@ -267,7 +267,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.dc7d4dbaf52581f40ba9eff606dc7f8481334618
+    version: 2.11.3+git.commit.89ff9805b666f6dbb55fed4b8d8f5d6cdb49edfa
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

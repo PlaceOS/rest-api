@@ -21,3 +21,6 @@ dependencies:
   neuroplastic:
     github: place-labs/neuroplastic
     commit: 2c156ab8ce688d676ca912b25ccdc631b265952c
+
+  redis:
+    github: stefanwille/crystal-redis
