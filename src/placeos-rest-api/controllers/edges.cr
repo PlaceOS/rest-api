@@ -29,7 +29,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :edge_contro, :edges_healthl, :edges_errors, :edges_connections, :edges_module_failures, :edges_statistics, :edge_error_stream, :edges_error_stream, :edges_module_stream, :cleanup_errors, :monitoring_summary])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :edge_control, :edges_health, :edges_errors, :edges_connections, :edges_module_failures, :edges_statistics, :edge_error_stream, :edges_error_stream, :edges_module_stream, :cleanup_errors, :monitoring_summary])]
     def find_current_edge(id : String)
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
