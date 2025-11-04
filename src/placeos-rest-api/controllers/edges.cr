@@ -18,7 +18,7 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy]
 
     before_action :check_admin, except: [:index, :show, :edge_control]
-    before_action :check_support, only: [:index, :show]
+    before_action :check_support, only: [:index, :show, :edge_errors, :edge_module_status, :edge_health, :edge_connections, :edges_health, :edges_errors, :edges_connections, :edges_module_failures, :edges_statistics, :edge_error_stream, :edges_error_stream, :edges_module_stream, :cleanup_errors, :monitoring_summary]
 
     before_action :can_write_edge_control, only: [:edge_control]
 
@@ -29,7 +29,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :edge_control])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :edge_contro, :edges_healthl, :edges_errors, :edges_connections, :edges_module_failures, :edges_statistics, :edge_error_stream, :edges_error_stream, :edges_module_stream, :cleanup_errors, :monitoring_summary])]
     def find_current_edge(id : String)
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
