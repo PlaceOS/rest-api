@@ -51,6 +51,9 @@ RUN for binary in "/bin/ping" "/bin/ping6" "/usr/bin/git" /app/bin/* /usr/libexe
 
 RUN git config --system http.sslCAInfo /etc/ssl/certs/ca-certificates.crt
 
+# Create tmp directory with proper permissions
+RUN rm -rf /tmp && mkdir -p /tmp && chmod 1777 /tmp
+
 # Build a minimal docker image
 FROM scratch
 WORKDIR /
@@ -71,6 +74,9 @@ ENV GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt
 
 # This is required for Timezone support
 COPY --from=build /usr/share/zoneinfo/ /usr/share/zoneinfo/
+
+# Copy tmp directory
+COPY --from=build /tmp /tmp
 
 # this is required to ping things
 COPY --from=build /bin/ping /ping
