@@ -78,6 +78,13 @@ COPY --from=build /usr/share/zoneinfo/ /usr/share/zoneinfo/
 # Copy tmp directory
 COPY --from=build /tmp /tmp
 
+# chmod for setting permissions on /tmp
+COPY --from=build /bin /bin
+COPY --from=build /lib/ld-musl-* /lib/
+RUN chmod -R a+rwX /tmp
+# hadolint ignore=SC2114,DL3059
+RUN rm -rf /bin /lib
+
 # this is required to ping things
 COPY --from=build /bin/ping /ping
 COPY --from=build /bin/ping6 /ping6
