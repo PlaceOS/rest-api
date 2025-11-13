@@ -21,7 +21,7 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :create, :update, :destroy, :state, :show, :ping, :start, :stop]
-    before_action :check_support, only: [:state, :show, :ping, :show_error]
+    before_action :check_support, only: [:state, :show, :ping, :show_error, :start, :stop]
 
     ###############################################################################################
 
@@ -298,7 +298,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/:id/start")]
     def start : Nil
       return if current_module.running == true
-      can_modify?(current_module)
+      can_modify?(current_module) unless user_support?
       current_module.update_fields(running: true)
 
       # Changes cleared on a successful update
@@ -312,7 +312,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/:id/stop")]
     def stop : Nil
       return unless current_module.running
-      can_modify?(current_module)
+      can_modify?(current_module) unless user_support?
       current_module.update_fields(running: false)
 
       # Changes cleared on a successful update

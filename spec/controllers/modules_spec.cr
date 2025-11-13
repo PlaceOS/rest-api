@@ -469,5 +469,43 @@ module PlaceOS::Api
         end
       end
     end
+
+    describe "POST /:id/start and POST /:id/stop" do
+      it "allows support users to start and stop modules" do
+        control_system = Model::Generator.control_system
+        control_system.zones << Spec::Authentication.org_zone.id.as(String)
+        control_system.zones_will_change!
+        control_system.save!
+
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        mod = Model::Generator.module(driver: driver, control_system: control_system)
+        mod.running = false
+        mod.save!
+
+        id = mod.id.as(String)
+        start_path = File.join(Modules.base_route, id, "start")
+        stop_path = File.join(Modules.base_route, id, "stop")
+
+        # Test that admin user can start a module
+        result = client.post(
+          path: start_path,
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+
+        result.status_code.should eq 200
+        mod.reload!
+        mod.running.should be_true
+
+        # Test that admin user can stop a module
+        result = client.post(
+          path: stop_path,
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+
+        result.status_code.should eq 200
+        mod.reload!
+        mod.running.should be_false
+      end
+    end
   end
 end
