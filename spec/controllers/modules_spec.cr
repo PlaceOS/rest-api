@@ -470,7 +470,7 @@ module PlaceOS::Api
       end
     end
 
-    describe "POST /:id/start and POST /:id/stop", focus: true do
+    describe "POST /:id/start and POST /:id/stop" do
       it "allows support users to start and stop modules" do
         control_system = Model::Generator.control_system
         control_system.zones << Spec::Authentication.org_zone.id.as(String)
