@@ -58,6 +58,7 @@ module PlaceOS::Api
           strat = create_strat(tenant_id, authority.id.as(String))
           auth_app = create_delegated_app(tenant_id, authority.domain, strat.id.as(String))
           add_outlook_plugin_auth(auth_app[:client_id])
+          create_outlook_config(auth_app[:client_id])
           strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
           update_auth(authority, strat.id.as(String))
         ensure
@@ -141,7 +142,7 @@ module PlaceOS::Api
       end
     end
 
-    private def add_outlook_plugin_auth(app_id : String)
+    private def add_outlook_plugin_auth(app_id : String) : Nil
       client = get_client
       app = client.get_application(app_id)
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
@@ -187,7 +188,7 @@ module PlaceOS::Api
       client.update_application(app_id, updated.to_json)
     end
 
-    private def create_outlook_repo
+    private def create_outlook_repo : Nil
       return if ::PlaceOS::Model::Repository.where(name: "Outlook Plugin", uri: "https://github.com/placeos/user-interfaces", branch: "build/outlook-rooms-addin/prod",
                   folder_name: "outlookplugin", repo_type: ::PlaceOS::Model::Repository::Type::Interface.value).count > 0
 
@@ -197,7 +198,7 @@ module PlaceOS::Api
       )
     end
 
-    private def create_outlook_config(app_id : String)
+    private def create_outlook_config(app_id : String) : Nil
       tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain_host)
       unless tenant
         Log.error { {message: "Tenant not found", domain: domain_host} }
