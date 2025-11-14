@@ -2,6 +2,7 @@
 
 ### Feat
 
+- add support for MS token exchange
 - **drivers**: [PPT-2232] add endpoint to fetch driver readme files ([#416](https://github.com/PlaceOS/rest-api/pull/416))
 - [PPT-2176] Updated index endpoint to filter results by hidden flag ([#415](https://github.com/PlaceOS/rest-api/pull/415))
 - [PPT-2077] Added alert & dashboard controllers ([#414](https://github.com/PlaceOS/rest-api/pull/414))
