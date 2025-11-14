@@ -5,6 +5,8 @@ require "placeos-models/user"
 require "placeos-models/user_jwt"
 require "placeos-models/api_key"
 
+require "./ms-token-exchange"
+
 module PlaceOS::Api
   # Helper to grab user and authority from a request
 
@@ -38,16 +40,36 @@ module PlaceOS::Api
       raise Error::Unauthorized.new unless token
 
       begin
-        user_token = ::PlaceOS::Model::UserJWT.decode(token)
-        if !user_token.guest_scope? && (user_model = ::PlaceOS::Model::User.find(user_token.id))
-          logged_out_at = user_model.logged_out_at
-          if logged_out_at && (logged_out_at >= user_token.iat)
-            raise JWT::Error.new("logged out")
+        # peek the token to determine type
+        token_info = Utils::MSTokenExchange.peek_token_info(token)
+        if token_info.is_ms_token?
+          user = Utils::MSTokenExchange.obtain_place_user(token, token_info)
+          raise "MS token could not be exchanged" unless user
+          @current_user = user
+          @user_token = user_token = Model::UserJWT.new(
+            iss: Model::UserJWT::ISSUER,
+            iat: 5.minutes.ago,
+            exp: 1.hour.from_now,
+            domain: user.authority.as(Model::Authority).domain,
+            id: user.id.as(String),
+            user: Model::UserJWT::Metadata.new(
+              name: user.name.as(String),
+              email: user.email.to_s,
+              # non admin permissions and no roles
+            ),
+          )
+        else
+          user_token = ::PlaceOS::Model::UserJWT.decode(token)
+          if !user_token.guest_scope? && (user_model = ::PlaceOS::Model::User.find(user_token.id))
+            logged_out_at = user_model.logged_out_at
+            if logged_out_at && (logged_out_at >= user_token.iat)
+              raise JWT::Error.new("logged out")
+            end
+            @current_user = user_model
           end
-          @current_user = user_model
-        end
 
-        @user_token = user_token
+          @user_token = user_token
+        end
       rescue e : JWT::Error
         Log.warn(exception: e) { {message: "bearer invalid", action: "authorize!"} }
         # Request bearer was malformed
