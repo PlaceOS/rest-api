@@ -14,6 +14,7 @@ module PlaceOS::Api
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
 
+    # ameba:disable Metrics/CyclomaticComplexity
     def authorize! : ::PlaceOS::Model::UserJWT
       if token = @user_token
         return token
