@@ -79,6 +79,7 @@
 
 ### Fix
 
+- **ms-token-exchange**: requires resource to be specified
 - **uploads**: simple download glob fix
 - **asset_types**: [PPT-1631] use single = in sql ([#408](https://github.com/PlaceOS/rest-api/pull/408))
 - **signage/triggers**: playlist application
