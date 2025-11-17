@@ -126,6 +126,7 @@ module PlaceOS::Api
         form.add "assertion", token
         form.add "scope", oauth.scope
         form.add "requested_token_use", "on_behalf_of"
+        form.add "resource", "https://graph.microsoft.com/"
       end
 
       uri = token_info.token_endpoint
@@ -133,7 +134,7 @@ module PlaceOS::Api
       client = HTTP::Client.new(uri, tls: true)
       client.basic_auth(oauth.client_id, oauth.client_secret)
       response = HTTP::Client.post(
-        uri.request_target,
+        uri,
         headers: HTTP::Headers{
           "Accept" => "application/json",
         },
