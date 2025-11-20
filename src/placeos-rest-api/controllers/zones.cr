@@ -106,10 +106,9 @@ module PlaceOS::Api
       query.sort(NAME_SORT_ASC)
 
       # Limit results to the children of these parents (OR logic)
-      if parent = parent_id
-        parent_ids = parent.map(&.strip).reject(&.empty?)
+      if parent_id
         query.should({
-          "parent_id" => parent_ids,
+          "parent_id" => parent_id,
         })
         query.minimum_should_match(1)
       end
