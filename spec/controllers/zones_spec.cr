@@ -25,7 +25,7 @@ module PlaceOS::Api
 
         result.success?.should be_true
         zones = Array(Hash(String, JSON::Any)).from_json(result.body)
-        zone_ids = zones.map { |z| z["id"].as_s }
+        zone_ids = zones.map(&.["id"].as_s)
         zone_ids.should contain(child1.id)
         zone_ids.should contain(child2.id)
 
@@ -62,7 +62,7 @@ module PlaceOS::Api
 
         result.success?.should be_true
         zones = Array(Hash(String, JSON::Any)).from_json(result.body)
-        zone_ids = zones.map { |z| z["id"].as_s }
+        zone_ids = zones.map(&.["id"].as_s)
         zone_ids.should contain(child1.id)
         zone_ids.should contain(child2.id)
         zone_ids.should_not contain(child3.id)
