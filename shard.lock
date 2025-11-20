@@ -155,7 +155,7 @@ shards:
 
   neuroplastic: # Overridden
     git: https://github.com/place-labs/neuroplastic.git
-    version: 1.13.2+git.commit.2c156ab8ce688d676ca912b25ccdc631b265952c
+    version: 1.13.3+git.commit.b8549eb1e61a6f893ae08e219f53e2a5d48777ec
 
   office365:
     git: https://github.com/placeos/office365.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.ad484f46c8af671421f7f5b4704eccca7e30250e
+    version: 2.7.1+git.commit.d47bdbc18c04052f6eacd463d105716c8796e863
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -267,7 +267,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.89ff9805b666f6dbb55fed4b8d8f5d6cdb49edfa
+    version: 2.11.3+git.commit.8dabc64759d45a202393f6d000fd6ec05d50ec17
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

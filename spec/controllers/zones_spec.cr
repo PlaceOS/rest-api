@@ -6,6 +6,74 @@ module PlaceOS::Api
 
     describe "index", tags: "search" do
       Spec.test_base_index(klass: Model::Zone, controller_klass: Zones)
+
+      it "filters by single parent_id" do
+        parent = Model::Generator.zone.save!
+        child1 = Model::Generator.zone
+        child1.parent_id = parent.id
+        child1.save!
+        child2 = Model::Generator.zone
+        child2.parent_id = parent.id
+        child2.save!
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        params = HTTP::Params.encode({"parent_id" => parent.id.as(String)})
+        path = "#{Zones.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+
+        result.success?.should be_true
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        zone_ids = zones.map(&.["id"].as_s)
+        zone_ids.should contain(child1.id)
+        zone_ids.should contain(child2.id)
+
+        parent.destroy
+        child1.destroy
+        child2.destroy
+      end
+
+      it "filters by multiple parent_ids (comma-separated)" do
+        parent1 = Model::Generator.zone.save!
+        parent2 = Model::Generator.zone.save!
+        parent3 = Model::Generator.zone.save!
+
+        child1 = Model::Generator.zone
+        child1.parent_id = parent1.id
+        child1.save!
+
+        child2 = Model::Generator.zone
+        child2.parent_id = parent2.id
+        child2.save!
+
+        child3 = Model::Generator.zone
+        child3.parent_id = parent3.id
+        child3.save!
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        # Query for children of parent1 and parent2 (should not include child3)
+        parent_ids = "#{parent1.id},#{parent2.id}"
+        params = HTTP::Params.encode({"parent_id" => parent_ids})
+        path = "#{Zones.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+
+        result.success?.should be_true
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        zone_ids = zones.map(&.["id"].as_s)
+        zone_ids.should contain(child1.id)
+        zone_ids.should contain(child2.id)
+        zone_ids.should_not contain(child3.id)
+
+        parent1.destroy
+        parent2.destroy
+        parent3.destroy
+        child1.destroy
+        child2.destroy
+        child3.destroy
+      end
     end
 
     describe "tags", tags: "search" do
