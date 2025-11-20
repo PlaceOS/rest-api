@@ -2,6 +2,7 @@
 
 ### Feat
 
+- [PPT-2295] zone queries to support multiple parent_ids  ([#422](https://github.com/PlaceOS/rest-api/pull/422))
 - add support for MS token exchange
 - **drivers**: [PPT-2232] add endpoint to fetch driver readme files ([#416](https://github.com/PlaceOS/rest-api/pull/416))
 - [PPT-2176] Updated index endpoint to filter results by hidden flag ([#415](https://github.com/PlaceOS/rest-api/pull/415))
