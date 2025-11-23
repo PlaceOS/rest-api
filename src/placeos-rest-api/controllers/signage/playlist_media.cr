@@ -103,8 +103,8 @@ module PlaceOS::Api
 
           # don't remove upload if it's used else where
           upload_id = upload.id
-          counts = Model::Playlist::Item.where("media_id = ? OR thumbnail_id = ? AND id != ?", upload_id, upload_id, current_item.id).count
-          next unless counts.zero?
+          counts = Model::Playlist::Item.where("media_id = ? OR thumbnail_id = ?", upload_id, upload_id).count
+          next unless counts <= 1
 
           # cleanup files from storage
           storage = upload.storage || ::PlaceOS::Model::Storage.storage_or_default(authority.id)
