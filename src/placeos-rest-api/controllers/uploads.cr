@@ -334,7 +334,7 @@ module PlaceOS::Api
           unless md5 = file_id
             raise AC::Route::Param::ValueError.new("Missing MD5 hash of file part", "file_id", "required except for the `finish` part")
           end
-          part = Base64.strict_encode(part.rjust(5, '0')) if storage.storage_type.azure?
+          part = Base64.strict_encode(part.rjust(6, '0')) if storage.storage_type.azure?
           s3 = signer.set_part(storage.bucket_name, current_upload.object_key, current_upload.file_size, md5, part, resumable_id, get_headers(current_upload))
           {type: :part_upload, signature: s3, upload_id: current_upload.id, body: nil}
         end
@@ -347,7 +347,7 @@ module PlaceOS::Api
       include JSON::Serializable
 
       def azure_block_id
-        Base64.strict_encode(part.to_s.rjust(5, '0'))
+        Base64.strict_encode(part.to_s.rjust(6, '0'))
       end
     end
 
