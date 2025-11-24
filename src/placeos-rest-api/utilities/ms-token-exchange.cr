@@ -93,7 +93,7 @@ module PlaceOS::Api
 
       # find the place user or create a new one
       user = Model::User.find_by?(authority_id: oauth.authority_id, email: email.downcase) || create_place_user(oauth, payload)
-      
+
       # ensure there is a valid MS Graph API access token in place
       # as we maybe attempting to perform graph actions on behalf of the user
       ensure_valid_token(oauth, user, token, info)
