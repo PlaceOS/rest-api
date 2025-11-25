@@ -80,6 +80,7 @@
 
 ### Fix
 
+- **uploads**: improve final part upload
 - **uploads**: azure block id generation
 - **signage/playlist_media**: flawed cleanup query
 - **ms-token-exchange**: requires resource to be specified
