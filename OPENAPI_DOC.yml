@@ -21810,10 +21810,13 @@ paths:
       parameters:
       - name: parent_id
         in: query
-        description: only return zones who have this zone as a parent
-        example: zone-1234
+        description: only return zones who have this zone as a parent (supports comma-separated
+          list)
+        example: zone-1234,zone-5678
         schema:
-          type: string
+          type: array
+          items:
+            type: string
           nullable: true
       - name: tags
         in: query
@@ -24787,6 +24790,18 @@ components:
         support_url:
           type: string
           nullable: true
+        timetable_url:
+          type: string
+          nullable: true
+        camera_snapshot_url:
+          type: string
+          nullable: true
+        camera_url:
+          type: string
+          nullable: true
+        room_booking_url:
+          type: string
+          nullable: true
         version:
           type: integer
           format: Int32
@@ -27234,6 +27249,18 @@ components:
         support_url:
           type: string
           nullable: true
+        timetable_url:
+          type: string
+          nullable: true
+        camera_snapshot_url:
+          type: string
+          nullable: true
+        camera_url:
+          type: string
+          nullable: true
+        room_booking_url:
+          type: string
+          nullable: true
         version:
           type: integer
           format: Int32
@@ -28863,9 +28890,6 @@ components:
               part:
                 type: integer
                 format: Int32
-              block_id:
-                type: string
-                nullable: true
             required:
             - md5
             - part
@@ -28876,7 +28900,7 @@ components:
             type: integer
             format: Int32
           nullable: true
-        part_update:
+        final_part:
           type: boolean
           nullable: true
     ? _NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil__
@@ -29954,6 +29978,18 @@ components:
               type: object
               nullable: true
             support_url:
+              type: string
+              nullable: true
+            timetable_url:
+              type: string
+              nullable: true
+            camera_snapshot_url:
+              type: string
+              nullable: true
+            camera_url:
+              type: string
+              nullable: true
+            room_booking_url:
               type: string
               nullable: true
             version:
