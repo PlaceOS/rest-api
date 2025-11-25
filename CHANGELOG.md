@@ -80,6 +80,7 @@
 
 ### Fix
 
+- **signage/playlist_media**: support deleting azure uploads
 - **uploads**: improve final part upload
 - **uploads**: azure block id generation
 - **signage/playlist_media**: flawed cleanup query
