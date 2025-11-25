@@ -108,7 +108,7 @@ module PlaceOS::Api
 
           # cleanup files from storage
           storage = upload.storage || ::PlaceOS::Model::Storage.storage_or_default(authority.id)
-          signer = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+          signer = UploadSigner.signer(UploadSigner::StorageType.from_value(storage.storage_type.value), storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
           signer.delete_file(storage.bucket_name, upload.object_key, upload.resumable_id)
           upload.destroy
         end
