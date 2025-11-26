@@ -28870,13 +28870,6 @@ components:
     PlaceOS__Api__Uploads__UpdateInfo:
       type: object
       properties:
-        file_id:
-          type: string
-          nullable: true
-        part:
-          type: integer
-          format: Int32
-          nullable: true
         resumable_id:
           type: string
           nullable: true
@@ -28899,9 +28892,6 @@ components:
           items:
             type: integer
             format: Int32
-          nullable: true
-        final_part:
-          type: boolean
           nullable: true
     ? _NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil__
     : anyOf:

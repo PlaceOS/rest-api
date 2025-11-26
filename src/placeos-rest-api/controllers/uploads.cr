@@ -351,8 +351,7 @@ module PlaceOS::Api
       end
     end
 
-    record UpdateInfo, file_id : String?, part : Int32?, resumable_id : String?,
-      part_data : Array(PartInfo)?, part_list : Array(Int32)?, final_part : Bool? do
+    record UpdateInfo, resumable_id : String?, part_data : Array(PartInfo)?, part_list : Array(Int32)? do
       include JSON::Serializable
     end
 
@@ -386,10 +385,8 @@ module PlaceOS::Api
       # returns the signed URL for the next part if params are provided
       if part && file_id
         edit(part, file_id)
-      elsif info.final_part
-        edit("finish", nil)
       else
-        edit(info.part.to_s, info.file_id)
+        edit("finish", nil)
       end
     end
 
