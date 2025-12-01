@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **uploads**: [PPT-2302] add storage_id parameter to index endpoint for listing uploads from specific storages ([#423](https://github.com/PlaceOS/rest-api/pull/423))
 - [PPT-2295] zone queries to support multiple parent_ids  ([#422](https://github.com/PlaceOS/rest-api/pull/422))
 - add support for MS token exchange
 - **drivers**: [PPT-2232] add endpoint to fetch driver readme files ([#416](https://github.com/PlaceOS/rest-api/pull/416))
