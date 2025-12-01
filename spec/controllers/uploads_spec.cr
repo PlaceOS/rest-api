@@ -288,13 +288,14 @@ module PlaceOS::Api
       sig["url"].as_s.size.should eq(0)
       upload = Model::Upload.find!(info["upload_id"].as_s)
 
+      part_number = "1"
       params = {
-        "part"    => Base64.strict_encode(UUID.random.to_s),
+        "part"    => part_number,
         "file_id" => "some_file_md5_hash",
       }
 
-      pinfo = Uploads::PartInfo.new(params["file_id"], 1, params["part"])
-      uinfo = Uploads::UpdateInfo.new(params["file_id"], 1, "some-random-resumable-id", [pinfo], [1], false)
+      pinfo = Uploads::PartInfo.new(md5: params["file_id"], part: 1)
+      uinfo = Uploads::UpdateInfo.new(resumable_id: "some-random-resumable-id", part_data: [pinfo], part_list: [1])
 
       resp = client.patch(
         path: "#{Uploads.base_route}/#{upload.id}?#{HTTP::Params.encode(params)}",
@@ -310,7 +311,9 @@ module PlaceOS::Api
       uri = URI.parse(sig["url"].as_s)
       uri.host.should eq(sprintf("%s.blob.core.windows.net", "myteststorage"))
       qparams = URI::Params.parse(uri.query || "")
-      qparams["blockid"].should eq(params["part"])
+      # Azure encodes the part as Base64(part.rjust(6, '0'))
+      expected_block_id = Base64.strict_encode(part_number.rjust(6, '0'))
+      qparams["blockid"].should eq(expected_block_id)
 
       params = {
         "part" => "finish",
@@ -323,6 +326,125 @@ module PlaceOS::Api
       info = JSON.parse(resp.body).as_h
       info["type"].should eq("finish")
       info["body"].should_not be_nil
+    end
+
+    it "should list uploads from a specific storage when storage_id is provided" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+      # Create two storages for the same authority
+      storage1 = Model::Generator.storage(authority_id: authority.id)
+      storage1.is_default = true
+      storage1.save!
+
+      storage2 = Model::Generator.storage(authority_id: authority.id)
+      storage2.is_default = false
+      storage2.save!
+
+      # Create uploads in both storages
+      Model::Generator.upload(file_name: "file_in_storage1", storage_id: storage1.id).save!
+      Model::Generator.upload(file_name: "file_in_storage2_a", storage_id: storage2.id).save!
+      Model::Generator.upload(file_name: "file_in_storage2_b", storage_id: storage2.id).save!
+
+      # List uploads from storage2
+      params = HTTP::Params.encode({
+        "storage_id" => storage2.id.as(String),
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.success?.should be_true
+      result.headers["X-Total-Count"].should eq "2"
+      uploads = Array(Model::Upload).from_json(result.body)
+      uploads.size.should eq(2)
+      uploads.all? { |u| u.storage_id == storage2.id }.should be_true
+    end
+
+    it "should list uploads from default storage when storage_id is not provided" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+      # Create two storages
+      storage1 = Model::Generator.storage(authority_id: authority.id)
+      storage1.is_default = true
+      storage1.save!
+
+      storage2 = Model::Generator.storage(authority_id: authority.id)
+      storage2.is_default = false
+      storage2.save!
+
+      # Create uploads in both storages
+      Model::Generator.upload(file_name: "default_file", storage_id: storage1.id).save!
+      Model::Generator.upload(file_name: "other_file", storage_id: storage2.id).save!
+
+      # List uploads without storage_id (should use default)
+      result = client.get(Uploads.base_route,
+        headers: Spec::Authentication.headers)
+
+      result.success?.should be_true
+      result.headers["X-Total-Count"].should eq "1"
+      uploads = Array(Model::Upload).from_json(result.body)
+      uploads.size.should eq(1)
+      uploads.first.storage_id.should eq(storage1.id)
+      uploads.first.file_name.should eq("default_file")
+    end
+
+    it "should return 404 when storage_id does not exist" do
+      params = HTTP::Params.encode({
+        "storage_id" => "storage-nonexistent",
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.status_code.should eq(404)
+      JSON.parse(result.body).as_h["error"].as_s.should contain("Storage not found")
+    end
+
+    it "should return 403 when storage_id belongs to different authority" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+      # Create storage for a different authority
+      other_authority = Model::Generator.authority
+      other_authority.domain = "other.example.com"
+      other_authority.save!
+
+      other_storage = Model::Generator.storage(authority_id: other_authority.id)
+      other_storage.save!
+
+      # Try to list uploads from other authority's storage
+      params = HTTP::Params.encode({
+        "storage_id" => other_storage.id.as(String),
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.status_code.should eq(403)
+    end
+
+    it "should allow access to global storage (authority_id is nil)" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+      # Create a global storage (no authority_id)
+      global_storage = Model::Generator.storage(authority_id: nil)
+      global_storage.save!
+
+      # Create upload in global storage
+      Model::Generator.upload(file_name: "global_file", storage_id: global_storage.id).save!
+
+      # List uploads from global storage
+      params = HTTP::Params.encode({
+        "storage_id" => global_storage.id.as(String),
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.success?.should be_true
+      result.headers["X-Total-Count"].should eq "1"
+      uploads = Array(Model::Upload).from_json(result.body)
+      uploads.size.should eq(1)
+      uploads.first.file_name.should eq("global_file")
     end
   end
 end

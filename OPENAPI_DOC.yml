@@ -19252,6 +19252,14 @@ paths:
           items:
             type: string
           nullable: true
+      - name: storage_id
+        in: query
+        description: storage id to list uploads from (defaults to authority's default
+          storage)
+        example: storage-XXX
+        schema:
+          type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
