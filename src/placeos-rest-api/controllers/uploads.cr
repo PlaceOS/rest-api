@@ -63,6 +63,8 @@ module PlaceOS::Api
       offset : Int32 = 0,
       @[AC::Param::Info(description: "return uploads with particular tags", example: "staff,email")]
       tags : Array(String)? = nil,
+      @[AC::Param::Info(description: "storage id to list uploads from (defaults to authority's default storage)", example: "storage-XXX")]
+      storage_id : String? = nil,
     ) : Array(::PlaceOS::Model::Upload)
       # validate each incoming tag
       if tags
@@ -75,7 +77,18 @@ module PlaceOS::Api
 
       # 1. Prepare table name and storage
       table_name = ::PlaceOS::Model::Upload.table_name
-      storage = ::PlaceOS::Model::Storage.storage_or_default(authority.id)
+      storage = if storage_id
+                  # Validate that the storage exists and belongs to this authority
+                  unless found_storage = ::PlaceOS::Model::Storage.find?(storage_id)
+                    raise Error::NotFound.new("Storage not found: #{storage_id}")
+                  end
+                  unless found_storage.authority_id == authority.id || found_storage.authority_id.nil?
+                    raise Error::Forbidden.new("Storage does not belong to this authority")
+                  end
+                  found_storage
+                else
+                  ::PlaceOS::Model::Storage.storage_or_default(authority.id)
+                end
 
       # 2. Build conditions and bind params
       conditions = ["u.storage_id = $1"]
