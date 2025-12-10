@@ -6,6 +6,10 @@
 
 [PlaceOS](https://place.technology/) service that provides a real-time control API.
 
+## API Docs
+
+https://placeos.github.io/rest-api-swagger-ui/
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md).

@@ -73,6 +73,23 @@ module PlaceOS::Api
       current_item
     end
 
+    # redirects to the thumbnail image URL
+    @[AC::Route::GET("/:id/thumbnail")]
+    def thumbnail
+      raise Error::NotFound.new("no thumbnail associated") unless current_item.thumbnail_id
+      current_upload = current_item.thumbnail.as(::PlaceOS::Model::Upload)
+
+      unless storage = current_upload.storage
+        Log.warn { {message: "upload object associated storage not found", upload_id: current_upload.id, authority: authority.id, user: current_user.id} }
+        raise Error::NotFound.new("Upload #{current_upload.id} missing associated storage")
+      end
+
+      us = UploadSigner.signer(UploadSigner::StorageType.from_value(storage.storage_type.value), storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+      object_url = us.get_object(storage.bucket_name, current_upload.object_key, 60)
+
+      redirect_to object_url, status: :see_other
+    end
+
     # update the details of a media item
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
