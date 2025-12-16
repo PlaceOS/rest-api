@@ -14,6 +14,7 @@ module PlaceOS::Api
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
 
+    # ameba:disable Metrics/CyclomaticComplexity
     def authorize! : ::PlaceOS::Model::UserJWT
       if token = @user_token
         return token
@@ -42,7 +43,7 @@ module PlaceOS::Api
       begin
         # peek the token to determine type
         token_info = Utils::MSTokenExchange.peek_token_info(token)
-        if token_info.is_ms_token?
+        if token_info.ms_token?
           user = Utils::MSTokenExchange.obtain_place_user(token, token_info)
           raise "MS token could not be exchanged" unless user
           @current_user = user

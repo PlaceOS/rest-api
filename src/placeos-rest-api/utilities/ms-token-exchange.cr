@@ -26,7 +26,7 @@ module PlaceOS::Api
       version : TokenVersion,
       kid : String? do
       # Basic heuristic to detect Microsoft Entra / Azure AD issuers
-      def is_ms_token? : Bool
+      def ms_token? : Bool
         iss_val = iss_host
         return false unless iss_val
         iss_val = iss_val.downcase
@@ -119,14 +119,14 @@ module PlaceOS::Api
 
       # if not existing or refresh failed, get a token using this token and on behalf of
       # https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow#example
-      form = URI::Params.build do |form|
-        form.add "grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"
-        form.add "client_id", oauth.client_id
-        form.add "client_secret", oauth.client_secret
-        form.add "assertion", token
-        form.add "scope", oauth.scope
-        form.add "requested_token_use", "on_behalf_of"
-        form.add "resource", "https://graph.microsoft.com/"
+      form = URI::Params.build do |builder|
+        builder.add "grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"
+        builder.add "client_id", oauth.client_id
+        builder.add "client_secret", oauth.client_secret
+        builder.add "assertion", token
+        builder.add "scope", oauth.scope
+        builder.add "requested_token_use", "on_behalf_of"
+        builder.add "resource", "https://graph.microsoft.com/"
       end
 
       uri = token_info.token_endpoint
@@ -163,23 +163,19 @@ module PlaceOS::Api
     # ---------- Audience Parsing ----------
 
     def extract_aud_host(aud_raw : String) : String
-      begin
-        uri = URI.parse(aud_raw)
-        uri.host || aud_raw
-      rescue
-        aud_raw
-      end
+      uri = URI.parse(aud_raw)
+      uri.host || aud_raw
+    rescue
+      aud_raw
     end
 
     # ---------- Issuer Parsing ----------
 
     def extract_issuer_host(iss_raw : String) : String?
-      begin
-        uri = URI.parse(iss_raw)
-        uri.host
-      rescue
-        nil
-      end
+      uri = URI.parse(iss_raw)
+      uri.host
+    rescue
+      nil
     end
 
     # ---------- Validation (JWKS) ----------

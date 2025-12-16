@@ -16,6 +16,8 @@ Naming/AccessorMethodName:
   Enabled: false
 Lint/SpecFilename:
   Enabled: false
+Lint/UselessAssign:
+  Enabled: false
 
 Documentation/DocumentationAdmonition:
   Enabled: false
