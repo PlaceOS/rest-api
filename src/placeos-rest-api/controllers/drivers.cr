@@ -91,9 +91,9 @@ module PlaceOS::Api
       driver_file_name = current_driver.file_name
       readme_path = driver_file_name.chomp(".cr") + "_readme.md"
 
-      # Create GitRepository instance
-      repository_path = File.join(Repositories.repository_dir, repository.folder_name)
-      git_repo = GitRepository.new(repository_path)
+      # Create GitRepository instance using the repository's remote URI
+      password = repository.decrypt_password if repository.password.presence
+      git_repo = GitRepository.new(repository.uri, repository.username, password)
 
       # Check if the readme file exists using the driver's commit
       files = git_repo.file_list(ref: current_driver.commit, path: readme_path)
