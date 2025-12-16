@@ -1,3 +1,4 @@
+require "uuid"
 require "office365"
 require "./application"
 
@@ -10,15 +11,18 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action)]
     def get_host
-      unless host = request.hostname
+      unless @domain_host = request.hostname
         Log.warn { "Host header not found" }
         raise Error::NotFound.new("Unable to get host from request")
       end
       scheme = request.headers["Scheme"]? || "https"
-      @redirect_url = "#{scheme}://#{host}#{self.base_route}/callback"
+      @redirect_url = "#{scheme}://#{domain_host}#{self.base_route}/callback"
+      @domain_url = "#{scheme}://#{domain_host}"
     end
 
     getter! redirect_url : String
+    getter! domain_url : String
+    getter! domain_host : String
 
     @[AC::Route::GET("/:id")]
     def index(id : String) : NamedTuple(url: String)
@@ -49,9 +53,12 @@ module PlaceOS::Api
         raise Error::NotFound.new("Invalid state value returned in admin consent") unless authority
         begin
           redirect_back = "#{redirect_back}/#{authority_id}/authentication"
-          _ = create_app(tenant_id)
+          create_app(tenant_id)
+          create_outlook_repo
           strat = create_strat(tenant_id, authority.id.as(String))
           auth_app = create_delegated_app(tenant_id, authority.domain, strat.id.as(String))
+          add_outlook_plugin_auth(auth_app[:client_id])
+          create_outlook_config(auth_app[:client_id])
           strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
           update_auth(authority, strat.id.as(String))
         ensure
@@ -133,6 +140,77 @@ module PlaceOS::Api
         return nil if already_exists_error?(ex.http_body)
         raise ex
       end
+    end
+
+    private def add_outlook_plugin_auth(app_id : String) : Nil
+      client = get_client
+      app = client.get_application(app_id)
+      app_redirect_uris = app.web.try &.redirect_uris || [] of String
+      app_redirect_uris.push("#{domain_url}/outlook/#/book/spaces")
+
+      scope_id = UUID.v4.to_s
+
+      updated = {
+        "identifierUris": ["api://#{domain_host}/#{app_id}"],
+        "web":            {
+          "redirectUris":          app_redirect_uris,
+          "implicitGrantSettings": {"enableAccessTokenIssuance" => true, "enableIdTokenIssuance" => true},
+        },
+        "api": {
+          "oauth2PermissionScopes": [
+            {
+              "id":                      scope_id,
+              "adminConsentDisplayName": "Access User and Room Calendars",
+              "adminConsentDescription": "Allow the app to read the user calendar and calendars of rooms the user has permission to view/book.",
+              "userConsentDisplayName":  "Access User and Room Calendars",
+              "userConsentDescription":  "Allow the app to read the user calendar and calendars of rooms the user has permission to view/book.",
+              "isEnabled":               true,
+              "type":                    "User",
+              "value":                   "access_as_user",
+            },
+          ],
+        },
+      }
+      client.update_application(app_id, updated.to_json)
+
+      updated = {
+        "api": {
+          "preAuthorizedApplications": [
+            {"appId": "d3590ed6-52b3-4102-aeff-aad2292ab01c", "delegatedPermissionIds": [scope_id]}, # Microsoft Office
+            {"appId": "ea5a67f6-b6f3-4338-b240-c655ddc3cc8e", "delegatedPermissionIds": [scope_id]}, # Microsoft Office
+            {"appId": "57fb890c-0dab-4253-a5e0-7188c88b2bb4", "delegatedPermissionIds": [scope_id]}, # Office on the web
+            {"appId": "08e18876-6177-487e-b8b5-cf950c1e598c", "delegatedPermissionIds": [scope_id]}, # Office on the web
+            {"appId": "bc59ab01-8403-45c6-8796-ac3ef710b3e3", "delegatedPermissionIds": [scope_id]}, # Outlook on the web
+            {"appId": "93d53678-613d-4013-afc1-62e9e444a0a5", "delegatedPermissionIds": [scope_id]}, # Office on the web
+          ],
+        },
+      }
+      client.update_application(app_id, updated.to_json)
+    end
+
+    private def create_outlook_repo : Nil
+      return if ::PlaceOS::Model::Repository.where(name: "Outlook Plugin", uri: "https://github.com/placeos/user-interfaces", branch: "build/outlook-rooms-addin/prod",
+                  folder_name: "outlookplugin", repo_type: ::PlaceOS::Model::Repository::Type::Interface.value).count > 0
+
+      ::PlaceOS::Model::Repository.create(
+        name: "Outlook Plugin", uri: "https://github.com/placeos/user-interfaces", branch: "build/outlook-rooms-addin/prod",
+        folder_name: "outlookplugin", repo_type: ::PlaceOS::Model::Repository::Type::Interface
+      )
+    end
+
+    private def create_outlook_config(app_id : String) : Nil
+      tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain_host)
+      unless tenant
+        Log.error { {message: "Tenant not found", domain: domain_host} }
+        return
+      end
+
+      outlook_config = {
+        app_id: app_id, base_path: "outlook", app_domain: "#{domain_url}/outlook/",
+        app_resource: "api://#{domain_host}/#{app_id}", source_location: "",
+      }
+      tenant.outlook_config = ::PlaceOS::Model::Tenant::OutlookConfig.from_json(outlook_config.to_json)
+      tenant.save!
     end
 
     private def already_exists_error?(error_msg) : Bool
