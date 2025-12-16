@@ -49,7 +49,7 @@ module PlaceOS::Api
         raise Error::NotFound.new("Invalid state value returned in admin consent") unless authority
         begin
           redirect_back = "#{redirect_back}/#{authority_id}/authentication"
-          visualiser_app_id = create_app(tenant_id)
+          _ = create_app(tenant_id)
           strat = create_strat(tenant_id, authority.id.as(String))
           auth_app = create_delegated_app(tenant_id, authority.domain, strat.id.as(String))
           strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
