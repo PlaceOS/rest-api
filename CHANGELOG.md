@@ -2,6 +2,7 @@
 
 ### Feat
 
+- [PPT-11] Add edge monitoring endpoints ([#417](https://github.com/PlaceOS/rest-api/pull/417))
 - add signage media thumbnail shortcut
 - **uploads**: [PPT-2302] add storage_id parameter to index endpoint for listing uploads from specific storages ([#423](https://github.com/PlaceOS/rest-api/pull/423))
 - [PPT-2295] zone queries to support multiple parent_ids  ([#422](https://github.com/PlaceOS/rest-api/pull/422))
