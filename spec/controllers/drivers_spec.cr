@@ -1,7 +1,7 @@
 require "../helper"
 
 module PlaceOS::Api
-  describe Drivers do
+  describe Drivers, tags: "drivers" do
     describe "index", tags: "search" do
       Spec.test_base_index(klass: Model::Driver, controller_klass: Drivers)
 
@@ -71,6 +71,65 @@ module PlaceOS::Api
           result.success?.should_not be_true
           result.body.should contain "role must not change"
         end
+      end
+    end
+
+    describe "readme" do
+      it "returns the readme content for a driver" do
+        # Create a repository pointing to the real PlaceOS/drivers repo
+        repository = Model::Generator.repository(type: Model::Repository::Type::Driver)
+        repository.uri = "https://github.com/PlaceOS/drivers"
+        repository.save!
+
+        # Create a driver with a real file path that has a readme
+        driver = Model::Driver.new(
+          name: "Auto Release",
+          role: Model::Driver::Role::Logic,
+          commit: "HEAD",
+          module_name: "AutoRelease",
+          file_name: "drivers/place/auto_release.cr",
+        )
+        driver.repository = repository
+        driver.save!
+
+        id = driver.id.as(String)
+        path = File.join(Drivers.base_route, id, "readme")
+
+        result = client.get(
+          path: path,
+          headers: Spec::Authentication.headers,
+        )
+
+        result.success?.should be_true
+        result.body.should contain("Auto Release")
+      end
+
+      it "returns 404 when readme does not exist" do
+        # Create a repository pointing to the real PlaceOS/drivers repo
+        repository = Model::Generator.repository(type: Model::Repository::Type::Driver)
+        repository.uri = "https://github.com/PlaceOS/drivers"
+        repository.save!
+
+        # Create a driver with a file path that does NOT have a readme
+        driver = Model::Driver.new(
+          name: "No Readme Driver",
+          role: Model::Driver::Role::Logic,
+          commit: "HEAD",
+          module_name: "NoReadme",
+          file_name: "drivers/place/nonexistent_driver.cr",
+        )
+        driver.repository = repository
+        driver.save!
+
+        id = driver.id.as(String)
+        path = File.join(Drivers.base_route, id, "readme")
+
+        result = client.get(
+          path: path,
+          headers: Spec::Authentication.headers,
+        )
+
+        result.status_code.should eq 404
       end
     end
 
