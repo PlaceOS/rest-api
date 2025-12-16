@@ -11907,12 +11907,7 @@ paths:
       tags:
       - Edges
       operationId: PlaceOS::Api::Edges_edges_health
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         200:
           description: OK
@@ -11989,11 +11984,6 @@ paths:
         schema:
           type: string
           nullable: true
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
       responses:
         200:
           description: OK
@@ -12057,12 +12047,7 @@ paths:
       tags:
       - Edges
       operationId: PlaceOS::Api::Edges_edges_connections
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         200:
           description: OK
@@ -12126,12 +12111,7 @@ paths:
       tags:
       - Edges
       operationId: PlaceOS::Api::Edges_edges_module_failures
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         200:
           description: OK
@@ -12195,12 +12175,7 @@ paths:
       tags:
       - Edges
       operationId: PlaceOS::Api::Edges_edges_statistics
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         200:
           description: OK
@@ -12329,12 +12304,7 @@ paths:
       tags:
       - Edges
       operationId: PlaceOS::Api::Edges_edges_error_stream
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         101:
           description: Switching Protocols
@@ -12394,12 +12364,7 @@ paths:
       tags:
       - Edges
       operationId: PlaceOS::Api::Edges_edges_module_stream
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         101:
           description: Switching Protocols
@@ -12466,11 +12431,6 @@ paths:
         schema:
           type: integer
           format: Int32
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
       responses:
         200:
           description: OK
@@ -12534,12 +12494,7 @@ paths:
       tags:
       - Edges
       operationId: PlaceOS::Api::Edges_monitoring_summary
-      parameters:
-      - name: id
-        in: query
-        required: true
-        schema:
-          type: string
+      parameters: []
       responses:
         200:
           description: OK
