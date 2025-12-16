@@ -82,6 +82,7 @@
 
 ### Fix
 
+- **modules**: [PPT-2332] fix logQL search query ([#424](https://github.com/PlaceOS/rest-api/pull/424))
 - **signage/playlist_media**: support deleting azure uploads
 - **uploads**: improve final part upload
 - **uploads**: azure block id generation
