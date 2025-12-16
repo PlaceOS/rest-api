@@ -94,10 +94,10 @@ module PlaceOS::Api
     ###############################################################################################
 
     # list the configured zones
-    @[AC::Route::GET("/", converters: {tags: ConvertStringArray})]
+    @[AC::Route::GET("/", converters: {tags: ConvertStringArray, parent_id: ConvertStringArray})]
     def index(
-      @[AC::Param::Info(description: "only return zones who have this zone as a parent", example: "zone-1234")]
-      parent_id : String? = nil,
+      @[AC::Param::Info(description: "only return zones who have this zone as a parent (supports comma-separated list)", example: "zone-1234,zone-5678")]
+      parent_id : Array(String)? = nil,
       @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
       tags : Array(String)? = nil,
     ) : Array(::PlaceOS::Model::Zone)
@@ -105,11 +105,12 @@ module PlaceOS::Api
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
-      # Limit results to the children of this parent
-      if parent = parent_id
-        query.must({
-          "parent_id" => [parent],
+      # Limit results to the children of these parents (OR logic)
+      if parent_id
+        query.should({
+          "parent_id" => parent_id,
         })
+        query.minimum_should_match(1)
       end
 
       # Limit results to zones containing the passed list of tags

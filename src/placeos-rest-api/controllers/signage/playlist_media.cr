@@ -73,6 +73,23 @@ module PlaceOS::Api
       current_item
     end
 
+    # redirects to the thumbnail image URL
+    @[AC::Route::GET("/:id/thumbnail")]
+    def thumbnail
+      raise Error::NotFound.new("no thumbnail associated") unless current_item.thumbnail_id
+      current_upload = current_item.thumbnail.as(::PlaceOS::Model::Upload)
+
+      unless storage = current_upload.storage
+        Log.warn { {message: "upload object associated storage not found", upload_id: current_upload.id, authority: authority.id, user: current_user.id} }
+        raise Error::NotFound.new("Upload #{current_upload.id} missing associated storage")
+      end
+
+      us = UploadSigner.signer(UploadSigner::StorageType.from_value(storage.storage_type.value), storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+      object_url = us.get_object(storage.bucket_name, current_upload.object_key, 60)
+
+      redirect_to object_url, status: :see_other
+    end
+
     # update the details of a media item
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
@@ -103,12 +120,12 @@ module PlaceOS::Api
 
           # don't remove upload if it's used else where
           upload_id = upload.id
-          counts = Model::Playlist::Item.where("media_id = ? OR thumbnail_id = ? AND id != ?", upload_id, upload_id, current_item.id).count
-          next unless counts.zero?
+          counts = Model::Playlist::Item.where("media_id = ? OR thumbnail_id = ?", upload_id, upload_id).count
+          next unless counts <= 1
 
           # cleanup files from storage
           storage = upload.storage || ::PlaceOS::Model::Storage.storage_or_default(authority.id)
-          signer = UploadSigner::AmazonS3.new(storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
+          signer = UploadSigner.signer(UploadSigner::StorageType.from_value(storage.storage_type.value), storage.access_key, storage.decrypt_secret, storage.region, endpoint: storage.endpoint)
           signer.delete_file(storage.bucket_name, upload.object_key, upload.resumable_id)
           upload.destroy
         end

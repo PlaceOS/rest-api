@@ -104,6 +104,13 @@ module PlaceOS::Api
     end
 
     protected def get_user_token(current_user) : AccessToken
+      authority = current_authority
+      raise Error::NotFound.new("no valid authority") unless authority
+
+      self.class.get_user_token(current_user, authority)
+    end
+
+    def self.get_user_token(current_user : Model::User, authority : Model::Authority) : AccessToken
       expired = true
 
       if access_token = current_user.access_token.presence
@@ -121,8 +128,6 @@ module PlaceOS::Api
       end
 
       raise Error::NotFound.new("no refresh token available") unless current_user.refresh_token.presence
-      authority = current_authority
-      raise Error::NotFound.new("no valid authority") unless authority
 
       begin
         internals = authority.internals

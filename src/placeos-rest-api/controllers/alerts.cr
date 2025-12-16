@@ -77,7 +77,6 @@ module PlaceOS::Api
         })
       end
 
-      p! query
       query.sort(NAME_SORT_ASC)
       paginate_results(elastic, query)
     end

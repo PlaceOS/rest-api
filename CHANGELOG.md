@@ -2,6 +2,11 @@
 
 ### Feat
 
+- [PPT-11] Add edge monitoring endpoints ([#417](https://github.com/PlaceOS/rest-api/pull/417))
+- add signage media thumbnail shortcut
+- **uploads**: [PPT-2302] add storage_id parameter to index endpoint for listing uploads from specific storages ([#423](https://github.com/PlaceOS/rest-api/pull/423))
+- [PPT-2295] zone queries to support multiple parent_ids  ([#422](https://github.com/PlaceOS/rest-api/pull/422))
+- add support for MS token exchange
 - **drivers**: [PPT-2232] add endpoint to fetch driver readme files ([#416](https://github.com/PlaceOS/rest-api/pull/416))
 - [PPT-2176] Updated index endpoint to filter results by hidden flag ([#415](https://github.com/PlaceOS/rest-api/pull/415))
 - [PPT-2077] Added alert & dashboard controllers ([#414](https://github.com/PlaceOS/rest-api/pull/414))
@@ -78,6 +83,12 @@
 
 ### Fix
 
+- **modules**: [PPT-2332] fix logQL search query ([#424](https://github.com/PlaceOS/rest-api/pull/424))
+- **signage/playlist_media**: support deleting azure uploads
+- **uploads**: improve final part upload
+- **uploads**: azure block id generation
+- **signage/playlist_media**: flawed cleanup query
+- **ms-token-exchange**: requires resource to be specified
 - **uploads**: simple download glob fix
 - **asset_types**: [PPT-1631] use single = in sql ([#408](https://github.com/PlaceOS/rest-api/pull/408))
 - **signage/triggers**: playlist application
@@ -140,6 +151,7 @@
 
 ### Refactor
 
+- [PPT-2293] Allow support users to start/stop modules ([#421](https://github.com/PlaceOS/rest-api/pull/421))
 - **Cluster**: Get endpoint to return load only when include_status is false ([#410](https://github.com/PlaceOS/rest-api/pull/410))
 - migrate to postgres ([#328](https://github.com/PlaceOS/rest-api/pull/328))
 

@@ -11611,6 +11611,992 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/{id}/errors:
+    get:
+      summary: Get errors for a specific edge
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edge_errors
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Number of recent errors to return
+        schema:
+          type: integer
+          format: Int32
+      - name: type
+        in: query
+        description: Error type filter
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Core__Client__EdgeError'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/{id}/modules/status:
+    get:
+      summary: Get module status for a specific edge
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edge_module_status
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Core__Client__EdgeModuleStatus'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/{id}/health:
+    get:
+      summary: Get health status for a specific edge
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edge_health
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_PlaceOS__Core__Client__EdgeHealth___Nil_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/{id}/connections:
+    get:
+      summary: Get connection metrics for a specific edge
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edge_connections
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_PlaceOS__Core__Client__ConnectionMetrics___Nil_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/health:
+    get:
+      summary: Get health status for all edges
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edges_health
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__PlaceOS__Core__Client__EdgeHealth_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/errors:
+    get:
+      summary: Get errors from all edges
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edges_errors
+      parameters:
+      - name: limit
+        in: query
+        description: Number of recent errors to return
+        schema:
+          type: integer
+          format: Int32
+      - name: type
+        in: query
+        description: Error type filter
+        schema:
+          type: string
+          nullable: true
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__Array_PlaceOS__Core__Client__EdgeError__'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/connections:
+    get:
+      summary: Get connection metrics for all edges
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edges_connections
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__PlaceOS__Core__Client__ConnectionMetrics_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/modules/failures:
+    get:
+      summary: Get module failures from all edges
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edges_module_failures
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__Array_Hash_String__JSON__Any___'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/statistics:
+    get:
+      summary: Get overall edge statistics
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edges_statistics
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Core__Client__EdgeStatistics'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/{id}/errors/stream:
+    get:
+      summary: Real-time error streaming for a specific edge
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edge_error_stream
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        101:
+          description: Switching Protocols
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/errors/stream:
+    get:
+      summary: Real-time error streaming for all edges
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edges_error_stream
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        101:
+          description: Switching Protocols
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/modules/stream:
+    get:
+      summary: Real-time module status streaming for all edges
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_edges_module_stream
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        101:
+          description: Switching Protocols
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/monitoring/cleanup:
+    post:
+      summary: Manual error cleanup trigger
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_cleanup_errors
+      parameters:
+      - name: hours
+        in: query
+        description: Hours of error history to retain
+        schema:
+          type: integer
+          format: Int32
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__Hash_String__JSON__Any__'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/edges/monitoring/summary:
+    get:
+      summary: Real-time error summary
+      tags:
+      - Edges
+      operationId: PlaceOS::Api::Edges_monitoring_summary
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__Hash_String__JSON__Any__'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/v2/query:
     post:
       summary: an influxDB proxy endpoint, route compatible with existing influxDB
@@ -16614,6 +17600,71 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/media/{id}/thumbnail:
+    get:
+      summary: redirects to the thumbnail image URL
+      tags:
+      - PlaylistMedia
+      operationId: PlaceOS::Api::PlaylistMedia_thumbnail
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists:
     get:
       summary: list media playlists uploaded for this domain
@@ -19252,6 +20303,14 @@ paths:
           items:
             type: string
           nullable: true
+      - name: storage_id
+        in: query
+        description: storage id to list uploads from (defaults to authority's default
+          storage)
+        example: storage-XXX
+        schema:
+          type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -21810,10 +22869,13 @@ paths:
       parameters:
       - name: parent_id
         in: query
-        description: only return zones who have this zone as a parent
-        example: zone-1234
+        description: only return zones who have this zone as a parent (supports comma-separated
+          list)
+        example: zone-1234,zone-5678
         schema:
-          type: string
+          type: array
+          items:
+            type: string
           nullable: true
       - name: tags
         in: query
@@ -22623,6 +23685,9 @@ components:
           type: string
           nullable: true
         enabled:
+          type: boolean
+          nullable: true
+        any_match:
           type: boolean
           nullable: true
         conditions:
@@ -24606,6 +25671,9 @@ components:
                         enable_webhook:
                           type: boolean
                           nullable: true
+                        any_match:
+                          type: boolean
+                          nullable: true
                         supported_methods:
                           type: array
                           items:
@@ -24781,10 +25849,27 @@ components:
           items:
             type: string
           nullable: true
+        security_groups:
+          type: array
+          items:
+            type: string
+          nullable: true
         timezone:
           type: object
           nullable: true
         support_url:
+          type: string
+          nullable: true
+        timetable_url:
+          type: string
+          nullable: true
+        camera_snapshot_url:
+          type: string
+          nullable: true
+        camera_url:
+          type: string
+          nullable: true
+        room_booking_url:
           type: string
           nullable: true
         version:
@@ -25065,6 +26150,9 @@ components:
                       type: boolean
                       nullable: true
                     enable_webhook:
+                      type: boolean
+                      nullable: true
+                    any_match:
                       type: boolean
                       nullable: true
                     supported_methods:
@@ -25482,6 +26570,9 @@ components:
                                 type: boolean
                                 nullable: true
                               enable_webhook:
+                                type: boolean
+                                nullable: true
+                              any_match:
                                 type: boolean
                                 nullable: true
                               supported_methods:
@@ -25999,6 +27090,9 @@ components:
               enable_webhook:
                 type: boolean
                 nullable: true
+              any_match:
+                type: boolean
+                nullable: true
               supported_methods:
                 type: array
                 items:
@@ -26228,6 +27322,254 @@ components:
       - user_id
       - online
       - x_api_key
+    PlaceOS__Core__Client__EdgeError:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: Int64
+        edge_id:
+          type: string
+        error_type:
+          type: string
+        message:
+          type: string
+        context:
+          type: object
+          additionalProperties:
+            type: string
+        severity:
+          type: string
+      required:
+      - timestamp
+      - edge_id
+      - error_type
+      - message
+      - context
+      - severity
+    PlaceOS__Core__Client__EdgeModuleStatus:
+      type: object
+      properties:
+        edge_id:
+          type: string
+        total_modules:
+          type: integer
+          format: Int32
+        running_modules:
+          type: integer
+          format: Int32
+        failed_modules:
+          type: array
+          items:
+            type: string
+        initialization_errors:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: object
+      required:
+      - edge_id
+      - total_modules
+      - running_modules
+      - failed_modules
+      - initialization_errors
+    _PlaceOS__Core__Client__EdgeHealth___Nil_:
+      type: object
+      properties:
+        edge_id:
+          type: string
+        connected:
+          type: boolean
+        last_seen:
+          type: integer
+          format: Int64
+        connection_uptime:
+          type: integer
+          format: Int64
+        error_count_24h:
+          type: integer
+          format: Int32
+        module_count:
+          type: integer
+          format: Int32
+        failed_modules:
+          type: array
+          items:
+            type: string
+      required:
+      - edge_id
+      - connected
+      - last_seen
+      - connection_uptime
+      - error_count_24h
+      - module_count
+      - failed_modules
+      nullable: true
+    _PlaceOS__Core__Client__ConnectionMetrics___Nil_:
+      type: object
+      properties:
+        edge_id:
+          type: string
+        total_connections:
+          type: integer
+          format: Int32
+        failed_connections:
+          type: integer
+          format: Int32
+        average_uptime:
+          type: integer
+          format: Int64
+        last_connection_attempt:
+          type: integer
+          format: Int64
+        last_successful_connection:
+          type: integer
+          format: Int64
+      required:
+      - edge_id
+      - total_connections
+      - failed_connections
+      - average_uptime
+      - last_connection_attempt
+      - last_successful_connection
+      nullable: true
+    Hash_String__PlaceOS__Core__Client__EdgeHealth_:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          edge_id:
+            type: string
+          connected:
+            type: boolean
+          last_seen:
+            type: integer
+            format: Int64
+          connection_uptime:
+            type: integer
+            format: Int64
+          error_count_24h:
+            type: integer
+            format: Int32
+          module_count:
+            type: integer
+            format: Int32
+          failed_modules:
+            type: array
+            items:
+              type: string
+        required:
+        - edge_id
+        - connected
+        - last_seen
+        - connection_uptime
+        - error_count_24h
+        - module_count
+        - failed_modules
+    Hash_String__Array_PlaceOS__Core__Client__EdgeError__:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: object
+          properties:
+            timestamp:
+              type: integer
+              format: Int64
+            edge_id:
+              type: string
+            error_type:
+              type: string
+            message:
+              type: string
+            context:
+              type: object
+              additionalProperties:
+                type: string
+            severity:
+              type: string
+          required:
+          - timestamp
+          - edge_id
+          - error_type
+          - message
+          - context
+          - severity
+    Hash_String__PlaceOS__Core__Client__ConnectionMetrics_:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          edge_id:
+            type: string
+          total_connections:
+            type: integer
+            format: Int32
+          failed_connections:
+            type: integer
+            format: Int32
+          average_uptime:
+            type: integer
+            format: Int64
+          last_connection_attempt:
+            type: integer
+            format: Int64
+          last_successful_connection:
+            type: integer
+            format: Int64
+        required:
+        - edge_id
+        - total_connections
+        - failed_connections
+        - average_uptime
+        - last_connection_attempt
+        - last_successful_connection
+    Hash_String__Array_Hash_String__JSON__Any___:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: object
+          additionalProperties:
+            type: object
+    PlaceOS__Core__Client__EdgeStatistics:
+      type: object
+      properties:
+        total_edges:
+          type: integer
+          format: Int32
+        connected_edges:
+          type: integer
+          format: Int32
+        edges_with_errors:
+          type: integer
+          format: Int32
+        total_errors_24h:
+          type: integer
+          format: Int32
+        total_modules:
+          type: integer
+          format: Int32
+        failed_modules:
+          type: integer
+          format: Int32
+        timestamp:
+          type: string
+      required:
+      - total_edges
+      - connected_edges
+      - edges_with_errors
+      - total_errors_24h
+      - total_modules
+      - failed_modules
+      - timestamp
+    Hash_String__Hash_String__JSON__Any__:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties:
+          type: object
     PlaceOS__Api__Metadata__Children:
       type: object
       properties:
@@ -26463,6 +27805,9 @@ components:
                     type: boolean
                     nullable: true
                   enable_webhook:
+                    type: boolean
+                    nullable: true
+                  any_match:
                     type: boolean
                     nullable: true
                   supported_methods:
@@ -27228,10 +28573,27 @@ components:
           items:
             type: string
           nullable: true
+        security_groups:
+          type: array
+          items:
+            type: string
+          nullable: true
         timezone:
           type: object
           nullable: true
         support_url:
+          type: string
+          nullable: true
+        timetable_url:
+          type: string
+          nullable: true
+        camera_snapshot_url:
+          type: string
+          nullable: true
+        camera_url:
+          type: string
+          nullable: true
+        room_booking_url:
           type: string
           nullable: true
         version:
@@ -27512,6 +28874,9 @@ components:
                       type: boolean
                       nullable: true
                     enable_webhook:
+                      type: boolean
+                      nullable: true
+                    any_match:
                       type: boolean
                       nullable: true
                     supported_methods:
@@ -27929,6 +29294,9 @@ components:
                                 type: boolean
                                 nullable: true
                               enable_webhook:
+                                type: boolean
+                                nullable: true
+                              any_match:
                                 type: boolean
                                 nullable: true
                               supported_methods:
@@ -28525,6 +29893,9 @@ components:
         enable_webhook:
           type: boolean
           nullable: true
+        any_match:
+          type: boolean
+          nullable: true
         supported_methods:
           type: array
           items:
@@ -28843,13 +30214,6 @@ components:
     PlaceOS__Api__Uploads__UpdateInfo:
       type: object
       properties:
-        file_id:
-          type: string
-          nullable: true
-        part:
-          type: integer
-          format: Int32
-          nullable: true
         resumable_id:
           type: string
           nullable: true
@@ -28863,9 +30227,6 @@ components:
               part:
                 type: integer
                 format: Int32
-              block_id:
-                type: string
-                nullable: true
             required:
             - md5
             - part
@@ -28875,9 +30236,6 @@ components:
           items:
             type: integer
             format: Int32
-          nullable: true
-        part_update:
-          type: boolean
           nullable: true
     ? _NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil__
     : anyOf:
@@ -29950,10 +31308,27 @@ components:
               items:
                 type: string
               nullable: true
+            security_groups:
+              type: array
+              items:
+                type: string
+              nullable: true
             timezone:
               type: object
               nullable: true
             support_url:
+              type: string
+              nullable: true
+            timetable_url:
+              type: string
+              nullable: true
+            camera_snapshot_url:
+              type: string
+              nullable: true
+            camera_url:
+              type: string
+              nullable: true
+            room_booking_url:
               type: string
               nullable: true
             version:
@@ -30234,6 +31609,9 @@ components:
                           type: boolean
                           nullable: true
                         enable_webhook:
+                          type: boolean
+                          nullable: true
+                        any_match:
                           type: boolean
                           nullable: true
                         supported_methods:
@@ -30651,6 +32029,9 @@ components:
                                     type: boolean
                                     nullable: true
                                   enable_webhook:
+                                    type: boolean
+                                    nullable: true
+                                  any_match:
                                     type: boolean
                                     nullable: true
                                   supported_methods:

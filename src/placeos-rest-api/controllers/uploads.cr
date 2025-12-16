@@ -63,6 +63,8 @@ module PlaceOS::Api
       offset : Int32 = 0,
       @[AC::Param::Info(description: "return uploads with particular tags", example: "staff,email")]
       tags : Array(String)? = nil,
+      @[AC::Param::Info(description: "storage id to list uploads from (defaults to authority's default storage)", example: "storage-XXX")]
+      storage_id : String? = nil,
     ) : Array(::PlaceOS::Model::Upload)
       # validate each incoming tag
       if tags
@@ -75,7 +77,18 @@ module PlaceOS::Api
 
       # 1. Prepare table name and storage
       table_name = ::PlaceOS::Model::Upload.table_name
-      storage = ::PlaceOS::Model::Storage.storage_or_default(authority.id)
+      storage = if storage_id
+                  # Validate that the storage exists and belongs to this authority
+                  unless found_storage = ::PlaceOS::Model::Storage.find?(storage_id)
+                    raise Error::NotFound.new("Storage not found: #{storage_id}")
+                  end
+                  unless found_storage.authority_id == authority.id || found_storage.authority_id.nil?
+                    raise Error::Forbidden.new("Storage does not belong to this authority")
+                  end
+                  found_storage
+                else
+                  ::PlaceOS::Model::Storage.storage_or_default(authority.id)
+                end
 
       # 2. Build conditions and bind params
       conditions = ["u.storage_id = $1"]
@@ -315,12 +328,14 @@ module PlaceOS::Api
         if part.strip == "finish"
           s3 = signer.commit_file(storage.bucket_name, current_upload.object_key, resumable_id, get_headers(current_upload))
           finish_body = nil
-          if storage.storage_type == PlaceOS::Model::Storage::Type::Azure
-            if part_data = current_upload.part_data
+          if storage.storage_type.azure?
+            if part_data = current_upload.part_data.try(&.transform_keys(&.to_i))
+              part_data = part_data.transform_values { |val| PartInfo.from_json(val.to_json) }
+
               block_ids = [] of String
               parts = part_data.keys.sort!
               parts.each do |ppart|
-                block_ids << part_data[ppart].as_h["block_id"].as_s
+                block_ids << part_data[ppart].azure_block_id
               end
               finish_body = block_list_xml(block_ids)
             else
@@ -332,6 +347,7 @@ module PlaceOS::Api
           unless md5 = file_id
             raise AC::Route::Param::ValueError.new("Missing MD5 hash of file part", "file_id", "required except for the `finish` part")
           end
+          part = Base64.strict_encode(part.rjust(6, '0')) if storage.storage_type.azure?
           s3 = signer.set_part(storage.bucket_name, current_upload.object_key, current_upload.file_size, md5, part, resumable_id, get_headers(current_upload))
           {type: :part_upload, signature: s3, upload_id: current_upload.id, body: nil}
         end
@@ -340,12 +356,15 @@ module PlaceOS::Api
       end
     end
 
-    record PartInfo, md5 : String, part : Int32, block_id : String? do
+    record PartInfo, md5 : String, part : Int32 do
       include JSON::Serializable
+
+      def azure_block_id
+        Base64.strict_encode(part.to_s.rjust(6, '0'))
+      end
     end
 
-    record UpdateInfo, file_id : String?, part : Int32?, resumable_id : String?,
-      part_data : Array(PartInfo)?, part_list : Array(Int32)?, part_update : Bool? do
+    record UpdateInfo, resumable_id : String?, part_data : Array(PartInfo)?, part_list : Array(Int32)? do
       include JSON::Serializable
     end
 
@@ -379,10 +398,8 @@ module PlaceOS::Api
       # returns the signed URL for the next part if params are provided
       if part && file_id
         edit(part, file_id)
-      elsif !info.part_update
-        edit(info.part.to_s, info.file_id)
       else
-        {ok: true}
+        edit("finish", nil)
       end
     end
 
