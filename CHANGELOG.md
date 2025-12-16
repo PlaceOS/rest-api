@@ -2,6 +2,7 @@
 
 ### Feat
 
+- [PPT-2270] 1-click setup for outlook plugin ([#420](https://github.com/PlaceOS/rest-api/pull/420))
 - [PPT-11] Add edge monitoring endpoints ([#417](https://github.com/PlaceOS/rest-api/pull/417))
 - add signage media thumbnail shortcut
 - **uploads**: [PPT-2302] add storage_id parameter to index endpoint for listing uploads from specific storages ([#423](https://github.com/PlaceOS/rest-api/pull/423))
