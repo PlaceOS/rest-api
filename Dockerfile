@@ -22,6 +22,9 @@ RUN adduser \
     --no-create-home \
     --uid "${UID}" \
     "${USER}"
+    
+# Install package updates since image release
+RUN apk update && apk --no-cache --quiet upgrade
 
 # Install shards for caching
 COPY shard.yml shard.yml
