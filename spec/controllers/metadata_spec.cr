@@ -56,6 +56,176 @@ module PlaceOS::Api
 
         parent.destroy
       end
+
+      it "filters zone children by single tag" do
+        parent = Model::Generator.zone.save!
+        parent_id = parent.id.as(String)
+
+        # Create children with different tags
+        child1 = Model::Generator.zone
+        child1.parent_id = parent_id
+        child1.tags = Set{"building", "level1"}
+        child1.save!
+        Model::Generator.metadata(parent: child1.id).save!
+
+        child2 = Model::Generator.zone
+        child2.parent_id = parent_id
+        child2.tags = Set{"room", "level2"}
+        child2.save!
+        Model::Generator.metadata(parent: child2.id).save!
+
+        child3 = Model::Generator.zone
+        child3.parent_id = parent_id
+        child3.tags = Set{"building", "lobby"}
+        child3.save!
+        Model::Generator.metadata(parent: child3.id).save!
+
+        # Test filtering by "building" tag - should return child1 and child3
+        result = client.get(
+          path: "#{Metadata.base_route}/#{parent_id}/children?tags=building",
+          headers: Spec::Authentication.headers,
+        )
+
+        children_result = Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+          .from_json(result.body)
+        children_result.size.should eq 2
+
+        # Verify the correct zones are returned
+        zone_ids = children_result.map(&.[:zone]["id"].as_s)
+        zone_ids.should contain(child1.id)
+        zone_ids.should contain(child3.id)
+
+        parent.destroy
+      end
+
+      it "filters zone children by multiple tags" do
+        parent = Model::Generator.zone.save!
+        parent_id = parent.id.as(String)
+
+        # Create children with different tags
+        child1 = Model::Generator.zone
+        child1.parent_id = parent_id
+        child1.tags = Set{"building", "level1"}
+        child1.save!
+        Model::Generator.metadata(parent: child1.id).save!
+
+        child2 = Model::Generator.zone
+        child2.parent_id = parent_id
+        child2.tags = Set{"room", "level2"}
+        child2.save!
+        Model::Generator.metadata(parent: child2.id).save!
+
+        child3 = Model::Generator.zone
+        child3.parent_id = parent_id
+        child3.tags = Set{"building", "lobby"}
+        child3.save!
+        Model::Generator.metadata(parent: child3.id).save!
+
+        # Test filtering by multiple tags - should return zones with either tag
+        result = client.get(
+          path: "#{Metadata.base_route}/#{parent_id}/children?tags=building,room",
+          headers: Spec::Authentication.headers,
+        )
+
+        children_result = Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+          .from_json(result.body)
+        children_result.size.should eq 3
+
+        parent.destroy
+      end
+
+      it "returns empty result when no zones match tag filter" do
+        parent = Model::Generator.zone.save!
+        parent_id = parent.id.as(String)
+
+        # Create children with tags that don't match the filter
+        child1 = Model::Generator.zone
+        child1.parent_id = parent_id
+        child1.tags = Set{"building", "level1"}
+        child1.save!
+        Model::Generator.metadata(parent: child1.id).save!
+
+        child2 = Model::Generator.zone
+        child2.parent_id = parent_id
+        child2.tags = Set{"room", "level2"}
+        child2.save!
+        Model::Generator.metadata(parent: child2.id).save!
+
+        # Test filtering by non-existent tag
+        result = client.get(
+          path: "#{Metadata.base_route}/#{parent_id}/children?tags=nonexistent",
+          headers: Spec::Authentication.headers,
+        )
+
+        children_result = Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+          .from_json(result.body)
+        children_result.size.should eq 0
+
+        parent.destroy
+      end
+
+      it "returns all zones when no tag filter is provided" do
+        parent = Model::Generator.zone.save!
+        parent_id = parent.id.as(String)
+
+        # Create children with tags
+        3.times do |i|
+          child = Model::Generator.zone
+          child.parent_id = parent_id
+          child.tags = Set{"tag#{i}"}
+          child.save!
+          Model::Generator.metadata(parent: child.id).save!
+        end
+
+        # Test without tag filter - should return all zones
+        result = client.get(
+          path: "#{Metadata.base_route}/#{parent_id}/children",
+          headers: Spec::Authentication.headers,
+        )
+
+        children_result = Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+          .from_json(result.body)
+        children_result.size.should eq 3
+
+        parent.destroy
+      end
+
+      it "combines tag filter with name filter" do
+        parent = Model::Generator.zone.save!
+        parent_id = parent.id.as(String)
+
+        # Create children with tags
+        child1 = Model::Generator.zone
+        child1.parent_id = parent_id
+        child1.tags = Set{"building"}
+        child1.save!
+        Model::Generator.metadata(name: "special", parent: child1.id).save!
+
+        child2 = Model::Generator.zone
+        child2.parent_id = parent_id
+        child2.tags = Set{"building"}
+        child2.save!
+        Model::Generator.metadata(name: "regular", parent: child2.id).save!
+
+        child3 = Model::Generator.zone
+        child3.parent_id = parent_id
+        child3.tags = Set{"room"}
+        child3.save!
+        Model::Generator.metadata(name: "special", parent: child3.id).save!
+
+        # Test combining tag and name filters - should return only child1
+        result = client.get(
+          path: "#{Metadata.base_route}/#{parent_id}/children?tags=building&name=special",
+          headers: Spec::Authentication.headers,
+        )
+
+        children_result = Array(NamedTuple(zone: JSON::Any, metadata: Hash(String, Model::Metadata::Interface)))
+          .from_json(result.body)
+        children_result.size.should eq 1
+        children_result.first[:zone]["id"].as_s.should eq child1.id
+
+        parent.destroy
+      end
     end
 
     describe "PUT /metadata" do
