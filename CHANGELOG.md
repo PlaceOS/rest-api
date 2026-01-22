@@ -84,6 +84,7 @@
 
 ### Fix
 
+- **metadata**: guest JWT access more flexible
 - **drivers**: readme endpoint ([#425](https://github.com/PlaceOS/rest-api/pull/425))
 - **modules**: [PPT-2332] fix logQL search query ([#424](https://github.com/PlaceOS/rest-api/pull/424))
 - **signage/playlist_media**: support deleting azure uploads
