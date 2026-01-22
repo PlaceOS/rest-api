@@ -215,8 +215,11 @@ module PlaceOS::Api
 
     # Fetch zones for system the current user has a role for
     def guest_ids
-      sys_id = user_token.user.roles.last
-      ::PlaceOS::Model::ControlSystem.find!(sys_id).zones + [sys_id]
+      ids = user_token.user.roles.select(&.starts_with?("zone-"))
+      if sys_id = user_token.user.roles.find(&.starts_with?("sys-"))
+        ids = ::PlaceOS::Model::ControlSystem.find!(sys_id).zones + [sys_id] + ids
+      end
+      ids.uniq!
     end
 
     def check_access_level(zone_id : String, admin_required : Bool = false)
