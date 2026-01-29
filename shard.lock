@@ -191,7 +191,7 @@ shards:
 
   place_calendar:
     git: https://github.com/placeos/calendar.git
-    version: 4.29.3
+    version: 4.29.4
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
@@ -199,7 +199,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.8e6bdba80e6a4e381a10dca629c9e0236b998857
+    version: 4.21.0+git.commit.2cc78c1bcdf313ad80a4a45072d2da4a47549635
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.a1ec1ed02f381601a40f22b9bb5bb574cd5ed5de
+    version: 2.7.1+git.commit.0b6ac3ee9bb1245ac13aa9e7788b0451723d0b3c
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -267,7 +267,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.5902a714e64a0907de3d6b0315da503e4424dd99
+    version: 2.11.3+git.commit.66d98a22e835aa040b52969a678b3cf63a87de10
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
