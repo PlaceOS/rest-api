@@ -238,6 +238,84 @@ module PlaceOS::Api
       end
     end
 
+    describe "GET /metadata/:name/bulk" do
+      it "fetches metadata with specific name for multiple resources" do
+        # Create multiple zones with the same metadata name
+        zone1 = Model::Generator.zone.save!
+        zone2 = Model::Generator.zone.save!
+        zone3 = Model::Generator.zone.save!
+
+        zone1_id = zone1.id.as(String)
+        zone2_id = zone2.id.as(String)
+        zone3_id = zone3.id.as(String)
+
+        # Create metadata with name "settings" for each zone
+        meta1 = Model::Generator.metadata(name: "settings", parent: zone1_id).save!
+        meta2 = Model::Generator.metadata(name: "settings", parent: zone2_id).save!
+        # zone3 intentionally has no metadata
+
+        result = client.get(
+          path: "#{Metadata.base_route}/settings/bulk?parent_ids=#{zone1_id},#{zone2_id},#{zone3_id}",
+          headers: Spec::Authentication.headers,
+        )
+
+        result.success?.should be_true
+        metadata = Hash(String, Model::Metadata::Interface?).from_json(result.body)
+
+        metadata.size.should eq 3
+        metadata[zone1_id].should_not be_nil
+        metadata[zone1_id].not_nil!.name.should eq "settings"
+        metadata[zone2_id].should_not be_nil
+        metadata[zone2_id].not_nil!.name.should eq "settings"
+        metadata[zone3_id].should be_nil
+      end
+
+      it "returns empty metadata for resources without the specified metadata" do
+        zone1 = Model::Generator.zone.save!
+        zone2 = Model::Generator.zone.save!
+
+        zone1_id = zone1.id.as(String)
+        zone2_id = zone2.id.as(String)
+
+        # Only zone1 has the metadata
+        Model::Generator.metadata(name: "config", parent: zone1_id).save!
+
+        result = client.get(
+          path: "#{Metadata.base_route}/config/bulk?parent_ids=#{zone1_id},#{zone2_id}",
+          headers: Spec::Authentication.headers,
+        )
+
+        result.success?.should be_true
+        metadata = Hash(String, Model::Metadata::Interface?).from_json(result.body)
+
+        metadata.size.should eq 2
+        metadata[zone1_id].should_not be_nil
+        metadata[zone2_id].should be_nil
+      end
+
+      it "allows guests to fetch bulk metadata" do
+        _, scoped_headers = Spec::Authentication.authentication(scope: [PlaceOS::Model::UserJWT::Scope.new("guest", PlaceOS::Model::UserJWT::Scope::Access::Read)])
+
+        zone1 = Model::Generator.zone.save!
+        zone2 = Model::Generator.zone.save!
+
+        zone1_id = zone1.id.as(String)
+        zone2_id = zone2.id.as(String)
+
+        Model::Generator.metadata(name: "settings", parent: zone1_id).save!
+        Model::Generator.metadata(name: "settings", parent: zone2_id).save!
+
+        result = client.get(
+          path: "#{Metadata.base_route}/settings/bulk?parent_ids=#{zone1_id},#{zone2_id}",
+          headers: scoped_headers,
+        )
+
+        result.success?.should be_true
+        metadata = Hash(String, Model::Metadata::Interface?).from_json(result.body)
+        metadata.size.should eq 2
+      end
+    end
+
     describe "GET /metadata/:id" do
       it "shows control_system metadata" do
         control_system = Model::Generator.control_system.save!

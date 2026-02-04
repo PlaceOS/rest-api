@@ -12,7 +12,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:history]
-    before_action :can_read_guest, only: [:show, :children_metadata]
+    before_action :can_read_guest, only: [:show, :children_metadata, :bulk_fetch]
     before_action :can_write, only: [:update, :destroy]
 
     # Callbacks
@@ -29,6 +29,36 @@ module PlaceOS::Api
     end
 
     ###############################################################################################
+
+    # Fetch metadata with a specific name for multiple resources
+    #
+    # Allows bulk retrieval of metadata across multiple parent entities
+    @[AC::Route::GET("/:name/bulk", converters: {parent_ids: ConvertStringArray})]
+    def bulk_fetch(
+      @[AC::Param::Info(name: "name", description: "the name of the metadata key to fetch", example: "settings")]
+      metadata_name : String,
+      @[AC::Param::Info(description: "comma-separated list of parent IDs (zones, systems, users, etc.)", example: "zone-1,zone-2,zone-3")]
+      parent_ids : Array(String),
+    ) : Hash(String, ::PlaceOS::Model::Metadata::Interface?)
+      # Guest JWTs have restricted access
+      if user_token.guest_scope?
+        allowed_ids = guest_ids
+        # Ensure all requested IDs are in the guest's allowed list
+        unless parent_ids.all? { |id| allowed_ids.includes?(id) }
+          raise Error::Forbidden.new
+        end
+      end
+
+      # Build result hash with parent_id as key and metadata as value
+      result = {} of String => ::PlaceOS::Model::Metadata::Interface?
+
+      parent_ids.each do |parent_id|
+        metadata = ::PlaceOS::Model::Metadata.for(parent_id, metadata_name).first?
+        result[parent_id] = metadata ? metadata.interface : nil
+      end
+
+      result
+    end
 
     # Fetch metadata for a model
     #
