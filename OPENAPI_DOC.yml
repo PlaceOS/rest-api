@@ -12619,6 +12619,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/metadata/{name}/bulk:
+    get:
+      summary: Fetch metadata with a specific name for multiple resources
+      description: 'Fetch metadata with a specific name for multiple resources
+
+
+        Allows bulk retrieval of metadata across multiple parent entities'
+      tags:
+      - Metadata
+      operationId: PlaceOS::Api::Metadata_bulk_fetch
+      parameters:
+      - name: name
+        in: path
+        description: the name of the metadata key to fetch
+        example: settings
+        required: true
+        schema:
+          type: string
+      - name: parent_ids
+        in: query
+        description: comma-separated list of parent IDs (zones, systems, users, etc.)
+        example: zone-1,zone-2,zone-3
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__PlaceOS__Model__Metadata__Interface___Nil_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/metadata/{id}:
     get:
       summary: Fetch metadata for a model
@@ -25362,6 +25446,9 @@ components:
           type: integer
           format: Int64
           nullable: true
+        launch_on_execute:
+          type: boolean
+          nullable: true
         control_system_id:
           type: string
           nullable: true
@@ -26262,6 +26349,9 @@ components:
               error_timestamp:
                 type: integer
                 format: Int64
+                nullable: true
+              launch_on_execute:
+                type: boolean
                 nullable: true
               control_system_id:
                 type: string
@@ -27525,6 +27615,44 @@ components:
         type: object
         additionalProperties:
           type: object
+    Hash_String__PlaceOS__Model__Metadata__Interface___Nil_:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          name:
+            type: string
+          description:
+            type: string
+          details:
+            type: object
+          parent_id:
+            type: string
+            nullable: true
+          schema_id:
+            type: string
+            nullable: true
+          editors:
+            type: array
+            items:
+              type: string
+          modified_by_id:
+            type: string
+            nullable: true
+          updated_at:
+            type: integer
+            format: Int64
+          created_at:
+            type: integer
+            format: Int64
+        required:
+        - name
+        - description
+        - details
+        - editors
+        - updated_at
+        - created_at
+        nullable: true
     PlaceOS__Api__Metadata__Children:
       type: object
       properties:
@@ -28986,6 +29114,9 @@ components:
               error_timestamp:
                 type: integer
                 format: Int64
+                nullable: true
+              launch_on_execute:
+                type: boolean
                 nullable: true
               control_system_id:
                 type: string
@@ -31721,6 +31852,9 @@ components:
                   error_timestamp:
                     type: integer
                     format: Int64
+                    nullable: true
+                  launch_on_execute:
+                    type: boolean
                     nullable: true
                   control_system_id:
                     type: string
