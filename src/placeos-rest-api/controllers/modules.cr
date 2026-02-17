@@ -107,8 +107,6 @@ module PlaceOS::Api
       as_of : Int64? = nil,
       @[AC::Param::Info(description: "only return modules running in this system (query params are ignored if this is provided)", example: "sys-1234")]
       control_system_id : String? = nil,
-      @[AC::Param::Info(description: "only return modules with a particular connected state", example: "true")]
-      connected : Bool? = nil,
       @[AC::Param::Info(description: "only return instances of this driver", example: "driver-1234")]
       driver_id : String? = nil,
       @[AC::Param::Info(description: "do not return logic modules (return only modules that can exist in multiple systems)", example: "true")]
@@ -177,13 +175,6 @@ module PlaceOS::Api
         query.filter({"driver_id" => [driver_id]})
       end
 
-      unless connected.nil?
-        query.filter({
-          "ignore_connected" => [false],
-          "connected"        => [connected],
-        })
-      end
-
       unless running.nil?
         query.should({"running" => [running]})
       end
@@ -201,21 +192,39 @@ module PlaceOS::Api
       search_results = paginate_results(elastic, query)
 
       # Include subset of association data with results
+      # avoid n+1 requests
+      control_system_ids = search_results.compact_map(&.control_system_id).uniq!
+      drivers = Model::Driver.find_all search_results.map(&.driver_id.as(String)).uniq!
+
+      control_systems = Model::ControlSystem.find_all(control_system_ids).to_a
+      zones = Model::Zone.find_all(control_systems.flat_map(&.zones)).to_a
+
       search_results.compact_map do |d|
-        sys = d.control_system
-        driver = d.driver
+        sys_id = d.control_system_id
+        sys = sys_id ? control_systems.find { |csys| csys.id == sys_id } : nil
+        d_id = d.driver_id.as(String)
+        driver = drivers.find { |drive| drive.id == d_id }
         next unless driver
 
         # Include control system on Logic modules so it is possible
         # to display the inherited settings
         sys_field = if sys
-                      ControlSystemDetails.new(sys.name, ::PlaceOS::Model::Zone.find_all(sys.zones).to_a)
+                      ControlSystemDetails.new(sys.name, sys.zones.compact_map { |zid| zones.find { |zone| zone.id == zid } })
                     else
                       nil
                     end
 
         d.control_system_details = sys_field
         d.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
+
+        # grab connected state from redis
+        d.connected = if d.running
+                        storage = Driver::RedisStorage.new(d.id.as(String))
+                        storage["connected"]? != "false"
+                      else
+                        true
+                      end
+
         d
       end
     end
@@ -229,8 +238,19 @@ module PlaceOS::Api
       running_on = self.class.locate_module(current_module.id.as(String)) rescue nil
       current_module.core_node = running_on
 
+      # grab connected state from redis
+      current_module.connected = if current_module.running
+                                   storage = Driver::RedisStorage.new(current_module.id.as(String))
+                                   storage["connected"]? != "false"
+                                 else
+                                   true
+                                 end
+
       if complete && (driver = current_module.driver)
         current_module.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
+        if sys = current_module.control_system
+          current_module.control_system_details = ControlSystemDetails.new(sys.name, ::PlaceOS::Model::Zone.find_all(sys.zones).to_a)
+        end
         current_module
       else
         current_module
