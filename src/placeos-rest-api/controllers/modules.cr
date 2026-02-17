@@ -249,7 +249,7 @@ module PlaceOS::Api
       if complete && (driver = current_module.driver)
         current_module.driver_details = DriverDetails.new(driver.name, driver.description, driver.module_name)
         if sys = current_module.control_system
-          d.control_system_details = ControlSystemDetails.new(sys.name, ::PlaceOS::Model::Zone.find_all(sys.zones).to_a)
+          current_module.control_system_details = ControlSystemDetails.new(sys.name, ::PlaceOS::Model::Zone.find_all(sys.zones).to_a)
         end
         current_module
       else
