@@ -267,12 +267,21 @@ module PlaceOS::Api
         sys.zone_data_details = ::PlaceOS::Model::Zone.find_all(current_control_system.zones).to_a
 
         # extend the module details with the driver details
-        modules = ::PlaceOS::Model::Module.find_all(current_control_system.modules).to_a.map do |mod|
-          # Pick off driver name, and module_name from associated driver
-          mod.driver_details = mod.driver.try do |driver|
-            Api::Modules::DriverDetails.new(driver.name, driver.description, driver.module_name)
-          end
-          mod
+        modules = ::PlaceOS::Model::Module.find_all(current_control_system.modules).to_a
+        drivers = Model::Driver.find_all modules.map(&.driver_id.as(String)).uniq!
+        modules.select! do |mod|
+          d_id = mod.driver_id.as(String)
+          driver = drivers.find { |drive| drive.id == d_id }
+          next unless driver
+
+          mod.connected = if mod.running
+                            storage = Driver::RedisStorage.new(mod.id.as(String))
+                            storage["connected"]? != "false"
+                          else
+                            true
+                          end
+
+          mod.driver_details = Api::Modules::DriverDetails.new(driver.name, driver.description, driver.module_name)
         end
         sys.module_data_details = modules
 

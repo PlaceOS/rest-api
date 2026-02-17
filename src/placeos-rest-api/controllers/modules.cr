@@ -202,7 +202,7 @@ module PlaceOS::Api
       search_results.compact_map do |d|
         sys_id = d.control_system_id
         sys = sys_id ? control_systems.find { |csys| csys.id == sys_id } : nil
-        d_id = d.driver_id
+        d_id = d.driver_id.as(String)
         driver = drivers.find { |drive| drive.id == d_id }
         next unless driver
 
