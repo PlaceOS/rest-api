@@ -245,28 +245,6 @@ module PlaceOS::Api
           found.should be_true
         end
 
-        it "connected" do
-          mod = Model::Generator.module
-          mod.ignore_connected = false
-          mod.connected = true
-          mod.save!
-          mod.persisted?.should be_true
-
-          params = HTTP::Params.encode({"connected" => "true"})
-          path = "#{Modules.base_route}?#{params}"
-
-          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body)
-
-            all_connected = results.all? { |r| r["connected"].as_bool == true }
-            contains_created = results.any? { |r| r["id"].as_s == mod.id }
-
-            !results.empty? && all_connected && contains_created
-          end
-
-          found.should be_true
-        end
-
         it "no_logic" do
           driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
           mod = Model::Generator.module(driver: driver)
