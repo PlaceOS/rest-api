@@ -22,7 +22,7 @@ RUN adduser \
     --no-create-home \
     --uid "${UID}" \
     "${USER}"
-    
+
 # Install package updates since image release
 RUN apk update && apk --no-cache --quiet upgrade
 
@@ -40,7 +40,7 @@ COPY ./src /app/src
 RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_COMMIT=$PLACE_COMMIT \
     PLACE_VERSION=$PLACE_VERSION \
-    shards build --production --error-trace
+    shards build --production --error-trace --static
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
