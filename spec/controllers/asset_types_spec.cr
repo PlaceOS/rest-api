@@ -39,6 +39,35 @@ module PlaceOS::Api
         body.as_a.size.should be >= 1
         body.as_a.first["asset_count"].should eq(0)
       end
+
+      it "should filter by category_id" do
+        PlaceOS::Model::Asset.clear
+        PlaceOS::Model::AssetType.clear
+
+        # this will generate 2 categories so we can ensure only 1 is returned
+        asset1 = PlaceOS::Model::Generator.asset_type.save!
+        asset2 = PlaceOS::Model::Generator.asset_type.save!
+        category_id = asset2.category_id
+
+        params = HTTP::Params.encode({"category_id" => category_id.to_s})
+        path = "#{AssetTypes.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+        result.status_code.should eq(200)
+
+        body = JSON.parse(result.body)
+        body.as_a?.should_not be_nil
+        body.as_a.size.should eq(1)
+        body.as_a.first["id"].as_s.should eq(asset2.id)
+
+        # check we can return both
+        asset1.category_id = category_id
+        asset1.save!
+        result = client.get(path, headers: Spec::Authentication.headers)
+        result.status_code.should eq(200)
+        body = JSON.parse(result.body)
+        body.as_a?.should_not be_nil
+        body.as_a.size.should eq(2)
+      end
     end
 
     describe "CRUD operations", tags: "crud" do

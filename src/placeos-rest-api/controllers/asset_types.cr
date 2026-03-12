@@ -51,59 +51,79 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "filters the asset count to the zone provided", example: "zone-1234")]
       zone_id : String? = nil,
     ) : String
-      conditions = [] of String
-      conditions << "at.brand = '#{brand}'" if brand
-      conditions << "at.model_number = '#{model_number}'" if model_number
-      conditions << "at.category_id = '#{category_id}'" if category_id
-      conditions << "a.zone_id = '#{zone_id}'" if zone_id
+      where_clauses = [] of String
+      join_clauses = [] of String
+      args = [] of DB::Any
 
-      where = conditions.empty? ? "" : "AND #{conditions.join(" AND ")}"
+      if brand
+        args << brand
+        where_clauses << "at.brand = $#{args.size}"
+      end
+
+      if model_number
+        args << model_number
+        where_clauses << "at.model_number = $#{args.size}"
+      end
+
+      if category_id
+        args << category_id
+        where_clauses << "at.category_id = $#{args.size}"
+      end
+
+      if zone_id
+        args << zone_id
+        join_clauses << "a.zone_id = $#{args.size}"
+      end
+
+      where_sql = where_clauses.empty? ? "" : "WHERE #{where_clauses.join(" AND ")}"
+      join_sql = join_clauses.empty? ? "" : " AND #{join_clauses.join(" AND ")}"
 
       sql = <<-SQL
-      SELECT
-          json_agg(
-              jsonb_strip_nulls(
-                  json_build_object(
-                      'id', id,
-                      'name', name,
-                      'brand', CASE WHEN brand IS NOT NULL THEN brand ELSE NULL END,
-                      'description', CASE WHEN description IS NOT NULL THEN description ELSE NULL END,
-                      'model_number', CASE WHEN model_number IS NOT NULL THEN model_number ELSE NULL END,
-                      'images', CASE WHEN images IS NOT NULL THEN images ELSE NULL END,
-                      'category_id', CASE WHEN category_id IS NOT NULL THEN category_id ELSE NULL END,
-                      'created_at', created_at,
-                      'updated_at', updated_at,
-                      'asset_count', asset_count
-                  )::jsonb
-              )
-          ) AS result
-      FROM (
-          SELECT
-              at.id,
-              at.name,
-              at.brand,
-              at.description,
-              at.model_number,
-              at.images,
-              at.category_id,
-              EXTRACT(EPOCH FROM at.created_at)::bigint AS created_at,
-              EXTRACT(EPOCH FROM at.updated_at)::bigint AS updated_at,
-              COALESCE(COUNT(a.id), 0) AS asset_count
-          FROM
-              asset_type at
-          LEFT JOIN
-              asset a
-          ON
-              at.id = a.asset_type_id
-          #{where}
-          GROUP BY
-              at.id, at.name, at.brand, at.description, at.model_number, at.images, at.category_id, at.created_at, at.updated_at
-      ) subquery;
+        SELECT
+            json_agg(
+                jsonb_strip_nulls(
+                    json_build_object(
+                        'id', id,
+                        'name', name,
+                        'brand', CASE WHEN brand IS NOT NULL THEN brand ELSE NULL END,
+                        'description', CASE WHEN description IS NOT NULL THEN description ELSE NULL END,
+                        'model_number', CASE WHEN model_number IS NOT NULL THEN model_number ELSE NULL END,
+                        'images', CASE WHEN images IS NOT NULL THEN images ELSE NULL END,
+                        'category_id', CASE WHEN category_id IS NOT NULL THEN category_id ELSE NULL END,
+                        'created_at', created_at,
+                        'updated_at', updated_at,
+                        'asset_count', asset_count
+                    )::jsonb
+                )
+            ) AS result
+        FROM (
+            SELECT
+                at.id,
+                at.name,
+                at.brand,
+                at.description,
+                at.model_number,
+                at.images,
+                at.category_id,
+                EXTRACT(EPOCH FROM at.created_at)::bigint AS created_at,
+                EXTRACT(EPOCH FROM at.updated_at)::bigint AS updated_at,
+                COALESCE(COUNT(a.id), 0) AS asset_count
+            FROM
+                asset_type at
+            LEFT JOIN
+                asset a
+            ON
+                at.id = a.asset_type_id#{join_sql}
+            #{where_sql}
+            GROUP BY
+                at.id, at.name, at.brand, at.description, at.model_number, at.images, at.category_id, at.created_at, at.updated_at
+        ) subquery;
       SQL
 
       result = PgORM::Database.connection do |db|
-        db.query_one sql, &.read(JSON::PullParser?).try &.read_raw
+        db.query_one sql, args: args, &.read(JSON::PullParser?).try &.read_raw
       end
+
       render json: result || "[]"
     end
 
