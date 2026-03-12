@@ -86,6 +86,7 @@
 
 ### Fix
 
+- **asset_types**: index filters now function as expected
 - module connected state ([#428](https://github.com/PlaceOS/rest-api/pull/428))
 - **metadata**: guest JWT access more flexible
 - **drivers**: readme endpoint ([#425](https://github.com/PlaceOS/rest-api/pull/425))
