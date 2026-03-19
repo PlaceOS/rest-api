@@ -144,7 +144,7 @@ module PlaceOS::Api
     class_getter session_manager : WebSocket::Manager { WebSocket::Manager.new(RemoteDriver.default_discovery) }
 
     # list the systems in a cluster
-    @[AC::Route::GET("/", converters: {features: ConvertStringArray, email: ConvertStringArray})]
+    @[AC::Route::GET("/", converters: {features: ConvertStringArray, email: ConvertStringArray, zone_id: ConvertStringArray})]
     def index(
       @[AC::Param::Info(description: "return only bookable or non-bookable rooms (returns both when not specified)", example: "true")]
       bookable : Bool? = nil,
@@ -158,8 +158,8 @@ module PlaceOS::Api
       module_id : String? = nil,
       @[AC::Param::Info(description: "return systems which are using the trigger id provided", example: "trig-1234")]
       trigger_id : String? = nil,
-      @[AC::Param::Info(description: "return systems which are in the zone provided", example: "zone-1234")]
-      zone_id : String? = nil,
+      @[AC::Param::Info(description: "return systems which are in the zones provided", example: "zone-1234,zone-4567")]
+      zone_id : Array(String)? = nil,
       @[AC::Param::Info(description: "return systems which are public", example: "true")]
       public : Bool? = nil,
       @[AC::Param::Info(description: "return systems which are signage", example: "true")]
@@ -171,7 +171,7 @@ module PlaceOS::Api
       # Filter systems by zone_id
       if zone_id
         query.must({
-          "zones" => [zone_id],
+          "zones" => zone_id,
         })
       end
 

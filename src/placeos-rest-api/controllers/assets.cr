@@ -41,10 +41,12 @@ module PlaceOS::Api
     ###############################################################################################
 
     # list the assets
-    @[AC::Route::GET("/")]
+    @[AC::Route::GET("/", converters: {zones: ConvertStringArray})]
     def index(
-      @[AC::Param::Info(description: "return assets which are in the zone provided", example: "zone-1234")]
+      @[AC::Param::Info(description: "return assets which have the zone_id provided", example: "zone-1234")]
       zone_id : String? = nil,
+      @[AC::Param::Info(description: "return assets which are in the zones provided", example: "zone-1234,zone-4567")]
+      zones : Array(String)? = nil,
       @[AC::Param::Info(description: "return assets that match the asset type id provided", example: "asset_type-1234")]
       type_id : String? = nil,
       @[AC::Param::Info(description: "return assets that match the purchase order id provided", example: "asset_purchase_order-1234")]
@@ -60,6 +62,13 @@ module PlaceOS::Api
       if zone_id
         query.must({
           "zone_id" => [zone_id],
+        })
+      end
+
+      # Filter systems by the zones it's in
+      if zones && !zones.empty?
+        query.must({
+          "zones" => zones,
         })
       end
 

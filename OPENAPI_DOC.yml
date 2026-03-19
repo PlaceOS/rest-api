@@ -2942,10 +2942,19 @@ paths:
       parameters:
       - name: zone_id
         in: query
-        description: return assets which are in the zone provided
+        description: return assets which have the zone_id provided
         example: zone-1234
         schema:
           type: string
+          nullable: true
+      - name: zones
+        in: query
+        description: return assets which are in the zones provided
+        example: zone-1234,zone-4567
+        schema:
+          type: array
+          items:
+            type: string
           nullable: true
       - name: type_id
         in: query
@@ -8320,13 +8329,6 @@ paths:
         schema:
           type: string
           nullable: true
-      - name: connected
-        in: query
-        description: only return modules with a particular connected state
-        example: "true"
-        schema:
-          type: boolean
-          nullable: true
       - name: driver_id
         in: query
         description: only return instances of this driver
@@ -9495,10 +9497,12 @@ paths:
           nullable: true
       - name: zone_id
         in: query
-        description: return systems which are in the zone provided
-        example: zone-1234
+        description: return systems which are in the zones provided
+        example: zone-1234,zone-4567
         schema:
-          type: string
+          type: array
+          items:
+            type: string
           nullable: true
       - name: public
         in: query
@@ -25279,6 +25283,15 @@ components:
           - websocket
           - logic
           nullable: true
+        alert_level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - critical
+          description: the default alert level for stagehand issues
+          nullable: true
         file_name:
           type: string
           nullable: true
@@ -25423,6 +25436,15 @@ components:
           - service
           - websocket
           - logic
+          nullable: true
+        alert_level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - critical
+          description: the alert level for stagehand issues
           nullable: true
         connected:
           type: boolean
@@ -25908,6 +25930,11 @@ components:
         camera_snapshot_url:
           type: string
           nullable: true
+        camera_snapshot_urls:
+          type: array
+          items:
+            type: string
+          nullable: true
         camera_url:
           type: string
           nullable: true
@@ -26327,6 +26354,15 @@ components:
                 - service
                 - websocket
                 - logic
+                nullable: true
+              alert_level:
+                type: string
+                enum:
+                - low
+                - medium
+                - high
+                - critical
+                description: the alert level for stagehand issues
                 nullable: true
               connected:
                 type: boolean
@@ -26800,6 +26836,13 @@ components:
                 play_cron:
                   type: string
                   nullable: true
+                play_at_period:
+                  type: integer
+                  format: Int32
+                  nullable: true
+                play_at_takeover:
+                  type: boolean
+                  nullable: true
                 id:
                   type: string
                   nullable: true
@@ -26877,6 +26920,14 @@ components:
                 nullable: true
               thumbnail_id:
                 type: string
+                nullable: true
+              plugin_id:
+                type: string
+                nullable: true
+              plugin_params:
+                type: object
+                additionalProperties:
+                  type: object
                 nullable: true
               play_count:
                 type: integer
@@ -28462,6 +28513,14 @@ components:
         thumbnail_id:
           type: string
           nullable: true
+        plugin_id:
+          type: string
+          nullable: true
+        plugin_params:
+          type: object
+          additionalProperties:
+            type: object
+          nullable: true
         play_count:
           type: integer
           format: Int64
@@ -28551,6 +28610,13 @@ components:
           nullable: true
         play_cron:
           type: string
+          nullable: true
+        play_at_period:
+          type: integer
+          format: Int32
+          nullable: true
+        play_at_takeover:
+          type: boolean
           nullable: true
         id:
           type: string
@@ -28672,6 +28738,11 @@ components:
           nullable: true
         camera_snapshot_url:
           type: string
+          nullable: true
+        camera_snapshot_urls:
+          type: array
+          items:
+            type: string
           nullable: true
         camera_url:
           type: string
@@ -29092,6 +29163,15 @@ components:
                 - service
                 - websocket
                 - logic
+                nullable: true
+              alert_level:
+                type: string
+                enum:
+                - low
+                - medium
+                - high
+                - critical
+                description: the alert level for stagehand issues
                 nullable: true
               connected:
                 type: boolean
@@ -29565,6 +29645,13 @@ components:
                 play_cron:
                   type: string
                   nullable: true
+                play_at_period:
+                  type: integer
+                  format: Int32
+                  nullable: true
+                play_at_takeover:
+                  type: boolean
+                  nullable: true
                 id:
                   type: string
                   nullable: true
@@ -29642,6 +29729,14 @@ components:
                 nullable: true
               thumbnail_id:
                 type: string
+                nullable: true
+              plugin_id:
+                type: string
+                nullable: true
+              plugin_params:
+                type: object
+                additionalProperties:
+                  type: object
                 nullable: true
               play_count:
                 type: integer
@@ -31411,6 +31506,11 @@ components:
             camera_snapshot_url:
               type: string
               nullable: true
+            camera_snapshot_urls:
+              type: array
+              items:
+                type: string
+              nullable: true
             camera_url:
               type: string
               nullable: true
@@ -31830,6 +31930,15 @@ components:
                     - service
                     - websocket
                     - logic
+                    nullable: true
+                  alert_level:
+                    type: string
+                    enum:
+                    - low
+                    - medium
+                    - high
+                    - critical
+                    description: the alert level for stagehand issues
                     nullable: true
                   connected:
                     type: boolean
@@ -32303,6 +32412,13 @@ components:
                     play_cron:
                       type: string
                       nullable: true
+                    play_at_period:
+                      type: integer
+                      format: Int32
+                      nullable: true
+                    play_at_takeover:
+                      type: boolean
+                      nullable: true
                     id:
                       type: string
                       nullable: true
@@ -32380,6 +32496,14 @@ components:
                     nullable: true
                   thumbnail_id:
                     type: string
+                    nullable: true
+                  plugin_id:
+                    type: string
+                    nullable: true
+                  plugin_params:
+                    type: object
+                    additionalProperties:
+                      type: object
                     nullable: true
                   play_count:
                     type: integer
