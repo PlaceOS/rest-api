@@ -2,6 +2,7 @@
 
 ### Feat
 
+- add signage plugin API
 - improve zones filtering
 - **Dockerfile**: switch to static builds
 - [PPT-2341] Add bulk retrieval endpoint to metadata controller ([#427](https://github.com/PlaceOS/rest-api/pull/427))
