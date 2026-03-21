@@ -18,9 +18,5 @@ dependencies:
     github: place-labs/ulid
     branch: master
 
-  neuroplastic:
-    github: place-labs/neuroplastic
-    commit: b8549eb1e61a6f893ae08e219f53e2a5d48777ec
-
   redis:
     github: stefanwille/crystal-redis

@@ -153,9 +153,9 @@ shards:
     git: https://github.com/aca-labs/murmur3.git
     version: 0.1.1+git.commit.7cbe25c0ca8d052c9d98c377c824dcb0e038c790
 
-  neuroplastic: # Overridden
-    git: https://github.com/place-labs/neuroplastic.git
-    version: 1.13.3+git.commit.b8549eb1e61a6f893ae08e219f53e2a5d48777ec
+  neuroplastic:
+    git: https://github.com/spider-gazelle/neuroplastic.git
+    version: 1.14.1
 
   office365:
     git: https://github.com/placeos/office365.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.45677603f41b1f0b2856981be3a0003fda10de37
+    version: 2.7.1+git.commit.76ac144c8dadc852a9dd44b9628c96a19110bf80
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -267,7 +267,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.f55f217bf5888c6647509d1ccc3575551233157c
+    version: 2.11.3+git.commit.e705742ac7a31cf57cfcdab749ddaaeb54910f73
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
