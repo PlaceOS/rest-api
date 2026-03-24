@@ -26378,9 +26378,6 @@ components:
         timetable_url:
           type: string
           nullable: true
-        camera_snapshot_url:
-          type: string
-          nullable: true
         camera_snapshot_urls:
           type: array
           items:
@@ -27391,6 +27388,55 @@ components:
               valid_until:
                 type: integer
                 format: Int64
+                nullable: true
+              id:
+                type: string
+                nullable: true
+          nullable: true
+        signage_plugins:
+          type: array
+          items:
+            type: object
+            properties:
+              created_at:
+                type: integer
+                format: Int64
+                nullable: true
+              updated_at:
+                type: integer
+                format: Int64
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              uri:
+                type: string
+                nullable: true
+              playback_type:
+                type: string
+                enum:
+                - static
+                - interactive
+                - playsthrough
+                nullable: true
+              authority_id:
+                type: string
+                nullable: true
+              enabled:
+                type: boolean
+                nullable: true
+              params:
+                type: object
+                additionalProperties:
+                  type: object
+                nullable: true
+              defaults:
+                type: object
+                additionalProperties:
+                  type: object
                 nullable: true
               id:
                 type: string
@@ -29233,9 +29279,6 @@ components:
         timetable_url:
           type: string
           nullable: true
-        camera_snapshot_url:
-          type: string
-          nullable: true
         camera_snapshot_urls:
           type: array
           items:
@@ -30246,6 +30289,55 @@ components:
               valid_until:
                 type: integer
                 format: Int64
+                nullable: true
+              id:
+                type: string
+                nullable: true
+          nullable: true
+        signage_plugins:
+          type: array
+          items:
+            type: object
+            properties:
+              created_at:
+                type: integer
+                format: Int64
+                nullable: true
+              updated_at:
+                type: integer
+                format: Int64
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              uri:
+                type: string
+                nullable: true
+              playback_type:
+                type: string
+                enum:
+                - static
+                - interactive
+                - playsthrough
+                nullable: true
+              authority_id:
+                type: string
+                nullable: true
+              enabled:
+                type: boolean
+                nullable: true
+              params:
+                type: object
+                additionalProperties:
+                  type: object
+                nullable: true
+              defaults:
+                type: object
+                additionalProperties:
+                  type: object
                 nullable: true
               id:
                 type: string
@@ -32000,9 +32092,6 @@ components:
             timetable_url:
               type: string
               nullable: true
-            camera_snapshot_url:
-              type: string
-              nullable: true
             camera_snapshot_urls:
               type: array
               items:
@@ -33013,6 +33102,55 @@ components:
                   valid_until:
                     type: integer
                     format: Int64
+                    nullable: true
+                  id:
+                    type: string
+                    nullable: true
+              nullable: true
+            signage_plugins:
+              type: array
+              items:
+                type: object
+                properties:
+                  created_at:
+                    type: integer
+                    format: Int64
+                    nullable: true
+                  updated_at:
+                    type: integer
+                    format: Int64
+                    nullable: true
+                  name:
+                    type: string
+                    nullable: true
+                  description:
+                    type: string
+                    nullable: true
+                  uri:
+                    type: string
+                    nullable: true
+                  playback_type:
+                    type: string
+                    enum:
+                    - static
+                    - interactive
+                    - playsthrough
+                    nullable: true
+                  authority_id:
+                    type: string
+                    nullable: true
+                  enabled:
+                    type: boolean
+                    nullable: true
+                  params:
+                    type: object
+                    additionalProperties:
+                      type: object
+                    nullable: true
+                  defaults:
+                    type: object
+                    additionalProperties:
+                      type: object
                     nullable: true
                   id:
                     type: string

@@ -136,6 +136,10 @@ module PlaceOS::Api
       # media details (for caching)
       @[JSON::Field(key: "playlist_media")]
       property playlist_media : Array(::PlaceOS::Model::Playlist::Item)? = nil
+
+      # plugin details
+      @[JSON::Field(key: "signage_plugins")]
+      property signage_plugins : Array(::PlaceOS::Model::SignagePlugin)? = nil
     end
 
     ###############################################################################################
@@ -169,7 +173,7 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
 
       # Filter systems by zone_id
-      if zone_id
+      if zone_id && !zone_id.empty?
         query.must({
           "zones" => zone_id,
         })

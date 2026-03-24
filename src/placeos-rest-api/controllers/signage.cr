@@ -53,7 +53,13 @@ module PlaceOS::Api
         if media_ids.empty?
           system.playlist_media = [] of ::PlaceOS::Model::Playlist::Item
         else
-          system.playlist_media = ::PlaceOS::Model::Playlist::Item.where(id: media_ids).to_a
+          media_details = ::PlaceOS::Model::Playlist::Item.where(id: media_ids).to_a
+          system.playlist_media = media_details
+
+          plugin_ids = media_details.compact_map(&.plugin_id).uniq!
+          if !plugin_ids.empty?
+            system.signage_plugins = ::PlaceOS::Model::SignagePlugin.where(id: plugin_ids).to_a
+          end
         end
 
         # ensure response caching is configured correctly
