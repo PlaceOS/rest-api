@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: return plugin details for signage displays
 - add signage plugin API
 - improve zones filtering
 - **Dockerfile**: switch to static builds
