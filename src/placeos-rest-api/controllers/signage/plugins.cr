@@ -57,11 +57,21 @@ module PlaceOS::Api
 
     # list signage plugins for this domain and shared plugins (no authority)
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::SignagePlugin)
+    def index(
+      @[AC::Param::Info(description: "only return plugins that are enabled", example: "true")]
+      enabled : Bool? = nil,
+    ) : Array(::PlaceOS::Model::SignagePlugin)
       authority_id = authority.id.as(String)
 
       elastic = ::PlaceOS::Model::SignagePlugin.elastic
       query = elastic.query(search_params)
+
+      if !enabled.nil?
+        query.must({
+          "enabled" => [enabled],
+        })
+      end
+
       query.should({
         "authority_id" => [authority_id, nil],
       })

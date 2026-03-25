@@ -41,7 +41,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     # list the assets
-    @[AC::Route::GET("/", converters: {zones: ConvertStringArray})]
+    @[AC::Route::GET("/", converters: {zones: ConvertStringArray, features: ConvertStringArray})]
     def index(
       @[AC::Param::Info(description: "return assets which have the zone_id provided", example: "zone-1234")]
       zone_id : String? = nil,
@@ -55,6 +55,12 @@ module PlaceOS::Api
       barcode : String? = nil,
       @[AC::Param::Info(description: "return assets that have a matchng serial number", example: "1234567")]
       serial_number : String? = nil,
+      @[AC::Param::Info(description: "return assets that are bookable or not", example: "true")]
+      bookable : Bool? = nil,
+      @[AC::Param::Info(description: "return assets that are accessible or not", example: "false")]
+      accessible : Bool? = nil,
+      @[AC::Param::Info(description: "return assets which have the features provided", example: "sit-to-stand,whiteboard")]
+      features : Array(String)? = nil,
     ) : Array(::PlaceOS::Model::Asset)
       elastic = ::PlaceOS::Model::Asset.elastic
       query = elastic.query(search_params)
@@ -94,6 +100,25 @@ module PlaceOS::Api
         query.must({
           "serial_number" => [serial_number],
         })
+      end
+
+      if !bookable.nil?
+        query.must({
+          "bookable" => [bookable],
+        })
+      end
+
+      if !accessible.nil?
+        query.must({
+          "accessible" => [accessible],
+        })
+      end
+
+      if features && !features.empty?
+        query.should({
+          "features" => features,
+        })
+        query.minimum_should_match(1)
       end
 
       # query.has_parent(parent: ::PlaceOS::Model::AssetType, parent_index: ::PlaceOS::Model::AssetType.table_name)

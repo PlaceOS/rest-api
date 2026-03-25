@@ -2984,6 +2984,29 @@ paths:
         schema:
           type: string
           nullable: true
+      - name: bookable
+        in: query
+        description: return assets that are bookable or not
+        example: "true"
+        schema:
+          type: boolean
+          nullable: true
+      - name: accessible
+        in: query
+        description: return assets that are accessible or not
+        example: "false"
+        schema:
+          type: boolean
+          nullable: true
+      - name: features
+        in: query
+        description: return assets which have the features provided
+        example: sit-to-stand,whiteboard
+        schema:
+          type: array
+          items:
+            type: string
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -18454,6 +18477,13 @@ paths:
       - SignagePlugins
       operationId: PlaceOS::Api::SignagePlugins_index
       parameters:
+      - name: enabled
+        in: query
+        description: only return plugins that are enabled
+        example: "true"
+        schema:
+          type: boolean
+          nullable: true
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
