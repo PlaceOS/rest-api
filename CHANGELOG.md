@@ -2,6 +2,7 @@
 
 ### Feat
 
+- improve querying of signage plugins and assets
 - **signage**: return plugin details for signage displays
 - add signage plugin API
 - improve zones filtering
