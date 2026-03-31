@@ -24,6 +24,7 @@ module PlaceOS::Api
     class ::PlaceOS::Model::Zone
       @[JSON::Field(key: "trigger_data")]
       property trigger_data_details : Array(::PlaceOS::Model::Trigger)? = nil
+      property children_count : Int32? = nil
     end
 
     ###############################################################################################
@@ -96,21 +97,48 @@ module PlaceOS::Api
     # list the configured zones
     @[AC::Route::GET("/", converters: {tags: ConvertStringArray, parent_id: ConvertStringArray})]
     def index(
-      @[AC::Param::Info(description: "only return zones who have this zone as a parent (supports comma-separated list)", example: "zone-1234,zone-5678")]
+      @[AC::Param::Info(description: "only return zones who have this zone as a parent (supports comma-separated list). Use 'root' to get zones with no parent", example: "zone-1234,zone-5678")]
       parent_id : Array(String)? = nil,
       @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
       tags : Array(String)? = nil,
+      @[AC::Param::Info(description: "include children_count for each zone (useful for tree views)", example: "true")]
+      include_children_count : Bool = false,
     ) : Array(::PlaceOS::Model::Zone)
       elastic = ::PlaceOS::Model::Zone.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
-      # Limit results to the children of these parents (OR logic)
+      # Handle tree view queries
       if parent_id
-        query.should({
-          "parent_id" => parent_id,
-        })
-        query.minimum_should_match(1)
+        # Special case: "root" means zones with no parent
+        if parent_id.includes?("root")
+          # Remove "root" and add any other parent_ids if present
+          other_parents = parent_id.reject("root")
+          if !other_parents.empty?
+            # Mix of root and specific parents: use OR logic
+            # Build array with nil and other parent IDs
+            parent_values = Array(String?).new
+            parent_values << nil
+            other_parents.each { |p| parent_values << p }
+            query.should({
+              "parent_id" => parent_values,
+            })
+            query.minimum_should_match(1)
+          else
+            # Only root zones: filter for missing parent_id
+            parent_values = Array(String?).new
+            parent_values << nil
+            query.filter({
+              "parent_id" => parent_values,
+            })
+          end
+        else
+          # Limit results to the children of these parents (OR logic)
+          query.should({
+            "parent_id" => parent_id,
+          })
+          query.minimum_should_match(1)
+        end
       end
 
       # Limit results to zones containing the passed list of tags
@@ -123,7 +151,48 @@ module PlaceOS::Api
         query.search_field "name"
       end
 
-      paginate_results(elastic, query)
+      results = paginate_results(elastic, query)
+
+      # Add children count if requested
+      if include_children_count
+        results = add_children_counts_from_es(results, elastic, query)
+      end
+
+      results
+    end
+
+    # Helper to add children counts to zones using Elasticsearch aggregations
+    private def add_children_counts_from_es(zones : Array(::PlaceOS::Model::Zone), elastic, base_query)
+      return zones if zones.empty?
+
+      zone_ids = zones.map(&.id.as(String))
+
+      # Query all zones whose parent_id matches any of our zone_ids, then aggregate by parent_id
+      agg_query = ::PlaceOS::Model::Zone.elastic.query({} of String => String)
+      agg_query.should({"parent_id" => zone_ids})
+      agg_query.minimum_should_match(1)
+      agg_query.terms("children_by_parent", "parent_id", size: zone_ids.size)
+
+      # Execute query with aggregation
+      data = ::PlaceOS::Model::Zone.elastic.search(agg_query)
+
+      # Extract aggregation results
+      count_map = Hash(String, Int32).new
+      if aggs = data[:aggregations]?
+        if buckets = aggs.dig?("children_by_parent", "buckets").try(&.as_a?)
+          buckets.each do |bucket|
+            parent_id = bucket["key"].as_s
+            count_map[parent_id] = bucket["doc_count"].as_i
+          end
+        end
+      end
+
+      # Assign counts to zones
+      zones.each do |zone|
+        zone.children_count = count_map[zone.id.as(String)]? || 0
+      end
+
+      zones
     end
 
     # returns unique zone tags

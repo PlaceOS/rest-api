@@ -23394,7 +23394,7 @@ paths:
       - name: parent_id
         in: query
         description: only return zones who have this zone as a parent (supports comma-separated
-          list)
+          list). Use 'root' to get zones with no parent
         example: zone-1234,zone-5678
         schema:
           type: array
@@ -23410,6 +23410,12 @@ paths:
           items:
             type: string
           nullable: true
+      - name: include_children_count
+        in: query
+        description: include children_count for each zone (useful for tree views)
+        example: "true"
+        schema:
+          type: boolean
       - name: q
         in: query
         description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
@@ -26295,6 +26301,10 @@ components:
                           type: string
                           nullable: true
                     nullable: true
+                  children_count:
+                    type: integer
+                    format: Int32
+                    nullable: true
                   id:
                     type: string
                     nullable: true
@@ -26778,6 +26788,10 @@ components:
                       type: string
                       nullable: true
                 nullable: true
+              children_count:
+                type: integer
+                format: Int32
+                nullable: true
               id:
                 type: string
                 nullable: true
@@ -27209,6 +27223,10 @@ components:
                               id:
                                 type: string
                                 nullable: true
+                          nullable: true
+                        children_count:
+                          type: integer
+                          format: Int32
                           nullable: true
                         id:
                           type: string
@@ -27791,6 +27809,10 @@ components:
               id:
                 type: string
                 nullable: true
+          nullable: true
+        children_count:
+          type: integer
+          format: Int32
           nullable: true
         id:
           type: string
@@ -28546,6 +28568,10 @@ components:
                   id:
                     type: string
                     nullable: true
+              nullable: true
+            children_count:
+              type: integer
+              format: Int32
               nullable: true
             id:
               type: string
@@ -29679,6 +29705,10 @@ components:
                       type: string
                       nullable: true
                 nullable: true
+              children_count:
+                type: integer
+                format: Int32
+                nullable: true
               id:
                 type: string
                 nullable: true
@@ -30110,6 +30140,10 @@ components:
                               id:
                                 type: string
                                 nullable: true
+                          nullable: true
+                        children_count:
+                          type: integer
+                          format: Int32
                           nullable: true
                         id:
                           type: string
@@ -32492,6 +32526,10 @@ components:
                           type: string
                           nullable: true
                     nullable: true
+                  children_count:
+                    type: integer
+                    format: Int32
+                    nullable: true
                   id:
                     type: string
                     nullable: true
@@ -32923,6 +32961,10 @@ components:
                                   id:
                                     type: string
                                     nullable: true
+                              nullable: true
+                            children_count:
+                              type: integer
+                              format: Int32
                               nullable: true
                             id:
                               type: string
