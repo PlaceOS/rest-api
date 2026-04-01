@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **zones**: [PPT-2429] add tree view API with parent filtering and children counts ([#429](https://github.com/PlaceOS/rest-api/pull/429))
 - improve querying of signage plugins and assets
 - **signage**: return plugin details for signage displays
 - add signage plugin API
