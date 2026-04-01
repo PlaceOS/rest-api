@@ -144,7 +144,7 @@ module PlaceOS::Api
         json["playlist_config"][playlist_id][1].should eq [] of String
 
         # skip forward a moment to avoid a 304
-        sleep 1
+        sleep 1.seconds
 
         # we should now approve the playlist
         approved = client.post(

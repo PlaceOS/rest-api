@@ -74,6 +74,112 @@ module PlaceOS::Api
         child2.destroy
         child3.destroy
       end
+
+      it "gets root zones with parent_id=root" do
+        root1 = Model::Generator.zone.save!
+        root2 = Model::Generator.zone.save!
+
+        child = Model::Generator.zone
+        child.parent_id = root1.id
+        child.save!
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        params = HTTP::Params.encode({"parent_id" => "root"})
+        path = "#{Zones.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+
+        result.success?.should be_true
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        zone_ids = zones.map(&.["id"].as_s)
+
+        zone_ids.should contain(root1.id)
+        zone_ids.should contain(root2.id)
+        zone_ids.should_not contain(child.id)
+
+        root1.destroy
+        root2.destroy
+        child.destroy
+      end
+
+      it "includes children_count when requested" do
+        parent = Model::Generator.zone.save!
+
+        child1 = Model::Generator.zone
+        child1.parent_id = parent.id
+        child1.save!
+
+        child2 = Model::Generator.zone
+        child2.parent_id = parent.id
+        child2.save!
+
+        grandchild = Model::Generator.zone
+        grandchild.parent_id = child1.id
+        grandchild.save!
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        params = HTTP::Params.encode({"parent_id" => parent.id.as(String), "include_children_count" => "true"})
+        path = "#{Zones.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+
+        result.success?.should be_true
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+
+        child1_data = zones.find { |z| z["id"].as_s == child1.id }
+        child2_data = zones.find { |z| z["id"].as_s == child2.id }
+
+        child1_data.should_not be_nil
+        child2_data.should_not be_nil
+
+        child1_data.not_nil!["children_count"].as_i.should eq 1
+        child2_data.not_nil!["children_count"].as_i.should eq 0
+
+        parent.destroy
+        child1.destroy
+        child2.destroy
+        grandchild.destroy
+      end
+
+      it "preserves include_children_count across paginated requests" do
+        parent = Model::Generator.zone.save!
+
+        children = Array(Model::Zone).new
+        5.times do
+          child = Model::Generator.zone
+          child.parent_id = parent.id
+          child.save!
+          children << child
+        end
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        params = HTTP::Params.encode({
+          "parent_id"              => parent.id.as(String),
+          "include_children_count" => "true",
+          "limit"                  => "2",
+        })
+        path = "#{Zones.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+
+        result.success?.should be_true
+
+        link_header = result.headers["Link"]?
+        link_header.should_not be_nil
+        link_header.not_nil!.should contain("include_children_count=true")
+
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        zones.size.should eq 2
+        zones.each do |zone|
+          zone["children_count"]?.should_not be_nil
+        end
+
+        parent.destroy
+        children.each(&.destroy)
+      end
     end
 
     describe "tags", tags: "search" do
