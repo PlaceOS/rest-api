@@ -108,7 +108,7 @@ module PlaceOS::Api::WebSocket
       args : Array(JSON::Any)?,
     )
       args = [] of JSON::Any if args.nil?
-      Log.debug { {message: "exec", args: args.to_json} }
+      Log.info { {message: "exec", args: args.to_json} }
 
       security = elevate_security(system_id, @security_level)
 
