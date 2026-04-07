@@ -202,6 +202,9 @@ module PlaceOS::Api
         db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone ) as unnested", &.read(String)
       end
       unique_tags.split(',')
+    rescue DB::ColumnTypeMismatchError
+      # handles case where there are no tagged zones at all
+      [] of String
     end
 
     # return the details of the zone
