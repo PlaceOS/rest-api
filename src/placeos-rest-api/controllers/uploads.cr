@@ -22,6 +22,8 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
       id : String,
     )
+      # id can be base64 encoded for simple downloads
+      id = id.includes?('-') ? id : Base64.decode_string(id).strip rescue id
       unless @current_upload = ::PlaceOS::Model::Upload.find?(id)
         Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Invalid upload id: #{id}")
@@ -298,8 +300,7 @@ module PlaceOS::Api
     # the API key route param can be Base64 encoded.
     @[AC::Route::GET("/:id/download/:api_key/:inline/*:file_name")]
     def download_simple_route(api_key : String, inline : Bool, file_name : String = "file")
-      # decode the API key or id
-      id = id.includes?('-') ? id : Base64.decode_string(id).strip rescue id
+      # decode the API key
       api_key = Base64.decode_string(api_key).strip rescue api_key
 
       # check api key
