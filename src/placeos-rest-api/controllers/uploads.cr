@@ -23,7 +23,7 @@ module PlaceOS::Api
       id : String,
     )
       # id can be base64 encoded for simple downloads
-      id = id.includes?('-') ? id : Base64.decode_string(id).strip rescue id
+      id = id.starts_with?("uploads-") ? id : Base64.decode_string(id).strip rescue id
       unless @current_upload = ::PlaceOS::Model::Upload.find?(id)
         Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
         raise Error::NotFound.new("Invalid upload id: #{id}")
