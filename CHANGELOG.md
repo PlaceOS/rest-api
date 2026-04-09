@@ -93,6 +93,7 @@
 
 ### Fix
 
+- **uploads**: check for base64 encoding
 - **uploads**: allow id to be base64 encoded
 - **uploads**: allow id to be base64 encoded
 - **zones**: handle case where no zone has a tag
