@@ -94,6 +94,7 @@
 ### Fix
 
 - **uploads**: allow id to be base64 encoded
+- **uploads**: allow id to be base64 encoded
 - **zones**: handle case where no zone has a tag
 - **asset_types**: index filters now function as expected
 - module connected state ([#428](https://github.com/PlaceOS/rest-api/pull/428))
