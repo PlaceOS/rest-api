@@ -163,6 +163,20 @@ module PlaceOS::Api
       CommonError.new(error, false)
     end
 
+    # 401 if reCAPTCHA verification fails
+    @[AC::Route::Exception(Error::RecaptchaFailed, status_code: HTTP::Status::UNAUTHORIZED)]
+    def recaptcha_failed(error) : CommonError
+      Log.debug { error.message }
+      CommonError.new(error, false)
+    end
+
+    # 503 if guest access is not configured (e.g. JWT_SECRET absent)
+    @[AC::Route::Exception(Error::GuestAccessDisabled, status_code: HTTP::Status::SERVICE_UNAVAILABLE)]
+    def guest_access_disabled(error) : CommonError
+      Log.debug { error.message }
+      CommonError.new(error, false)
+    end
+
     # 403 if user role invalid for a route
     @[AC::Route::Exception(Error::Forbidden, status_code: HTTP::Status::FORBIDDEN)]
     def resource_access_forbidden(error) : Nil

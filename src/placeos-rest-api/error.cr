@@ -20,6 +20,12 @@ module PlaceOS::Api
 
     record Field, field : Symbol, message : String
 
+    class RecaptchaFailed < Error
+    end
+
+    class GuestAccessDisabled < Error
+    end
+
     class ModelValidation < Error
       getter failures : Array(NamedTuple(field: Symbol, reason: String))
 

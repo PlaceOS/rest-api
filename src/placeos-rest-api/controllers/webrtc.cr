@@ -46,22 +46,7 @@ module PlaceOS::Api
       property? success : Bool
     end
 
-    class ::PlaceOS::Api::Error
-      class RecaptchaFailed < Error
-      end
-
-      class GuestAccessDisabled < Error
-      end
-    end
-
     ###############################################################################################
-
-    # 401 if recaptcha fails
-    @[AC::Route::Exception(Error::RecaptchaFailed, status_code: HTTP::Status::UNAUTHORIZED)]
-    def recaptcha_failed(error) : CommonError
-      Log.debug { error.message }
-      CommonError.new(error, false)
-    end
 
     JWT_SECRET = ENV["JWT_SECRET"]?.try { |k| Base64.decode_string(k) }
 
@@ -201,7 +186,7 @@ module PlaceOS::Api
       user_id : String,
       session_id : String? = nil,
       body : JSON::Any? = nil,
-    ) : Nil | Bool
+    ) : Bool?
       result = MANAGER.transfer(user_id, session_id, body.try &.to_json)
       case result
       in .signal_sent?
