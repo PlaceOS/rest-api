@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **public_events**: [PPT-2247] Support Public Event Sharing & Registration ([#430](https://github.com/PlaceOS/rest-api/pull/430))
 - **signage**: add basic playback monitoring
 - **websocket/session**: include user_id in exec logs
 - **websocket/session**: log user execute requests
