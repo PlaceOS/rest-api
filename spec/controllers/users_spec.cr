@@ -122,6 +122,58 @@ module PlaceOS::Api
 
           model.destroy
         end
+
+        it "does not allow email to be updated" do
+          model = Model::Generator.user.save!
+          model.persisted?.should be_true
+          original_email = model.email.to_s
+
+          id = model.id.as(String)
+          result = client.patch(
+            path: File.join(Users.base_route, id),
+            body: {email: "changed@example.com", name: "Updated Name"}.to_json,
+            headers: Spec::Authentication.headers
+          )
+
+          result.status_code.should eq 200
+          response_model = Model::User.from_trusted_json(result.body)
+          response_model.id.should eq id
+          response_model.email.to_s.should eq original_email
+          response_model.name.should eq "Updated Name"
+
+          model.destroy
+        end
+
+        it "does not allow last_login, login_count, or logged_out_at to be updated" do
+          model = Model::Generator.user.save!
+          model.persisted?.should be_true
+
+          original_login_count = model.login_count
+          original_last_login = model.last_login
+          original_logged_out_at = model.logged_out_at
+
+          id = model.id.as(String)
+          result = client.patch(
+            path: File.join(Users.base_route, id),
+            body: {
+              login_count:   999,
+              last_login:    Time.utc.to_unix,
+              logged_out_at: Time.utc.to_rfc3339,
+              name:          "Still Updated",
+            }.to_json,
+            headers: Spec::Authentication.headers
+          )
+
+          result.status_code.should eq 200
+          response_model = Model::User.from_trusted_json(result.body)
+          response_model.id.should eq id
+          response_model.login_count.should eq original_login_count
+          response_model.last_login.should eq original_last_login
+          response_model.logged_out_at.should eq original_logged_out_at
+          response_model.name.should eq "Still Updated"
+
+          model.destroy
+        end
       end
     end
 
