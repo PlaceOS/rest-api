@@ -244,6 +244,9 @@ module PlaceOS::Api
     @[AC::Route::PATCH("/:id", body: :new_user)]
     @[AC::Route::PUT("/:id", body: :new_user)]
     def update(new_user : JSON::Any) : ::PlaceOS::Model::User
+      # Prevent modification of user email via this endpoint - [PPT-2459]
+      new_user.as_h?.try &.delete("email")
+
       # Allow additional attributes to be applied by admins
       # (the users themselves should not have access to these)
       body = new_user.to_json
