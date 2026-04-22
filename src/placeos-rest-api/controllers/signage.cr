@@ -19,11 +19,32 @@ module PlaceOS::Api
 
     # return all the details for displaying signage
     @[AC::Route::GET("/:system_id")]
-    def display(system_id : String) : ::PlaceOS::Model::ControlSystem?
+    def display(
+      system_id : String,
+      @[AC::Param::Info(description: "currently playing item, if the player is playing content", example: "playlist_items-1234")]
+      item_id : String? = nil,
+      @[AC::Param::Info(description: "is this the preview player", example: "true")]
+      preview : Bool = true,
+    ) : ::PlaceOS::Model::ControlSystem?
       # grab all the playlists associated with the display and check if anything has changed
       system = ::PlaceOS::Model::ControlSystem.find!(system_id)
       playlist_map = system.all_playlists
       last_updated = system.playlists_last_updated(playlist_map)
+
+      if !preview
+        # Save last seen and currently playing item
+        if item_id
+          item = ::PlaceOS::Model::Playlist::Item.find(item_id)
+          item_id = nil unless item
+        end
+
+        # this update is less important than fetching content
+        begin
+          system.update_last_seen_time(item_id)
+        rescue error
+          Log.error(exception: error) { "error storing last seen" }
+        end
+      end
 
       # continue processing the request if the client has stale data
       if stale?(last_modified: last_updated)
