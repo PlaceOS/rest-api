@@ -18940,6 +18940,19 @@ paths:
         required: true
         schema:
           type: string
+      - name: item_id
+        in: query
+        description: currently playing item, if the player is playing content
+        example: playlist_items-1234
+        schema:
+          type: string
+          nullable: true
+      - name: preview
+        in: query
+        description: is this the preview player
+        example: "true"
+        schema:
+          type: boolean
       responses:
         200:
           description: OK
@@ -26463,6 +26476,13 @@ components:
         signage:
           type: boolean
           nullable: true
+        signage_last_seen:
+          type: integer
+          format: Int64
+          nullable: true
+        playlist_item_id:
+          type: string
+          nullable: true
         remove_zones:
           type: array
           items:
@@ -29380,6 +29400,13 @@ components:
         signage:
           type: boolean
           nullable: true
+        signage_last_seen:
+          type: integer
+          format: Int64
+          nullable: true
+        playlist_item_id:
+          type: string
+          nullable: true
         remove_zones:
           type: array
           items:
@@ -32200,6 +32227,13 @@ components:
               nullable: true
             signage:
               type: boolean
+              nullable: true
+            signage_last_seen:
+              type: integer
+              format: Int64
+              nullable: true
+            playlist_item_id:
+              type: string
               nullable: true
             remove_zones:
               type: array

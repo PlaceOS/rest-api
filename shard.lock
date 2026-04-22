@@ -219,7 +219,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.86.3
+    version: 9.87.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -237,9 +237,9 @@ shards:
     git: https://github.com/spider-gazelle/qr-code.git
     version: 1.0.3
 
-  redis: # Overridden
-    git: https://github.com/stefanwille/crystal-redis.git
-    version: 2.9.1
+  redis:
+    git: https://github.com/place-labs/crystal-redis.git
+    version: 2.9.1+git.commit.95ec396dd6fdd772d2cbe0bb14ede7e96e6270df
 
   redis-cluster:
     git: https://github.com/place-labs/redis-cluster.cr.git
