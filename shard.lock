@@ -199,7 +199,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.d9cd2dce15d4d1702777fab0c914bb63796d097c
+    version: 4.21.0+git.commit.c08166a0ebc2f5f8a85f842c2681e24396cd519d
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -207,7 +207,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.20.2
+    version: 7.21.0
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -237,17 +237,17 @@ shards:
     git: https://github.com/spider-gazelle/qr-code.git
     version: 1.0.3
 
-  redis: # Overridden
-    git: https://github.com/stefanwille/crystal-redis.git
-    version: 2.9.1
+  redis:
+    git: https://github.com/place-labs/crystal-redis.git
+    version: 2.9.1+git.commit.993651b2cd7d472e6d8634337dd0ed9d2a8fa8dd
 
   redis-cluster:
     git: https://github.com/place-labs/redis-cluster.cr.git
-    version: 0.8.10
+    version: 0.8.11
 
   redis_service_manager:
     git: https://github.com/place-labs/redis_service_manager.git
-    version: 3.3.0
+    version: 3.3.1
 
   rendezvous-hash:
     git: https://github.com/caspiano/rendezvous-hash.git
