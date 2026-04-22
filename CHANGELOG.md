@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: add basic playback monitoring
 - **websocket/session**: include user_id in exec logs
 - **websocket/session**: log user execute requests
 - **zones**: [PPT-2429] add tree view API with parent filtering and children counts ([#429](https://github.com/PlaceOS/rest-api/pull/429))
