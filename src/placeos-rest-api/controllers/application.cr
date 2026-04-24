@@ -76,6 +76,34 @@ module PlaceOS::Api
       response.headers["Content-Range"] = "#{content_type} 0-#{size - 1}/#{size}"
     end
 
+    # SQL-based pagination for models that aren't Elasticsearch-indexed.
+    # Accepts any PgORM relation (`Model.where(...)` etc.) and returns
+    # the requested page. Sets `X-Total-Count`, `Content-Range`, and
+    # `Link` response headers the same way `paginate_results` does for
+    # Elasticsearch queries, so clients can paginate uniformly.
+    def paginate_sql(
+      query,
+      type : String,
+      limit : Int32 = 100,
+      offset : Int32 = 0,
+      route : String = base_route,
+    )
+      total = query.count.to_i32
+      results = query.offset(offset).limit(limit).to_a
+
+      range_end = offset + results.size
+      response.headers["X-Total-Count"] = total.to_s
+      response.headers["Content-Range"] = "#{type} #{offset}-#{range_end}/#{total}"
+
+      if range_end < total
+        query_params["offset"] = (range_end + 1).to_s
+        query_params["limit"] = limit.to_s
+        response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
+      end
+
+      results
+    end
+
     getter! search_params : Hash(String, String | Array(String))
 
     @[AC::Route::Filter(:before_action, only: [:index], converters: {fields: ConvertStringArray})]

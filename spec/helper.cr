@@ -49,6 +49,20 @@ require "placeos-models/spec/generator"
 PgORM::Database.configure { |_| }
 
 def clear_tables
+  # Clear group-system tables first — they FK into User/Authority/Zone
+  # and must be dropped before their parents. Done sequentially since
+  # some of them reference each other.
+  [
+    PlaceOS::Model::GroupHistory,
+    PlaceOS::Model::GroupInvitation,
+    PlaceOS::Model::GroupZone,
+    PlaceOS::Model::GroupUser,
+    PlaceOS::Model::GroupApplicationDoorkeeper,
+    PlaceOS::Model::GroupApplicationMembership,
+    PlaceOS::Model::Group,
+    PlaceOS::Model::GroupApplication,
+  ].each(&.clear)
+
   {% begin %}
     Promise.all(
       {% for t in {
@@ -70,6 +84,7 @@ def clear_tables
                     PlaceOS::Model::Metadata,
                     PlaceOS::Model::Upload,
                     PlaceOS::Model::Storage,
+                    PlaceOS::Model::DoorkeeperApplication,
                   } %}
         Promise.defer { {{t.id}}.clear },
       {% end %}
@@ -115,6 +130,24 @@ end
 
 def random_name
   UUID.random.to_s.split('-').first
+end
+
+# Clears just the group-system tables. Tests sharing the seeded
+# `localhost` authority need this in `before_each` because group creation
+# enforces a one-root-per-authority rule — without it the second test
+# that creates a root group fails with a validation error.
+def clear_group_tables
+  [
+    PlaceOS::Model::GroupHistory,
+    PlaceOS::Model::GroupInvitation,
+    PlaceOS::Model::GroupZone,
+    PlaceOS::Model::GroupUser,
+    PlaceOS::Model::GroupApplicationDoorkeeper,
+    PlaceOS::Model::GroupApplicationMembership,
+    PlaceOS::Model::Group,
+    PlaceOS::Model::GroupApplication,
+    PlaceOS::Model::DoorkeeperApplication,
+  ].each(&.clear)
 end
 
 def refresh_elastic(index : String? = nil)
