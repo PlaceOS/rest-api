@@ -17,3 +17,8 @@ dependencies:
   ulid:
     github: place-labs/ulid
     branch: master
+
+  # uncomment to test different model branches
+  # placeos-models:
+  #  github: placeos/models
+  #  branch: add-signage-groups

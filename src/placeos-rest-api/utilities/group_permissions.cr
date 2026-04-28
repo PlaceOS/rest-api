@@ -1,5 +1,4 @@
 require "placeos-models/group"
-require "placeos-models/group/application"
 require "placeos-models/group/user"
 require "placeos-models/group/zone"
 require "placeos-models/permissions"
@@ -105,29 +104,52 @@ module PlaceOS::Api
     end
 
     # True if `zone_id` is already reachable from at least one group the
-    # user has Manage on — via any application that group is a member of.
-    # Enforces the "can only delegate what you have" rule for GroupZone
-    # creation.
+    # user has Manage on — via any subsystem one of those groups
+    # participates in. Enforces the "can only delegate what you have"
+    # rule for GroupZone creation.
     def user_can_delegate_zone?(user : ::PlaceOS::Model::User, zone_id : String) : Bool
       managed_ids = manageable_group_ids(user)
       return false if managed_ids.empty?
 
-      # Applications those managed groups participate in
-      app_ids = [] of UUID
-      ::PlaceOS::Model::GroupApplicationMembership.where(group_id: managed_ids).each do |m|
-        app_ids << m.application_id unless app_ids.includes?(m.application_id)
+      subsystems = Set(String).new
+      ::PlaceOS::Model::Group.where(id: managed_ids).each do |g|
+        g.subsystems.each { |s| subsystems << s }
       end
-      return false if app_ids.empty?
+      return false if subsystems.empty?
 
+      authority_id = user.authority_id.as(String)
       user_id = user.id.as(String)
-      ::PlaceOS::Model::GroupApplication.where(id: app_ids).each do |app|
-        return true if app.zone_accessible?(user_id, zone_id)
+      subsystems.any? do |subsystem|
+        ::PlaceOS::Model::Group.zone_accessible?(authority_id, subsystem, user_id, zone_id)
       end
-      false
     end
 
     def ensure_zone_delegatable!(user : ::PlaceOS::Model::User, zone_id : String)
       raise Error::Forbidden.new("zone not reachable from any of your manageable groups") unless user_can_delegate_zone?(user, zone_id)
     end
+
+    # OR of the user's effective permissions across the supplied group
+    # ids. Pairs with a junction-table lookup: fetch the groups linked
+    # to a resource, pass them here to get the user's effective bitmask
+    # on that resource.
+    #
+    #   linked = ::PlaceOS::Model::GroupPlaylist
+    #     .where(playlist_id: id).to_a.map(&.group_id)
+    #   perms = effective_permissions_for(current_user, linked)
+    def effective_permissions_for(
+      user : ::PlaceOS::Model::User,
+      group_ids : Array(UUID),
+    ) : ::PlaceOS::Model::Permissions
+      return ::PlaceOS::Model::Permissions::None if group_ids.empty?
+      memberships = group_memberships(user)
+      group_ids.reduce(::PlaceOS::Model::Permissions::None) do |acc, gid|
+        if (perms = memberships[gid]?)
+          acc | perms
+        else
+          acc
+        end
+      end
+    end
+
   end
 end

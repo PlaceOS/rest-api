@@ -24,6 +24,26 @@ module PlaceOS::Api
     system
   end
 
+  # Build a non-admin user with a GroupUser + GroupZone wired to the
+  # given subsystem and permission level, plus a ControlSystem in that
+  # zone. Returns (cs, zone, group, headers).
+  def self.setup_subsystem_cs(subsystem : String, perm : Model::Permissions)
+    authority = Model::Authority.find_by_domain("localhost").not_nil!
+    user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+    group = Model::Generator.group(authority: authority, subsystems: [subsystem]).save!
+    Model::Generator.group_user(user: user, group: group, permissions: perm).save!
+
+    zone = Model::Generator.zone.save!
+    Model::Generator.group_zone(group: group, zone: zone, permissions: perm).save!
+
+    cs = Model::Generator.control_system.save!
+    cs.zones = [zone.id.as(String)]
+    cs.save!
+
+    {cs, zone, group, headers}
+  end
+
   def self.spec_delete_module(system, mod, headers)
     mod_id = mod.id.as(String)
 
@@ -79,6 +99,254 @@ module PlaceOS::Api
           end
 
           found.should be_true
+        end
+
+        it "non-admin / non-support user can list systems (baseline)" do
+          # Confirms the current behaviour: a regular user with the
+          # systems:read OAuth scope can call index without belonging to
+          # any subsystem group. No per-user filtering is applied — they
+          # see every system that matches the supplied filters.
+          Model::ControlSystem.clear
+
+          zone = Model::Generator.zone.save!
+          mine = Model::Generator.control_system
+          mine.zones = [zone.id.as(String)]
+          mine.save!
+          unrelated = Model::Generator.control_system.save!
+
+          _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          refresh_elastic(Model::ControlSystem.table_name)
+          found = until_expected("GET", Systems.base_route, headers) do |response|
+            response.success? &&
+              Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s).includes?(mine.id.as(String))
+          end
+          found.should be_true
+
+          mine.destroy
+          unrelated.destroy
+          zone.destroy
+        end
+
+        it "non-admin user filtered by zone_id sees just that zone's systems (baseline)" do
+          Model::ControlSystem.clear
+
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.as(String)
+
+          mine = Model::Generator.control_system
+          mine.zones = [zone_id]
+          mine.save!
+          other = Model::Generator.control_system.save!
+
+          _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          refresh_elastic(Model::ControlSystem.table_name)
+          path = "#{Systems.base_route}?#{HTTP::Params.encode({"zone_id" => zone_id})}"
+          found = until_expected("GET", path, headers) do |response|
+            response.success? && begin
+              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              ids.includes?(mine.id.as(String)) && !ids.includes?(other.id.as(String))
+            end
+          end
+          found.should be_true
+
+          mine.destroy
+          other.destroy
+          zone.destroy
+        end
+
+        it "group_id resolves to that group's GroupZone anchors" do
+          clear_group_tables
+          Model::ControlSystem.clear
+
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+          anchor = Model::Generator.zone.save!
+          Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
+
+          in_anchor = Model::Generator.control_system
+          in_anchor.zones = [anchor.id.as(String)]
+          in_anchor.save!
+          unrelated = Model::Generator.control_system.save!
+
+          refresh_elastic(Model::ControlSystem.table_name)
+          path = "#{Systems.base_route}?#{HTTP::Params.encode({"group_id" => group.id.to_s})}"
+          found = until_expected("GET", path, headers) do |response|
+            response.success? && begin
+              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              ids.includes?(in_anchor.id.as(String)) && !ids.includes?(unrelated.id.as(String))
+            end
+          end
+          found.should be_true
+
+          in_anchor.destroy
+          unrelated.destroy
+          anchor.destroy
+        end
+
+        it "group_id is 403 for non-support callers without Read on the group" do
+          clear_group_tables
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          group = Model::Generator.group(authority: authority).save!
+
+          path = "#{Systems.base_route}?#{HTTP::Params.encode({"group_id" => group.id.to_s})}"
+          result = client.get(path, headers: headers)
+          result.status_code.should eq 403
+        end
+
+        it "subsystem=signage returns systems in zones the caller can reach transitively" do
+          clear_group_tables
+          Model::ControlSystem.clear
+
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+          # Anchor at parent_zone with a child zone underneath — the
+          # accessible_zone_ids resolver expands the anchor down the
+          # zone tree, so a system in the child should still show up.
+          parent_zone = Model::Generator.zone.save!
+          child_zone = Model::Generator.zone
+          child_zone.parent_id = parent_zone.id
+          child_zone.save!
+          Model::Generator.group_zone(group: group, zone: parent_zone, permissions: Model::Permissions::Read).save!
+
+          in_child = Model::Generator.control_system
+          in_child.zones = [child_zone.id.as(String)]
+          in_child.save!
+          out_of_scope = Model::Generator.control_system.save!
+
+          sleep 1.second
+          refresh_elastic(Model::ControlSystem.table_name)
+          path = "#{Systems.base_route}?#{HTTP::Params.encode({"subsystem" => "signage"})}"
+          found = until_expected("GET", path, headers) do |response|
+            response.success? && begin
+              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              ids.includes?(in_child.id.as(String)) && !ids.includes?(out_of_scope.id.as(String))
+            end
+          end
+          found.should be_true
+
+          in_child.destroy
+          out_of_scope.destroy
+          child_zone.destroy
+          parent_zone.destroy
+        end
+
+        it "subsystem returns empty when caller has no access" do
+          clear_group_tables
+          Model::ControlSystem.clear
+
+          _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          existing = Model::Generator.control_system.save!
+
+          refresh_elastic(Model::ControlSystem.table_name)
+          path = "#{Systems.base_route}?#{HTTP::Params.encode({"subsystem" => "signage"})}"
+          result = client.get(path, headers: headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should be_empty
+
+          existing.destroy
+        end
+
+        it "zone_id intersects with group_id scope — system needs both" do
+          # Use case: zone_id is AND-style ("rooms tagged level-3 AND
+          # meeting-room"), group_id contributes an OR scope of zones
+          # the user is allowed to see. The two are combined with AND
+          # so the result is "rooms matching the zone_id tags that are
+          # also in one of the user's group zones".
+          clear_group_tables
+          Model::ControlSystem.clear
+
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+          group_zone = Model::Generator.zone.save!
+          Model::Generator.group_zone(group: group, zone: group_zone, permissions: Model::Permissions::Read).save!
+
+          tag_zone = Model::Generator.zone.save!
+
+          both = Model::Generator.control_system
+          both.zones = [tag_zone.id.as(String), group_zone.id.as(String)]
+          both.save!
+
+          tag_only = Model::Generator.control_system
+          tag_only.zones = [tag_zone.id.as(String)]
+          tag_only.save!
+
+          group_only = Model::Generator.control_system
+          group_only.zones = [group_zone.id.as(String)]
+          group_only.save!
+
+          sleep 1.second
+          refresh_elastic(Model::ControlSystem.table_name)
+          params = HTTP::Params.encode({
+            "zone_id"  => tag_zone.id.as(String),
+            "group_id" => group.id.to_s,
+          })
+          path = "#{Systems.base_route}?#{params}"
+          found = until_expected("GET", path, headers) do |response|
+            response.success? && begin
+              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              ids.includes?(both.id.as(String)) &&
+                !ids.includes?(tag_only.id.as(String)) &&
+                !ids.includes?(group_only.id.as(String))
+            end
+          end
+          found.should be_true
+
+          both.destroy
+          tag_only.destroy
+          group_only.destroy
+          group_zone.destroy
+          tag_zone.destroy
+        end
+
+        it "zone_id with multiple values requires the system to contain all of them" do
+          # Confirms the existing AND semantic for zone_id — used to
+          # combine zone tags so e.g. zone_id=level-3,meeting-room
+          # returns only meeting rooms on level 3.
+          Model::ControlSystem.clear
+
+          a = Model::Generator.zone.save!
+          b = Model::Generator.zone.save!
+
+          both = Model::Generator.control_system
+          both.zones = [a.id.as(String), b.id.as(String)]
+          both.save!
+
+          a_only = Model::Generator.control_system
+          a_only.zones = [a.id.as(String)]
+          a_only.save!
+
+          sleep 1.second
+          refresh_elastic(Model::ControlSystem.table_name)
+          path = "#{Systems.base_route}?#{HTTP::Params.encode({"zone_id" => "#{a.id},#{b.id}"})}"
+          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
+            response.success? && begin
+              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+              ids.includes?(both.id.as(String)) && !ids.includes?(a_only.id.as(String))
+            end
+          end
+          found.should be_true
+
+          both.destroy
+          a_only.destroy
+          a.destroy
+          b.destroy
         end
 
         it "email filters systems by email" do
@@ -741,6 +1009,138 @@ module PlaceOS::Api
 
         mod.destroy
         cs.destroy
+      end
+    end
+
+    describe "subsystem-based permissions" do
+      ::Spec.before_each { clear_group_tables }
+
+      it "PATCH allowed for 'signage' subsystem with Update perm" do
+        cs, _zone, _group, headers = setup_subsystem_cs("signage", Model::Permissions::Update)
+
+        # update requires a `version` query param to guard against
+        # concurrent edits — pass the current value.
+        result = client.patch(
+          path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+          body: {description: "renamed via signage"}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+        cs.reload!
+        cs.description.should eq "renamed via signage"
+      end
+
+      it "PATCH allowed for 'support' subsystem with Update perm" do
+        cs, _zone, _group, headers = setup_subsystem_cs("support", Model::Permissions::Update)
+
+        result = client.patch(
+          path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+          body: {description: "renamed via support"}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+      end
+
+      it "PATCH rejected when subsystem has only Read" do
+        cs, _zone, _group, headers = setup_subsystem_cs("signage", Model::Permissions::Read)
+
+        result = client.patch(
+          path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+          body: {description: "should fail"}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+      end
+
+      it "POST allowed for 'support' subsystem with Create perm on the proposed zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+
+        zone = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Create).save!
+
+        new_cs = Model::Generator.control_system
+        new_cs.zones = [zone.id.as(String)]
+
+        result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
+        result.status_code.should eq 201
+      end
+
+      it "DELETE allowed for 'support' subsystem with Delete perm" do
+        cs, _zone, _group, headers = setup_subsystem_cs("support", Model::Permissions::Delete)
+
+        result = client.delete(path: "#{Systems.base_route}#{cs.id}", headers: headers)
+        result.success?.should be_true
+        Model::ControlSystem.find?(cs.id.as(String)).should be_nil
+      end
+
+      it "DELETE rejected when 'support' has only Update (verb mismatch)" do
+        cs, _zone, _group, headers = setup_subsystem_cs("support", Model::Permissions::Update)
+
+        result = client.delete(path: "#{Systems.base_route}#{cs.id}", headers: headers)
+        result.status_code.should eq 403
+      end
+
+      it "PUT add_module allowed for 'support' with Update perm" do
+        cs, _zone, _group, headers = setup_subsystem_cs("support", Model::Permissions::Update)
+        mod = Model::Generator.module(control_system: cs).save!
+
+        result = client.put(
+          path: "#{Systems.base_route}#{cs.id}/module/#{mod.id}",
+          headers: headers,
+        )
+        result.status_code.should eq 200
+      end
+
+      it "DELETE remove_module allowed for 'support' with Delete perm" do
+        cs, _zone, _group, headers = setup_subsystem_cs("support", Model::Permissions::Delete)
+        mod = Model::Generator.module(control_system: cs).save!
+        cs.update_fields(modules: [mod.id.as(String)])
+
+        result = client.delete(
+          path: "#{Systems.base_route}#{cs.id}/module/#{mod.id}",
+          headers: headers,
+        )
+        result.success?.should be_true
+      end
+
+      it "POST start allowed for 'support' with Operate perm" do
+        cs, _zone, _group, headers = setup_subsystem_cs("support", Model::Permissions::Operate)
+        mod = Model::Generator.module(control_system: cs).save!
+        cs.update_fields(modules: [mod.id.as(String)])
+
+        result = client.post(path: "#{Systems.base_route}#{cs.id}/start", headers: headers)
+        result.success?.should be_true
+      end
+
+      it "POST start rejected when 'support' has only Read (Operate missing)" do
+        cs, _zone, _group, headers = setup_subsystem_cs("support", Model::Permissions::Read)
+
+        result = client.post(path: "#{Systems.base_route}#{cs.id}/start", headers: headers)
+        result.status_code.should eq 403
+      end
+
+      it "GET state rejected when 'support' has no perms" do
+        # Set up a CS with a zone, but the user has no Read on that zone.
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        _user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        cs = Model::Generator.control_system.save!
+        cs.zones = [zone.id.as(String)]
+        cs.save!
+
+        mod = Model::Generator.module(control_system: cs).save!
+        cs.update_fields(modules: [mod.id.as(String)])
+
+        result = client.get(
+          path: "#{Systems.base_route}#{cs.id}/#{mod.id}",
+          headers: headers,
+        )
+        result.status_code.should eq 403
       end
     end
   end

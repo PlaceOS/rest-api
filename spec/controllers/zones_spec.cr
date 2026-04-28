@@ -180,6 +180,50 @@ module PlaceOS::Api
         parent.destroy
         children.each(&.destroy)
       end
+
+      it "filters by group_id and forces children_count" do
+        clear_group_tables
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        anchor = Model::Generator.zone.save!
+        descendant = Model::Generator.zone
+        descendant.parent_id = anchor.id
+        descendant.save!
+        unrelated = Model::Generator.zone.save!
+
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        params = HTTP::Params.encode({"group_id" => group.id.to_s})
+        result = client.get("#{Zones.base_route}?#{params}", headers: Spec::Authentication.headers)
+        result.success?.should be_true
+
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        ids = zones.map(&.["id"].as_s)
+        ids.should eq [anchor.id]
+        ids.should_not contain(descendant.id)
+        ids.should_not contain(unrelated.id)
+        zones.first["children_count"].as_i.should eq 1
+
+        anchor.destroy
+        descendant.destroy
+        unrelated.destroy
+      end
+
+      it "rejects ?group_id= for non-support callers without Read on the group" do
+        clear_group_tables
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority).save!
+
+        params = HTTP::Params.encode({"group_id" => group.id.to_s})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 403
+      end
     end
 
     describe "tags", tags: "search" do
@@ -267,6 +311,227 @@ module PlaceOS::Api
           headers: auth_headers,
         )
         result.success?.should be_true
+      end
+
+      it "patches playlists on an existing zone (sys_admin)" do
+        zone = Model::Generator.zone.save!
+        pl1 = Model::Generator.playlist.save!
+        pl2 = Model::Generator.playlist.save!
+        playlist_ids = [pl1.id.as(String), pl2.id.as(String)]
+
+        result = client.patch(
+          path: "#{Zones.base_route}#{zone.id}",
+          body: {playlists: playlist_ids}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        result.success?.should be_true
+
+        zone.reload!
+        zone.playlists.should eq playlist_ids
+
+        zone.destroy
+        pl1.destroy
+        pl2.destroy
+      end
+    end
+
+    describe "subsystem-based permissions" do
+      ::Spec.before_each { clear_group_tables }
+
+      it "allows update (PATCH playlists) for a user with Update in a 'signage' group" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+
+        zone = Model::Generator.zone.save!
+        pl = Model::Generator.playlist.save!
+        playlist_ids = [pl.id.as(String)]
+
+        result = client.patch(
+          path: "#{Zones.base_route}#{zone.id}",
+          body: {playlists: playlist_ids}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+
+        zone.reload!
+        zone.playlists.should eq playlist_ids
+
+        zone.destroy
+        pl.destroy
+      end
+
+      it "rejects update for a user with only Read in a 'signage' group" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+        zone = Model::Generator.zone.save!
+
+        result = client.patch(
+          path: "#{Zones.base_route}#{zone.id}",
+          body: {playlists: ["x"]}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+        zone.destroy
+      end
+
+      it "allows 'support' subsystem to destroy a zone whose parent it can manage" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Manage).save!
+
+        child = Model::Generator.zone
+        child.parent_id = parent.id
+        child.save!
+
+        result = client.delete(path: "#{Zones.base_route}#{child.id}", headers: headers)
+        result.success?.should be_true
+        Model::Zone.find?(child.id.as(String)).should be_nil
+
+        parent.destroy
+      end
+
+      it "rejects 'signage' subsystem from destroying a zone (signage doesn't grant destroy)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Manage).save!
+
+        child = Model::Generator.zone
+        child.parent_id = parent.id
+        child.save!
+
+        result = client.delete(path: "#{Zones.base_route}#{child.id}", headers: headers)
+        result.status_code.should eq 403
+
+        child.destroy
+        parent.destroy
+      end
+
+      it "allows 'support' subsystem to create a zone under a parent it can manage" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Manage).save!
+
+        new_zone = Model::Generator.zone
+        new_zone.parent_id = parent.id
+
+        result = client.post(Zones.base_route, body: new_zone.to_json, headers: headers)
+        result.status_code.should eq 201
+
+        created = Model::Zone.from_trusted_json(result.body)
+        created.parent_id.should eq parent.id
+        created.destroy
+        parent.destroy
+      end
+
+      it "rejects 'support' subsystem create when user has no GroupZone reach to the parent" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        # Note: NO GroupZone — group has the right perm but zero zone reach.
+
+        parent = Model::Generator.zone.save!
+        new_zone = Model::Generator.zone
+        new_zone.parent_id = parent.id
+
+        result = client.post(Zones.base_route, body: new_zone.to_json, headers: headers)
+        result.status_code.should eq 403
+
+        parent.destroy
+      end
+
+      it "'support' Create perm on the parent permits POST but not DELETE" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        # Both bits must agree (user-side AND GroupZone-side) under the
+        # resolver's AND semantics — so the user gets Create on both
+        # sides.
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Create).save!
+
+        # POST under the parent — allowed (Create matches verb).
+        new_zone = Model::Generator.zone
+        new_zone.parent_id = parent.id
+        result = client.post(Zones.base_route, body: new_zone.to_json, headers: headers)
+        result.status_code.should eq 201
+        created = Model::Zone.from_trusted_json(result.body)
+
+        # DELETE the same child — rejected (Create ≠ Delete, no Manage).
+        result = client.delete(path: "#{Zones.base_route}#{created.id}", headers: headers)
+        result.status_code.should eq 403
+
+        created.destroy
+        parent.destroy
+      end
+
+      it "'support' Delete perm on the parent permits DELETE of a child" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Delete).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Delete).save!
+
+        child = Model::Generator.zone
+        child.parent_id = parent.id
+        child.save!
+
+        result = client.delete(path: "#{Zones.base_route}#{child.id}", headers: headers)
+        result.success?.should be_true
+        Model::Zone.find?(child.id.as(String)).should be_nil
+
+        parent.destroy
+      end
+
+      it "'support' Update perm on the zone permits PATCH" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+
+        zone = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        result = client.patch(
+          path: "#{Zones.base_route}#{zone.id}",
+          body: {description: "updated via support"}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+
+        zone.reload!
+        zone.description.should eq "updated via support"
+        zone.destroy
       end
     end
 

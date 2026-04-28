@@ -31,8 +31,7 @@ module PlaceOS::Api
         group = ::PlaceOS::Model::Group.find!(gid)
         ensure_manage!(current_user, group)
       else
-        # History entry without a group_id (e.g. GroupApplication create)
-        # — sys_admin only.
+        # History entry without a group_id — sys_admin only.
         raise Error::Forbidden.new
       end
     end
@@ -40,19 +39,16 @@ module PlaceOS::Api
     ###############################################################################################
 
     # List audit entries. sys_admin sees everything; other callers must
-    # pass `group_id=` and have Manage on it. `application_id` is an
-    # optional additional filter for sys_admin callers.
+    # pass `group_id=` and have Manage on it.
     @[AC::Route::GET("/")]
     def index(
       group_id : String? = nil,
-      application_id : String? = nil,
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupHistory)
       if user_admin?
         query = ::PlaceOS::Model::GroupHistory.all
         query = query.where(group_id: UUID.new(group_id)) if group_id
-        query = query.where(application_id: UUID.new(application_id)) if application_id
       else
         # Non-admin must scope to a specific group they manage.
         raise Error::Forbidden.new("group_id is required") unless group_id
@@ -60,7 +56,6 @@ module PlaceOS::Api
         group = ::PlaceOS::Model::Group.find!(target)
         ensure_manage!(current_user, group)
         query = ::PlaceOS::Model::GroupHistory.where(group_id: target)
-        query = query.where(application_id: UUID.new(application_id)) if application_id
       end
 
       paginate_sql(query, type: "group_history", limit: limit, offset: offset)

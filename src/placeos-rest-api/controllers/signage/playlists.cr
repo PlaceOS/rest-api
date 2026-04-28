@@ -1,16 +1,19 @@
+require "uuid"
+require "placeos-models/group/playlist"
+
 require "../application"
 
 module PlaceOS::Api
   class Playlist < Application
-    include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/signage/playlists"
 
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
-    before_action :can_write, only: [:create, :update, :destroy]
+    before_action :can_read, only: [:index, :show, :media, :media_revisions]
+    before_action :can_write, only: [:create, :update, :destroy, :update_media, :approve_media]
 
     ###############################################################################################
 
@@ -36,40 +39,117 @@ module PlaceOS::Api
 
     # Permissions
     ###############################################################################################
+    #
+    # Access model:
+    # - sys_admin / support users bypass all checks (`user_support?`
+    #   already includes admin).
+    # - Regular users get access via groups carrying the "signage"
+    #   subsystem: each action requires the matching Permissions bit on
+    #   at least one group the playlist is linked to (via GroupPlaylist)
+    #   that the user is a member of.
+    # - A playlist with no GroupPlaylist rows is admin/support-only.
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create])]
-    def check_access_level
-      ensure_access
+    # Groups this playlist is linked to — memoised per controller
+    # instance so multiple guards share the same query.
+    private def linked_playlist_groups : Array(UUID)
+      @linked_playlist_groups ||= ::PlaceOS::Model::GroupPlaylist
+        .where(playlist_id: current_playlist.id)
+        .to_a
+        .map(&.group_id)
     end
 
-    # find the org zone
-    getter org_zone_id : String do
-      zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      raise Error::Forbidden.new unless zone_id
-      zone_id
-    end
+    @linked_playlist_groups : Array(UUID)? = nil
 
-    def ensure_access(admin : Bool = false)
+    private def enforce_playlist_access!(&block : ::PlaceOS::Model::Permissions -> Bool)
       return if user_support?
-      access = check_access(current_user.groups, [org_zone_id])
-      granted = admin ? access.admin? : access.can_manage?
-      return if granted
-      raise Error::Forbidden.new
+      raise Error::Forbidden.new if linked_playlist_groups.empty?
+      perms = effective_permissions_for(current_user, linked_playlist_groups)
+      raise Error::Forbidden.new unless block.call(perms)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:show, :media, :media_revisions])]
+    def check_read_access
+      enforce_playlist_access!(&.read?)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:update, :update_media])]
+    def check_update_access
+      enforce_playlist_access!(&.update?)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:destroy])]
+    def check_destroy_access
+      enforce_playlist_access!(&.delete?)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:approve_media])]
+    def check_approve_access
+      enforce_playlist_access!(&.approve?)
     end
 
     ###############################################################################################
 
-    # list media playlists uploaded for this domain
+    # list media playlists in the current authority.
+    #
+    # Non-admin callers see only playlists linked to groups they're a
+    # member of (direct or transitive). Pass `group_id=...` to scope to
+    # a specific group (caller must have Read on that group). Pass
+    # `q=...` for a case-insensitive substring search over `name` and
+    # `description`.
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::Playlist)
-      elastic = ::PlaceOS::Model::Playlist.elastic
-      query = elastic.query(search_params)
-      query.filter({
-        "authority_id" => [authority.id.as(String)],
-      })
-      query.search_field "name"
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+    def index(
+      @[AC::Param::Info(description: "filter to playlists linked to this group (caller must have Read on the group)")]
+      group_id : String? = nil,
+      @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
+      q : String? = nil,
+      limit : Int32 = 100,
+      offset : Int32 = 0,
+    ) : Array(::PlaceOS::Model::Playlist)
+      query = ::PlaceOS::Model::Playlist.where(authority_id: authority.id.as(String))
+
+      if group_id
+        gid = UUID.new(group_id)
+        unless user_support?
+          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          raise Error::Forbidden.new unless perms.read?
+        end
+        linked_ids = ::PlaceOS::Model::GroupPlaylist
+          .where(group_id: gid)
+          .to_a
+          .map(&.playlist_id)
+        if linked_ids.empty?
+          set_collection_headers(0, "playlists")
+          return [] of ::PlaceOS::Model::Playlist
+        end
+        query = query.where(id: linked_ids)
+      elsif !user_support?
+        # Regular user with no group_id filter: scope to every playlist
+        # linked to a group they have Read access on.
+        viewable = group_memberships(current_user).compact_map do |gid, perms|
+          gid if perms.read?
+        end
+        if viewable.empty?
+          set_collection_headers(0, "playlists")
+          return [] of ::PlaceOS::Model::Playlist
+        end
+        linked_ids = ::PlaceOS::Model::GroupPlaylist
+          .where(group_id: viewable)
+          .to_a
+          .map(&.playlist_id)
+          .uniq!
+        if linked_ids.empty?
+          set_collection_headers(0, "playlists")
+          return [] of ::PlaceOS::Model::Playlist
+        end
+        query = query.where(id: linked_ids)
+      end
+
+      if (term = q) && !term.empty?
+        pattern = "%#{term}%"
+        query = query.where("(name ILIKE ? OR description ILIKE ?)", pattern, pattern)
+      end
+
+      paginate_sql(query, type: "playlists", limit: limit, offset: offset)
     end
 
     # return the details of the requested media playlist
@@ -90,12 +170,39 @@ module PlaceOS::Api
       current
     end
 
-    # add a new media playlist
+    # add a new media playlist. Non-admin callers must supply `group_id`
+    # and hold Create permission on that group — the playlist is
+    # auto-linked to the group via a GroupPlaylist junction row so the
+    # creator can see it immediately. Admin/support callers may omit
+    # `group_id`, in which case the playlist is created unlinked
+    # (admin-only visibility).
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : ::PlaceOS::Model::Playlist
+    def create(
+      @[AC::Param::Info(description: "group id to auto-link the new playlist to (required for non-admin callers)")]
+      group_id : String? = nil,
+    ) : ::PlaceOS::Model::Playlist
       playlist = playlist_update
       playlist.authority_id = authority.id
-      raise Error::ModelValidation.new(playlist.errors) unless playlist.save
+
+      target_gid = group_id.try { |g| UUID.new(g) }
+
+      unless user_support?
+        raise Error::Forbidden.new("group_id required") if target_gid.nil?
+        perms = group_memberships(current_user)[target_gid]? || ::PlaceOS::Model::Permissions::None
+        raise Error::Forbidden.new("missing Create permission on the target group") unless perms.create?
+      end
+
+      ::PgORM::Database.transaction do |_tx|
+        raise Error::ModelValidation.new(playlist.errors) unless playlist.save
+        if target_gid
+          link = ::PlaceOS::Model::GroupPlaylist.new(
+            group_id: target_gid,
+            playlist_id: playlist.id.as(String),
+          )
+          raise Error::ModelValidation.new(link.errors) unless link.save
+        end
+      end
+
       playlist
     end
 
@@ -134,7 +241,6 @@ module PlaceOS::Api
     # approve a playlist for publication on displays
     @[AC::Route::POST("/:id/media/approve")]
     def approve_media : Bool
-      ensure_access(admin: true)
       revision = media_revisions(1).first?
       raise Error::NotFound.new("no media in playlist") unless revision
 

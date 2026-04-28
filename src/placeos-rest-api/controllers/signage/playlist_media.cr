@@ -1,9 +1,12 @@
-require "../application"
 require "upload-signer"
+require "uuid"
+require "placeos-models/group/playlist_item"
+
+require "../application"
 
 module PlaceOS::Api
   class PlaylistMedia < Application
-    include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/signage/media"
 
@@ -37,34 +40,102 @@ module PlaceOS::Api
 
     # Permissions
     ###############################################################################################
+    #
+    # Same model as Playlist — admin/support bypass; regular users need
+    # the appropriate permission bit on a group linked to the item via
+    # GroupPlaylistItem. Items with no junction rows are admin-only.
 
-    @[AC::Route::Filter(:before_action, only: [:destroy, :update, :create])]
-    def check_access_level
+    private def linked_item_groups : Array(UUID)
+      @linked_item_groups ||= ::PlaceOS::Model::GroupPlaylistItem
+        .where(playlist_item_id: current_item.id)
+        .to_a
+        .map(&.group_id)
+    end
+
+    @linked_item_groups : Array(UUID)? = nil
+
+    private def enforce_item_access!(&block : ::PlaceOS::Model::Permissions -> Bool)
       return if user_support?
+      raise Error::Forbidden.new if linked_item_groups.empty?
+      perms = effective_permissions_for(current_user, linked_item_groups)
+      raise Error::Forbidden.new unless block.call(perms)
+    end
 
-      # find the org zone
-      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      raise Error::Forbidden.new unless org_zone_id
+    @[AC::Route::Filter(:before_action, only: [:show])]
+    def check_read_access
+      enforce_item_access!(&.read?)
+    end
 
-      access = check_access(current_user.groups, [org_zone_id])
-      return if access.can_manage?
+    @[AC::Route::Filter(:before_action, only: [:update])]
+    def check_update_access
+      enforce_item_access!(&.update?)
+    end
 
-      raise Error::Forbidden.new
+    @[AC::Route::Filter(:before_action, only: [:destroy])]
+    def check_destroy_access
+      enforce_item_access!(&.delete?)
     end
 
     ###############################################################################################
 
-    # list media items uploaded for this domain
+    # list media items for the current authority.
+    #
+    # Non-admin callers see only items linked to groups they're a member
+    # of (direct or transitive). `group_id=...` scopes to a single
+    # group; `q=...` is a case-insensitive substring search across
+    # `name` and `description`.
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::Playlist::Item)
-      elastic = ::PlaceOS::Model::Playlist::Item.elastic
-      query = elastic.query(search_params)
-      query.filter({
-        "authority_id" => [authority.id.as(String)],
-      })
-      query.search_field "name"
-      query.sort({"created_at" => {order: :desc}})
-      paginate_results(elastic, query)
+    def index(
+      @[AC::Param::Info(description: "filter to items linked to this group (caller must have Read on the group)")]
+      group_id : String? = nil,
+      @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
+      q : String? = nil,
+      limit : Int32 = 100,
+      offset : Int32 = 0,
+    ) : Array(::PlaceOS::Model::Playlist::Item)
+      query = ::PlaceOS::Model::Playlist::Item.where(authority_id: authority.id.as(String))
+
+      if group_id
+        gid = UUID.new(group_id)
+        unless user_support?
+          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          raise Error::Forbidden.new unless perms.read?
+        end
+        linked_ids = ::PlaceOS::Model::GroupPlaylistItem
+          .where(group_id: gid)
+          .to_a
+          .map(&.playlist_item_id)
+        if linked_ids.empty?
+          set_collection_headers(0, "playlist_items")
+          return [] of ::PlaceOS::Model::Playlist::Item
+        end
+        query = query.where(id: linked_ids)
+      elsif !user_support?
+        viewable = group_memberships(current_user).compact_map do |gid, perms|
+          gid if perms.read?
+        end
+        if viewable.empty?
+          set_collection_headers(0, "playlist_items")
+          return [] of ::PlaceOS::Model::Playlist::Item
+        end
+        linked_ids = ::PlaceOS::Model::GroupPlaylistItem
+          .where(group_id: viewable)
+          .to_a
+          .map(&.playlist_item_id)
+          .uniq!
+        if linked_ids.empty?
+          set_collection_headers(0, "playlist_items")
+          return [] of ::PlaceOS::Model::Playlist::Item
+        end
+        query = query.where(id: linked_ids)
+      end
+
+      if (term = q) && !term.empty?
+        pattern = "%#{term}%"
+        query = query.where("(name ILIKE ? OR description ILIKE ?)", pattern, pattern)
+      end
+
+      paginate_sql(query, type: "playlist_items", limit: limit, offset: offset)
     end
 
     # return the details of the requested media item
@@ -102,12 +173,37 @@ module PlaceOS::Api
       current
     end
 
-    # add a new media item
+    # add a new media item. Non-admin callers must supply `group_id`
+    # (and hold Create permission on that group); the item is
+    # auto-linked via a GroupPlaylistItem junction row so the creator
+    # can see it immediately.
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : ::PlaceOS::Model::Playlist::Item
+    def create(
+      @[AC::Param::Info(description: "group id to auto-link the new item to (required for non-admin callers)")]
+      group_id : String? = nil,
+    ) : ::PlaceOS::Model::Playlist::Item
       item = item_update
       item.authority_id = authority.id
-      raise Error::ModelValidation.new(item.errors) unless item.save
+
+      target_gid = group_id.try { |g| UUID.new(g) }
+
+      unless user_support?
+        raise Error::Forbidden.new("group_id required") if target_gid.nil?
+        perms = group_memberships(current_user)[target_gid]? || ::PlaceOS::Model::Permissions::None
+        raise Error::Forbidden.new("missing Create permission on the target group") unless perms.create?
+      end
+
+      ::PgORM::Database.transaction do |_tx|
+        raise Error::ModelValidation.new(item.errors) unless item.save
+        if target_gid
+          link = ::PlaceOS::Model::GroupPlaylistItem.new(
+            group_id: target_gid,
+            playlist_item_id: item.id.as(String),
+          )
+          raise Error::ModelValidation.new(link.errors) unless link.save
+        end
+      end
+
       item
     end
 

@@ -8,14 +8,10 @@ module PlaceOS::Api
 
     it "manager can delegate a zone they already have coverage on" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
-      app = Model::Generator.group_application(authority: authority).save!
       manager, manager_headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
-      parent_group = Model::Generator.group(authority: authority).save!
-      child_group = Model::Generator.group(authority: authority, parent: parent_group).save!
-      [parent_group, child_group].each do |g|
-        Model::Generator.group_application_membership(group: g, application: app).save!
-      end
+      parent_group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+      child_group = Model::Generator.group(authority: authority, parent: parent_group, subsystems: ["signage"]).save!
       Model::Generator.group_user(user: manager, group: parent_group, permissions: Model::Permissions::Manage).save!
 
       zone = Model::Generator.zone.save!
@@ -33,14 +29,10 @@ module PlaceOS::Api
 
     it "manager cannot delegate a zone they have no coverage on" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
-      app = Model::Generator.group_application(authority: authority).save!
       manager, manager_headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
-      parent_group = Model::Generator.group(authority: authority).save!
-      child_group = Model::Generator.group(authority: authority, parent: parent_group).save!
-      [parent_group, child_group].each do |g|
-        Model::Generator.group_application_membership(group: g, application: app).save!
-      end
+      parent_group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+      child_group = Model::Generator.group(authority: authority, parent: parent_group, subsystems: ["signage"]).save!
       Model::Generator.group_user(user: manager, group: parent_group, permissions: Model::Permissions::Manage).save!
 
       # Manager has no grant for this zone at all.

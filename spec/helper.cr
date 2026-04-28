@@ -57,10 +57,7 @@ def clear_tables
     PlaceOS::Model::GroupInvitation,
     PlaceOS::Model::GroupZone,
     PlaceOS::Model::GroupUser,
-    PlaceOS::Model::GroupApplicationDoorkeeper,
-    PlaceOS::Model::GroupApplicationMembership,
     PlaceOS::Model::Group,
-    PlaceOS::Model::GroupApplication,
   ].each(&.clear)
 
   {% begin %}
@@ -142,10 +139,9 @@ def clear_group_tables
     PlaceOS::Model::GroupInvitation,
     PlaceOS::Model::GroupZone,
     PlaceOS::Model::GroupUser,
-    PlaceOS::Model::GroupApplicationDoorkeeper,
-    PlaceOS::Model::GroupApplicationMembership,
+    PlaceOS::Model::GroupPlaylistItem,
+    PlaceOS::Model::GroupPlaylist,
     PlaceOS::Model::Group,
-    PlaceOS::Model::GroupApplication,
     PlaceOS::Model::DoorkeeperApplication,
   ].each(&.clear)
 end

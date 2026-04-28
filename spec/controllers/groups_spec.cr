@@ -73,6 +73,35 @@ module PlaceOS::Api
       ids.should_not contain(beta.id.to_s)
     end
 
+    it "?include_children_count=true populates children_count per row" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+      root = Model::Generator.group(authority: authority).save!
+      a = Model::Generator.group(authority: authority, parent: root).save!
+      b = Model::Generator.group(authority: authority, parent: root).save!
+      _aa = Model::Generator.group(authority: authority, parent: a).save!
+
+      result = client.get("#{base}?include_children_count=true", headers: Spec::Authentication.headers)
+      result.status_code.should eq 200
+      counts = Array(Hash(String, JSON::Any)).from_json(result.body).to_h do |row|
+        {row["id"].as_s, row["children_count"].as_i}
+      end
+
+      counts[root.id.to_s].should eq 2
+      counts[a.id.to_s].should eq 1
+      counts[b.id.to_s].should eq 0
+    end
+
+    it "index omits children_count when the flag is absent" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+      root = Model::Generator.group(authority: authority).save!
+      Model::Generator.group(authority: authority, parent: root).save!
+
+      result = client.get(base, headers: Spec::Authentication.headers)
+      result.status_code.should eq 200
+      rows = Array(Hash(String, JSON::Any)).from_json(result.body)
+      rows.each { |r| r["children_count"]?.try(&.raw).should be_nil }
+    end
+
     it "index scopes non-admin callers to their own memberships (direct + transitive)" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

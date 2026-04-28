@@ -6,6 +6,7 @@ module PlaceOS::Api
   class Zones < Application
     include Utils::CoreHelper
     include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/zones/"
 
@@ -50,46 +51,94 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:destroy])]
     def check_delete_permissions
       return if user_support?
-      check_access_level(current_zone, admin_required: true)
+      return if has_legacy_access?(current_zone, admin_required: true)
+      # "support" subsystem: needs Delete (or Manage) reach on the
+      # parent zone — root zones (no parent) stay admin-only.
+      parent_id = current_zone.parent_id
+      return if parent_id && support_subsystem_can_modify_zone?(current_user, parent_id)
+      raise Error::Forbidden.new
     end
 
     @[AC::Route::Filter(:before_action, only: [:update])]
     def check_update_permissions
       return if user_support?
-      check_access_level(current_zone, admin_required: false)
-      if zone_update.parent_id != current_zone.parent_id
-        check_access_level(zone_update, admin_required: false)
+
+      legacy_ok = has_legacy_access?(current_zone, admin_required: false)
+      if legacy_ok && zone_update.parent_id != current_zone.parent_id
+        legacy_ok = has_legacy_access?(zone_update, admin_required: false)
       end
+      return if legacy_ok
+
+      # Signage subsystem: any group with signage + Update/Manage allows
+      # patching any zone (broad grant — used e.g. to set `playlists`).
+      return if has_subsystem_write_grant?(current_user, ["signage"])
+
+      # Support subsystem: per-zone — needs Update (or Manage) reach on
+      # the zone itself.
+      return if support_subsystem_can_modify_zone?(current_user, current_zone.id.as(String))
+
+      raise Error::Forbidden.new
     end
 
     @[AC::Route::Filter(:before_action, only: [:create])]
     def check_create_permissions
       return if user_support?
-      check_access_level(zone_update, admin_required: false)
+      return if has_legacy_access?(zone_update, admin_required: false)
+      # "support" subsystem: needs Create (or Manage) reach on the
+      # intended parent. Root creation stays admin-only.
+      parent_id = zone_update.parent_id.presence
+      return if parent_id && support_subsystem_can_modify_zone?(current_user, parent_id)
+      raise Error::Forbidden.new
     end
 
     def check_access_level(zone : ::PlaceOS::Model::Zone, admin_required : Bool = false)
-      # find the org zone
+      raise Error::Forbidden.new unless has_legacy_access?(zone, admin_required: admin_required)
+    end
+
+    # True if the legacy zone-based permission scheme (org_zone +
+    # current_user.groups) grants the requested level on `zone`.
+    private def has_legacy_access?(zone : ::PlaceOS::Model::Zone, admin_required : Bool = false) : Bool
       authority = current_authority.as(::PlaceOS::Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      raise Error::Forbidden.new unless org_zone_id
-      raise Error::Forbidden.new unless zone.persisted? || zone.parent_id.presence
+      return false unless org_zone_id
+      return false unless zone.persisted? || zone.parent_id.presence
+      return false unless zone.root_zone_id == org_zone_id
 
-      root_zone_id = zone.root_zone_id
+      zones = [org_zone_id, zone.id].compact.uniq!
+      access = check_access(current_user.groups, zones)
+      admin_required ? access.admin? : access.can_manage?
+    end
 
-      # ensure the system is part of the organisation
-      if root_zone_id == org_zone_id
-        zones = [org_zone_id, zone.id].compact.uniq!
-        access = check_access(current_user.groups, zones)
-
-        if admin_required
-          return if access.admin?
-        else
-          return if access.can_manage?
-        end
+    # True if the user has a Manage or Update grant in *any* group that
+    # carries one of the supplied subsystem codes. Coarse-grained — does
+    # not consider a specific zone.
+    private def has_subsystem_write_grant?(user : ::PlaceOS::Model::User, subsystems : Array(String)) : Bool
+      qualified = group_memberships(user).compact_map { |gid, perms| gid if perms.update? || perms.manage? }
+      return false if qualified.empty?
+      ::PlaceOS::Model::Group.where(id: qualified).each do |g|
+        return true if subsystems.any? { |s| g.subsystems.includes?(s) }
       end
+      false
+    end
 
-      raise Error::Forbidden.new
+    # True if the user's effective permissions within the "support"
+    # subsystem on `zone_id` include the bit corresponding to the
+    # current HTTP verb (POST→Create, PATCH/PUT→Update, DELETE→Delete).
+    # Manage is a superset and grants every verb. The resolver already
+    # ANDs the user's group perms with the GroupZone's perms, so a
+    # non-zero bit means both sides agree.
+    private def support_subsystem_can_modify_zone?(user : ::PlaceOS::Model::User, zone_id : String) : Bool
+      authority_id = user.authority_id.as(String)
+      perms = ::PlaceOS::Model::Group.effective_permissions(
+        authority_id, "support", user.id.as(String), zone_id,
+      )
+      return true if perms.manage?
+      case request.method.upcase
+      when "POST"         then perms.create?
+      when "PUT", "PATCH" then perms.update?
+      when "DELETE"       then perms.delete?
+      else                     false
+      end
     end
 
     ###############################################################################################
@@ -101,12 +150,44 @@ module PlaceOS::Api
       parent_id : Array(String)? = nil,
       @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
       tags : Array(String)? = nil,
+      @[AC::Param::Info(description: "filter to zones a group has direct GroupZone anchors on; non-support callers must have Read on the group. Forces include_children_count=true so callers can drill down.")]
+      group_id : String? = nil,
       @[AC::Param::Info(description: "include children_count for each zone (useful for tree views)", example: "true")]
       include_children_count : Bool = false,
     ) : Array(::PlaceOS::Model::Zone)
+      # Group-anchor filter: resolve the GroupZone anchors first so we
+      # can short-circuit on an empty list (and so the ES query never
+      # ends up unconstrained).
+      group_zone_ids = nil
+      if group_id
+        gid = UUID.new(group_id)
+        unless user_support?
+          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          raise Error::Forbidden.new unless perms.read?
+        end
+        group_zone_ids = ::PlaceOS::Model::GroupZone
+          .where(group_id: gid)
+          .to_a
+          .map(&.zone_id)
+        if group_zone_ids.empty?
+          set_collection_headers(0, ::PlaceOS::Model::Zone.table_name)
+          return [] of ::PlaceOS::Model::Zone
+        end
+        # Force tree-friendly response: caller wants the initial set of
+        # group anchors plus enough info to drill down.
+        include_children_count = true
+      end
+
       elastic = ::PlaceOS::Model::Zone.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
+
+      if group_zone_ids
+        query.should({
+          "id" => group_zone_ids,
+        })
+        query.minimum_should_match(1)
+      end
 
       # Handle tree view queries
       if parent_id
@@ -146,7 +227,7 @@ module PlaceOS::Api
         query.must({
           "tags" => filter_tags,
         })
-      else
+      elsif group_zone_ids.nil?
         raise Error::Forbidden.new unless user_support?
         query.search_field "name"
       end

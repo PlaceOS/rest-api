@@ -15,6 +15,14 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show, :current]
     before_action :can_write, only: [:create, :update, :destroy]
 
+    # Response helpers
+    ###############################################################################################
+
+    # Reopened to expose a non-persisted children_count for tree views.
+    class ::PlaceOS::Model::Group
+      property children_count : Int32? = nil
+    end
+
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create, :current])]
@@ -85,6 +93,8 @@ module PlaceOS::Api
       parent_id : String? = nil,
       @[AC::Param::Info(description: "case-insensitive substring search on name (SQL ILIKE)")]
       q : String? = nil,
+      @[AC::Param::Info(description: "include children_count for each group (useful for tree views)", example: "true")]
+      include_children_count : Bool = false,
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Group)
@@ -109,7 +119,39 @@ module PlaceOS::Api
         query = query.where("name ILIKE ?", "%#{term}%")
       end
 
-      paginate_sql(query, type: "groups", limit: limit, offset: offset)
+      results = paginate_sql(query, type: "groups", limit: limit, offset: offset)
+      add_children_counts(results) if include_children_count
+      results
+    end
+
+    # Populates `children_count` on each supplied group via a single
+    # GROUP BY query against the `groups` table. Counts span the entire
+    # tree, not just the slice the caller is allowed to see — the count
+    # answers "does this node have descendants worth expanding?" rather
+    # than "how many of my visible groups are below it?".
+    private def add_children_counts(groups : Array(::PlaceOS::Model::Group)) : Nil
+      return if groups.empty?
+      ids = groups.compact_map(&.id)
+      return if ids.empty?
+
+      placeholders = (1..ids.size).map { |i| "$#{i}" }.join(", ")
+      sql = "SELECT parent_id, COUNT(*)::int FROM groups WHERE parent_id IN (#{placeholders}) GROUP BY parent_id"
+      args = ids.map(&.as(::PgORM::Value))
+
+      count_map = {} of UUID => Int32
+      ::PgORM::Database.connection do |conn|
+        conn.query_all(sql, args: args) do |rs|
+          parent_id = rs.read(UUID)
+          count = rs.read(Int32)
+          count_map[parent_id] = count
+        end
+      end
+
+      groups.each do |g|
+        gid = g.id
+        next if gid.nil?
+        g.children_count = count_map[gid]? || 0
+      end
     end
 
     # Show group details. Visible if sys_admin or a member.

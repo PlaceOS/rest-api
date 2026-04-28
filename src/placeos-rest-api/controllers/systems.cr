@@ -10,6 +10,7 @@ module PlaceOS::Api
   class Systems < Application
     include Utils::CoreHelper
     include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/systems/"
 
@@ -67,50 +68,133 @@ module PlaceOS::Api
     before_action :check_admin, except: [
       :index, :show, :find_by_email, :control, :execute, :types,
       :destroy, :update, :create, :add_module, :remove_module,
-      :state, :state_lookup, :functions,
-    ]
-
-    before_action :check_support, only: [
-      :state, :state_lookup, :functions,
+      :state, :state_lookup, :functions, :start, :stop,
     ]
 
     @[AC::Route::Filter(:before_action, only: [:destroy, :add_module, :remove_module])]
     def check_admin_permissions
       return if user_admin?
-      check_access_level(current_control_system.zones, admin_required: true)
+      return if has_legacy_access?(current_control_system.zones, admin_required: true)
+      # "support" subsystem: needs the verb-appropriate bit (or Manage)
+      # on the system's zones.
+      return if support_subsystem_grants?(current_control_system.zones, verb_permission)
+      raise Error::Forbidden.new
     end
 
     @[AC::Route::Filter(:before_action, only: [:update])]
     def check_update_permissions
       return if user_support?
-      check_access_level(current_control_system.zones, admin_required: false)
-      check_access_level(control_system_update.zones, admin_required: false)
+
+      legacy_ok = has_legacy_access?(current_control_system.zones, admin_required: false) &&
+                  has_legacy_access?(control_system_update.zones, admin_required: false)
+      return if legacy_ok
+
+      # "signage" or "support" subsystem with Update (or Manage) on the
+      # existing system's zones.
+      return if subsystem_grants_on_zones?(
+                  ["signage", "support"],
+                  current_control_system.zones,
+                  ::PlaceOS::Model::Permissions::Update,
+                )
+
+      raise Error::Forbidden.new
     end
 
     @[AC::Route::Filter(:before_action, only: [:create])]
     def check_create_permissions
       return if user_support?
-      check_access_level(control_system_update.zones, admin_required: false)
+      return if has_legacy_access?(control_system_update.zones, admin_required: false)
+      # "support" subsystem with Create (or Manage) on the proposed
+      # zones.
+      return if support_subsystem_grants?(control_system_update.zones, ::PlaceOS::Model::Permissions::Create)
+      raise Error::Forbidden.new
+    end
+
+    # start, stop: control-plane operations on `current_control_system`,
+    # which `find_current_control_system` has already loaded.
+    @[AC::Route::Filter(:before_action, only: [:start, :stop])]
+    def check_runtime_permissions
+      return if user_support?
+      return if support_subsystem_grants?(current_control_system.zones, ::PlaceOS::Model::Permissions::Operate)
+      raise Error::Forbidden.new
+    end
+
+    # execute, functions: same gate as start/stop but the system isn't
+    # pre-loaded. Look up zones lazily so admin/support short-circuit
+    # avoids the DB round-trip (and so we don't break the state-spec
+    # pattern of clearing ControlSystem and relying on Redis only).
+    @[AC::Route::Filter(:before_action, only: [:execute, :functions])]
+    def check_runtime_permissions_lazy(sys_id : String)
+      return if user_support?
+      return if support_subsystem_grants?(control_system_zones(sys_id), ::PlaceOS::Model::Permissions::Operate)
+      raise Error::Forbidden.new
+    end
+
+    # state, state_lookup: read-only state queries gated by admin/support
+    # OR the support subsystem with Read (or Manage) on the system's
+    # zones. Same lazy-lookup pattern as execute/functions.
+    @[AC::Route::Filter(:before_action, only: [:state, :state_lookup])]
+    def check_state_permissions(sys_id : String)
+      return if user_support?
+      return if support_subsystem_grants?(control_system_zones(sys_id), ::PlaceOS::Model::Permissions::Read)
+      raise Error::Forbidden.new
+    end
+
+    private def control_system_zones(sys_id : String) : Array(String)
+      ::PlaceOS::Model::ControlSystem.find!(sys_id).zones
     end
 
     def check_access_level(zones : Array(String), admin_required : Bool = false)
-      # find the org zone
+      raise Error::Forbidden.new unless has_legacy_access?(zones, admin_required: admin_required)
+    end
+
+    # True if the legacy zone-based permission scheme grants the
+    # requested level across `zones`. Mirrors the previous behaviour:
+    # the system must include the org_zone, and `current_user.groups`
+    # must satisfy `admin?` or `can_manage?`.
+    private def has_legacy_access?(zones : Array(String), admin_required : Bool = false) : Bool
       authority = current_authority.as(::PlaceOS::Model::Authority)
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      raise Error::Forbidden.new unless org_zone_id
+      return false unless org_zone_id
+      return false unless zones.includes?(org_zone_id)
+      access = check_access(current_user.groups, zones)
+      admin_required ? access.admin? : access.can_manage?
+    end
 
-      # ensure the system is part of the organisation
-      if zones.includes? org_zone_id
-        access = check_access(current_user.groups, zones)
-
-        if admin_required
-          return if access.admin?
-        else
-          return if access.can_manage?
-        end
+    # Permissions bit corresponding to the current HTTP verb.
+    private def verb_permission : ::PlaceOS::Model::Permissions
+      case request.method.upcase
+      when "POST"         then ::PlaceOS::Model::Permissions::Create
+      when "PUT", "PATCH" then ::PlaceOS::Model::Permissions::Update
+      when "DELETE"       then ::PlaceOS::Model::Permissions::Delete
+      else                     ::PlaceOS::Model::Permissions::None
       end
+    end
 
-      raise Error::Forbidden.new
+    # True if the user's effective permissions on `zones` (within any
+    # of `subsystems`) include `required`, or Manage (which is a
+    # superset). The resolver already ANDs the user's group perms with
+    # the GroupZone's perms, so a non-zero result means both sides
+    # agree.
+    private def subsystem_grants_on_zones?(
+      subsystems : Array(String),
+      zones : Array(String),
+      required : ::PlaceOS::Model::Permissions,
+    ) : Bool
+      return false if zones.empty?
+      authority_id = current_user.authority_id.as(String)
+      user_id = current_user.id.as(String)
+      subsystems.any? do |subsystem|
+        perms = ::PlaceOS::Model::Group.effective_permissions(authority_id, subsystem, user_id, zones)
+        perms.manage? || (perms & required) != ::PlaceOS::Model::Permissions::None
+      end
+    end
+
+    private def support_subsystem_grants?(
+      zones : Array(String),
+      required : ::PlaceOS::Model::Permissions,
+    ) : Bool
+      subsystem_grants_on_zones?(["support"], zones, required)
     end
 
     # Response helpers
@@ -164,6 +248,10 @@ module PlaceOS::Api
       trigger_id : String? = nil,
       @[AC::Param::Info(description: "return systems which are in the zones provided", example: "zone-1234,zone-4567")]
       zone_id : Array(String)? = nil,
+      @[AC::Param::Info(description: "return systems anchored by this group's GroupZone rows; non-support callers must have Read on the group")]
+      group_id : String? = nil,
+      @[AC::Param::Info(description: "return systems in any zone the caller can reach (transitively) within the given subsystem code, e.g. 'signage'")]
+      subsystem : String? = nil,
       @[AC::Param::Info(description: "return systems which are public", example: "true")]
       public : Bool? = nil,
       @[AC::Param::Info(description: "return systems which are signage", example: "true")]
@@ -172,11 +260,50 @@ module PlaceOS::Api
       elastic = ::PlaceOS::Model::ControlSystem.elastic
       query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
 
-      # Filter systems by zone_id
+      # `zone_id` keeps its original AND semantics — a system must
+      # contain *every* listed zone. The intended use is intersection
+      # filters like "all meeting rooms on level 3", where each zone
+      # tag narrows the result.
       if zone_id && !zone_id.empty?
         query.must({
           "zones" => zone_id,
         })
+      end
+
+      # `group_id` and `subsystem` build an OR scope — a system needs
+      # to be in *any one* of the resolved zones. Their zone lists are
+      # combined into a single `should` clause with
+      # `minimum_should_match(1)` so the OR semantic is preserved.
+      # When both are supplied the lists union; when neither is, no
+      # scope clause is added.
+      scope_zones = [] of String
+
+      if (gid_str = group_id)
+        gid = UUID.new(gid_str)
+        unless user_support?
+          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          raise Error::Forbidden.new unless perms.read?
+        end
+        scope_zones.concat(::PlaceOS::Model::GroupZone.where(group_id: gid).to_a.map(&.zone_id))
+      end
+
+      if (sub = subsystem)
+        authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+        user_id = current_user.id.as(String)
+        scope_zones.concat(::PlaceOS::Model::Group.accessible_zone_ids(authority_id, sub, user_id))
+      end
+
+      if group_id || subsystem
+        if scope_zones.empty?
+          # Caller asked for a scope but it resolved to nothing — no
+          # systems can possibly match.
+          set_collection_headers(0, ::PlaceOS::Model::ControlSystem.table_name)
+          return [] of ::PlaceOS::Model::ControlSystem
+        end
+        query.should({
+          "zones" => scope_zones.uniq!,
+        })
+        query.minimum_should_match(1)
       end
 
       # Filter by module_id
