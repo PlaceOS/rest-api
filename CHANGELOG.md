@@ -2,6 +2,7 @@
 
 ### Feat
 
+- add permission groups
 - add CRUD methods for managing permission groups ([#432](https://github.com/PlaceOS/rest-api/pull/432))
 - **public_events**: [PPT-2247] Support Public Event Sharing & Registration ([#430](https://github.com/PlaceOS/rest-api/pull/430))
 - **signage**: add basic playback monitoring
