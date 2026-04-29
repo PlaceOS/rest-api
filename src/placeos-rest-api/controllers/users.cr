@@ -68,8 +68,8 @@ module PlaceOS::Api
 
     # Render the current user
     @[AC::Route::GET("/current")]
-    def current : ::PlaceOS::Model::User::AdminResponse
-      current_user.to_admin_struct
+    def current : ::PlaceOS::Model::User::AdminMetadataResponse
+      current_user.to_admin_metadata_struct
     rescue e : PgORM::Error::RecordNotFound
       raise Error::Unauthorized.new("user not found")
     end

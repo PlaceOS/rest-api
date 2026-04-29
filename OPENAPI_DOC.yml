@@ -25927,7 +25927,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS__Model__User__AdminResponse'
+                $ref: '#/components/schemas/PlaceOS__Model__User__AdminMetadataResponse'
         409:
           description: Conflict
           content:
@@ -36516,7 +36516,7 @@ components:
           type: boolean
       required:
       - ok
-    PlaceOS__Model__User__AdminResponse:
+    PlaceOS__Model__User__AdminMetadataResponse:
       type: object
       properties:
         created_at:
@@ -36656,6 +36656,10 @@ components:
         id:
           type: string
           nullable: true
+        subsystem_access:
+          type: array
+          items:
+            type: string
       required:
       - created_at
       - name
@@ -36668,6 +36672,7 @@ components:
       - login_count
       - work_preferences
       - work_overrides
+      - subsystem_access
     PlaceOS__Api__Users__AccessToken:
       type: object
       properties:
@@ -36820,6 +36825,10 @@ components:
           id:
             type: string
             nullable: true
+          subsystem_access:
+            type: array
+            items:
+              type: string
         required:
         - created_at
         - name
@@ -36832,6 +36841,7 @@ components:
         - login_count
         - work_preferences
         - work_overrides
+        - subsystem_access
       - type: object
         properties:
           created_at:
