@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **users**: current user to return subsystem access
 - **groups**: hydrate group users and zones
 - add permission groups
 - add CRUD methods for managing permission groups ([#432](https://github.com/PlaceOS/rest-api/pull/432))
