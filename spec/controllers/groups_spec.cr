@@ -57,6 +57,26 @@ module PlaceOS::Api
       entries.first["permissions"].as_i.should eq Model::Permissions::Read.to_i
     end
 
+    it "#current?subsystem= filters to groups participating in that subsystem" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+      user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+      # Two child groups under the same root; user has Read on the
+      # root (transitive membership in both children). Only one
+      # child participates in the "signage" subsystem.
+      root = Model::Generator.group(authority: authority).save!
+      Model::Generator.group_user(user: user, group: root, permissions: Model::Permissions::Read).save!
+      signage_group = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"]).save!
+      events_group = Model::Generator.group(authority: authority, parent: root, subsystems: ["events"]).save!
+
+      result = client.get(File.join(base, "current?subsystem=signage"), headers: headers)
+      result.status_code.should eq 200
+      ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["group"].["id"].as_s)
+      ids.should contain(signage_group.id.to_s)
+      ids.should_not contain(events_group.id.to_s)
+      ids.should_not contain(root.id.to_s)
+    end
+
     it "index supports ?q= substring search on name (sys_admin)" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       alpha = Model::Generator.group(authority: authority)

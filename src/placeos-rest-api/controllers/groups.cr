@@ -206,7 +206,10 @@ module PlaceOS::Api
     end
 
     @[AC::Route::GET("/current")]
-    def current : Array(CurrentGroup)
+    def current(
+      @[AC::Param::Info(description: "filter to groups participating in this subsystem (e.g. 'signage')", example: "signage")]
+      subsystem : String? = nil,
+    ) : Array(CurrentGroup)
       memberships = group_memberships(current_user)
       return [] of CurrentGroup if memberships.empty?
 
@@ -216,6 +219,7 @@ module PlaceOS::Api
         next if gid.nil?
         perms = memberships[gid]? || ::PlaceOS::Model::Permissions::None
         next if perms == ::PlaceOS::Model::Permissions::None
+        next if subsystem && !g.subsystems.includes?(subsystem)
         CurrentGroup.new(g, perms.to_i)
       end
     end

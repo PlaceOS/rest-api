@@ -14170,7 +14170,14 @@ paths:
       tags:
       - Groups
       operationId: PlaceOS::Api::Groups_current
-      parameters: []
+      parameters:
+      - name: subsystem
+        in: query
+        description: filter to groups participating in this subsystem (e.g. 'signage')
+        example: signage
+        schema:
+          type: string
+          nullable: true
       responses:
         200:
           description: OK
@@ -16778,7 +16785,8 @@ paths:
       parameters:
       - name: authority_id
         in: query
-        description: the ID of the domain to be listed
+        description: the ID of the domain to be listed; ignored for non-admin/support
+          callers (forced to their own authority)
         example: auth-12345
         schema:
           type: string

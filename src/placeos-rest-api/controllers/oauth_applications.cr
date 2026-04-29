@@ -7,7 +7,9 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :check_admin
+    # `index` is open to any authenticated user — the action filters
+    # results by the caller's `subsystem_access`.
+    before_action :check_admin, except: [:index]
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
@@ -27,18 +29,41 @@ module PlaceOS::Api
     # lists the frontend applications enabled on the domains
     @[AC::Route::GET("/")]
     def index(
-      @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
+      @[AC::Param::Info(description: "the ID of the domain to be listed; ignored for non-admin/support callers (forced to their own authority)", example: "auth-12345")]
       authority_id : String? = nil,
     ) : Array(::PlaceOS::Model::DoorkeeperApplication)
       elastic = ::PlaceOS::Model::DoorkeeperApplication.elastic
       query = elastic.query(search_params)
       query.sort(NAME_SORT_ASC)
 
-      # Filter by authority_id
-      if authority = authority_id
+      if user_support?
+        # admin/support: optional authority_id filter, no subsystem gating.
+        if authority = authority_id
+          query.must({
+            "owner_id" => [authority],
+          })
+        end
+      else
+        # Regular user: force the authority to the caller's own.
+        own_authority = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
         query.must({
-          "owner_id" => [authority],
+          "owner_id" => [own_authority],
         })
+
+        # Subsystem gating: a regular user always sees the "common"
+        # apps (those with no subsystems set), plus any app tagged
+        # with one of their accessible subsystems. Both clauses go
+        # into a single `should` with `minimum_should_match(1)`.
+        # `nil` in the values list expands to a `must_not exists`
+        # term filter — that's how neuroplastic encodes "this field
+        # is missing/empty" inside a should clause.
+        accessible_subsystems = Array(String?).new
+        current_user.subsystem_access.each { |s| accessible_subsystems << s }
+        accessible_subsystems << nil
+        query.should({
+          "subsystems" => accessible_subsystems,
+        })
+        query.minimum_should_match(1)
       end
 
       paginate_results(elastic, query)
