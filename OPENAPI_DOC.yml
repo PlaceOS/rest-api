@@ -21691,6 +21691,97 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/media/share:
+    post:
+      summary: Share one or more media items into another signage group via
+      description: "Share one or more media items into another signage group via\n`GroupPlaylistItem`
+        junctions. Existing junctions are preserved\n(no duplicates); the response
+        separates newly-created links from\nones that were already in place.\n\nPermissions:\n-
+        sys_admin / support: any signage group in the caller's authority.\n- regular
+        user: must hold Share or Manage on the target group, and\n  must have Read
+        on each item they're trying to share.\n\nAll items and the target group must
+        share the caller's authority."
+      tags:
+      - PlaylistMedia
+      operationId: PlaceOS::Api::PlaylistMedia_share
+      parameters:
+      - name: items
+        in: query
+        description: comma-separated item ids to share into the target group
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+      - name: to
+        in: query
+        description: target group id (must participate in the 'signage' subsystem)
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_linked__Array_String___already_present__Array_String__'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists:
     get:
       summary: list media playlists in the current authority.
@@ -22157,6 +22248,97 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Model__Playlist'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/playlists/share:
+    post:
+      summary: Share one or more playlists into another signage group via
+      description: "Share one or more playlists into another signage group via\n`GroupPlaylist`
+        junctions. Existing junctions are preserved\n(no duplicates); the response
+        separates newly-created links\nfrom ones that were already in place.\n\nPermissions:\n-
+        sys_admin / support: any signage group in the caller's authority.\n- regular
+        user: must hold Share or Manage on the target group, and\n  must have Read
+        on each playlist they're trying to share.\n\nAll playlists and the target
+        group must share the caller's\nauthority."
+      tags:
+      - Playlist
+      operationId: PlaceOS::Api::Playlist_share
+      parameters:
+      - name: items
+        in: query
+        description: comma-separated playlist ids to share into the target group
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+      - name: to
+        in: query
+        description: target group id (must participate in the 'signage' subsystem)
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_linked__Array_String___already_present__Array_String__'
         409:
           description: Conflict
           content:
@@ -34492,6 +34674,20 @@ components:
         id:
           type: string
           nullable: true
+    NamedTuple_linked__Array_String___already_present__Array_String__:
+      type: object
+      properties:
+        linked:
+          type: array
+          items:
+            type: string
+        already_present:
+          type: array
+          items:
+            type: string
+      required:
+      - linked
+      - already_present
     PlaceOS__Model__Playlist:
       type: object
       properties:

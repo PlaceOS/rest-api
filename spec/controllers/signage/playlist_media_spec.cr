@@ -124,5 +124,85 @@ module PlaceOS::Api
         ids.should_not contain(miss.id.to_s)
       end
     end
+
+    describe "POST /share" do
+      it "admin shares items into a signage group, skipping duplicates" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+
+        a = Model::Generator.item(authority: authority).save!
+        b = Model::Generator.item(authority: authority).save!
+        Model::Generator.group_playlist_item(group: target, playlist_item: b).save!
+
+        params = HTTP::Params.encode({"items" => "#{a.id},#{b.id}", "to" => target.id.to_s})
+        result = client.post("#{base}/share?#{params}", headers: Spec::Authentication.headers)
+        result.success?.should be_true
+
+        body = JSON.parse(result.body)
+        body["linked"].as_a.map(&.as_s).should eq [a.id.to_s]
+        body["already_present"].as_a.map(&.as_s).should eq [b.id.to_s]
+
+        target_id = target.id.as(UUID)
+        Model::GroupPlaylistItem.find?({target_id, a.id.as(String)}).should_not be_nil
+        Model::GroupPlaylistItem.find?({target_id, b.id.as(String)}).should_not be_nil
+      end
+
+      it "rejects when target group lacks the 'signage' subsystem" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.group(authority: authority, subsystems: ["events"]).save!
+        item = Model::Generator.item(authority: authority).save!
+
+        params = HTTP::Params.encode({"items" => item.id.to_s, "to" => target.id.to_s})
+        result = client.post("#{base}/share?#{params}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 403
+      end
+
+      it "404s when an item belongs to a different authority" do
+        own = Model::Authority.find_by_domain("localhost").not_nil!
+        other = Model::Generator.authority(domain: "http://other-#{Random::Secure.hex(3)}.example").save!
+        target = Model::Generator.group(authority: own, subsystems: ["signage"]).save!
+
+        local_item = Model::Generator.item(authority: own).save!
+        foreign_item = Model::Generator.item(authority: other).save!
+
+        params = HTTP::Params.encode({"items" => "#{local_item.id},#{foreign_item.id}", "to" => target.id.to_s})
+        result = client.post("#{base}/share?#{params}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+      end
+
+      it "lets a user with Share + Read permissions share into a group they belong to" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        root = Model::Generator.group(authority: authority).save!
+        source = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"]).save!
+        target = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"]).save!
+
+        Model::Generator.group_user(user: user, group: source, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_user(user: user, group: target, permissions: Model::Permissions::Read | Model::Permissions::Share).save!
+
+        item = Model::Generator.item(authority: authority).save!
+        Model::Generator.group_playlist_item(group: source, playlist_item: item).save!
+
+        params = HTTP::Params.encode({"items" => item.id.to_s, "to" => target.id.to_s})
+        result = client.post("#{base}/share?#{params}", headers: headers)
+        result.success?.should be_true
+        Model::GroupPlaylistItem.find?({target.id.as(UUID), item.id.as(String)}).should_not be_nil
+      end
+
+      it "rejects a regular user trying to share an item they can't read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        target = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: target, permissions: Model::Permissions::Share).save!
+
+        admin_only = Model::Generator.item(authority: authority).save!
+
+        params = HTTP::Params.encode({"items" => admin_only.id.to_s, "to" => target.id.to_s})
+        result = client.post("#{base}/share?#{params}", headers: headers)
+        result.status_code.should eq 403
+      end
+    end
   end
 end

@@ -13,11 +13,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :media, :media_revisions]
-    before_action :can_write, only: [:create, :update, :destroy, :update_media, :approve_media]
+    before_action :can_write, only: [:create, :update, :destroy, :update_media, :approve_media, :share]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :share])]
     def current_playlist(id : String)
       Log.context.set(playlist_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -210,6 +210,94 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_playlist.destroy
+    end
+
+    # Share one or more playlists into another signage group via
+    # `GroupPlaylist` junctions. Existing junctions are preserved
+    # (no duplicates); the response separates newly-created links
+    # from ones that were already in place.
+    #
+    # Permissions:
+    # - sys_admin / support: any signage group in the caller's authority.
+    # - regular user: must hold Share or Manage on the target group, and
+    #   must have Read on each playlist they're trying to share.
+    #
+    # All playlists and the target group must share the caller's
+    # authority.
+    @[AC::Route::POST("/share", converters: {items: ConvertStringArray})]
+    def share(
+      @[AC::Param::Info(description: "comma-separated playlist ids to share into the target group")]
+      items : Array(String),
+      @[AC::Param::Info(description: "target group id (must participate in the 'signage' subsystem)", name: "to")]
+      to : String,
+    ) : NamedTuple(linked: Array(String), already_present: Array(String))
+      return {linked: [] of String, already_present: [] of String} if items.empty?
+
+      target_group = resolve_share_target_group(to)
+      ensure_share_permission!(target_group)
+      verify_items_in_authority!(items)
+      ensure_caller_can_read_items!(items) unless user_support?
+
+      group_id = target_group.id.as(UUID)
+      existing = ::PlaceOS::Model::GroupPlaylist
+        .where(group_id: group_id, playlist_id: items)
+        .to_a
+        .map(&.playlist_id)
+      to_link = items - existing
+
+      ::PgORM::Database.transaction do |_tx|
+        to_link.each do |playlist_id|
+          link = ::PlaceOS::Model::GroupPlaylist.new(
+            group_id: group_id,
+            playlist_id: playlist_id,
+          )
+          raise Error::ModelValidation.new(link.errors) unless link.save
+        end
+      end
+
+      {linked: to_link, already_present: existing}
+    end
+
+    private def resolve_share_target_group(to : String) : ::PlaceOS::Model::Group
+      target_gid = UUID.new(to)
+      group = ::PlaceOS::Model::Group.find!(target_gid)
+      raise Error::Forbidden.new("target group must be in the same authority") unless group.authority_id == authority.id
+      raise Error::Forbidden.new("target group must participate in the 'signage' subsystem") unless group.subsystems.includes?("signage")
+      group
+    end
+
+    private def ensure_share_permission!(target_group : ::PlaceOS::Model::Group) : Nil
+      return if user_support?
+      target_gid = target_group.id.as(UUID)
+      perms = group_memberships(current_user)[target_gid]? || ::PlaceOS::Model::Permissions::None
+      raise Error::Forbidden.new("missing Share permission on the target group") unless perms.share? || perms.manage?
+    end
+
+    private def verify_items_in_authority!(items : Array(String)) : Nil
+      found = ::PlaceOS::Model::Playlist
+        .where(id: items, authority_id: authority.id.as(String))
+        .to_a
+      raise Error::NotFound.new("one or more playlists not found in this authority") unless found.size == items.size
+    end
+
+    # Non-support callers need at least one of Read / Share / Manage on
+    # the groups every item is currently linked to. Items with no
+    # junction rows are admin-only — regular users can't share them.
+    private def ensure_caller_can_read_items!(items : Array(String)) : Nil
+      junctions = ::PlaceOS::Model::GroupPlaylist.where(playlist_id: items).to_a
+      groups_per_item = Hash(String, Array(UUID)).new { |h, k| h[k] = [] of UUID }
+      junctions.each { |j| groups_per_item[j.playlist_id] << j.group_id }
+
+      memberships = group_memberships(current_user)
+      items.each do |playlist_id|
+        groups = groups_per_item[playlist_id]
+        raise Error::Forbidden.new("no read access to playlist #{playlist_id}") if groups.empty?
+        perms = groups.reduce(::PlaceOS::Model::Permissions::None) do |acc, gid|
+          acc | (memberships[gid]? || ::PlaceOS::Model::Permissions::None)
+        end
+        next if perms.read? || perms.share? || perms.manage?
+        raise Error::Forbidden.new("no read access to playlist #{playlist_id}")
+      end
     end
 
     # Playlist Revisions
