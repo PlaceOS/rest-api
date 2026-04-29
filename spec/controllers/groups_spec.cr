@@ -53,7 +53,7 @@ module PlaceOS::Api
       result = client.get(File.join(base, "current"), headers: headers)
       result.status_code.should eq 200
       entries = Array(Hash(String, JSON::Any)).from_json(result.body)
-      entries.map { |e| e["group"]["id"].as_s }.should contain(root.id.to_s)
+      entries.map(&.["group"].["id"].as_s).should contain(root.id.to_s)
       entries.first["permissions"].as_i.should eq Model::Permissions::Read.to_i
     end
 
@@ -68,7 +68,7 @@ module PlaceOS::Api
 
       result = client.get("#{base}?q=engineering", headers: Spec::Authentication.headers)
       result.status_code.should eq 200
-      ids = Array(Hash(String, JSON::Any)).from_json(result.body).map { |e| e["id"].as_s }
+      ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
       ids.should contain(alpha.id.to_s)
       ids.should_not contain(beta.id.to_s)
     end
@@ -116,7 +116,7 @@ module PlaceOS::Api
 
       result = client.get(base, headers: headers)
       result.status_code.should eq 200
-      ids = Array(Hash(String, JSON::Any)).from_json(result.body).map { |e| e["id"].as_s }
+      ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
       ids.sort!.should eq [mine.id.to_s, child.id.to_s].sort!
     end
   end

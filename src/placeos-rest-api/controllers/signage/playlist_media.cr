@@ -111,8 +111,8 @@ module PlaceOS::Api
         end
         query = query.where(id: linked_ids)
       elsif !user_support?
-        viewable = group_memberships(current_user).compact_map do |gid, perms|
-          gid if perms.read?
+        viewable = group_memberships(current_user).compact_map do |g_id, g_perms|
+          g_id if g_perms.read?
         end
         if viewable.empty?
           set_collection_headers(0, "playlist_items")

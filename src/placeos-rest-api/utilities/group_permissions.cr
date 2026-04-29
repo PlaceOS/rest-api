@@ -150,6 +150,5 @@ module PlaceOS::Api
         end
       end
     end
-
   end
 end

@@ -27,6 +27,24 @@ module PlaceOS::Api
       result.status_code.should eq 201
     end
 
+    it "index hydrates each row with the embedded group and zone" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+      user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+      group = Model::Generator.group(authority: authority).save!
+      Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+      zone = Model::Generator.zone.save!
+      Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+      result = client.get("#{base}?group_id=#{group.id}", headers: headers)
+      result.status_code.should eq 200
+      rows = Array(Hash(String, JSON::Any)).from_json(result.body)
+      rows.size.should eq 1
+      rows[0]["group"]["id"].as_s.should eq group.id.to_s
+      rows[0]["zone"]["id"].as_s.should eq zone.id.to_s
+    end
+
     it "manager cannot delegate a zone they have no coverage on" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       manager, manager_headers = Spec::Authentication.authentication(sys_admin: false, support: false)

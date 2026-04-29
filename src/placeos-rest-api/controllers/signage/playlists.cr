@@ -125,8 +125,8 @@ module PlaceOS::Api
       elsif !user_support?
         # Regular user with no group_id filter: scope to every playlist
         # linked to a group they have Read access on.
-        viewable = group_memberships(current_user).compact_map do |gid, perms|
-          gid if perms.read?
+        viewable = group_memberships(current_user).compact_map do |g_id, g_perms|
+          g_id if g_perms.read?
         end
         if viewable.empty?
           set_collection_headers(0, "playlists")

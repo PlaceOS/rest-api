@@ -9,6 +9,16 @@ module PlaceOS::Api
 
     base "/api/engine/v2/group_zones/"
 
+    # Hydration fields populated by `index`. Default `nil`, so
+    # single-row endpoints keep their existing wire shape.
+    class ::PlaceOS::Model::GroupZone
+      @[JSON::Field(key: "group")]
+      property group_data : ::PlaceOS::Model::Group? = nil
+
+      @[JSON::Field(key: "zone")]
+      property zone_data : ::PlaceOS::Model::Zone? = nil
+    end
+
     # Scopes
     ###############################################################################################
 
@@ -93,7 +103,33 @@ module PlaceOS::Api
       end
 
       query = query.where(zone_id: zone_id) if zone_id
-      paginate_sql(query, type: "group_zones", limit: limit, offset: offset)
+      results = paginate_sql(query, type: "group_zones", limit: limit, offset: offset)
+      hydrate_index(results)
+      results
+    end
+
+    # Two batched lookups (groups, zones) keyed by id; each row gets
+    # its parents assigned in-place. Total: 2 SQL queries regardless
+    # of result size.
+    private def hydrate_index(rows : Array(::PlaceOS::Model::GroupZone)) : Nil
+      return if rows.empty?
+
+      group_ids = rows.map(&.group_id).uniq!
+      groups_by_id = ::PlaceOS::Model::Group
+        .where(id: group_ids)
+        .to_a
+        .index_by(&.id.not_nil!)
+
+      zone_ids = rows.map(&.zone_id).uniq!
+      zones_by_id = ::PlaceOS::Model::Zone
+        .where(id: zone_ids)
+        .to_a
+        .index_by(&.id.not_nil!)
+
+      rows.each do |row|
+        row.group_data = groups_by_id[row.group_id]?
+        row.zone_data = zones_by_id[row.zone_id]?
+      end
     end
 
     @[AC::Route::GET("/:group_id/:zone_id")]

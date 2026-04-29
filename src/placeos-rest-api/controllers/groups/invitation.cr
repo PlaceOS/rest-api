@@ -37,6 +37,7 @@ module PlaceOS::Api
       group = ::PlaceOS::Model::Group.find!(current_invitation.group_id)
       ensure_manage!(current_user, group)
     end
+
     # create's permission check is done inline in the action, since the
     # incoming body is typed as `InvitationCreatePayload` (not the model)
     # and can't easily be consumed in a before_action without colliding

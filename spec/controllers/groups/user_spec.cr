@@ -47,7 +47,21 @@ module PlaceOS::Api
       result = client.get("#{base}?user_id=me", headers: headers)
       result.status_code.should eq 200
       rows = Array(Hash(String, JSON::Any)).from_json(result.body)
-      rows.map { |r| r["user_id"].as_s }.uniq.should eq [user.id.to_s]
+      rows.map(&.["user_id"].as_s).uniq!.should eq [user.id.to_s]
+    end
+
+    it "index hydrates each row with the embedded group and user" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+      user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+      group = Model::Generator.group(authority: authority).save!
+      Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+      result = client.get("#{base}?user_id=me", headers: headers)
+      result.status_code.should eq 200
+      rows = Array(Hash(String, JSON::Any)).from_json(result.body)
+      rows.size.should eq 1
+      rows[0]["group"]["id"].as_s.should eq group.id.to_s
+      rows[0]["user"]["id"].as_s.should eq user.id.to_s
     end
   end
 end

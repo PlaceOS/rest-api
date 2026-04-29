@@ -9,6 +9,17 @@ module PlaceOS::Api
 
     base "/api/engine/v2/group_users/"
 
+    # Hydration fields populated by `index` so the frontend can render
+    # a list without an N+1 fetch per row. Default `nil`, so single-row
+    # endpoints (show/create/update) keep their existing wire shape.
+    class ::PlaceOS::Model::GroupUser
+      @[JSON::Field(key: "group")]
+      property group_data : ::PlaceOS::Model::Group? = nil
+
+      @[JSON::Field(key: "user")]
+      property user_data : ::PlaceOS::Model::User? = nil
+    end
+
     # Scopes
     ###############################################################################################
 
@@ -113,7 +124,33 @@ module PlaceOS::Api
         end
       end
 
-      paginate_sql(query, type: "group_users", limit: limit, offset: offset)
+      results = paginate_sql(query, type: "group_users", limit: limit, offset: offset)
+      hydrate_index(results)
+      results
+    end
+
+    # Two batched lookups (groups, users) keyed by id; each row gets
+    # its parents assigned in-place. Total: 2 SQL queries regardless
+    # of result size.
+    private def hydrate_index(rows : Array(::PlaceOS::Model::GroupUser)) : Nil
+      return if rows.empty?
+
+      group_ids = rows.map(&.group_id).uniq!
+      groups_by_id = ::PlaceOS::Model::Group
+        .where(id: group_ids)
+        .to_a
+        .index_by(&.id.not_nil!)
+
+      user_ids = rows.map(&.user_id).uniq!
+      users_by_id = ::PlaceOS::Model::User
+        .where(id: user_ids)
+        .to_a
+        .index_by(&.id.not_nil!)
+
+      rows.each do |row|
+        row.group_data = groups_by_id[row.group_id]?
+        row.user_data = users_by_id[row.user_id]?
+      end
     end
 
     @[AC::Route::GET("/:user_id/:group_id")]

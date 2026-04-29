@@ -20,7 +20,7 @@ module PlaceOS::Api
 
         index = client.get(base, headers: Spec::Authentication.headers)
         index.status_code.should eq 200
-        ids = Array(Hash(String, JSON::Any)).from_json(index.body).map { |e| e["id"].as_s }
+        ids = Array(Hash(String, JSON::Any)).from_json(index.body).map(&.["id"].as_s)
         ids.should contain(item.id.to_s)
       end
     end
@@ -97,7 +97,7 @@ module PlaceOS::Api
 
         result = client.get(base, headers: headers)
         result.status_code.should eq 200
-        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map { |e| e["id"].as_s }
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
         ids.should eq [mine.id.to_s]
       end
 
@@ -118,7 +118,7 @@ module PlaceOS::Api
 
         result = client.get("#{base}?q=welcome", headers: Spec::Authentication.headers)
         result.status_code.should eq 200
-        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map { |e| e["id"].as_s }
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
         ids.should contain(hit_name.id.to_s)
         ids.should contain(hit_desc.id.to_s)
         ids.should_not contain(miss.id.to_s)
