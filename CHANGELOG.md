@@ -2,6 +2,7 @@
 
 ### Feat
 
+- listing oauth apps a user has access to
 - **users**: current user to return subsystem access
 - **groups**: hydrate group users and zones
 - add permission groups
