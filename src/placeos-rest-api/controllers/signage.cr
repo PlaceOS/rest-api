@@ -33,8 +33,9 @@ module PlaceOS::Api
 
       if !preview
         # Save last seen and currently playing item
+        item_id = item_id.presence
         if item_id
-          item = ::PlaceOS::Model::Playlist::Item.find(item_id)
+          item = ::PlaceOS::Model::Playlist::Item.find(item_id) rescue nil
           item_id = nil unless item
         end
 
