@@ -101,6 +101,7 @@
 
 ### Fix
 
+- **controllers/signage**: handle empty item_id strings
 - **users**: disallow users to update email ([#431](https://github.com/PlaceOS/rest-api/pull/431))
 - **uploads**: check for base64 encoding
 - **uploads**: allow id to be base64 encoded
