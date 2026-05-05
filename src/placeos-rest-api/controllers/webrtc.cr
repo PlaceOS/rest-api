@@ -76,9 +76,11 @@ module PlaceOS::Api
             else
               raise Error::RecaptchaFailed.new("error verifying recaptcha response")
             end
+          rescue error : Error::RecaptchaFailed
+            raise error
           rescue error
             # We don't want chat to be out of action if google is down, so we'll continue
-            Log.error(exception: error) { "recaptcha failed" }
+            Log.error(exception: error) { "recaptcha verification failed" }
           end
         end
       else
