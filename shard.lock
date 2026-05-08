@@ -199,7 +199,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.feb91029fe07c35f6a12cb2c98407076bf678bfa
+    version: 4.21.0+git.commit.d73b49f4b01b7494ed414c76cb0c5a7bc4e91769
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -207,7 +207,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.21.1
+    version: 7.22.0
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -247,7 +247,7 @@ shards:
 
   redis_service_manager:
     git: https://github.com/place-labs/redis_service_manager.git
-    version: 3.3.1
+    version: 3.4.0
 
   rendezvous-hash:
     git: https://github.com/caspiano/rendezvous-hash.git
