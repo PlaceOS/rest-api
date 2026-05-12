@@ -29,9 +29,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
-    def find_current_group_user(user_id : String, group_id : String)
-      Log.context.set(user_id: user_id, group_id: group_id)
-      @current_group_user = ::PlaceOS::Model::GroupUser.find!({user_id, UUID.new(group_id)})
+    def find_current_group_user(user_id : String, group_id : UUID)
+      Log.context.set(user_id: user_id, group_id: group_id.to_s)
+      @current_group_user = ::PlaceOS::Model::GroupUser.find!({user_id, group_id})
     end
 
     getter! current_group_user : ::PlaceOS::Model::GroupUser
@@ -76,7 +76,7 @@ module PlaceOS::Api
     # callers without Manage on the specified group see only their own.
     @[AC::Route::GET("/")]
     def index(
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       user_id : String? = nil,
       limit : Int32 = 100,
       offset : Int32 = 0,
@@ -100,15 +100,14 @@ module PlaceOS::Api
       end
 
       if group_id
-        target = UUID.new(group_id)
         unless user_admin?
-          group = ::PlaceOS::Model::Group.find!(target)
+          group = ::PlaceOS::Model::Group.find!(group_id)
           # Non-Manager: allow only if asking about their own entries.
           unless user_has_manage?(current_user, group)
             raise Error::Forbidden.new unless user_id == "me" || user_id == current_user.id
           end
         end
-        query = query.where(group_id: target)
+        query = query.where(group_id: group_id)
       elsif !user_admin?
         # No group filter + non-admin: restrict to groups they manage OR their own rows.
         managed = manageable_group_ids(current_user)

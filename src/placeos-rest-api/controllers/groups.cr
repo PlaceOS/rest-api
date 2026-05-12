@@ -26,9 +26,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create, :current])]
-    def find_current_group(id : String)
-      Log.context.set(group_id: id)
-      @current_group = ::PlaceOS::Model::Group.find!(UUID.new(id))
+    def find_current_group(id : UUID)
+      Log.context.set(group_id: id.to_s)
+      @current_group = ::PlaceOS::Model::Group.find!(id)
     end
 
     getter! current_group : ::PlaceOS::Model::Group

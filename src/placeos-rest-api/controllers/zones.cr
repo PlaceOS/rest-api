@@ -151,7 +151,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return zones with particular tags", example: "building,level")]
       tags : Array(String)? = nil,
       @[AC::Param::Info(description: "filter to zones a group has direct GroupZone anchors on; non-support callers must have Read on the group. Forces include_children_count=true so callers can drill down.")]
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       @[AC::Param::Info(description: "include children_count for each zone (useful for tree views)", example: "true")]
       include_children_count : Bool = false,
     ) : Array(::PlaceOS::Model::Zone)
@@ -160,13 +160,12 @@ module PlaceOS::Api
       # ends up unconstrained).
       group_zone_ids = nil
       if group_id
-        gid = UUID.new(group_id)
         unless user_support?
-          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
           raise Error::Forbidden.new unless perms.read?
         end
         group_zone_ids = ::PlaceOS::Model::GroupZone
-          .where(group_id: gid)
+          .where(group_id: group_id)
           .to_a
           .map(&.zone_id)
         if group_zone_ids.empty?
