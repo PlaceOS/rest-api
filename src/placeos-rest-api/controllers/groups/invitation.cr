@@ -21,9 +21,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
-    def find_current_invitation(id : String)
-      Log.context.set(invitation_id: id)
-      @current_invitation = ::PlaceOS::Model::GroupInvitation.find!(UUID.new(id))
+    def find_current_invitation(id : UUID)
+      Log.context.set(invitation_id: id.to_s)
+      @current_invitation = ::PlaceOS::Model::GroupInvitation.find!(id)
     end
 
     getter! current_invitation : ::PlaceOS::Model::GroupInvitation
@@ -72,7 +72,7 @@ module PlaceOS::Api
     # callers must have Manage on the target group.
     @[AC::Route::GET("/")]
     def index(
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupInvitation)
@@ -86,12 +86,11 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::GroupInvitation.where(group_id: authority_group_ids)
 
       if group_id
-        target = UUID.new(group_id)
         unless user_admin?
-          group = ::PlaceOS::Model::Group.find!(target)
+          group = ::PlaceOS::Model::Group.find!(group_id)
           ensure_manage!(current_user, group)
         end
-        query = query.where(group_id: target)
+        query = query.where(group_id: group_id)
       else
         unless user_admin?
           managed = manageable_group_ids(current_user)

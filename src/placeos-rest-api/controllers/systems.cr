@@ -249,7 +249,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return systems which are in the zones provided", example: "zone-1234,zone-4567")]
       zone_id : Array(String)? = nil,
       @[AC::Param::Info(description: "return systems anchored by this group's GroupZone rows; non-support callers must have Read on the group")]
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       @[AC::Param::Info(description: "return systems in any zone the caller can reach (transitively) within the given subsystem code, e.g. 'signage'")]
       subsystem : String? = nil,
       @[AC::Param::Info(description: "return systems which are public", example: "true")]
@@ -278,13 +278,12 @@ module PlaceOS::Api
       # scope clause is added.
       scope_zones = [] of String
 
-      if (gid_str = group_id)
-        gid = UUID.new(gid_str)
+      if group_id
         unless user_support?
-          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
           raise Error::Forbidden.new unless perms.read?
         end
-        scope_zones.concat(::PlaceOS::Model::GroupZone.where(group_id: gid).to_a.map(&.zone_id))
+        scope_zones.concat(::PlaceOS::Model::GroupZone.where(group_id: group_id).to_a.map(&.zone_id))
       end
 
       if (sub = subsystem)

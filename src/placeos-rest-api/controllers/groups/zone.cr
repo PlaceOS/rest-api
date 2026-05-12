@@ -28,9 +28,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
-    def find_current_group_zone(group_id : String, zone_id : String)
-      Log.context.set(group_id: group_id, zone_id: zone_id)
-      @current_group_zone = ::PlaceOS::Model::GroupZone.find!({UUID.new(group_id), zone_id})
+    def find_current_group_zone(group_id : UUID, zone_id : String)
+      Log.context.set(group_id: group_id.to_s, zone_id: zone_id)
+      @current_group_zone = ::PlaceOS::Model::GroupZone.find!({group_id, zone_id})
     end
 
     getter! current_group_zone : ::PlaceOS::Model::GroupZone
@@ -73,7 +73,7 @@ module PlaceOS::Api
     # List GroupZone rows. Filterable by group_id / zone_id.
     @[AC::Route::GET("/")]
     def index(
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       zone_id : String? = nil,
       limit : Int32 = 100,
       offset : Int32 = 0,
@@ -88,12 +88,11 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::GroupZone.where(group_id: authority_group_ids)
 
       if group_id
-        target = UUID.new(group_id)
         unless user_admin?
-          group = ::PlaceOS::Model::Group.find!(target)
+          group = ::PlaceOS::Model::Group.find!(group_id)
           ensure_member!(current_user, group)
         end
-        query = query.where(group_id: target)
+        query = query.where(group_id: group_id)
       else
         unless user_admin?
           viewable = viewable_group_ids(current_user)

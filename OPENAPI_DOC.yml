@@ -10271,6 +10271,7 @@ paths:
           callers must have Read on the group
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: subsystem
         in: query
@@ -13872,6 +13873,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -13952,6 +13954,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -14026,6 +14029,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         202:
           description: Accepted
@@ -14102,6 +14106,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -14257,6 +14262,7 @@ paths:
         in: query
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: limit
         in: query
@@ -14365,6 +14371,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -14442,6 +14449,7 @@ paths:
         in: query
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: limit
         in: query
@@ -14630,6 +14638,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -14703,6 +14712,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         202:
           description: Accepted
@@ -14777,6 +14787,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -14856,6 +14867,7 @@ paths:
         in: query
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: user_id
         in: query
@@ -15048,6 +15060,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -15132,6 +15145,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -15210,6 +15224,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         202:
           description: Accepted
@@ -15290,6 +15305,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -15364,6 +15380,7 @@ paths:
         in: query
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: zone_id
         in: query
@@ -15551,6 +15568,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       - name: zone_id
         in: path
         required: true
@@ -15635,6 +15653,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       - name: zone_id
         in: path
         required: true
@@ -15713,6 +15732,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       - name: zone_id
         in: path
         required: true
@@ -15793,6 +15813,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       - name: zone_id
         in: path
         required: true
@@ -21127,6 +21148,7 @@ paths:
           the group)
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: q
         in: query
@@ -21251,6 +21273,7 @@ paths:
           callers)
         schema:
           type: string
+          format: uuid
           nullable: true
       responses:
         201:
@@ -21719,6 +21742,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -21807,6 +21831,7 @@ paths:
           on the group)
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: q
         in: query
@@ -21935,6 +21960,7 @@ paths:
           callers)
         schema:
           type: string
+          format: uuid
           nullable: true
       responses:
         201:
@@ -22332,6 +22358,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
       responses:
         200:
           description: OK
@@ -28039,6 +28066,7 @@ paths:
           so callers can drill down.
         schema:
           type: string
+          format: uuid
           nullable: true
       - name: include_children_count
         in: query

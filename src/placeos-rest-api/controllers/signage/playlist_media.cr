@@ -87,7 +87,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "filter to items linked to this group (caller must have Read on the group)")]
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
       q : String? = nil,
       limit : Int32 = 100,
@@ -96,13 +96,12 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::Playlist::Item.where(authority_id: authority.id.as(String))
 
       if group_id
-        gid = UUID.new(group_id)
         unless user_support?
-          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
           raise Error::Forbidden.new unless perms.read?
         end
         linked_ids = ::PlaceOS::Model::GroupPlaylistItem
-          .where(group_id: gid)
+          .where(group_id: group_id)
           .to_a
           .map(&.playlist_item_id)
         if linked_ids.empty?
@@ -180,24 +179,22 @@ module PlaceOS::Api
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
     def create(
       @[AC::Param::Info(description: "group id to auto-link the new item to (required for non-admin callers)")]
-      group_id : String? = nil,
+      group_id : UUID? = nil,
     ) : ::PlaceOS::Model::Playlist::Item
       item = item_update
       item.authority_id = authority.id
 
-      target_gid = group_id.try { |g| UUID.new(g) }
-
       unless user_support?
-        raise Error::Forbidden.new("group_id required") if target_gid.nil?
-        perms = group_memberships(current_user)[target_gid]? || ::PlaceOS::Model::Permissions::None
+        raise Error::Forbidden.new("group_id required") if group_id.nil?
+        perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
         raise Error::Forbidden.new("missing Create permission on the target group") unless perms.create?
       end
 
       ::PgORM::Database.transaction do |_tx|
         raise Error::ModelValidation.new(item.errors) unless item.save
-        if target_gid
+        if group_id
           link = ::PlaceOS::Model::GroupPlaylistItem.new(
-            group_id: target_gid,
+            group_id: group_id,
             playlist_item_id: item.id.as(String),
           )
           raise Error::ModelValidation.new(link.errors) unless link.save
@@ -223,7 +220,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "comma-separated item ids to share into the target group")]
       items : Array(String),
       @[AC::Param::Info(description: "target group id (must participate in the 'signage' subsystem)", name: "to")]
-      to : String,
+      to : UUID,
     ) : NamedTuple(linked: Array(String), already_present: Array(String))
       return {linked: [] of String, already_present: [] of String} if items.empty?
 
@@ -252,9 +249,8 @@ module PlaceOS::Api
       {linked: to_link, already_present: existing}
     end
 
-    private def resolve_share_target_group(to : String) : ::PlaceOS::Model::Group
-      target_gid = UUID.new(to)
-      group = ::PlaceOS::Model::Group.find!(target_gid)
+    private def resolve_share_target_group(to : UUID) : ::PlaceOS::Model::Group
+      group = ::PlaceOS::Model::Group.find!(to)
       raise Error::Forbidden.new("target group must be in the same authority") unless group.authority_id == authority.id
       raise Error::Forbidden.new("target group must participate in the 'signage' subsystem") unless group.subsystems.includes?("signage")
       group

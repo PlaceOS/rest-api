@@ -17,9 +17,9 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, only: [:show])]
-    def find_current_history(id : String)
-      Log.context.set(group_history_id: id)
-      @current_history = ::PlaceOS::Model::GroupHistory.find!(UUID.new(id))
+    def find_current_history(id : UUID)
+      Log.context.set(group_history_id: id.to_s)
+      @current_history = ::PlaceOS::Model::GroupHistory.find!(id)
     end
 
     getter! current_history : ::PlaceOS::Model::GroupHistory
@@ -42,20 +42,19 @@ module PlaceOS::Api
     # pass `group_id=` and have Manage on it.
     @[AC::Route::GET("/")]
     def index(
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupHistory)
       if user_admin?
         query = ::PlaceOS::Model::GroupHistory.all
-        query = query.where(group_id: UUID.new(group_id)) if group_id
+        query = query.where(group_id: group_id) if group_id
       else
         # Non-admin must scope to a specific group they manage.
         raise Error::Forbidden.new("group_id is required") unless group_id
-        target = UUID.new(group_id)
-        group = ::PlaceOS::Model::Group.find!(target)
+        group = ::PlaceOS::Model::Group.find!(group_id)
         ensure_manage!(current_user, group)
-        query = ::PlaceOS::Model::GroupHistory.where(group_id: target)
+        query = ::PlaceOS::Model::GroupHistory.where(group_id: group_id)
       end
 
       paginate_sql(query, type: "group_history", limit: limit, offset: offset)

@@ -99,7 +99,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "filter to playlists linked to this group (caller must have Read on the group)")]
-      group_id : String? = nil,
+      group_id : UUID? = nil,
       @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
       q : String? = nil,
       limit : Int32 = 100,
@@ -108,13 +108,12 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::Playlist.where(authority_id: authority.id.as(String))
 
       if group_id
-        gid = UUID.new(group_id)
         unless user_support?
-          perms = group_memberships(current_user)[gid]? || ::PlaceOS::Model::Permissions::None
+          perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
           raise Error::Forbidden.new unless perms.read?
         end
         linked_ids = ::PlaceOS::Model::GroupPlaylist
-          .where(group_id: gid)
+          .where(group_id: group_id)
           .to_a
           .map(&.playlist_id)
         if linked_ids.empty?
@@ -179,24 +178,22 @@ module PlaceOS::Api
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
     def create(
       @[AC::Param::Info(description: "group id to auto-link the new playlist to (required for non-admin callers)")]
-      group_id : String? = nil,
+      group_id : UUID? = nil,
     ) : ::PlaceOS::Model::Playlist
       playlist = playlist_update
       playlist.authority_id = authority.id
 
-      target_gid = group_id.try { |g| UUID.new(g) }
-
       unless user_support?
-        raise Error::Forbidden.new("group_id required") if target_gid.nil?
-        perms = group_memberships(current_user)[target_gid]? || ::PlaceOS::Model::Permissions::None
+        raise Error::Forbidden.new("group_id required") if group_id.nil?
+        perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
         raise Error::Forbidden.new("missing Create permission on the target group") unless perms.create?
       end
 
       ::PgORM::Database.transaction do |_tx|
         raise Error::ModelValidation.new(playlist.errors) unless playlist.save
-        if target_gid
+        if group_id
           link = ::PlaceOS::Model::GroupPlaylist.new(
-            group_id: target_gid,
+            group_id: group_id,
             playlist_id: playlist.id.as(String),
           )
           raise Error::ModelValidation.new(link.errors) unless link.save
@@ -229,7 +226,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "comma-separated playlist ids to share into the target group")]
       items : Array(String),
       @[AC::Param::Info(description: "target group id (must participate in the 'signage' subsystem)", name: "to")]
-      to : String,
+      to : UUID,
     ) : NamedTuple(linked: Array(String), already_present: Array(String))
       return {linked: [] of String, already_present: [] of String} if items.empty?
 
@@ -258,9 +255,8 @@ module PlaceOS::Api
       {linked: to_link, already_present: existing}
     end
 
-    private def resolve_share_target_group(to : String) : ::PlaceOS::Model::Group
-      target_gid = UUID.new(to)
-      group = ::PlaceOS::Model::Group.find!(target_gid)
+    private def resolve_share_target_group(to : UUID) : ::PlaceOS::Model::Group
+      group = ::PlaceOS::Model::Group.find!(to)
       raise Error::Forbidden.new("target group must be in the same authority") unless group.authority_id == authority.id
       raise Error::Forbidden.new("target group must participate in the 'signage' subsystem") unless group.subsystems.includes?("signage")
       group
@@ -303,16 +299,37 @@ module PlaceOS::Api
     # Playlist Revisions
     # ==================
 
+    # `media` is hydrated by the controller before the revision is rendered to JSON.
+    # Once the caller has access to the playlist they're allowed to see every item
+    # the revision references — collaborators don't need each item separately
+    # shared with their group.
+    class ::PlaceOS::Model::Playlist::Revision
+      @[JSON::Field(key: "media", ignore_deserialize: true)]
+      property media : Array(::PlaceOS::Model::Playlist::Item)? = nil
+    end
+
     # get the current list of media for the playlist
     @[AC::Route::GET("/:id/media")]
     def media : ::PlaceOS::Model::Playlist::Revision
-      media_revisions(1).first? || ::PlaceOS::Model::Playlist::Revision.new
+      revision = current_playlist.revisions.limit(1).first? || ::PlaceOS::Model::Playlist::Revision.new
+      hydrate_media!([revision])
+      revision
     end
 
     # returns the previous versions of a playlist
     @[AC::Route::GET("/:id/media/revisions")]
     def media_revisions(limit : Int32 = 10) : Array(::PlaceOS::Model::Playlist::Revision)
-      current_playlist.revisions.limit(limit).to_a
+      revisions = current_playlist.revisions.limit(limit).to_a
+      hydrate_media!(revisions)
+      revisions
+    end
+
+    private def hydrate_media!(revisions : Array(::PlaceOS::Model::Playlist::Revision)) : Nil
+      ids = revisions.flat_map(&.items).uniq!
+      items_by_id = ids.empty? ? {} of String => ::PlaceOS::Model::Playlist::Item : ::PlaceOS::Model::Playlist::Item.where(id: ids).to_a.index_by { |i| i.id.as(String) }
+      revisions.each do |rev|
+        rev.media = rev.items.compact_map { |item_id| items_by_id[item_id]? }
+      end
     end
 
     # provide an update list of media for a playlist
