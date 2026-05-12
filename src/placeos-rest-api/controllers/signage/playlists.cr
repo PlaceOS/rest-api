@@ -299,16 +299,37 @@ module PlaceOS::Api
     # Playlist Revisions
     # ==================
 
+    # `media` is hydrated by the controller before the revision is rendered to JSON.
+    # Once the caller has access to the playlist they're allowed to see every item
+    # the revision references — collaborators don't need each item separately
+    # shared with their group.
+    class ::PlaceOS::Model::Playlist::Revision
+      @[JSON::Field(key: "media", ignore_deserialize: true)]
+      property media : Array(::PlaceOS::Model::Playlist::Item)? = nil
+    end
+
     # get the current list of media for the playlist
     @[AC::Route::GET("/:id/media")]
     def media : ::PlaceOS::Model::Playlist::Revision
-      media_revisions(1).first? || ::PlaceOS::Model::Playlist::Revision.new
+      revision = current_playlist.revisions.limit(1).first? || ::PlaceOS::Model::Playlist::Revision.new
+      hydrate_media!([revision])
+      revision
     end
 
     # returns the previous versions of a playlist
     @[AC::Route::GET("/:id/media/revisions")]
     def media_revisions(limit : Int32 = 10) : Array(::PlaceOS::Model::Playlist::Revision)
-      current_playlist.revisions.limit(limit).to_a
+      revisions = current_playlist.revisions.limit(limit).to_a
+      hydrate_media!(revisions)
+      revisions
+    end
+
+    private def hydrate_media!(revisions : Array(::PlaceOS::Model::Playlist::Revision)) : Nil
+      ids = revisions.flat_map(&.items).uniq!
+      items_by_id = ids.empty? ? {} of String => ::PlaceOS::Model::Playlist::Item : ::PlaceOS::Model::Playlist::Item.where(id: ids).to_a.index_by { |i| i.id.as(String) }
+      revisions.each do |rev|
+        rev.media = rev.items.compact_map { |item_id| items_by_id[item_id]? }
+      end
     end
 
     # provide an update list of media for a playlist

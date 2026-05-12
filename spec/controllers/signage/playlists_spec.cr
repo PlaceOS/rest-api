@@ -303,5 +303,93 @@ module PlaceOS::Api
         result.status_code.should eq 403
       end
     end
+
+    describe "GET /:id/media and /:id/media/revisions" do
+      it "returns the latest revision with media hydrated for a playlist Reader, even when items aren't shared with their group" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        # Reader has access to the playlist via this group only — items are NOT linked here.
+        reader_group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: reader_group, permissions: Model::Permissions::Read).save!
+
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: reader_group, playlist: playlist).save!
+
+        # Items are admin-only (no GroupPlaylistItem rows) — they were created by an
+        # admin / another team and should still be visible to the reader because they
+        # belong to a playlist the reader can access.
+        item_a = Model::Generator.item(authority: authority).save!
+        item_b = Model::Generator.item(authority: authority).save!
+
+        author = Model::Generator.user(authority: authority).save!
+        revision = Model::Generator.revision(playlist: playlist, user: author)
+        revision.items = [item_a.id.as(String), item_b.id.as(String)]
+        revision.save!
+
+        result = client.get(File.join(base, playlist.id.to_s, "media"), headers: headers)
+        result.status_code.should eq 200
+
+        body = JSON.parse(result.body).as_h
+        body["items"].as_a.map(&.as_s).sort!.should eq [item_a.id.to_s, item_b.id.to_s].sort
+        body["media"].should_not be_nil
+        media_ids = body["media"].as_a.map(&.as_h.["id"].as_s).sort!
+        media_ids.should eq [item_a.id.to_s, item_b.id.to_s].sort
+      end
+
+      it "returns all revisions with media hydrated for a playlist Reader" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        reader_group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: reader_group, permissions: Model::Permissions::Read).save!
+
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: reader_group, playlist: playlist).save!
+
+        item_a = Model::Generator.item(authority: authority).save!
+        item_b = Model::Generator.item(authority: authority).save!
+
+        author = Model::Generator.user(authority: authority).save!
+        first = Model::Generator.revision(playlist: playlist, user: author)
+        first.items = [item_a.id.as(String)]
+        first.approved = true
+        first.save!
+
+        second = Model::Generator.revision(playlist: playlist, user: author)
+        second.items = [item_a.id.as(String), item_b.id.as(String)]
+        second.save!
+
+        result = client.get(File.join(base, playlist.id.to_s, "media", "revisions"), headers: headers)
+        result.status_code.should eq 200
+
+        revisions = JSON.parse(result.body).as_a.map(&.as_h)
+        revisions.size.should be >= 1
+        revisions.each do |rev|
+          rev["media"].should_not be_nil
+          item_ids = rev["items"].as_a.map(&.as_s).sort!
+          media_ids = rev["media"].as_a.map(&.as_h.["id"].as_s).sort!
+          media_ids.should eq item_ids
+        end
+      end
+
+      it "returns an empty media array when the playlist has no revisions" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        reader_group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: reader_group, permissions: Model::Permissions::Read).save!
+
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: reader_group, playlist: playlist).save!
+
+        result = client.get(File.join(base, playlist.id.to_s, "media"), headers: headers)
+        result.status_code.should eq 200
+
+        body = JSON.parse(result.body).as_h
+        body["items"].as_a.should be_empty
+        body["media"].as_a.should be_empty
+      end
+    end
   end
 end
