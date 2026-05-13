@@ -101,6 +101,7 @@
 
 ### Fix
 
+- **zones**: querying for root zones
 - **zones**: parent_id might be an empty string
 - **zones**: tree view when not an admin
 - **playlists**: provide content for shared playlists ([#434](https://github.com/PlaceOS/rest-api/pull/434))
