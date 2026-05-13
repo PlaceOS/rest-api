@@ -103,6 +103,74 @@ module PlaceOS::Api
         child.destroy
       end
 
+      it "treats zones with parent_id='' as root for ?parent_id=root" do
+        nil_root = Model::Generator.zone.save!
+
+        empty_root = Model::Generator.zone.save!
+        empty_root.parent_id = ""
+        empty_root.save!
+
+        child = Model::Generator.zone
+        child.parent_id = nil_root.id
+        child.save!
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        params = HTTP::Params.encode({"parent_id" => "root"})
+        path = "#{Zones.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+
+        result.success?.should be_true
+        zone_ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+
+        zone_ids.should contain(nil_root.id)
+        zone_ids.should contain(empty_root.id)
+        zone_ids.should_not contain(child.id)
+
+        nil_root.destroy
+        empty_root.destroy
+        child.destroy
+      end
+
+      it "returns both empty-string roots and named-parent children when mixing root with explicit parent_ids" do
+        nil_root = Model::Generator.zone.save!
+
+        empty_root = Model::Generator.zone.save!
+        empty_root.parent_id = ""
+        empty_root.save!
+
+        anchor = Model::Generator.zone.save!
+        anchor_child = Model::Generator.zone
+        anchor_child.parent_id = anchor.id
+        anchor_child.save!
+
+        unrelated = Model::Generator.zone.save!
+
+        sleep 1.second
+        refresh_elastic(Model::Zone.table_name)
+
+        params = HTTP::Params.encode({"parent_id" => "root,#{anchor.id}"})
+        path = "#{Zones.base_route}?#{params}"
+        result = client.get(path, headers: Spec::Authentication.headers)
+
+        result.success?.should be_true
+        zone_ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+
+        zone_ids.should contain(nil_root.id)
+        zone_ids.should contain(empty_root.id)
+        zone_ids.should contain(anchor_child.id)
+        # anchor itself is a root, so it appears too
+        zone_ids.should contain(anchor.id)
+        zone_ids.should contain(unrelated.id)
+
+        nil_root.destroy
+        empty_root.destroy
+        anchor.destroy
+        anchor_child.destroy
+        unrelated.destroy
+      end
+
       it "includes children_count when requested" do
         parent = Model::Generator.zone.save!
 

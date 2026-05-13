@@ -194,7 +194,20 @@ module PlaceOS::Api
         if parent_id.includes?("root")
           # Remove "root" and add any other parent_ids if present
           other_parents = parent_id.reject("root")
-          if !other_parents.empty?
+          if other_parents.empty?
+            # Only root zones: parent_id is missing OR equals "".
+            # Must go through `should` + `minimum_should_match(1)` — the
+            # neuroplastic DSL AND-s every entry in a `filter:` array, so
+            # using `filter` for [nil, ""] becomes (missing AND term="")
+            # which no document can satisfy.
+            parent_values = Array(String?).new(2)
+            parent_values << nil
+            parent_values << ""
+            query.should({
+              "parent_id" => parent_values,
+            })
+            query.minimum_should_match(1)
+          else
             # Mix of root and specific parents: use OR logic
             # Build array with nil and other parent IDs
             parent_values = Array(String?).new(other_parents.size + 2)
@@ -205,14 +218,6 @@ module PlaceOS::Api
               "parent_id" => parent_values,
             })
             query.minimum_should_match(1)
-          else
-            # Only root zones: filter for missing parent_id
-            parent_values = Array(String?).new(2)
-            parent_values << nil
-            parent_values << ""
-            query.filter({
-              "parent_id" => parent_values,
-            })
           end
         else
           # Limit results to the children of these parents (OR logic)
