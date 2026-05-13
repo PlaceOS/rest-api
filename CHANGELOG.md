@@ -101,6 +101,7 @@
 
 ### Fix
 
+- **zones**: tree view when not an admin
 - **playlists**: provide content for shared playlists ([#434](https://github.com/PlaceOS/rest-api/pull/434))
 - **webrtc**: RecaptchaFailed error handling ([#433](https://github.com/PlaceOS/rest-api/pull/433))
 - **controllers/signage**: handle empty item_id strings
