@@ -197,17 +197,19 @@ module PlaceOS::Api
           if !other_parents.empty?
             # Mix of root and specific parents: use OR logic
             # Build array with nil and other parent IDs
-            parent_values = Array(String?).new
+            parent_values = Array(String?).new(other_parents.size + 2)
             parent_values << nil
-            other_parents.each { |p| parent_values << p }
+            parent_values << ""
+            parent_values.concat(other_parents)
             query.should({
               "parent_id" => parent_values,
             })
             query.minimum_should_match(1)
           else
             # Only root zones: filter for missing parent_id
-            parent_values = Array(String?).new
+            parent_values = Array(String?).new(2)
             parent_values << nil
+            parent_values << ""
             query.filter({
               "parent_id" => parent_values,
             })
