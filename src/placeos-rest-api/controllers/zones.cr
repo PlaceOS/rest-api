@@ -227,7 +227,7 @@ module PlaceOS::Api
           "tags" => filter_tags,
         })
       elsif group_zone_ids.nil?
-        raise Error::Forbidden.new unless user_support?
+        raise Error::Forbidden.new unless (parent_id && !parent_id.empty?) || user_support?
         query.search_field "name"
       end
 
