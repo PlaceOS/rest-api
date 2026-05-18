@@ -133,6 +133,41 @@ module PlaceOS::Api
       end
     end
 
+    describe "access control", tags: "access-control" do
+      it "GET /drivers returns 403 for non-admin / non-support callers" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        result = client.get(Drivers.base_route, headers: headers)
+        result.status_code.should eq 403
+      end
+
+      it "GET /drivers/:id/readme returns 403 for non-admin / non-support callers" do
+        repository = Model::Generator.repository(type: Model::Repository::Type::Driver)
+        repository.uri = "https://github.com/PlaceOS/drivers"
+        repository.save!
+
+        driver = Model::Driver.new(
+          name: "Restricted Readme",
+          role: Model::Driver::Role::Logic,
+          commit: "HEAD",
+          module_name: "AutoRelease",
+          file_name: "drivers/place/auto_release.cr",
+        )
+        driver.repository = repository
+        driver.save!
+
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        path = File.join(Drivers.base_route, driver.id.as(String), "readme")
+        result = client.get(path, headers: headers)
+        result.status_code.should eq 403
+      end
+
+      it "GET /drivers is allowed for support-only callers" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: true)
+        result = client.get(Drivers.base_route, headers: headers)
+        result.success?.should be_true
+      end
+    end
+
     describe "scopes" do
       before_each do
         HttpMocks.core_compiled

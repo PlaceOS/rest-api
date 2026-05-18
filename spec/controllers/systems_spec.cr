@@ -437,6 +437,16 @@ module PlaceOS::Api
           id.should eq email
         end
 
+        it "module_id is 403 for non-admin / non-support callers" do
+          mod = Model::Generator.module.save!
+          module_id = mod.id.as(String)
+          _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          params = HTTP::Params.encode({"module_id" => module_id})
+          result = client.get("#{Systems.base_route}?#{params}", headers: headers)
+          result.status_code.should eq 403
+        end
+
         it "module_id filters systems by modules" do
           Model::ControlSystem.clear
           num_systems = 5

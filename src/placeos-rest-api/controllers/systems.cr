@@ -257,6 +257,15 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return systems which are signage", example: "true")]
       signage : Bool? = nil,
     ) : Array(::PlaceOS::Model::ControlSystem)
+      # Restrict module_id-based lookups to admin/support. Looking up which
+      # system contains a given module is an internal infrastructure query that
+      # should not be exposed to standard authenticated users. Reported by
+      # DataArt pentest 2026-05 (McKinsey Converge) as H1 finding —
+      # "Missing function-level access controls".
+      if module_id && !user_support?
+        raise Error::Forbidden.new("module_id lookups require admin or support")
+      end
+
       elastic = ::PlaceOS::Model::ControlSystem.elastic
       query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
 

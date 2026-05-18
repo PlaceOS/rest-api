@@ -624,6 +624,34 @@ module PlaceOS::Api
       end
     end
 
+    describe "GET /zones/:id/triggers access control" do
+      it "returns 403 for non-admin / non-support callers" do
+        zone = Model::Generator.zone.save!
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        result = client.get(
+          path: "#{Zones.base_route}#{zone.id}/triggers",
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        zone.destroy
+      end
+
+      it "is allowed for support-only callers" do
+        zone = Model::Generator.zone.save!
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: true)
+
+        result = client.get(
+          path: "#{Zones.base_route}#{zone.id}/triggers",
+          headers: headers,
+        )
+        result.success?.should be_true
+
+        zone.destroy
+      end
+    end
+
     describe "scopes" do
       Spec.test_controller_scope(Zones)
       Spec.test_update_write_scope(Zones)
