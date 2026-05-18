@@ -13,10 +13,12 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index, :show, :trigger_instances]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_support, only: [:zone_execute]
+    # Restrict zone trigger listing to admin/support — `:trigger_instances`
+    # (GET /zones/:id/triggers) exposes internal automation/driver state.
+    before_action :check_support, only: [:zone_execute, :trigger_instances]
 
     # Response helpers
     ###############################################################################################

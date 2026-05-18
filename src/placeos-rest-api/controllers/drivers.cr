@@ -13,6 +13,12 @@ module PlaceOS::Api
 
     before_action :check_admin, except: [:index, :show, :readme]
 
+    # Restrict driver listing and readme access to admin/support. These
+    # endpoints expose internal infrastructure detail (driver inventory, driver
+    # README files that may include configuration notes or credential examples)
+    # that should not be available to standard authenticated users.
+    before_action :check_support, only: [:index, :readme]
+
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
