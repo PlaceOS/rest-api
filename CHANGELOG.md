@@ -101,6 +101,7 @@
 
 ### Fix
 
+- **security**: restrict driver listing, driver readme and zone trigger lookups to support users ([#435](https://github.com/PlaceOS/rest-api/pull/435))
 - **zones**: querying for root zones
 - **zones**: parent_id might be an empty string
 - **zones**: tree view when not an admin
