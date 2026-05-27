@@ -18,6 +18,9 @@ module PlaceOS::Api
     class Conflict < Error
     end
 
+    class NotAcceptable < Error
+    end
+
     record Field, field : Symbol, message : String
 
     class RecaptchaFailed < Error
