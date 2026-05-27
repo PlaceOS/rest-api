@@ -2,6 +2,7 @@
 
 ### Feat
 
+- add signage approval requests ([#436](https://github.com/PlaceOS/rest-api/pull/436))
 - **signage**: add group share feature
 - listing oauth apps a user has access to
 - **users**: current user to return subsystem access
