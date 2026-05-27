@@ -391,5 +391,236 @@ module PlaceOS::Api
         body["media"].as_a.should be_empty
       end
     end
+
+    describe "approval requests" do
+      ::Spec.before_each { Model::PendingMail.clear }
+
+      describe "GET /approvers" do
+        it "returns approve and manage users (not read-only members)" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          group = Model::Generator.group(authority: authority).save!
+
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: group, permissions: Model::Permissions::Approve).save!
+          manager = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: manager, group: group, permissions: Model::Permissions::Manage).save!
+          reader = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: reader, group: group, permissions: Model::Permissions::Read).save!
+
+          result = client.get("#{base}/approvers?group_id=#{group.id}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(approver.id)
+          ids.should contain(manager.id)
+          ids.should_not contain(reader.id)
+        end
+
+        it "climbs to the parent group when the child has no approver" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          parent = Model::Generator.group(authority: authority).save!
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: parent, permissions: Model::Permissions::Approve).save!
+
+          child = Model::Generator.group(authority: authority)
+          child.parent_id = parent.id
+          child.save!
+          reader = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: reader, group: child, permissions: Model::Permissions::Read).save!
+
+          result = client.get("#{base}/approvers?group_id=#{child.id}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(approver.id)
+        end
+
+        it "includes managers from intermediate groups plus the parent's approvers" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          parent = Model::Generator.group(authority: authority).save!
+          parent_approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: parent_approver, group: parent, permissions: Model::Permissions::Approve).save!
+
+          child = Model::Generator.group(authority: authority)
+          child.parent_id = parent.id
+          child.save!
+          child_manager = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: child_manager, group: child, permissions: Model::Permissions::Manage).save!
+          child_reader = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: child_reader, group: child, permissions: Model::Permissions::Read).save!
+
+          result = client.get("#{base}/approvers?group_id=#{child.id}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(child_manager.id)
+          ids.should contain(parent_approver.id)
+          ids.should_not contain(child_reader.id)
+        end
+
+        it "returns an empty list when no approver exists up the tree" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          group = Model::Generator.group(authority: authority).save!
+          reader = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: reader, group: group, permissions: Model::Permissions::Read).save!
+
+          result = client.get("#{base}/approvers?group_id=#{group.id}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          Array(JSON::Any).from_json(result.body).should be_empty
+        end
+
+        it "forbids a non-member, non-support caller" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          group = Model::Generator.group(authority: authority).save!
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: group, permissions: Model::Permissions::Approve).save!
+
+          _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          result = client.get("#{base}/approvers?group_id=#{group.id}", headers: headers)
+          result.status_code.should eq 403
+        end
+      end
+
+      describe "POST /:id/media/request_approval" do
+        it "queues a PendingMail to the group's approvers" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: group, permissions: Model::Permissions::Approve).save!
+          zone = Model::Generator.zone.save!
+          Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+          playlist = Model::Generator.playlist(authority: authority).save!
+
+          result = client.post(
+            "#{base}/#{playlist.id}/media/request_approval?group_id=#{group.id}",
+            body: {message: "please review"}.to_json,
+            headers: headers,
+          )
+          result.success?.should be_true
+
+          mail = Model::PendingMail.where(source_reference: "playlist-#{playlist.id}").to_a.first.not_nil!
+          mail.send_to.should contain(approver.email.to_s)
+          mail.template.should eq ["signage", "request_playlist_approval"]
+          mail.source_service.should eq "signage"
+          mail.zones.should contain(zone.id)
+          mail.args["message"].should eq "please review"
+          mail.args["group_id"].should eq group.id.to_s
+          mail.args["group_name"].should eq group.name
+          mail.args["playlist_id"].should eq playlist.id
+          mail.expiry.should_not be_nil
+
+          zone.destroy
+        end
+
+        it "notifies only the selected approver_id (a manager is allowed)" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: group, permissions: Model::Permissions::Approve).save!
+          manager = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: manager, group: group, permissions: Model::Permissions::Manage).save!
+
+          playlist = Model::Generator.playlist(authority: authority).save!
+
+          result = client.post(
+            "#{base}/#{playlist.id}/media/request_approval?group_id=#{group.id}&approver_id=#{manager.id}",
+            body: {message: ""}.to_json,
+            headers: headers,
+          )
+          result.success?.should be_true
+
+          mail = Model::PendingMail.where(source_reference: "playlist-#{playlist.id}").to_a.first.not_nil!
+          mail.send_to.should eq [manager.email.to_s]
+        end
+
+        it "allows selecting a manager from an intermediate group" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          parent = Model::Generator.group(authority: authority).save!
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: parent, permissions: Model::Permissions::Approve).save!
+
+          child = Model::Generator.group(authority: authority)
+          child.parent_id = parent.id
+          child.save!
+          Model::Generator.group_user(user: user, group: child, permissions: Model::Permissions::Read).save!
+          manager = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: manager, group: child, permissions: Model::Permissions::Manage).save!
+
+          playlist = Model::Generator.playlist(authority: authority).save!
+
+          result = client.post(
+            "#{base}/#{playlist.id}/media/request_approval?group_id=#{child.id}&approver_id=#{manager.id}",
+            body: {message: ""}.to_json,
+            headers: headers,
+          )
+          result.success?.should be_true
+
+          mail = Model::PendingMail.where(source_reference: "playlist-#{playlist.id}").to_a.first.not_nil!
+          mail.send_to.should eq [manager.email.to_s]
+        end
+
+        it "returns 406 when the group has no approvers up the tree" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+          playlist = Model::Generator.playlist(authority: authority).save!
+
+          result = client.post(
+            "#{base}/#{playlist.id}/media/request_approval?group_id=#{group.id}",
+            body: {message: "hi"}.to_json,
+            headers: headers,
+          )
+          result.status_code.should eq 406
+        end
+
+        it "returns 406 when approver_id is not an approver or manager" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: group, permissions: Model::Permissions::Approve).save!
+          bystander = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: bystander, group: group, permissions: Model::Permissions::Read).save!
+
+          playlist = Model::Generator.playlist(authority: authority).save!
+
+          result = client.post(
+            "#{base}/#{playlist.id}/media/request_approval?group_id=#{group.id}&approver_id=#{bystander.id}",
+            body: {message: "hi"}.to_json,
+            headers: headers,
+          )
+          result.status_code.should eq 406
+        end
+
+        it "forbids a caller who is not a member of the group or a parent" do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          approver = Model::Generator.user(authority).save!
+          Model::Generator.group_user(user: approver, group: group, permissions: Model::Permissions::Approve).save!
+
+          playlist = Model::Generator.playlist(authority: authority).save!
+
+          result = client.post(
+            "#{base}/#{playlist.id}/media/request_approval?group_id=#{group.id}",
+            body: {message: "hi"}.to_json,
+            headers: headers,
+          )
+          result.status_code.should eq 403
+        end
+      end
+    end
   end
 end

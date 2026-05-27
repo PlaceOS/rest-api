@@ -9,7 +9,7 @@ Run specs using `./test` make sure to run specs using a subagent. You can also r
 
 Make sure to write thorough tests. Reference existing models in the lib folder if you want to see ORM internals. There are some extentions to the ORM in this project in ./lib/placeos-models/base/* if you need to understand why something isn't working.
 
-Make sure to create and maintain a PLAN.md file to keep track of progress.
+Make sure to create and maintain a new plan file for each task to keep track of progress.
 
 ## 1. Plan Node Default
 - Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)

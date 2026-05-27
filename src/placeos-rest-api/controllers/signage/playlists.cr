@@ -12,12 +12,12 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show, :media, :media_revisions]
+    before_action :can_read, only: [:index, :show, :media, :media_revisions, :approvers]
     before_action :can_write, only: [:create, :update, :destroy, :update_media, :approve_media, :share]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :share])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :share, :approvers])]
     def current_playlist(id : String)
       Log.context.set(playlist_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -352,6 +352,126 @@ module PlaceOS::Api
       revision.approver = current_user
       raise Error::ModelValidation.new(revision.errors) unless revision.save
       true
+    end
+
+    # Approval requests
+    # =================
+
+    # JSON body for `request_approval`
+    struct ApprovalMessage
+      include JSON::Serializable
+      getter message : String = ""
+    end
+
+    record Approver, id : String, name : String { include JSON::Serializable }
+
+    # Climb the group tree from `group_id`, accumulating users with Approve or
+    # Manage permission at each level, and stop after the first level that
+    # contains an Approve user. So managers in intermediate groups are included
+    # alongside the approvers of the nearest approver-bearing ancestor. Returns
+    # an empty array if no level (up to the root) has an approver.
+    private def resolve_approver_group_users(group_id : UUID) : Array(::PlaceOS::Model::GroupUser)
+      approvers = [] of ::PlaceOS::Model::GroupUser
+
+      current = group_id
+      loop do
+        group = ::PlaceOS::Model::Group.find?(current)
+        break if group.nil?
+        members = ::PlaceOS::Model::GroupUser.where(group_id: current).to_a
+        approvers.concat(members.select { |gu| gu.permission_flags.approve? || gu.permission_flags.manage? })
+        break if members.any?(&.permission_flags.approve?)
+        parent = group.parent_id
+        break if parent.nil?
+        current = parent
+      end
+
+      approvers
+    end
+
+    # Validate the group exists in this authority and (for non-support) that
+    # the caller is a member of it or one of its ancestors.
+    private def validate_approval_group!(group_id : UUID) : ::PlaceOS::Model::Group
+      group = ::PlaceOS::Model::Group.find?(group_id)
+      raise Error::NotFound.new("group not found") if group.nil? || group.authority_id != authority.id
+      return group if user_support?
+      raise Error::Forbidden.new("not a member of the group") if group_memberships(current_user)[group_id]?.nil?
+      group
+    end
+
+    # list the users who can approve playlists for a group (those with the
+    # Approve or Manage permission), climbing to the nearest ancestor group
+    # that has approvers.
+    @[AC::Route::GET("/approvers")]
+    def approvers(
+      @[AC::Param::Info(description: "group to find approvers for")]
+      group_id : UUID,
+    ) : Array(Approver)
+      validate_approval_group!(group_id)
+      members = resolve_approver_group_users(group_id)
+      selectable = members.select { |gu| gu.permission_flags.approve? || gu.permission_flags.manage? }.map(&.user_id)
+      return [] of Approver if selectable.empty?
+      ::PlaceOS::Model::User.where(id: selectable).to_a.map { |u| Approver.new(id: u.id.as(String), name: u.name) }
+    end
+
+    # request approval for the current playlist's media. Notifies the group's
+    # approvers (or a specific `approver_id`) by queuing a PendingMail for the
+    # signage mailer. Any member of the group (or a parent group) may request.
+    @[AC::Route::POST("/:id/media/request_approval", body: :message)]
+    def request_approval(
+      message : ApprovalMessage,
+      @[AC::Param::Info(description: "group whose approvers should be notified")]
+      group_id : UUID,
+      @[AC::Param::Info(description: "notify only this approver (must have approve or manage permission in the group)")]
+      approver_id : String? = nil,
+    ) : Nil
+      group = validate_approval_group!(group_id)
+
+      members = resolve_approver_group_users(group_id)
+      approver_ids = members.select(&.permission_flags.approve?).map(&.user_id)
+      raise Error::NotAcceptable.new("no approvers available for this group") if approver_ids.empty? && approver_id.nil?
+
+      recipient_ids =
+        if selected = approver_id
+          selectable = members.map(&.user_id)
+          raise Error::NotAcceptable.new("selected approver cannot approve this playlist") unless selectable.includes?(selected)
+          [selected]
+        else
+          approver_ids
+        end
+
+      send_to = ::PlaceOS::Model::User.where(id: recipient_ids).to_a.map(&.email.to_s)
+      raise Error::NotAcceptable.new("no approver email addresses available") if send_to.empty?
+
+      zone_ids = ::PlaceOS::Model::GroupZone.where(group_id: group_id, deny: false).to_a.map(&.zone_id).uniq!
+
+      playlist = current_playlist
+      args = {} of String => (String | Int64 | Float64 | Bool | Nil)
+      args["group_name"] = group.name
+      args["group_id"] = group.id.to_s
+      args["playlist_name"] = playlist.name
+      args["playlist_id"] = playlist.id
+      args["user_name"] = current_user.name
+      args["user_email"] = current_user.email.to_s
+      args["message"] = message.message
+      ref = "playlist-#{playlist.id}"
+
+      mail = ::PlaceOS::Model::PendingMail.new(
+        authority_id: authority.id.as(String),
+        user_id: current_user.id.as(String),
+        send_to: send_to,
+        template: ["signage", "request_playlist_approval"],
+        source_service: "signage",
+        source_reference: ref,
+        zones: zone_ids,
+        expiry: 3.days.from_now,
+        args: args,
+      )
+      raise Error::ModelValidation.new(mail.errors) unless mail.save
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.id}/pending_mail/new", {
+        id:        mail.id.to_s,
+        service:   "signage",
+        reference: ref,
+      }.to_json)
     end
   end
 end

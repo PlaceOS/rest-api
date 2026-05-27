@@ -219,6 +219,13 @@ module PlaceOS::Api
       CommonError.new(error, false)
     end
 
+    # 406 when a request cannot be satisfied (e.g. no approvers available)
+    @[AC::Route::Exception(Error::NotAcceptable, status_code: HTTP::Status::NOT_ACCEPTABLE)]
+    def resource_not_acceptable(error) : CommonError
+      Log.debug(exception: error) { error.message }
+      CommonError.new(error, false)
+    end
+
     # 408 if resource timed out
     @[AC::Route::Exception(IO::TimeoutError, status_code: HTTP::Status::REQUEST_TIMEOUT)]
     def resource_timeout(error) : CommonError
