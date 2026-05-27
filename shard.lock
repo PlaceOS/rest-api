@@ -95,7 +95,7 @@ shards:
 
   future:
     git: https://github.com/crystal-community/future.cr.git
-    version: 1.0.0
+    version: 1.1.0
 
   git-repository:
     git: https://github.com/place-labs/git-repository.git
@@ -199,7 +199,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.6dbba2c82ab1de9a4cc375ff5bf65017b1811a2d
+    version: 4.21.0+git.commit.5ade2ba78f818787dffca9b4f022362b0db3b91a
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.4f79a05640257ef6fa4bd5bb6e465ff39903e00b
+    version: 2.7.1+git.commit.a963effc6a17e232855d1e576564781ade61c2a7
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -219,7 +219,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.93.0
+    version: 9.94.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -231,7 +231,7 @@ shards:
 
   promise:
     git: https://github.com/spider-gazelle/promise.git
-    version: 3.2.0
+    version: 3.2.1
 
   qr-code:
     git: https://github.com/spider-gazelle/qr-code.git
@@ -247,7 +247,7 @@ shards:
 
   redis_service_manager:
     git: https://github.com/place-labs/redis_service_manager.git
-    version: 3.4.0
+    version: 3.4.1
 
   rendezvous-hash:
     git: https://github.com/caspiano/rendezvous-hash.git
@@ -271,7 +271,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.149edb56a6a154b205be64f12a28409afc809803
+    version: 2.11.3+git.commit.49243f8bdbf0226db8006257ea0e95f7c5312b9d
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
