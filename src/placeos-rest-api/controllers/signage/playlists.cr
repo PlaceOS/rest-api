@@ -442,6 +442,10 @@ module PlaceOS::Api
       send_to = ::PlaceOS::Model::User.where(id: recipient_ids).to_a.map(&.email.to_s)
       raise Error::NotAcceptable.new("no approver email addresses available") if send_to.empty?
 
+      # update the playlist revision marked as approval request made
+      revision = media_revisions(1).first?
+      raise Error::NotFound.new("no media in playlist") unless revision
+
       zone_ids = ::PlaceOS::Model::GroupZone.where(group_id: group_id, deny: false).to_a.map(&.zone_id).uniq!
 
       playlist = current_playlist
@@ -467,6 +471,8 @@ module PlaceOS::Api
         args: args,
       )
       raise Error::ModelValidation.new(mail.errors) unless mail.save
+      revision.class.update(revision.id, {approval_requested: true, requested_by_id: current_user.id})
+
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish("placeos/#{authority.id}/pending_mail/new", {
         id:        mail.id.to_s,
         service:   "signage",
