@@ -491,6 +491,11 @@ module PlaceOS::Api
           Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
 
           playlist = Model::Generator.playlist(authority: authority).save!
+          # request_approval requires the playlist to have a media revision
+          item = Model::Generator.item(authority: authority).save!
+          revision = Model::Generator.revision(playlist: playlist, user: user)
+          revision.items = [item.id.as(String)]
+          revision.save!
 
           result = client.post(
             "#{base}/#{playlist.id}/media/request_approval?group_id=#{group.id}",
@@ -525,6 +530,11 @@ module PlaceOS::Api
           Model::Generator.group_user(user: manager, group: group, permissions: Model::Permissions::Manage).save!
 
           playlist = Model::Generator.playlist(authority: authority).save!
+          # request_approval requires the playlist to have a media revision
+          item = Model::Generator.item(authority: authority).save!
+          revision = Model::Generator.revision(playlist: playlist, user: user)
+          revision.items = [item.id.as(String)]
+          revision.save!
 
           result = client.post(
             "#{base}/#{playlist.id}/media/request_approval?group_id=#{group.id}&approver_id=#{manager.id}",
@@ -553,6 +563,11 @@ module PlaceOS::Api
           Model::Generator.group_user(user: manager, group: child, permissions: Model::Permissions::Manage).save!
 
           playlist = Model::Generator.playlist(authority: authority).save!
+          # request_approval requires the playlist to have a media revision
+          item = Model::Generator.item(authority: authority).save!
+          revision = Model::Generator.revision(playlist: playlist, user: user)
+          revision.items = [item.id.as(String)]
+          revision.save!
 
           result = client.post(
             "#{base}/#{playlist.id}/media/request_approval?group_id=#{child.id}&approver_id=#{manager.id}",

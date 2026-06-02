@@ -18,7 +18,7 @@ module PlaceOS::Api::WebSocket
         it "receives updates" do
           # Status to bind
           status_name = "nugget"
-          results = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
+          results = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod, updates|
             # Create a storage proxy
             driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
 
@@ -29,11 +29,15 @@ module PlaceOS::Api::WebSocket
               name: status_name,
               command: Session::Request::Command::Bind,
             ).to_json
-            sleep 100.milliseconds
+            # Gate each publish on the prior message arriving. The bind Success
+            # confirms the redis subscription is live before we publish (pub/sub
+            # has no replay), and waiting between publishes guarantees order and
+            # that no notify is dropped before the assertions run.
+            wait_for_updates(updates, 1)
             driver_proxy[status_name] = 1
-            sleep 100.milliseconds
+            wait_for_updates(updates, 2)
             driver_proxy[status_name] = 2
-            sleep 100.milliseconds
+            wait_for_updates(updates, 3)
           end
 
           updates, control_system, mod = results
@@ -180,6 +184,19 @@ end
 
 # Binds to the system websocket endpoint
 #
+# Polls `updates` until it holds at least `count` messages, yielding to the
+# socket fiber between checks. Raises on timeout so a genuinely missing update
+# fails loudly instead of racing against a fixed sleep. Redis pub/sub has no
+# replay, so publishes must only be sent once the subscription is live (i.e.
+# after the bind Success response has been observed).
+def wait_for_updates(updates, count : Int32, timeout : Time::Span = 5.seconds) : Nil
+  deadline = Time.monotonic + timeout
+  until updates.size >= count
+    raise "timed out waiting for #{count} websocket updates, got #{updates.size}" if Time.monotonic > deadline
+    sleep 10.milliseconds
+  end
+end
+
 def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) { }, &)
   host = "localhost"
   bearer = auth["Authorization"].split(' ').last
@@ -218,7 +235,9 @@ def test_websocket_api(base, headers, &)
   sys_lookup[lookup_key] = mod.id.as(String)
 
   bind(base, headers, on_message) do |ws|
-    yield ({ws, control_system, mod})
+    # `updates` is exposed so tests can gate on messages arriving (vs fixed sleeps).
+    # Blocks that don't need it can simply take fewer params.
+    yield ({ws, control_system, mod, updates})
   end
 
   # Clean up.

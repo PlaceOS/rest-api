@@ -168,6 +168,11 @@ module PlaceOS::Api
       end
 
       it "ensures management users can only see the modules they have access to" do
+        # before_each clears the DB but not ES; this assertion counts the
+        # unscoped index, so start from a clean ES slate to avoid stale docs
+        # from earlier examples inflating the management-visible count.
+        clear_elastic(Model::Module.table_name)
+
         Model::Generator.module.save!
         Model::Generator.module.save!
         Model::Generator.module.save!

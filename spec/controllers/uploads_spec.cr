@@ -403,9 +403,10 @@ module PlaceOS::Api
     it "should return 403 when storage_id belongs to different authority" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
 
-      # Create storage for a different authority
+      # Create storage for a different authority (unique domain — a hardcoded
+      # one collides with alerts_spec, which also uses "other.example.com")
       other_authority = Model::Generator.authority
-      other_authority.domain = "other.example.com"
+      other_authority.domain = "other-#{random_name}.example.com"
       other_authority.save!
 
       other_storage = Model::Generator.storage(authority_id: other_authority.id)

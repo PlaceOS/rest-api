@@ -779,7 +779,10 @@ module PlaceOS::Api
         mod.persisted?.should be_true
         mod.running.should be_false
 
-        path = Systems.base_route + "#{cs.id}/start"
+        # single_occurrence=false uses control_system.modules directly; the default
+        # (true) does a global GROUP BY ... HAVING COUNT(*)=1 over the whole `sys`
+        # table, which is non-deterministic under the shared/parallel test DB
+        path = Systems.base_route + "#{cs.id}/start?single_occurrence=false"
 
         result = client.post(
           path: path,
@@ -806,7 +809,8 @@ module PlaceOS::Api
         mod.persisted?.should be_true
         mod.running.should be_true
 
-        path = Systems.base_route + "#{cs.id}/stop"
+        # single_occurrence=false: see the start test above for why
+        path = Systems.base_route + "#{cs.id}/stop?single_occurrence=false"
 
         result = client.post(
           path: path,
@@ -997,7 +1001,8 @@ module PlaceOS::Api
         mod.persisted?.should be_true
         mod.running.should be_false
 
-        path = Systems.base_route + "#{cs.id}/start"
+        # single_occurrence=false: see the start test above for why
+        path = Systems.base_route + "#{cs.id}/start?single_occurrence=false"
 
         result = client.post(
           path: path,
