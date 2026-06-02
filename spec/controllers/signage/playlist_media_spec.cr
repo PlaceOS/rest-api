@@ -101,6 +101,94 @@ module PlaceOS::Api
         ids.should eq [mine.id.to_s]
       end
 
+      it "?group_id= scopes admins to items linked to that group (SQL subquery)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        group = Model::Generator.group(authority: authority).save!
+
+        linked = Model::Generator.item(authority: authority).save!
+        Model::Generator.group_playlist_item(group: group, playlist_item: linked).save!
+        _unlinked = Model::Generator.item(authority: authority).save!
+
+        result = client.get("#{base}?group_id=#{group.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should eq [linked.id.to_s]
+      end
+
+      it "spans multiple readable groups for a regular user (multi-placeholder IN)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        root = Model::Generator.group(authority: authority).save!
+        group_a = Model::Generator.group(authority: authority, parent: root).save!
+        group_b = Model::Generator.group(authority: authority, parent: root).save!
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_user(user: user, group: group_b, permissions: Model::Permissions::Read).save!
+
+        in_a = Model::Generator.item(authority: authority).save!
+        Model::Generator.group_playlist_item(group: group_a, playlist_item: in_a).save!
+        in_b = Model::Generator.item(authority: authority).save!
+        Model::Generator.group_playlist_item(group: group_b, playlist_item: in_b).save!
+        _hidden = Model::Generator.item(authority: authority).save!
+
+        result = client.get(base, headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.sort.should eq [in_a.id.to_s, in_b.id.to_s].sort
+      end
+
+      it "?tags= and group scope combine (tags filter + subquery + authority)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+        promo = Model::Generator.item(authority: authority)
+        promo.tags = Set{"promo"}
+        promo.save!
+        Model::Generator.group_playlist_item(group: group, playlist_item: promo).save!
+
+        # same tag, but not linked to the user's group -> excluded by scope
+        promo_unlinked = Model::Generator.item(authority: authority)
+        promo_unlinked.tags = Set{"promo"}
+        promo_unlinked.save!
+
+        # linked to the group, but different tag -> excluded by tag filter
+        other = Model::Generator.item(authority: authority)
+        other.tags = Set{"lobby"}
+        other.save!
+        Model::Generator.group_playlist_item(group: group, playlist_item: other).save!
+
+        result = client.get("#{base}?tags=promo", headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should eq [promo.id.to_s]
+      end
+
+      it "?tags= returns items carrying any of the supplied tags" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        promo = Model::Generator.item(authority: authority)
+        promo.tags = Set{"promo", "lobby"}
+        promo.save!
+
+        lobby = Model::Generator.item(authority: authority)
+        lobby.tags = Set{"lobby"}
+        lobby.save!
+
+        other = Model::Generator.item(authority: authority)
+        other.tags = Set{"warehouse"}
+        other.save!
+
+        result = client.get("#{base}?tags=promo,warehouse", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should contain(promo.id.to_s)
+        ids.should contain(other.id.to_s)
+        ids.should_not contain(lobby.id.to_s)
+      end
+
       it "?q= searches name and description (ILIKE)" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         hit_name = Model::Generator.item(authority: authority)
@@ -122,6 +210,82 @@ module PlaceOS::Api
         ids.should contain(hit_name.id.to_s)
         ids.should contain(hit_desc.id.to_s)
         ids.should_not contain(miss.id.to_s)
+      end
+    end
+
+    describe "GET /tags" do
+      it "admin sees the distinct tags across all media in the authority (sorted)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        a = Model::Generator.item(authority: authority)
+        a.tags = Set{"zebra", "alpha"}
+        a.save!
+
+        b = Model::Generator.item(authority: authority)
+        b.tags = Set{"alpha", "mango"}
+        b.save!
+
+        result = client.get("#{base}/tags", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        Array(String).from_json(result.body).should eq ["alpha", "mango", "zebra"]
+      end
+
+      it "returns an empty list when no media is tagged" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        Model::Generator.item(authority: authority).save!
+
+        result = client.get("#{base}/tags", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        Array(String).from_json(result.body).should eq [] of String
+      end
+
+      it "?group_id= scopes tags to media linked to that group" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        group = Model::Generator.group(authority: authority).save!
+
+        linked = Model::Generator.item(authority: authority)
+        linked.tags = Set{"in-group"}
+        linked.save!
+        Model::Generator.group_playlist_item(group: group, playlist_item: linked).save!
+
+        unlinked = Model::Generator.item(authority: authority)
+        unlinked.tags = Set{"out-of-group"}
+        unlinked.save!
+
+        result = client.get("#{base}/tags?group_id=#{group.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        Array(String).from_json(result.body).should eq ["in-group"]
+      end
+
+      it "scopes a regular user to tags from media in groups they can read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+        mine = Model::Generator.item(authority: authority)
+        mine.tags = Set{"mine"}
+        mine.save!
+        Model::Generator.group_playlist_item(group: group, playlist_item: mine).save!
+
+        hidden = Model::Generator.item(authority: authority)
+        hidden.tags = Set{"hidden"}
+        hidden.save!
+
+        result = client.get("#{base}/tags", headers: headers)
+        result.status_code.should eq 200
+        Array(String).from_json(result.body).should eq ["mine"]
+      end
+
+      it "rejects a regular user requesting tags for a group they can't read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority).save!
+
+        result = client.get("#{base}/tags?group_id=#{group.id}", headers: headers)
+        result.status_code.should eq 403
       end
     end
 

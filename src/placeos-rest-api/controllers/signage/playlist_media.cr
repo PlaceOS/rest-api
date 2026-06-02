@@ -13,12 +13,12 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index, :show, :tags]
     before_action :can_write, only: [:create, :update, :destroy, :share]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :share])]
+    @[AC::Route::Filter(:before_action, except: [:index, :tags, :create, :share])]
     def current_item(id : String)
       Log.context.set(item_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -78,55 +78,70 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    # list media items for the current authority.
+    # Resolve which groups bound the caller's visibility, honoring
+    # `group_id`. We key access off the *bounded* set of group ids (a user
+    # belongs to tens of groups) rather than the *unbounded* set of item
+    # ids — the actual item filter is pushed into SQL as a subquery against
+    # the `group_playlist_items` junction, so item ids are never pulled
+    # into memory.
     #
-    # Non-admin callers see only items linked to groups they're a member
-    # of (direct or transitive). `group_id=...` scopes to a single
-    # group; `q=...` is a case-insensitive substring search across
-    # `name` and `description`.
-    @[AC::Route::GET("/")]
-    def index(
-      @[AC::Param::Info(description: "filter to items linked to this group (caller must have Read on the group)")]
-      group_id : UUID? = nil,
-      @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
-      q : String? = nil,
-      limit : Int32 = 100,
-      offset : Int32 = 0,
-    ) : Array(::PlaceOS::Model::Playlist::Item)
-      query = ::PlaceOS::Model::Playlist::Item.where(authority_id: authority.id.as(String))
-
+    # Returns:
+    # - `nil`  => no group constraint (admin/support: all authority media)
+    # - `[]`   => caller can see nothing (short-circuit to an empty result)
+    # - `[..]` => constrain to items linked to any of these groups
+    private def accessible_group_scope(group_id : UUID?) : Array(UUID)?
       if group_id
         unless user_support?
           perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
           raise Error::Forbidden.new unless perms.read?
         end
-        linked_ids = ::PlaceOS::Model::GroupPlaylistItem
-          .where(group_id: group_id)
-          .to_a
-          .map(&.playlist_item_id)
-        if linked_ids.empty?
+        return [group_id]
+      end
+
+      # admin/support see every item in the authority — no group constraint
+      return nil if user_support?
+
+      group_memberships(current_user).compact_map do |g_id, g_perms|
+        g_id if g_perms.read?
+      end
+    end
+
+    # Raw-SQL `WHERE id IN (...junction subquery...)` fragment scoping
+    # `playlist_items` to those linked to any of `group_ids`. Each group id
+    # is a bound `?` placeholder (never interpolated). Caller guarantees
+    # `group_ids` is non-empty.
+    private def linked_item_subquery(group_ids : Array(UUID)) : String
+      placeholders = Array.new(group_ids.size, "?").join(", ")
+      "id IN (SELECT playlist_item_id FROM group_playlist_items WHERE group_id IN (#{placeholders}))"
+    end
+
+    # list media items for the current authority.
+    #
+    # Non-admin callers see only items linked to groups they're a member
+    # of (direct or transitive). `group_id=...` scopes to a single
+    # group; `q=...` is a case-insensitive substring search across
+    # `name` and `description`; `tags=...` returns items carrying any of
+    # the supplied tags.
+    @[AC::Route::GET("/", converters: {tags: ConvertStringArray})]
+    def index(
+      @[AC::Param::Info(description: "filter to items linked to this group (caller must have Read on the group)")]
+      group_id : UUID? = nil,
+      @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
+      q : String? = nil,
+      @[AC::Param::Info(description: "return items carrying any of these tags", example: "promo,lobby")]
+      tags : Array(String)? = nil,
+      limit : Int32 = 100,
+      offset : Int32 = 0,
+    ) : Array(::PlaceOS::Model::Playlist::Item)
+      query = ::PlaceOS::Model::Playlist::Item.where(authority_id: authority.id.as(String))
+
+      scope = accessible_group_scope(group_id)
+      unless scope.nil?
+        if scope.empty?
           set_collection_headers(0, "playlist_items")
           return [] of ::PlaceOS::Model::Playlist::Item
         end
-        query = query.where(id: linked_ids)
-      elsif !user_support?
-        viewable = group_memberships(current_user).compact_map do |g_id, g_perms|
-          g_id if g_perms.read?
-        end
-        if viewable.empty?
-          set_collection_headers(0, "playlist_items")
-          return [] of ::PlaceOS::Model::Playlist::Item
-        end
-        linked_ids = ::PlaceOS::Model::GroupPlaylistItem
-          .where(group_id: viewable)
-          .to_a
-          .map(&.playlist_item_id)
-          .uniq!
-        if linked_ids.empty?
-          set_collection_headers(0, "playlist_items")
-          return [] of ::PlaceOS::Model::Playlist::Item
-        end
-        query = query.where(id: linked_ids)
+        query = query.where(linked_item_subquery(scope), args: scope)
       end
 
       if (term = q) && !term.empty?
@@ -134,7 +149,45 @@ module PlaceOS::Api
         query = query.where("(name ILIKE ? OR description ILIKE ?)", pattern, pattern)
       end
 
+      # overlap (`&&`) => items carrying at least one of the requested tags.
+      # Bind each tag individually so values are never interpolated into SQL.
+      if (filter_tags = tags) && !filter_tags.empty?
+        placeholders = Array.new(filter_tags.size, "?").join(", ")
+        query = query.where("tags && ARRAY[#{placeholders}]::text[]", args: filter_tags)
+      end
+
       paginate_sql(query, type: "playlist_items", limit: limit, offset: offset)
+    end
+
+    # return the distinct tags in use by media. Scopes the same way as
+    # `index`: `group_id=...` limits to media linked to that group (caller
+    # must have Read on it); without `group_id`, admin/support callers see
+    # every tag in the authority while regular users see tags from media in
+    # groups they can read.
+    @[AC::Route::GET("/tags")]
+    def tags(
+      @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read on the group)")]
+      group_id : UUID? = nil,
+    ) : Array(String)
+      scope = accessible_group_scope(group_id)
+      return [] of String if !scope.nil? && scope.empty?
+
+      # Distinct tags computed in SQL — we never materialize item ids. The
+      # optional group scope is a subquery against the junction table, keyed
+      # on the bounded `group_id = ANY($2)` array.
+      sql = String.build do |str|
+        str << "SELECT DISTINCT unnest(tags) AS tag FROM playlist_items WHERE authority_id = $1"
+        str << " AND id IN (SELECT playlist_item_id FROM group_playlist_items WHERE group_id = ANY($2::uuid[]))" unless scope.nil?
+        str << " ORDER BY tag"
+      end
+
+      PgORM::Database.connection do |db|
+        if scope.nil?
+          db.query_all(sql, args: [authority.id.as(String)], as: String)
+        else
+          db.query_all(sql, args: [authority.id.as(String), scope.map(&.to_s)], as: String)
+        end
+      end
     end
 
     # return the details of the requested media item

@@ -21714,7 +21714,9 @@ paths:
 
         group; `q=...` is a case-insensitive substring search across
 
-        `name` and `description`.'
+        `name` and `description`; `tags=...` returns items carrying any of
+
+        the supplied tags.'
       tags:
       - PlaylistMedia
       operationId: PlaceOS::Api::PlaylistMedia_index
@@ -21733,6 +21735,15 @@ paths:
           ILIKE)
         schema:
           type: string
+          nullable: true
+      - name: tags
+        in: query
+        description: return items carrying any of these tags
+        example: promo,lobby
+        schema:
+          type: array
+          items:
+            type: string
           nullable: true
       - name: limit
         in: query
@@ -21859,6 +21870,96 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Model__Playlist__Item'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/media/tags:
+    get:
+      summary: return the distinct tags in use by media. Scopes the same way as
+      description: 'return the distinct tags in use by media. Scopes the same way
+        as
+
+        `index`: `group_id=...` limits to media linked to that group (caller
+
+        must have Read on it); without `group_id`, admin/support callers see
+
+        every tag in the authority while regular users see tags from media in
+
+        groups they can read.'
+      tags:
+      - PlaylistMedia
+      operationId: PlaceOS::Api::PlaylistMedia_tags
+      parameters:
+      - name: group_id
+        in: query
+        description: limit to media linked to this group (caller must have Read on
+          the group)
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/String'
         409:
           description: Conflict
           content:
@@ -32806,19 +32907,26 @@ components:
                   type: integer
                   format: Int64
                   nullable: true
-                play_at:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                play_cron:
-                  type: string
-                  nullable: true
-                play_period:
-                  type: integer
-                  format: Int32
-                  nullable: true
-                play_takeover:
-                  type: boolean
+                schedules:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      play_at:
+                        type: integer
+                        format: Int64
+                        nullable: true
+                      play_takeover:
+                        type: boolean
+                      play_period:
+                        type: integer
+                        format: Int32
+                      play_cron:
+                        type: string
+                    required:
+                    - play_takeover
+                    - play_period
+                    - play_cron
                   nullable: true
                 id:
                   type: string
@@ -35649,19 +35757,26 @@ components:
           type: integer
           format: Int64
           nullable: true
-        play_at:
-          type: integer
-          format: Int64
-          nullable: true
-        play_cron:
-          type: string
-          nullable: true
-        play_period:
-          type: integer
-          format: Int32
-          nullable: true
-        play_takeover:
-          type: boolean
+        schedules:
+          type: array
+          items:
+            type: object
+            properties:
+              play_at:
+                type: integer
+                format: Int64
+                nullable: true
+              play_takeover:
+                type: boolean
+              play_period:
+                type: integer
+                format: Int32
+              play_cron:
+                type: string
+            required:
+            - play_takeover
+            - play_period
+            - play_cron
           nullable: true
         id:
           type: string
@@ -35685,6 +35800,12 @@ components:
           format: email
           nullable: true
         user_name:
+          type: string
+          nullable: true
+        approval_requested:
+          type: boolean
+          nullable: true
+        requested_by_id:
           type: string
           nullable: true
         approved:
@@ -36756,19 +36877,26 @@ components:
                   type: integer
                   format: Int64
                   nullable: true
-                play_at:
-                  type: integer
-                  format: Int64
-                  nullable: true
-                play_cron:
-                  type: string
-                  nullable: true
-                play_period:
-                  type: integer
-                  format: Int32
-                  nullable: true
-                play_takeover:
-                  type: boolean
+                schedules:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      play_at:
+                        type: integer
+                        format: Int64
+                        nullable: true
+                      play_takeover:
+                        type: boolean
+                      play_period:
+                        type: integer
+                        format: Int32
+                      play_cron:
+                        type: string
+                    required:
+                    - play_takeover
+                    - play_period
+                    - play_cron
                   nullable: true
                 id:
                   type: string
@@ -39596,19 +39724,26 @@ components:
                       type: integer
                       format: Int64
                       nullable: true
-                    play_at:
-                      type: integer
-                      format: Int64
-                      nullable: true
-                    play_cron:
-                      type: string
-                      nullable: true
-                    play_period:
-                      type: integer
-                      format: Int32
-                      nullable: true
-                    play_takeover:
-                      type: boolean
+                    schedules:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          play_at:
+                            type: integer
+                            format: Int64
+                            nullable: true
+                          play_takeover:
+                            type: boolean
+                          play_period:
+                            type: integer
+                            format: Int32
+                          play_cron:
+                            type: string
+                        required:
+                        - play_takeover
+                        - play_period
+                        - play_cron
                       nullable: true
                     id:
                       type: string
