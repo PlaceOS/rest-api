@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage/playlist_media**: add tags query
 - **playlists**: mark approval requested
 - add signage approval requests ([#436](https://github.com/PlaceOS/rest-api/pull/436))
 - **signage**: add group share feature
