@@ -48,7 +48,7 @@ dependencies:
   # For driver state helpers
   placeos-driver:
     github: placeos/driver
-    version: ">= 7.0.0"
+    version: ">= 7.26.0"
 
   # For frontends client
   placeos-frontend-loader:
@@ -82,7 +82,7 @@ dependencies:
   # Scheduling
   tasker:
     github: spider-gazelle/tasker
-    version: ~> 2
+    version: ">= 2"
 
   # Secrets parsing
   secrets-env:
