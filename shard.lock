@@ -63,7 +63,7 @@ shards:
 
   db:
     git: https://github.com/crystal-lang/crystal-db.git
-    version: 0.13.1
+    version: 0.14.0
 
   debug:
     git: https://github.com/sija/debug.cr.git
@@ -87,7 +87,7 @@ shards:
 
   eventbus:
     git: https://github.com/spider-gazelle/eventbus.git
-    version: 1.0.1+git.commit.a707ac06aba16ba6070ff4972acfd839f1f05e15
+    version: 1.0.2+git.commit.1cec22837b2dfa7110376cff55c14ce57050eb9a
 
   exception_page:
     git: https://github.com/crystal-loot/exception_page.git
@@ -183,7 +183,7 @@ shards:
 
   pg:
     git: https://github.com/will/crystal-pg.git
-    version: 0.29.0
+    version: 0.30.0
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
@@ -203,7 +203,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.a1c2f7ad6efdd5d245ca4b1727bc19fdbe7eee10
+    version: 4.21.0+git.commit.99bda24b020830563860d042bacd9232753704aa
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.26.3
+    version: 7.26.4
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
