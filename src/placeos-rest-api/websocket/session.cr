@@ -449,7 +449,8 @@ module PlaceOS::Api::WebSocket
       cache_cleaner.try &.cancel
       clear_caches
 
-      # Unbind all modules
+      # Unbind all modules — release the shared subscriptions
+      bindings.each_value { |subscription| self.class.subscriptions.unsubscribe(subscription) }
       bindings.clear
 
       # Ignore (stop debugging) all modules
