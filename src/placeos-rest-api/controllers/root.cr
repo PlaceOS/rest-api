@@ -33,6 +33,7 @@ module PlaceOS::Api
     # returns 200 OK when the service is healthy (can connect to the databases etc)
     @[AC::Route::GET("/")]
     def root : Nil
+      Log.context.set(redis_reconnects: WebSocket::Session.subscriptions.@subscriber.reconnect_count.to_s)
       raise "not healthy" unless self.class.healthcheck?
     end
 
