@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **root**: add redis stats to health check
 - **signage/playlist_media**: add tags query
 - **playlists**: mark approval requested
 - add signage approval requests ([#436](https://github.com/PlaceOS/rest-api/pull/436))
