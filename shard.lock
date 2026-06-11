@@ -203,7 +203,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.2177950648a2784cd1ac630056b98df7180f4905
+    version: 4.21.0+git.commit.f40e0c95a141d0522ae30e5468277dd4a45429f7
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -211,7 +211,7 @@ shards:
 
   placeos-driver:
     git: https://github.com/placeos/driver.git
-    version: 7.27.2
+    version: 8.0.2
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
@@ -223,7 +223,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.95.0
+    version: 9.97.0
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -287,7 +287,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.7.2
+    version: 1.7.3
 
   stumpy_core:
     git: https://github.com/stumpycr/stumpy_core.git
