@@ -109,6 +109,9 @@ dependencies:
   loki-client:
     github: spider-gazelle/crystal-loki-client
 
+  dns:
+    github: spider-gazelle/dns
+
 development_dependencies:
   # Linter
   ameba:

@@ -1,5 +1,8 @@
 class PlaceOS::Driver; end
 
+require "dns"
+require "dns/ext/addrinfo"
+
 # Application dependencies
 require "action-controller"
 
