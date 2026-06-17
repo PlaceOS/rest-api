@@ -71,7 +71,7 @@ shards:
 
   dns:
     git: https://github.com/spider-gazelle/dns.git
-    version: 1.6.0
+    version: 1.6.1
 
   dtls:
     git: https://github.com/spider-gazelle/crystal-dtls.git
@@ -215,7 +215,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.d0d1968c711692bb4bfb2f15af22cd0ca06e4b3d
+    version: 2.7.1+git.commit.b5dedf3d4e009df9af493a67ae9e4076674029a7
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -275,7 +275,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.7ec4d7a585c51bdb504a4708a62ab49e04753e57
+    version: 2.11.3+git.commit.9959e925d388338d0d784efb412c5db869ee9b1b
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git
