@@ -2,6 +2,7 @@
 
 ### Feat
 
+- [PPT-2540] add expiry support to api key ([#437](https://github.com/PlaceOS/rest-api/pull/437))
 - use nonblocking DNS
 - **root**: add redis stats to health check
 - **signage/playlist_media**: add tags query
