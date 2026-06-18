@@ -71,7 +71,7 @@ shards:
 
   dns:
     git: https://github.com/spider-gazelle/dns.git
-    version: 1.6.0
+    version: 1.6.1
 
   dtls:
     git: https://github.com/spider-gazelle/crystal-dtls.git

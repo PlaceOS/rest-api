@@ -2,6 +2,7 @@
 
 ### Feat
 
+- use nonblocking DNS
 - **root**: add redis stats to health check
 - **signage/playlist_media**: add tags query
 - **playlists**: mark approval requested
