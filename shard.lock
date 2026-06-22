@@ -187,7 +187,7 @@ shards:
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
-    version: 2.1.0
+    version: 2.2.0
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -215,7 +215,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.2ce10ba6ec97a92eebae0803e4822bdf8275351a
+    version: 2.7.1+git.commit.693b47914d40284458518503be7441dfc7ff98aa
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -275,7 +275,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.cb5980ce13cc1963dd4d90b33e34cf38cd5f5ed0
+    version: 2.11.3+git.commit.f3e14c701667f3fb185a82b352d4e053c7f082d2
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

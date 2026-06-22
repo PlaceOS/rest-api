@@ -80,7 +80,9 @@ module PlaceOS::Api
     def update : ::PlaceOS::Model::Shortener
       url = url_update
       current = current_url
-      current_count = current.redirect_count
+      # Preserve the redirect counter from the authoritative primary so a
+      # concurrent /redirect increment isn't clobbered by a stale replica read.
+      current_count = on_primary { ::PlaceOS::Model::Shortener.find!(current.id.as(String)).redirect_count }
       current.assign_attributes(url)
       current.authority_id = authority.id
       current.user = current_user

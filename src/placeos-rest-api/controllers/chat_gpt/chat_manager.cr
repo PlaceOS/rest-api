@@ -313,7 +313,9 @@ module PlaceOS::Api
 
         messages.each { |m| save_history(chat.id.as(String), m) }
       else
-        chat.messages.each do |hist|
+        # read history from the primary so a resume immediately after the prior
+        # turn was persisted doesn't drop the most recent messages
+        PgORM::Database.with_connection { chat.messages.to_a }.each do |hist|
           tool_calls = nil
           if hist.role.to_s == "function"
             if name = hist.function_name

@@ -189,8 +189,8 @@ module PlaceOS::Api
     end
 
     private def create_outlook_repo : Nil
-      return if ::PlaceOS::Model::Repository.where(name: "Outlook Plugin", uri: "https://github.com/placeos/user-interfaces", branch: "build/outlook-rooms-addin/prod",
-                  folder_name: "outlookplugin", repo_type: ::PlaceOS::Model::Repository::Type::Interface.value).count > 0
+      return if on_primary { ::PlaceOS::Model::Repository.where(name: "Outlook Plugin", uri: "https://github.com/placeos/user-interfaces", branch: "build/outlook-rooms-addin/prod",
+                  folder_name: "outlookplugin", repo_type: ::PlaceOS::Model::Repository::Type::Interface.value).count } > 0
 
       ::PlaceOS::Model::Repository.create(
         name: "Outlook Plugin", uri: "https://github.com/placeos/user-interfaces", branch: "build/outlook-rooms-addin/prod",

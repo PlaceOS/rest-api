@@ -346,7 +346,9 @@ module PlaceOS::Api
     # approve a playlist for publication on displays
     @[AC::Route::POST("/:id/media/approve")]
     def approve_media : Bool
-      revision = media_revisions(1).first?
+      # Select the revision to approve from the primary so a revision created by
+      # a recent update_media isn't missed (which would approve a stale one).
+      revision = on_primary { media_revisions(1).first? }
       raise Error::NotFound.new("no media in playlist") unless revision
 
       revision.approver = current_user
@@ -442,8 +444,9 @@ module PlaceOS::Api
       send_to = ::PlaceOS::Model::User.where(id: recipient_ids).to_a.map(&.email.to_s)
       raise Error::NotAcceptable.new("no approver email addresses available") if send_to.empty?
 
-      # update the playlist revision marked as approval request made
-      revision = media_revisions(1).first?
+      # update the playlist revision marked as approval request made (select from
+      # the primary so a recently-created revision isn't missed)
+      revision = on_primary { media_revisions(1).first? }
       raise Error::NotFound.new("no media in playlist") unless revision
 
       zone_ids = ::PlaceOS::Model::GroupZone.where(group_id: group_id, deny: false).to_a.map(&.zone_id).uniq!

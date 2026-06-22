@@ -2,7 +2,7 @@ PlaceOS is a building automation platform.
 
 ## Working on this project
 
-This crystal lang library is the API layer, made up of RESP API controllers. Functioning similar to ruby on rails controllers.
+This crystal lang library is the API layer, made up of REST API controllers. Functioning similar to ruby on rails controllers.
 
 Use `crystal tool format` and `./bin/ameba` to format and lint code.
 Run specs using `./test` make sure to run specs using a subagent. You can also run individual spec files or use `focus: true` to isolate the spec you're working on. Tests can take some time to run.

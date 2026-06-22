@@ -155,9 +155,14 @@ module PlaceOS::Api
       # A name is required to lookup the metadata
       raise Error::ModelValidation.new({Error::Field.new(:name, "Name must not be empty")}) unless metadata.name.presence
 
-      metadata = create_or_update(parent_id, metadata, merge: merge)
-      raise Error::ModelValidation.new(metadata.errors) unless metadata.save
-      metadata
+      # Pin the find-or-create existence check and the merge (which reads the
+      # existing `details`) to the primary, so replica lag cannot cause a
+      # duplicate row or a lost merge.
+      metadata = on_primary do
+        found = create_or_update(parent_id, metadata, merge: merge)
+        raise Error::ModelValidation.new(found.errors) unless found.save
+        found
+      end
 
       payload = metadata.interface
       spawn { self.class.signal_metadata(current_authority.not_nil!.id.to_s, :update, payload) }

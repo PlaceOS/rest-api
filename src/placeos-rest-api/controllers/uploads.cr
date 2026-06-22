@@ -206,7 +206,7 @@ module PlaceOS::Api
       user_email = current_user.email
       file_name = sanitize_filename(info.file_name)
 
-      if upload = ::PlaceOS::Model::Upload.find_by?(uploaded_by: user_id, file_name: file_name, file_size: info.file_size, file_md5: info.file_id)
+      if upload = on_primary { ::PlaceOS::Model::Upload.find_by?(uploaded_by: user_id, file_name: file_name, file_size: info.file_size, file_md5: info.file_id) }
         visibility = upload.public ? :public : :private
         resp = if (resumable_id = upload.resumable_id) && upload.resumable
                  s3 = signer.get_parts(storage.bucket_name, upload.object_key, upload.file_size, resumable_id, get_headers(upload))

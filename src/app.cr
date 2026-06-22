@@ -82,6 +82,12 @@ else
   PgORM::Database.configure { |_| }
 end
 
+# Optionally route read-only queries to a separate read replica (e.g. a DNS
+# entry fronting one or more read-only pods). When PG_DATABASE_READ_URL is set,
+# SELECTs outside of a transaction are sent to the replica while all writes and
+# in-transaction reads continue to use the primary connection (PG_DATABASE_URL).
+PgORM::Database.parse_read(ENV["PG_DATABASE_READ_URL"]?)
+
 # Load the routes
 PlaceOS::Api::Log.info { "launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME.strip})" }
 

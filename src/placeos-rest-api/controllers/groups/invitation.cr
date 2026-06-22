@@ -140,7 +140,9 @@ module PlaceOS::Api
     def accept : ::PlaceOS::Model::GroupUser
       invitation = current_invitation
       raise Error::Forbidden.new("invitation expired") if invitation.expired?
-      invitation.accept!(current_user)
+      # accept! does a find-or-create of the GroupUser; pin its existence check
+      # to the primary so replica lag can't miss an existing membership.
+      on_primary { invitation.accept!(current_user) }
     end
   end
 end

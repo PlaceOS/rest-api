@@ -76,6 +76,16 @@ module PlaceOS::Api
       response.headers["Content-Range"] = "#{content_type} 0-#{size - 1}/#{size}"
     end
 
+    # Runs the supplied read against the primary database, bypassing any read
+    # replica. Use this for the existence check of a find-or-create, or a
+    # read-modify-write of the same field: a lagging replica may not yet see a
+    # row (or value) written by a recent/concurrent request, which would cause a
+    # duplicate insert or a lost update. Pinning the gating read to the primary
+    # keeps the behaviour identical to a single-database deployment.
+    def on_primary(&)
+      PgORM::Database.with_connection { yield }
+    end
+
     # SQL-based pagination for models that aren't Elasticsearch-indexed.
     # Accepts any PgORM relation (`Model.where(...)` etc.) and returns
     # the requested page. Sets `X-Total-Count`, `Content-Range`, and

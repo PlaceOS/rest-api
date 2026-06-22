@@ -25,7 +25,7 @@ module PlaceOS::Api
         api_key = PlaceOS::Model::ApiKey.where(name: user.email.to_s).first
         api_key.expires_at = Time.utc + 1.second
         api_key.save!
-        sleep 1.5
+        sleep 1.5.seconds
 
         result = client.get(path: ApiKeys.base_route + "inspect", headers: headers)
         result.status_code.should eq 401
@@ -56,7 +56,7 @@ module PlaceOS::Api
         api_key = PlaceOS::Model::ApiKey.where(name: user.email.to_s).first
         api_key.expires_at = Time.utc + 1.second
         api_key.save!
-        sleep 1.5
+        sleep 1.5.seconds
 
         admin_headers = Spec::Authentication.headers
         result = client.get(path: ApiKeys.base_route, headers: admin_headers)

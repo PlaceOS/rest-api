@@ -51,7 +51,9 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "To resume previous chat session. Provide session chat id", example: "chats-xxxx")]
       resume : String? = nil,
     ) : Nil
-      chat_manager.start_session(socket, (resume && ::PlaceOS::Model::Chat.find!(resume.not_nil!)) || nil, system_id)
+      # Pin the resume lookup to the primary: a chat created moments ago may not
+      # yet be on a lagging replica, which would 404 and spawn a duplicate chat.
+      chat_manager.start_session(socket, (resume && on_primary { ::PlaceOS::Model::Chat.find!(resume.not_nil!) }) || nil, system_id)
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e

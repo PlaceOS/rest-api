@@ -501,8 +501,9 @@ module PlaceOS::Api
       module_present = current_control_system.modules.includes?(module_id) || ::PlaceOS::Model::ControlSystem.add_module(current_control_system.id.as(String), module_id)
       raise "Failed to add ControlSystem Module" unless module_present
 
-      # Return the latest version of the control system
-      ::PlaceOS::Model::ControlSystem.find!(current_control_system.id.as(String))
+      # Return the latest version of the control system (read the primary so the
+      # response reflects the module we just added, not a lagging replica).
+      on_primary { ::PlaceOS::Model::ControlSystem.find!(current_control_system.id.as(String)) }
     end
 
     # Removes the module from the system and deletes it if not used elsewhere
