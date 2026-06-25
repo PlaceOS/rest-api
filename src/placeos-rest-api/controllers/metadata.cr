@@ -13,7 +13,7 @@ module PlaceOS::Api
 
     before_action :can_read, only: [:history]
     before_action :can_read_guest, only: [:show, :children_metadata, :bulk_fetch]
-    before_action :can_write, only: [:update, :destroy]
+    before_action :can_write, only: [:update, :rename, :destroy]
 
     # Callbacks
     ###############################################################################################
@@ -131,6 +131,36 @@ module PlaceOS::Api
       meta : ::PlaceOS::Model::Metadata::Interface,
     ) : ::PlaceOS::Model::Metadata::Interface
       mutate(parent_id, meta, merge: false)
+    end
+
+    record Rename, current_name : String, new_name : String do
+      include JSON::Serializable
+    end
+
+    # rename a metadata field
+    # udpates are signalled on the `placeos/metadata/changed` channel
+    @[AC::Route::PATCH("/:id/name", body: :rename)]
+    def rename(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be renamed")]
+      parent_id : String,
+      rename : Rename,
+    ) : ::PlaceOS::Model::Metadata::Interface
+      raise Error::ModelValidation.new({Error::Field.new(:current_name, "Name must not be empty")}) unless rename.current_name.presence
+      raise Error::ModelValidation.new({Error::Field.new(:new_name, "Name must not be empty")}) unless rename.new_name.presence
+
+      metadata = on_primary do
+        found = ::PlaceOS::Model::Metadata.for(parent_id, rename.current_name).first? || raise Error::NotFound.new
+        check_access_level(parent_id) unless found.user_can_update?(user_token)
+
+        found.name = rename.new_name
+        found.modified_by = current_user
+        raise Error::ModelValidation.new(found.errors) unless found.save
+        found
+      end
+
+      payload = metadata.interface
+      spawn { self.class.signal_metadata(current_authority.not_nil!.id.to_s, :update, payload) }
+      payload
     end
 
     UNSCOPED_SIGNAL_CHANNEL = "placeos/metadata/changed"

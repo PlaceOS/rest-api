@@ -238,6 +238,74 @@ module PlaceOS::Api
       end
     end
 
+    describe "PATCH /metadata/:id/name" do
+      it "renames zone metadata" do
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        meta = Model::Metadata::Interface.new(
+          name: "old-name",
+          description: "",
+          details: JSON.parse(%({"hello":"world","bye":"friends"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+        create = client.put(
+          path: "#{Metadata.base_route}/#{zone_id}",
+          body: meta.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        create.success?.should be_true
+
+        result = client.patch(
+          path: "#{Metadata.base_route}/#{zone_id}/name",
+          body: {current_name: "old-name", new_name: "new-name"}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+
+        result.success?.should be_true
+
+        metadata = Model::Metadata::Interface.from_json(result.body)
+        metadata.name.should eq "new-name"
+        metadata.details.should eq meta.details
+
+        Model::Metadata.for(zone_id, "old-name").first?.should be_nil
+        Model::Metadata.for(zone_id, "new-name").first.details.should eq meta.details
+      end
+
+      it "renames control_system metadata" do
+        control_system = Model::Generator.control_system.save!
+        control_system_id = control_system.id.as(String)
+        meta = Model::Metadata::Interface.new(
+          name: "old-name",
+          description: "",
+          details: JSON.parse(%({"hello":"world","bye":"friends"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+        create = client.put(
+          path: "#{Metadata.base_route}/#{control_system_id}",
+          body: meta.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        create.success?.should be_true
+
+        result = client.patch(
+          path: "#{Metadata.base_route}/#{control_system_id}/name",
+          body: {current_name: "old-name", new_name: "new-name"}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+
+        result.success?.should be_true
+
+        metadata = Model::Metadata::Interface.from_json(result.body)
+        metadata.name.should eq "new-name"
+        metadata.details.should eq meta.details
+
+        Model::Metadata.for(control_system_id, "old-name").first?.should be_nil
+        Model::Metadata.for(control_system_id, "new-name").first.details.should eq meta.details
+      end
+    end
+
     describe "GET /metadata/:name/bulk" do
       it "fetches metadata with specific name for multiple resources" do
         # Create multiple zones with the same metadata name
