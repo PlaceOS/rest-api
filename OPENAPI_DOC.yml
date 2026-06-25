@@ -16402,6 +16402,91 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/metadata/{id}/name:
+    patch:
+      summary: rename a metadata field
+      description: 'rename a metadata field
+
+        udpates are signalled on the `placeos/metadata/changed` channel'
+      tags:
+      - Metadata
+      operationId: PlaceOS::Api::Metadata_rename
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__Metadata__Rename'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        description: the parent id of the metadata to be renamed
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Metadata__Interface'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/metadata/{id}/history:
     get:
       summary: Returns the version history for a Settings model
@@ -29775,6 +29860,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Alert:
       type: object
       properties:
@@ -29865,6 +29951,7 @@ components:
                       - keys
                     - type: string
                     nullable: true
+                required: []
               nullable: true
             time_dependents:
               type: array
@@ -29887,7 +29974,9 @@ components:
                   timezone:
                     type: string
                     nullable: true
+                required: []
               nullable: true
+          required: []
           nullable: true
         severity:
           type: string
@@ -29937,10 +30026,12 @@ components:
             id:
               type: string
               nullable: true
+          required: []
           nullable: true
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__ApiKey__PublicResponse:
       type: object
       properties:
@@ -29958,6 +30049,10 @@ components:
           type: array
           items:
             type: object
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
         user_id:
           type: string
           nullable: true
@@ -30150,6 +30245,7 @@ components:
             id:
               type: string
               nullable: true
+          required: []
           nullable: true
         authority:
           type: object
@@ -30195,6 +30291,7 @@ components:
             id:
               type: string
               nullable: true
+          required: []
           nullable: true
         x_api_key:
           type: string
@@ -30249,6 +30346,14 @@ components:
         secret:
           type: string
           nullable: true
+        expires_at:
+          type: integer
+          format: Int64
+          nullable: true
+        ttl:
+          type: integer
+          format: Int32
+          nullable: true
         user_id:
           type: string
           nullable: true
@@ -30258,6 +30363,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__UserJWT:
       type: object
       properties:
@@ -30333,6 +30439,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__AssetPurchaseOrder:
       type: object
       properties:
@@ -30372,6 +30479,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__AssetType:
       type: object
       properties:
@@ -30406,6 +30514,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Asset:
       type: object
       properties:
@@ -30493,6 +30602,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     Array_PlaceOS__Model__Asset_:
       type: array
       items:
@@ -30582,6 +30692,7 @@ components:
           id:
             type: string
             nullable: true
+        required: []
     Array_String_:
       type: array
       items:
@@ -30631,6 +30742,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__SamlAuthentication:
       type: object
       properties:
@@ -30709,6 +30821,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__OAuthAuthentication:
       type: object
       properties:
@@ -30773,6 +30886,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Broker:
       type: object
       properties:
@@ -30827,6 +30941,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     _Array_PlaceOS__Api__BuildMonitor__TaskStatus____String_:
       anyOf:
       - type: array
@@ -30899,6 +31014,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     NamedTuple_role__String__content__String___Nil__timestamp__Time_:
       type: object
       properties:
@@ -31266,6 +31382,7 @@ components:
         new_version:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Authority:
       type: object
       properties:
@@ -31310,6 +31427,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     String:
       type: string
     PlaceOS__Model__Driver:
@@ -31403,6 +31521,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     NamedTuple_compilation_output__String_:
       type: object
       properties:
@@ -31457,6 +31576,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Module:
       type: object
       properties:
@@ -31683,6 +31803,7 @@ components:
                                     additionalProperties:
                                       type: object
                                     nullable: true
+                                required: []
                               nullable: true
                             mailers:
                               type: array
@@ -31697,7 +31818,9 @@ components:
                                   content:
                                     type: string
                                     nullable: true
+                                required: []
                               nullable: true
+                          required: []
                           nullable: true
                         conditions:
                           type: object
@@ -31766,6 +31889,7 @@ components:
                                       - keys
                                     - type: string
                                     nullable: true
+                                required: []
                               nullable: true
                             time_dependents:
                               type: array
@@ -31788,7 +31912,9 @@ components:
                                   timezone:
                                     type: string
                                     nullable: true
+                                required: []
                               nullable: true
+                          required: []
                           nullable: true
                         debounce_period:
                           type: integer
@@ -31874,10 +32000,12 @@ components:
                               id:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
                         id:
                           type: string
                           nullable: true
+                      required: []
                     nullable: true
                   children_count:
                     type: integer
@@ -31900,6 +32028,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     Array_JSON__Any_:
       type: array
       items:
@@ -32177,6 +32306,7 @@ components:
                                 additionalProperties:
                                   type: object
                                 nullable: true
+                            required: []
                           nullable: true
                         mailers:
                           type: array
@@ -32191,7 +32321,9 @@ components:
                               content:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
+                      required: []
                       nullable: true
                     conditions:
                       type: object
@@ -32260,6 +32392,7 @@ components:
                                   - keys
                                 - type: string
                                 nullable: true
+                            required: []
                           nullable: true
                         time_dependents:
                           type: array
@@ -32282,7 +32415,9 @@ components:
                               timezone:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
+                      required: []
                       nullable: true
                     debounce_period:
                       type: integer
@@ -32368,10 +32503,12 @@ components:
                           id:
                             type: string
                             nullable: true
+                        required: []
                       nullable: true
                     id:
                       type: string
                       nullable: true
+                  required: []
                 nullable: true
               children_count:
                 type: integer
@@ -32613,6 +32750,7 @@ components:
                                           additionalProperties:
                                             type: object
                                           nullable: true
+                                      required: []
                                     nullable: true
                                   mailers:
                                     type: array
@@ -32627,7 +32765,9 @@ components:
                                         content:
                                           type: string
                                           nullable: true
+                                      required: []
                                     nullable: true
+                                required: []
                                 nullable: true
                               conditions:
                                 type: object
@@ -32696,6 +32836,7 @@ components:
                                             - keys
                                           - type: string
                                           nullable: true
+                                      required: []
                                     nullable: true
                                   time_dependents:
                                     type: array
@@ -32718,7 +32859,9 @@ components:
                                         timezone:
                                           type: string
                                           nullable: true
+                                      required: []
                                     nullable: true
+                                required: []
                                 nullable: true
                               debounce_period:
                                 type: integer
@@ -32804,10 +32947,12 @@ components:
                                     id:
                                       type: string
                                       nullable: true
+                                  required: []
                                 nullable: true
                               id:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
                         children_count:
                           type: integer
@@ -32830,6 +32975,7 @@ components:
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         playlist_mappings:
           type: object
@@ -32931,6 +33077,7 @@ components:
                 id:
                   type: string
                   nullable: true
+              required: []
             - type: array
               items:
                 type: string
@@ -33034,6 +33181,7 @@ components:
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         signage_plugins:
           type: array
@@ -33083,6 +33231,7 @@ components:
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         id:
           type: string
@@ -33208,6 +33357,7 @@ components:
                           additionalProperties:
                             type: object
                           nullable: true
+                      required: []
                     nullable: true
                   mailers:
                     type: array
@@ -33222,7 +33372,9 @@ components:
                         content:
                           type: string
                           nullable: true
+                      required: []
                     nullable: true
+                required: []
                 nullable: true
               conditions:
                 type: object
@@ -33291,6 +33443,7 @@ components:
                             - keys
                           - type: string
                           nullable: true
+                      required: []
                     nullable: true
                   time_dependents:
                     type: array
@@ -33313,7 +33466,9 @@ components:
                         timezone:
                           type: string
                           nullable: true
+                      required: []
                     nullable: true
+                required: []
                 nullable: true
               debounce_period:
                 type: integer
@@ -33399,10 +33554,12 @@ components:
                     id:
                       type: string
                       nullable: true
+                  required: []
                 nullable: true
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         children_count:
           type: integer
@@ -33517,6 +33674,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Edge__CreateBody:
       type: object
       properties:
@@ -33846,6 +34004,7 @@ components:
           type: integer
           format: Int32
           nullable: true
+      required: []
     PlaceOS__Api__Groups__CurrentGroup:
       type: object
       properties:
@@ -33886,6 +34045,7 @@ components:
               type: integer
               format: Int32
               nullable: true
+          required: []
         permissions:
           type: integer
           format: Int32
@@ -33932,6 +34092,7 @@ components:
           type: string
           format: date-time
           nullable: true
+      required: []
     PlaceOS__Model__GroupInvitation:
       type: object
       properties:
@@ -33965,6 +34126,7 @@ components:
           type: string
           format: uuid
           nullable: true
+      required: []
     PlaceOS__Api__Groups__Invitations__InvitationCreatePayload:
       type: object
       properties:
@@ -34025,6 +34187,7 @@ components:
               type: string
               format: uuid
               nullable: true
+          required: []
         plaintext_secret:
           type: string
       required:
@@ -34090,6 +34253,7 @@ components:
               type: integer
               format: Int32
               nullable: true
+          required: []
           nullable: true
         user:
           type: object
@@ -34277,7 +34441,9 @@ components:
             id:
               type: string
               nullable: true
+          required: []
           nullable: true
+      required: []
     PlaceOS__Model__GroupZone:
       type: object
       properties:
@@ -34340,6 +34506,7 @@ components:
               type: integer
               format: Int32
               nullable: true
+          required: []
           nullable: true
         zone:
           type: object
@@ -34458,6 +34625,7 @@ components:
                               additionalProperties:
                                 type: object
                               nullable: true
+                          required: []
                         nullable: true
                       mailers:
                         type: array
@@ -34472,7 +34640,9 @@ components:
                             content:
                               type: string
                               nullable: true
+                          required: []
                         nullable: true
+                    required: []
                     nullable: true
                   conditions:
                     type: object
@@ -34541,6 +34711,7 @@ components:
                                 - keys
                               - type: string
                               nullable: true
+                          required: []
                         nullable: true
                       time_dependents:
                         type: array
@@ -34563,7 +34734,9 @@ components:
                             timezone:
                               type: string
                               nullable: true
+                          required: []
                         nullable: true
+                    required: []
                     nullable: true
                   debounce_period:
                     type: integer
@@ -34649,10 +34822,12 @@ components:
                         id:
                           type: string
                           nullable: true
+                      required: []
                     nullable: true
                   id:
                     type: string
                     nullable: true
+                required: []
               nullable: true
             children_count:
               type: integer
@@ -34666,6 +34841,7 @@ components:
           required:
           - update_systems
           nullable: true
+      required: []
     Hash_String__PlaceOS__Model__Metadata__Interface___Nil_:
       type: object
       additionalProperties:
@@ -34824,6 +35000,7 @@ components:
                               additionalProperties:
                                 type: object
                               nullable: true
+                          required: []
                         nullable: true
                       mailers:
                         type: array
@@ -34838,7 +35015,9 @@ components:
                             content:
                               type: string
                               nullable: true
+                          required: []
                         nullable: true
+                    required: []
                     nullable: true
                   conditions:
                     type: object
@@ -34907,6 +35086,7 @@ components:
                                 - keys
                               - type: string
                               nullable: true
+                          required: []
                         nullable: true
                       time_dependents:
                         type: array
@@ -34929,7 +35109,9 @@ components:
                             timezone:
                               type: string
                               nullable: true
+                          required: []
                         nullable: true
+                    required: []
                     nullable: true
                   debounce_period:
                     type: integer
@@ -35015,10 +35197,12 @@ components:
                         id:
                           type: string
                           nullable: true
+                      required: []
                     nullable: true
                   id:
                     type: string
                     nullable: true
+                required: []
               nullable: true
             children_count:
               type: integer
@@ -35106,6 +35290,16 @@ components:
       - editors
       - updated_at
       - created_at
+    PlaceOS__Api__Metadata__Rename:
+      type: object
+      properties:
+        current_name:
+          type: string
+        new_name:
+          type: string
+      required:
+      - current_name
+      - new_name
     Hash_String__Array_PlaceOS__Model__Metadata__Interface__:
       type: object
       additionalProperties:
@@ -35186,6 +35380,7 @@ components:
                   encryptionCertificateThumbprint:
                     type: string
                     nullable: true
+                required: []
                 nullable: true
               id:
                 type: string
@@ -35207,6 +35402,7 @@ components:
                   id:
                     type: string
                     nullable: true
+                required: []
                 nullable: true
               subscriptionExpirationDateTime:
                 type: string
@@ -35265,6 +35461,7 @@ components:
           type: integer
           format: Int64
           nullable: true
+      required: []
     PlaceOS__Model__PendingMail:
       type: object
       properties:
@@ -35367,6 +35564,7 @@ components:
         user_id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Api__PublicEvents__TokenRequest:
       type: object
       properties:
@@ -35452,6 +35650,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     NamedTuple_commit_hash__String_:
       type: object
       properties:
@@ -35530,6 +35729,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Shortener:
       type: object
       properties:
@@ -35581,6 +35781,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Playlist__Item:
       type: object
       properties:
@@ -35678,6 +35879,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     NamedTuple_linked__Array_String___already_present__Array_String__:
       type: object
       properties:
@@ -35781,6 +35983,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Playlist__Revision:
       type: object
       properties:
@@ -35832,6 +36035,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Api__Playlist__Approver:
       type: object
       properties:
@@ -35896,6 +36100,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     _PlaceOS__Model__ControlSystem___Nil_:
       type: object
       properties:
@@ -36147,6 +36352,7 @@ components:
                                 additionalProperties:
                                   type: object
                                 nullable: true
+                            required: []
                           nullable: true
                         mailers:
                           type: array
@@ -36161,7 +36367,9 @@ components:
                               content:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
+                      required: []
                       nullable: true
                     conditions:
                       type: object
@@ -36230,6 +36438,7 @@ components:
                                   - keys
                                 - type: string
                                 nullable: true
+                            required: []
                           nullable: true
                         time_dependents:
                           type: array
@@ -36252,7 +36461,9 @@ components:
                               timezone:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
+                      required: []
                       nullable: true
                     debounce_period:
                       type: integer
@@ -36338,10 +36549,12 @@ components:
                           id:
                             type: string
                             nullable: true
+                        required: []
                       nullable: true
                     id:
                       type: string
                       nullable: true
+                  required: []
                 nullable: true
               children_count:
                 type: integer
@@ -36583,6 +36796,7 @@ components:
                                           additionalProperties:
                                             type: object
                                           nullable: true
+                                      required: []
                                     nullable: true
                                   mailers:
                                     type: array
@@ -36597,7 +36811,9 @@ components:
                                         content:
                                           type: string
                                           nullable: true
+                                      required: []
                                     nullable: true
+                                required: []
                                 nullable: true
                               conditions:
                                 type: object
@@ -36666,6 +36882,7 @@ components:
                                             - keys
                                           - type: string
                                           nullable: true
+                                      required: []
                                     nullable: true
                                   time_dependents:
                                     type: array
@@ -36688,7 +36905,9 @@ components:
                                         timezone:
                                           type: string
                                           nullable: true
+                                      required: []
                                     nullable: true
+                                required: []
                                 nullable: true
                               debounce_period:
                                 type: integer
@@ -36774,10 +36993,12 @@ components:
                                     id:
                                       type: string
                                       nullable: true
+                                  required: []
                                 nullable: true
                               id:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
                         children_count:
                           type: integer
@@ -36800,6 +37021,7 @@ components:
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         playlist_mappings:
           type: object
@@ -36901,6 +37123,7 @@ components:
                 id:
                   type: string
                   nullable: true
+              required: []
             - type: array
               items:
                 type: string
@@ -37004,6 +37227,7 @@ components:
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         signage_plugins:
           type: array
@@ -37053,6 +37277,7 @@ components:
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         id:
           type: string
@@ -37136,6 +37361,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__TriggerInstance:
       type: object
       properties:
@@ -37197,6 +37423,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Api__SystemTriggers__UpdateParams:
       type: object
       properties:
@@ -37214,6 +37441,7 @@ components:
           items:
             type: string
           nullable: true
+      required: []
     NamedTuple_url__String_:
       type: object
       properties:
@@ -37257,6 +37485,7 @@ components:
                     additionalProperties:
                       type: object
                     nullable: true
+                required: []
               nullable: true
             mailers:
               type: array
@@ -37271,7 +37500,9 @@ components:
                   content:
                     type: string
                     nullable: true
+                required: []
               nullable: true
+          required: []
           nullable: true
         conditions:
           type: object
@@ -37340,6 +37571,7 @@ components:
                       - keys
                     - type: string
                     nullable: true
+                required: []
               nullable: true
             time_dependents:
               type: array
@@ -37362,7 +37594,9 @@ components:
                   timezone:
                     type: string
                     nullable: true
+                required: []
               nullable: true
+          required: []
           nullable: true
         debounce_period:
           type: integer
@@ -37448,10 +37682,12 @@ components:
               id:
                 type: string
                 nullable: true
+            required: []
           nullable: true
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__Upload:
       type: object
       properties:
@@ -37539,6 +37775,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     NamedTuple_residence__String_:
       type: object
       properties:
@@ -37718,6 +37955,7 @@ components:
             type: integer
             format: Int32
           nullable: true
+      required: []
     ? _NamedTuple_ok__Bool____NamedTuple_type__Symbol__signature__NamedTuple_verb__String__url__String__headers__Hash_String__String____upload_id__String___Nil__body__String___Nil__
     : anyOf:
       - type: object
@@ -38690,6 +38928,7 @@ components:
         id:
           type: string
           nullable: true
+      required: []
     PlaceOS__Model__User__GroupResponse:
       type: object
       properties:
@@ -38994,6 +39233,7 @@ components:
                                     additionalProperties:
                                       type: object
                                     nullable: true
+                                required: []
                               nullable: true
                             mailers:
                               type: array
@@ -39008,7 +39248,9 @@ components:
                                   content:
                                     type: string
                                     nullable: true
+                                required: []
                               nullable: true
+                          required: []
                           nullable: true
                         conditions:
                           type: object
@@ -39077,6 +39319,7 @@ components:
                                       - keys
                                     - type: string
                                     nullable: true
+                                required: []
                               nullable: true
                             time_dependents:
                               type: array
@@ -39099,7 +39342,9 @@ components:
                                   timezone:
                                     type: string
                                     nullable: true
+                                required: []
                               nullable: true
+                          required: []
                           nullable: true
                         debounce_period:
                           type: integer
@@ -39185,10 +39430,12 @@ components:
                               id:
                                 type: string
                                 nullable: true
+                            required: []
                           nullable: true
                         id:
                           type: string
                           nullable: true
+                      required: []
                     nullable: true
                   children_count:
                     type: integer
@@ -39430,6 +39677,7 @@ components:
                                               additionalProperties:
                                                 type: object
                                               nullable: true
+                                          required: []
                                         nullable: true
                                       mailers:
                                         type: array
@@ -39444,7 +39692,9 @@ components:
                                             content:
                                               type: string
                                               nullable: true
+                                          required: []
                                         nullable: true
+                                    required: []
                                     nullable: true
                                   conditions:
                                     type: object
@@ -39513,6 +39763,7 @@ components:
                                                 - keys
                                               - type: string
                                               nullable: true
+                                          required: []
                                         nullable: true
                                       time_dependents:
                                         type: array
@@ -39535,7 +39786,9 @@ components:
                                             timezone:
                                               type: string
                                               nullable: true
+                                          required: []
                                         nullable: true
+                                    required: []
                                     nullable: true
                                   debounce_period:
                                     type: integer
@@ -39621,10 +39874,12 @@ components:
                                         id:
                                           type: string
                                           nullable: true
+                                      required: []
                                     nullable: true
                                   id:
                                     type: string
                                     nullable: true
+                                required: []
                               nullable: true
                             children_count:
                               type: integer
@@ -39647,6 +39902,7 @@ components:
                   id:
                     type: string
                     nullable: true
+                required: []
               nullable: true
             playlist_mappings:
               type: object
@@ -39748,6 +40004,7 @@ components:
                     id:
                       type: string
                       nullable: true
+                  required: []
                 - type: array
                   items:
                     type: string
@@ -39851,6 +40108,7 @@ components:
                   id:
                     type: string
                     nullable: true
+                required: []
               nullable: true
             signage_plugins:
               type: array
@@ -39900,6 +40158,7 @@ components:
                   id:
                     type: string
                     nullable: true
+                required: []
               nullable: true
             id:
               type: string
@@ -39978,6 +40237,7 @@ components:
           items:
             type: string
           nullable: true
+      required: []
     PlaceOS__Api__Application__ValidationError:
       type: object
       properties:
