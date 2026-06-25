@@ -215,6 +215,251 @@ module PlaceOS::Api
       Spec.test_controller_scope(Users)
     end
 
+    describe "support subsystem permissions" do
+      ::Spec.before_each { clear_group_tables }
+
+      it "allows a support-subsystem user with Create grant to POST /users" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Create).save!
+
+        new_user = Model::Generator.user(authority)
+        result = client.post(
+          path: Users.base_route,
+          body: new_user.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 201
+
+        created = Model::User.from_trusted_json(result.body)
+        created.authority_id.should eq authority.id
+        Model::User.find?(created.id.as(String)).should_not be_nil
+        created.destroy
+      end
+
+      it "rejects POST /users for a regular user without a support grant" do
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        new_user = Model::Generator.user(authority)
+        result = client.post(
+          path: Users.base_route,
+          body: new_user.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+      end
+
+      it "rejects POST /users when the user-side has the bit but no GroupZone reach" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        # No GroupZone on the org zone — AND semantics deny.
+
+        new_user = Model::Generator.user(authority)
+        result = client.post(
+          path: Users.base_route,
+          body: new_user.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+      end
+
+      it "allows a support-subsystem user with Delete grant to DELETE a user" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Delete).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Delete).save!
+
+        target = Model::Generator.user(authority).save!
+        target_id = target.id.as(String)
+
+        result = client.delete(
+          path: File.join(Users.base_route, target_id),
+          headers: headers,
+        )
+        result.success?.should be_true
+        Model::User.find?(target_id).should be_nil
+      end
+
+      it "rejects DELETE for a support-subsystem user holding only Create (not Delete)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Create).save!
+
+        target = Model::Generator.user(authority).save!
+        target_id = target.id.as(String)
+
+        result = client.delete(
+          path: File.join(Users.base_route, target_id),
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        target.destroy
+      end
+
+      it "allows a support-subsystem user with Update grant to update another user" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Update).save!
+
+        target = Model::Generator.user(authority).save!
+        target_id = target.id.as(String)
+
+        result = client.patch(
+          path: File.join(Users.base_route, target_id),
+          body: {name: "Support Updated"}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 200
+        Model::User.from_trusted_json(result.body).name.should eq "Support Updated"
+
+        target.destroy
+      end
+
+      it "allows the self-update path without any support grant" do
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        user_id = user.id.as(String)
+
+        result = client.patch(
+          path: File.join(Users.base_route, user_id),
+          body: {name: "Self Updated"}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 200
+        Model::User.from_trusted_json(result.body).name.should eq "Self Updated"
+      end
+
+      it "rejects updating another user with neither self, admin, nor a support grant" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        target = Model::Generator.user(authority).save!
+        target_id = target.id.as(String)
+
+        result = client.patch(
+          path: File.join(Users.base_route, target_id),
+          body: {name: "Should Fail"}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        target.destroy
+      end
+
+      it "keeps resource-token routes admin-only (support subsystem denied)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        # Full Manage support grant — still must not reach resource-token routes.
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Manage).save!
+
+        target = Model::Generator.user(authority).save!
+        target_id = target.id.as(String)
+
+        result = client.delete(
+          path: File.join(Users.base_route, target_id, "resource_token"),
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        target.destroy
+      end
+
+      it "keeps resource-token routes admin-only (support JWT denied)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.user(authority).save!
+        target_id = target.id.as(String)
+
+        result = client.delete(
+          path: File.join(Users.base_route, target_id, "resource_token"),
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+        result.status_code.should eq 403
+
+        target.destroy
+      end
+
+      it "allows admins to use the delete resource-token route" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.user(authority).save!
+        target_id = target.id.as(String)
+
+        result = client.delete(
+          path: File.join(Users.base_route, target_id, "resource_token"),
+          headers: Spec::Authentication.headers(sys_admin: true),
+        )
+        result.status_code.should eq 202
+
+        target.destroy
+      end
+
+      it "allows a support JWT to create and destroy users (role bypass)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        support_headers = Spec::Authentication.headers(sys_admin: false, support: true)
+
+        new_user = Model::Generator.user(authority)
+        result = client.post(
+          path: Users.base_route,
+          body: new_user.to_json,
+          headers: support_headers,
+        )
+        result.status_code.should eq 201
+        created = Model::User.from_trusted_json(result.body)
+        created_id = created.id.as(String)
+
+        result = client.delete(
+          path: File.join(Users.base_route, created_id),
+          headers: support_headers,
+        )
+        result.success?.should be_true
+        Model::User.find?(created_id).should be_nil
+      end
+
+      it "allows an admin JWT to create and destroy users (role bypass)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        admin_headers = Spec::Authentication.headers(sys_admin: true)
+
+        new_user = Model::Generator.user(authority)
+        result = client.post(
+          path: Users.base_route,
+          body: new_user.to_json,
+          headers: admin_headers,
+        )
+        result.status_code.should eq 201
+        created = Model::User.from_trusted_json(result.body)
+        created_id = created.id.as(String)
+
+        result = client.delete(
+          path: File.join(Users.base_route, created_id),
+          headers: admin_headers,
+        )
+        result.success?.should be_true
+        Model::User.find?(created_id).should be_nil
+      end
+    end
+
     describe "GET /metadata/search" do
       it "renders the JSON path search results" do
         schema = <<-J

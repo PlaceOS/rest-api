@@ -3,6 +3,7 @@ require "./application"
 module PlaceOS::Api
   class Settings < Application
     include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/settings/"
 
@@ -13,7 +14,7 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     # permissions are checked as part of the route
-    before_action :check_admin, except: [:index, :show, :create, :update]
+    before_action :check_admin, except: [:index, :show, :create, :update, :destroy]
 
     ###############################################################################################
 
@@ -31,6 +32,8 @@ module PlaceOS::Api
 
     def can_view?(parent_id)
       return if user_support?
+      # "support" subsystem: Read on the parent's zones.
+      return if support_subsystem_grants?(support_zones_for_parent(parent_id), ::PlaceOS::Model::Permissions::Read)
       check_access_level(parent_id, admin_required: false)
     end
 
@@ -38,6 +41,9 @@ module PlaceOS::Api
       return if user_admin?
       raise Error::Forbidden.new("can only modify unencrypted settings") unless setting.encryption_level.none?
       parent_id = setting.parent_id.as(String)
+      # "support" subsystem: the verb's bit on the parent's zones. A
+      # parent with no derivable zones (e.g. a driver) stays admin-only.
+      return if support_subsystem_grants?(support_zones_for_parent(parent_id), verb_permission)
       check_access_level(parent_id, admin_required: true)
     end
 
@@ -136,6 +142,7 @@ module PlaceOS::Api
     # remove a setting
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
+      can_modify?(current_settings)
       current_settings.destroy
     end
 

@@ -423,6 +423,94 @@ module PlaceOS::Api
       result.status_code.should eq(403)
     end
 
+    describe "support subsystem permissions" do
+      # `finished` (PUT) is a DB-only mutation (no S3 round-trip) — ideal for
+      # exercising the ALLOW path of `confirm_upload_access`. DELETE is used
+      # only for DENY cases, where the gate raises before any storage call,
+      # so these tests never touch S3/minio. Cleanup is a table truncate
+      # (no per-row `destroy`, hence no S3) via `.clear`.
+      ::Spec.before_each do
+        clear_group_tables
+        Model::Upload.clear
+        Model::Storage.clear
+      end
+
+      it "lets the owner mark their own upload finished without any group" do
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        storage = Model::Generator.storage.save!
+        upload = Model::Generator.upload(uploader: user, storage_id: storage.id).save!
+        upload_id = upload.id.as(String)
+
+        result = client.put(path: "#{Uploads.base_route}/#{upload_id}", headers: headers)
+        result.status_code.should eq 200
+        Model::Upload.find!(upload_id).upload_complete.should be_true
+      end
+
+      it "rejects a non-owner regular user mutating someone else's upload (PUT and DELETE)" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        owner = Model::Generator.user.save!
+        storage = Model::Generator.storage.save!
+        upload = Model::Generator.upload(uploader: owner, storage_id: storage.id).save!
+        upload_id = upload.id.as(String)
+
+        client.put(path: "#{Uploads.base_route}/#{upload_id}", headers: headers).status_code.should eq 403
+        # DELETE is likewise blocked before any storage call.
+        client.delete(path: "#{Uploads.base_route}/#{upload_id}", headers: headers).status_code.should eq 403
+        Model::Upload.find?(upload_id).should_not be_nil
+      end
+
+      it "lets a non-owner with a support Update grant on the org zone mark finished (PUT)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Update).save!
+
+        owner = Model::Generator.user.save!
+        storage = Model::Generator.storage.save!
+        upload = Model::Generator.upload(uploader: owner, storage_id: storage.id).save!
+        upload_id = upload.id.as(String)
+
+        result = client.put(path: "#{Uploads.base_route}/#{upload_id}", headers: headers)
+        result.status_code.should eq 200
+        Model::Upload.find!(upload_id).upload_complete.should be_true
+      end
+
+      it "rejects DELETE for a non-owner whose support grant lacks the Delete bit" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        # Update (not Delete) on both sides: PUT/finished allowed, DELETE denied.
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Update).save!
+
+        owner = Model::Generator.user.save!
+        storage = Model::Generator.storage.save!
+        upload = Model::Generator.upload(uploader: owner, storage_id: storage.id).save!
+        upload_id = upload.id.as(String)
+
+        client.delete(path: "#{Uploads.base_route}/#{upload_id}", headers: headers).status_code.should eq 403
+        Model::Upload.find?(upload_id).should_not be_nil
+      end
+
+      it "lets a support-JWT non-owner mutate another user's upload (PUT)" do
+        owner = Model::Generator.user.save!
+        storage = Model::Generator.storage.save!
+        upload = Model::Generator.upload(uploader: owner, storage_id: storage.id).save!
+        upload_id = upload.id.as(String)
+
+        result = client.put(
+          path: "#{Uploads.base_route}/#{upload_id}",
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+        result.status_code.should eq 200
+      end
+    end
+
     it "should allow access to global storage (authority_id is nil)" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
 

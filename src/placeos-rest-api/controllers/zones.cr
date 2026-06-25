@@ -57,7 +57,7 @@ module PlaceOS::Api
       # "support" subsystem: needs Delete (or Manage) reach on the
       # parent zone — root zones (no parent) stay admin-only.
       parent_id = current_zone.parent_id
-      return if parent_id && support_subsystem_can_modify_zone?(current_user, parent_id)
+      return if parent_id && support_subsystem_grants?([parent_id], verb_permission)
       raise Error::Forbidden.new
     end
 
@@ -77,7 +77,7 @@ module PlaceOS::Api
 
       # Support subsystem: per-zone — needs Update (or Manage) reach on
       # the zone itself.
-      return if support_subsystem_can_modify_zone?(current_user, current_zone.id.as(String))
+      return if support_subsystem_grants?([current_zone.id.as(String)], verb_permission)
 
       raise Error::Forbidden.new
     end
@@ -89,7 +89,7 @@ module PlaceOS::Api
       # "support" subsystem: needs Create (or Manage) reach on the
       # intended parent. Root creation stays admin-only.
       parent_id = zone_update.parent_id.presence
-      return if parent_id && support_subsystem_can_modify_zone?(current_user, parent_id)
+      return if parent_id && support_subsystem_grants?([parent_id], verb_permission)
       raise Error::Forbidden.new
     end
 
@@ -121,26 +121,6 @@ module PlaceOS::Api
         return true if subsystems.any? { |s| g.subsystems.includes?(s) }
       end
       false
-    end
-
-    # True if the user's effective permissions within the "support"
-    # subsystem on `zone_id` include the bit corresponding to the
-    # current HTTP verb (POST→Create, PATCH/PUT→Update, DELETE→Delete).
-    # Manage is a superset and grants every verb. The resolver already
-    # ANDs the user's group perms with the GroupZone's perms, so a
-    # non-zero bit means both sides agree.
-    private def support_subsystem_can_modify_zone?(user : ::PlaceOS::Model::User, zone_id : String) : Bool
-      authority_id = user.authority_id.as(String)
-      perms = ::PlaceOS::Model::Group.effective_permissions(
-        authority_id, "support", user.id.as(String), zone_id,
-      )
-      return true if perms.manage?
-      case request.method.upcase
-      when "POST"         then perms.create?
-      when "PUT", "PATCH" then perms.update?
-      when "DELETE"       then perms.delete?
-      else                     false
-      end
     end
 
     ###############################################################################################

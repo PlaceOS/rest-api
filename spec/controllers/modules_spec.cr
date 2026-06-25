@@ -490,5 +490,243 @@ module PlaceOS::Api
         mod.running.should be_false
       end
     end
+
+    describe "support-subsystem permissions" do
+      ::Spec.before_each { clear_group_tables }
+
+      # Build a logic module attached to a control system whose only zone is
+      # `zone`. The module derives its zones from that system, so granting on
+      # `zone` (via a "support" GroupZone) gates access to the module.
+      support_setup = ->(zone : Model::Zone) {
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        control_system = Model::Generator.control_system
+        control_system.zones = [zone.id.as(String)]
+        control_system.save!
+        mod = Model::Generator.module(driver: driver, control_system: control_system)
+        mod.running = false
+        mod.save!
+        mod
+      }
+
+      it "allows POST create for a user granted Create on the module's system zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+
+        zone = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Create).save!
+
+        # a system the new logic module attaches to, scoped to `zone`
+        control_system = Model::Generator.control_system
+        control_system.zones = [zone.id.as(String)]
+        control_system.save!
+
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        mod = Model::Generator.module(driver: driver, control_system: control_system)
+        mod.running = false
+
+        result = client.post(Modules.base_route, body: mod.to_json, headers: headers)
+        result.status_code.should eq 201
+
+        created = Model::Module.from_trusted_json(result.body)
+        created.destroy
+        zone.destroy
+      end
+
+      it "rejects POST create when the user has only Read on the system zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+        zone = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        control_system = Model::Generator.control_system
+        control_system.zones = [zone.id.as(String)]
+        control_system.save!
+
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        mod = Model::Generator.module(driver: driver, control_system: control_system)
+        mod.running = false
+
+        result = client.post(Modules.base_route, body: mod.to_json, headers: headers)
+        result.status_code.should eq 403
+        zone.destroy
+      end
+
+      it "allows PATCH update with Update on both sides, rejects with only Read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, update_headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        path = File.join(Modules.base_route, mod.id.as(String))
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        result = client.patch(path: path, body: mod.to_json, headers: update_headers)
+        result.status_code.should eq 200
+
+        # downgrade both sides to Read only => denied
+        gu.permissions = Model::Permissions::Read.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Read.to_i
+        gz.save!
+
+        result = client.patch(path: path, body: mod.to_json, headers: update_headers)
+        result.status_code.should eq 403
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "allows DELETE with Delete on both sides, rejects without" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        # Only Read => destroy denied
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        mod = support_setup.call(zone)
+        path = File.join(Modules.base_route, mod.id.as(String))
+
+        result = client.delete(path: path, headers: headers)
+        result.status_code.should eq 403
+        Model::Module.find?(mod.id.as(String)).should_not be_nil
+
+        # grant Delete on both sides => allowed
+        gu.permissions = Model::Permissions::Delete.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Delete.to_i
+        gz.save!
+
+        result = client.delete(path: path, headers: headers)
+        result.success?.should be_true
+        Model::Module.find?(mod.id.as(String)).should be_nil
+
+        zone.destroy
+      end
+
+      it "rejects mutation of a module whose zones the user has no GroupZone reach for" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        # user has Manage on the group/zone A, but the module lives in zone B
+        zone_a = Model::Generator.zone.save!
+        zone_b = Model::Generator.zone.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        Model::Generator.group_zone(group: group, zone: zone_a, permissions: Model::Permissions::Manage).save!
+
+        mod = support_setup.call(zone_b)
+        path = File.join(Modules.base_route, mod.id.as(String))
+
+        result = client.delete(path: path, headers: headers)
+        result.status_code.should eq 403
+        Model::Module.find?(mod.id.as(String)).should_not be_nil
+
+        mod.destroy
+        zone_a.destroy
+        zone_b.destroy
+      end
+
+      it "gates start/stop on the Operate bit" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        start_path = File.join(Modules.base_route, mod.id.as(String), "start")
+        stop_path = File.join(Modules.base_route, mod.id.as(String), "stop")
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        # Delete bit is present but Operate is not => start denied
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Delete).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Delete).save!
+
+        result = client.post(path: start_path, headers: headers)
+        result.status_code.should eq 403
+        mod.reload!
+        mod.running.should be_false
+
+        # grant Operate on both sides => start allowed
+        gu.permissions = Model::Permissions::Operate.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Operate.to_i
+        gz.save!
+
+        result = client.post(path: start_path, headers: headers)
+        result.status_code.should eq 200
+        mod.reload!
+        mod.running.should be_true
+
+        result = client.post(path: stop_path, headers: headers)
+        result.status_code.should eq 200
+        mod.reload!
+        mod.running.should be_false
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "lets a support-JWT user start regardless of group grants" do
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        start_path = File.join(Modules.base_route, mod.id.as(String), "start")
+
+        result = client.post(
+          path: start_path,
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+        result.status_code.should eq 200
+        mod.reload!
+        mod.running.should be_true
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "lets admin and support JWT users create and destroy without any group" do
+        zone = Model::Generator.zone.save!
+
+        control_system = Model::Generator.control_system
+        control_system.zones = [zone.id.as(String)]
+        control_system.save!
+
+        # support JWT create
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        mod = Model::Generator.module(driver: driver, control_system: control_system)
+        mod.running = false
+
+        result = client.post(
+          Modules.base_route,
+          body: mod.to_json,
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+        result.status_code.should eq 201
+        created = Model::Module.from_trusted_json(result.body)
+
+        # admin JWT destroy
+        result = client.delete(
+          path: File.join(Modules.base_route, created.id.as(String)),
+          headers: Spec::Authentication.headers(sys_admin: true, support: true),
+        )
+        result.success?.should be_true
+        Model::Module.find?(created.id.as(String)).should be_nil
+
+        zone.destroy
+      end
+    end
   end
 end

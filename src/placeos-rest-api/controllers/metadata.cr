@@ -5,6 +5,7 @@ require "./application"
 module PlaceOS::Api
   class Metadata < Application
     include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/metadata"
 
@@ -287,9 +288,14 @@ module PlaceOS::Api
       ids.uniq!
     end
 
-    def check_access_level(zone_id : String, admin_required : Bool = false)
-      # ensure this is a zone_id we're checking
-      raise Error::Forbidden.new unless zone_id.starts_with? "zone-"
+    def check_access_level(parent_id : String, admin_required : Bool = false)
+      # "support" subsystem: the verb's bit on the parent's zones. Handles
+      # zone-, sys- and mod- parents; user- parents have no zone scope and
+      # rely on the ownership/support shortcuts in the callers.
+      return if support_subsystem_grants?(support_zones_for_parent(parent_id), verb_permission)
+
+      # Legacy org_zone scheme (zone parents only).
+      raise Error::Forbidden.new unless parent_id.starts_with? "zone-"
 
       # find the org zone
       authority = current_authority.as(::PlaceOS::Model::Authority)
@@ -297,11 +303,11 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless org_zone_id
 
       # check that the permissions apply to this zone
-      current_zone = ::PlaceOS::Model::Zone.find!(zone_id)
+      current_zone = ::PlaceOS::Model::Zone.find!(parent_id)
       root_zone_id = current_zone.root_zone_id
 
       if root_zone_id == org_zone_id
-        zones = [org_zone_id, zone_id].uniq!
+        zones = [org_zone_id, parent_id].uniq!
         access = check_access(current_user.groups, zones)
 
         if admin_required

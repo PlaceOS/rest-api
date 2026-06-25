@@ -3,6 +3,7 @@ require "./application"
 module PlaceOS::Api
   class AssetCategories < Application
     include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/asset_categories/"
 
@@ -19,6 +20,8 @@ module PlaceOS::Api
       authority = current_authority.as(::PlaceOS::Model::Authority)
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
+        # "support" subsystem: the verb's bit on the org zone.
+        return if support_subsystem_grants?([zone_id], verb_permission)
         access = check_access(current_user.groups, [zone_id])
         return if access.can_manage?
       end

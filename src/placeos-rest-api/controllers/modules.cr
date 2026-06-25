@@ -11,6 +11,7 @@ module PlaceOS::Api
   class Modules < Application
     include Utils::CoreHelper
     include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/modules/"
 
@@ -21,7 +22,9 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :create, :update, :destroy, :state, :show, :ping, :start, :stop]
-    before_action :check_support, only: [:state, :show, :ping, :show_error, :start, :stop]
+    # start/stop are gated by the support-subsystem Operate check in-action
+    # (see `start`/`stop`), so they're intentionally absent here.
+    before_action :check_support, only: [:state, :show, :ping, :show_error]
 
     ###############################################################################################
 
@@ -37,21 +40,27 @@ module PlaceOS::Api
     # Permissions
     ###############################################################################################
 
+    # Mutation gate. Admin/support JWT bypass; otherwise the "support"
+    # subsystem must grant the verb's permission on the module's zones
+    # (legacy org_zone path preserved). A module attached to no system has
+    # no derivable zones → admin/support only.
+    # NOTE:: if modifying, update Settings#can_modify?
     def can_modify?(mod)
-      return if user_admin?
-      # NOTE:: if modifying, update Settings#can_modify?
+      ensure_support_access!(zones_for_module(mod), verb_permission)
+    end
 
-      cs_id = mod.control_system_id
-      raise Error::Forbidden.new unless cs_id
-
-      # find the org zone
-      authority = current_authority.as(::PlaceOS::Model::Authority)
-      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      raise Error::Forbidden.new unless org_zone_id
-
-      zones = ::PlaceOS::Model::ControlSystem.find!(cs_id).zones
-      raise Error::Forbidden.new unless zones.includes?(org_zone_id)
-      raise Error::Forbidden.new unless check_access(current_user.groups, zones).admin?
+    # Zones a module belongs to: the union of its logic-module system
+    # (`control_system_id`) and every system that references it. Empty when
+    # the module is attached to no system.
+    private def zones_for_module(mod : ::PlaceOS::Model::Module) : Array(String)
+      zones = [] of String
+      if (cs_id = mod.control_system_id) && (sys = ::PlaceOS::Model::ControlSystem.find?(cs_id))
+        zones.concat(sys.zones)
+      end
+      if (mod_id = mod.id)
+        ::PlaceOS::Model::ControlSystem.by_module_id(mod_id).each { |cs| zones.concat(cs.zones) }
+      end
+      zones.uniq
     end
 
     @[AC::Route::Filter(:before_action, only: [:index])]
@@ -318,7 +327,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/:id/start")]
     def start : Nil
       return if current_module.running == true
-      can_modify?(current_module) unless user_support?
+      ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Operate)
       current_module.update_fields(running: true)
 
       # Changes cleared on a successful update
@@ -332,7 +341,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/:id/stop")]
     def stop : Nil
       return unless current_module.running
-      can_modify?(current_module) unless user_support?
+      ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Operate)
       current_module.update_fields(running: false)
 
       # Changes cleared on a successful update

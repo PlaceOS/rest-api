@@ -125,5 +125,158 @@ module PlaceOS::Api
         Model::TriggerInstance.find?(id.as(String)).should be_nil
       end
     end
+
+    describe "support-subsystem permissions" do
+      ::Spec.before_each { clear_group_tables }
+
+      # A control system scoped to `zone`, plus a persisted trigger instance
+      # attached to it. The instance inherits the system's zones, so granting
+      # on `zone` (via a "support" GroupZone) gates index/show/mutations.
+      support_system_setup = ->(zone : Model::Zone) {
+        sys = Model::Generator.control_system
+        sys.zones = [zone.id.as(String)]
+        sys.save!
+        trigger_instance = Model::Generator.trigger_instance
+        trigger_instance.control_system = sys
+        trigger_instance.save!
+        {sys, trigger_instance}
+      }
+
+      it "allows GET index/show with Read on the system zone, rejects without" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys, trigger_instance = support_system_setup.call(zone)
+
+        base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id.as(String))
+        show_path = base + trigger_instance.id.as(String)
+
+        # no group reach yet => denied
+        result = client.get(path: base, headers: headers)
+        result.status_code.should eq 403
+        result = client.get(path: show_path, headers: headers)
+        result.status_code.should eq 403
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        result = client.get(path: show_path, headers: headers)
+        result.status_code.should eq 200
+        Model::TriggerInstance.from_trusted_json(result.body).id.should eq trigger_instance.id
+
+        trigger_instance.destroy
+        sys.destroy
+        zone.destroy
+      end
+
+      it "allows POST create with Create on both sides, rejects with only Read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys = Model::Generator.control_system
+        sys.zones = [zone.id.as(String)]
+        sys.save!
+
+        base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id.as(String))
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        trigger_instance = Model::Generator.trigger_instance
+        trigger_instance.control_system = sys
+        body = trigger_instance.to_json
+
+        # only Read => create denied
+        result = client.post(path: base, body: body, headers: headers)
+        result.status_code.should eq 403
+
+        # grant Create on both sides => allowed
+        gu.permissions = Model::Permissions::Create.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Create.to_i
+        gz.save!
+
+        result = client.post(path: base, body: body, headers: headers)
+        result.status_code.should eq 201
+        Model::TriggerInstance.find?(JSON.parse(result.body)["id"].as_s).try &.destroy
+
+        sys.destroy
+        zone.destroy
+      end
+
+      it "gates PATCH update on Update and DELETE on Delete" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys, trigger_instance = support_system_setup.call(zone)
+
+        base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id.as(String))
+        path = base + trigger_instance.id.as(String)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        # only Read => update denied
+        result = client.patch(path: path, body: {important: true}.to_json, headers: headers)
+        result.status_code.should eq 403
+
+        # Update on both sides => allowed
+        gu.permissions = Model::Permissions::Update.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Update.to_i
+        gz.save!
+        result = client.patch(path: path, body: {important: true}.to_json, headers: headers)
+        result.status_code.should eq 200
+
+        # Update does not grant Delete => destroy denied
+        result = client.delete(path: path, headers: headers)
+        result.status_code.should eq 403
+        Model::TriggerInstance.find?(trigger_instance.id.as(String)).should_not be_nil
+
+        # Delete on both sides => allowed
+        gu.permissions = Model::Permissions::Delete.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Delete.to_i
+        gz.save!
+        result = client.delete(path: path, headers: headers)
+        result.success?.should be_true
+        Model::TriggerInstance.find?(trigger_instance.id.as(String)).should be_nil
+
+        sys.destroy
+        zone.destroy
+      end
+
+      it "lets admin/support JWT users bypass the support gate" do
+        zone = Model::Generator.zone.save!
+        sys, trigger_instance = support_system_setup.call(zone)
+
+        base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id.as(String))
+        show_path = base + trigger_instance.id.as(String)
+
+        # support JWT can read without any group
+        result = client.get(
+          path: show_path,
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+        result.status_code.should eq 200
+
+        # admin JWT can destroy without any group
+        result = client.delete(
+          path: show_path,
+          headers: Spec::Authentication.headers(sys_admin: true, support: true),
+        )
+        result.success?.should be_true
+        Model::TriggerInstance.find?(trigger_instance.id.as(String)).should be_nil
+
+        sys.destroy
+        zone.destroy
+      end
+    end
   end
 end

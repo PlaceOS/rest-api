@@ -187,6 +187,366 @@ module PlaceOS::Api
       end
     end
 
+    describe "support subsystem permissions" do
+      ::Spec.before_each { clear_group_tables }
+
+      # ----------------------------------------------------------------
+      # 1. show / index(?parent_id=zone-…) gated on Read
+      # ----------------------------------------------------------------
+
+      it "allows show for a regular user with support Read on the parent zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        result = client.get(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: headers,
+        )
+        result.status_code.should eq 200
+
+        zone.destroy
+      end
+
+      it "allows index(?parent_id=zone-…) for a regular user with support Read on the parent zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        result = client.get(
+          path: File.join(Settings.base_route, "?parent_id=#{zone.id}"),
+          headers: headers,
+        )
+        result.status_code.should eq 200
+
+        zone.destroy
+      end
+
+      it "rejects show for a regular user with no support grant on the parent zone" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        result = client.get(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        zone.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 2. create an UNENCRYPTED setting needs Create on both sides
+      # ----------------------------------------------------------------
+
+      it "allows create of an unencrypted setting with support Create on both sides" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Create).save!
+
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+
+        result = client.post(
+          path: Settings.base_route,
+          body: setting.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 201
+
+        created = Model::Settings.from_trusted_json(result.body)
+        created.destroy
+        zone.destroy
+      end
+
+      it "rejects create of an unencrypted setting when the user only has support Read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+
+        result = client.post(
+          path: Settings.base_route,
+          body: setting.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        zone.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 3. update needs Update; destroy needs Delete (both sides)
+      # ----------------------------------------------------------------
+
+      it "allows update of an unencrypted setting with support Update on both sides" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        setting.settings_string = %(hello: "world"\n)
+        result = client.patch(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          body: setting.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 200
+
+        zone.destroy
+      end
+
+      it "rejects update of an unencrypted setting when the user only has support Read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        setting.settings_string = %(hello: "world"\n)
+        result = client.patch(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          body: setting.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        zone.destroy
+      end
+
+      it "allows destroy of an unencrypted setting with support Delete on both sides" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Delete).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: headers,
+        )
+        result.status_code.should eq 202
+        Model::Settings.find?(setting.id.as(String)).should be_nil
+
+        zone.destroy
+      end
+
+      it "rejects destroy of an unencrypted setting when the user only has support Update" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        result = client.delete(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        zone.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 4. ENCRYPTED settings: non-admin can never modify, admin can
+      # ----------------------------------------------------------------
+
+      it "rejects modify of an encrypted setting for a non-admin support-group user" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::Admin, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        # full support grant on both sides — still denied because encrypted
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Manage).save!
+
+        result = client.delete(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        setting.destroy
+        zone.destroy
+      end
+
+      it "allows an admin to modify an encrypted setting" do
+        zone = Model::Generator.zone.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::Admin, zone: zone)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        result = client.delete(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 202
+        Model::Settings.find?(setting.id.as(String)).should be_nil
+
+        zone.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 5. driver- parent: no zones => admin only
+      # ----------------------------------------------------------------
+
+      it "rejects modify of a driver- parent setting for a support-group user (no zones)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        driver = Model::Generator.driver.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, driver: driver)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        result = client.delete(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        setting.destroy
+        driver.destroy
+      end
+
+      it "allows an admin to modify a driver- parent setting" do
+        driver = Model::Generator.driver.save!
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, driver: driver)
+        setting.settings_string = "tree: 1"
+        setting.save!
+
+        result = client.delete(
+          path: File.join(Settings.base_route, setting.id.as(String)),
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 202
+        Model::Settings.find?(setting.id.as(String)).should be_nil
+
+        driver.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 6. sys- parent create, and admin bypass
+      # ----------------------------------------------------------------
+
+      it "allows create of an unencrypted setting on a sys- parent with support Create on both sides" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys = Model::Generator.control_system
+        sys.zones = [zone.id.as(String)]
+        sys.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Create).save!
+
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, control_system: sys)
+        setting.settings_string = "tree: 1"
+
+        result = client.post(
+          path: Settings.base_route,
+          body: setting.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 201
+
+        created = Model::Settings.from_trusted_json(result.body)
+        created.destroy
+        sys.destroy
+        zone.destroy
+      end
+
+      it "allows an admin to bypass support gating on create and destroy" do
+        zone = Model::Generator.zone.save!
+
+        setting = Model::Generator.settings(encryption_level: Encryption::Level::None, zone: zone)
+        setting.settings_string = "tree: 1"
+
+        result = client.post(
+          path: Settings.base_route,
+          body: setting.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 201
+        created = Model::Settings.from_trusted_json(result.body)
+
+        result = client.delete(
+          path: File.join(Settings.base_route, created.id.as(String)),
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 202
+
+        zone.destroy
+      end
+    end
+
     describe "scopes" do
       Spec.test_controller_scope(Settings)
 
