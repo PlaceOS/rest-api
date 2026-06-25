@@ -22,9 +22,10 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :create, :update, :destroy, :state, :show, :ping, :start, :stop]
-    # start/stop are gated by the support-subsystem Operate check in-action
-    # (see `start`/`stop`), so they're intentionally absent here.
-    before_action :check_support, only: [:state, :show, :ping, :show_error]
+    # start/stop are gated by the support-subsystem Operate check in-action;
+    # show is gated by `check_show_permissions` (support-subsystem Read on the
+    # module's zones) — so both are intentionally absent here.
+    before_action :check_support, only: [:state, :ping, :show_error]
 
     ###############################################################################################
 
@@ -63,29 +64,56 @@ module PlaceOS::Api
       zones.uniq
     end
 
+    # Reading a single module: admin/support JWT and the legacy org_zone path
+    # bypass; otherwise a "support" subsystem user needs Read on the module's
+    # zones. A module with no derivable zones stays admin/support only.
+    @[AC::Route::Filter(:before_action, only: [:show])]
+    def check_show_permissions
+      ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Read)
+    end
+
     @[AC::Route::Filter(:before_action, only: [:index])]
     def check_view_permissions(
       @[AC::Param::Info(description: "only return modules running in this system (query params are ignored if this is provided)", example: "sys-1234")]
       control_system_id : String? = nil,
     )
+      # admin/support JWT see everything (no scoping)
       return if user_support?
 
-      # find the org zone
-      authority = current_authority.as(::PlaceOS::Model::Authority)
-      @org_zone_id = org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      raise Error::Forbidden.new unless org_zone_id
+      org_zone = support_org_zone_id
 
       if control_system_id
         zones = ::PlaceOS::Model::ControlSystem.find!(control_system_id).zones
-        raise Error::Forbidden.new unless zones.includes?(org_zone_id)
-        raise Error::Forbidden.new unless check_access(current_user.groups, zones).can_manage?
-      else
-        access = check_access(current_user.groups, [org_zone_id])
-        raise Error::Forbidden.new unless access.can_manage?
+        # "support" subsystem: Read on the system's zones.
+        return if support_subsystem_grants?(zones, ::PlaceOS::Model::Permissions::Read)
+        # legacy org_zone path: the system must include the org_zone and the
+        # user must be able to manage it.
+        return if org_zone && zones.includes?(org_zone) && check_access(current_user.groups, zones).can_manage?
+        raise Error::Forbidden.new
       end
+
+      # Whole-list view: instead of a flat allow/deny, resolve the zone set the
+      # caller may see and scope the result set to it (see `index`).
+      # legacy org_zone manager -> systems containing the org_zone.
+      if org_zone && check_access(current_user.groups, [org_zone]).can_manage?
+        @module_scope_zones = [org_zone]
+        return
+      end
+
+      # "support" subsystem -> systems whose zones the caller can reach.
+      accessible = support_accessible_zone_ids
+      unless accessible.empty?
+        @module_scope_zones = accessible
+        return
+      end
+
+      raise Error::Forbidden.new
     end
 
-    getter org_zone_id : String? = nil
+    # Zone ids used to scope the module list for non-admin/non-support callers
+    # (legacy org_zone, or the caller's reachable "support" zones). Left nil for
+    # admin/support callers, who see everything.
+    getter module_scope_zones : Array(String)? = nil
 
     # Response helpers
     ###############################################################################################
@@ -147,18 +175,19 @@ module PlaceOS::Api
 
       # TODO:: we can remove this once there is a tenant_id field on modules
       # which will make this much simpler to filter
-      if filter_zone_id = org_zone_id
-        # we only want to show modules in use by systems that include this zone
+      if scope_zones = module_scope_zones
+        # we only want to show modules in use by systems within these zones
         no_logic = true
 
         # find all the non-logic modules that this user can access
-        # 1. grabs all the module ids in the systems of the provided org zone
-        # 2. select distinct modules ids which are not logic modules (99)
+        # 1. grab all the module ids in systems whose zones overlap scope_zones
+        # 2. select distinct module ids which are not logic modules (99)
+        placeholders = (1..scope_zones.size).map { |i| "$#{i}" }.join(", ")
         sql_query = %[
           WITH matching_rows AS (
             SELECT unnest(modules) AS module_id
             FROM sys
-            WHERE $1 = ANY(zones)
+            WHERE zones && ARRAY[#{placeholders}]::text[]
           )
 
           SELECT ARRAY_AGG(DISTINCT m.module_id)
@@ -168,7 +197,7 @@ module PlaceOS::Api
         ]
 
         module_ids = PgORM::Database.connection do |conn|
-          conn.query_one(sql_query, args: [filter_zone_id], &.read(Array(String)?))
+          conn.query_one(sql_query, args: scope_zones.map(&.as(PgORM::Value)), &.read(Array(String)?))
         end || [] of String
 
         query.must({

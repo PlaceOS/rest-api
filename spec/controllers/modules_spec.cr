@@ -727,6 +727,120 @@ module PlaceOS::Api
 
         zone.destroy
       end
+
+      # ---- read scoping ----
+
+      # A non-logic (device) module referenced by a control system scoped to
+      # `zone`. Device modules are reachable via the system's `modules` array,
+      # so the module derives its zones from that system.
+      device_in_zone = ->(zone : Model::Zone) {
+        driver = Model::Generator.driver(role: Model::Driver::Role::Device).save!
+        mod = Model::Generator.module(driver: driver).save!
+        cs = Model::Generator.control_system
+        cs.zones = [zone.id.as(String)]
+        cs.modules = [mod.id.as(String)]
+        cs.save!
+        {cs, mod}
+      }
+
+      it "allows show for a support user with Read on the module's zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        cs, mod = device_in_zone.call(zone)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        result = client.get(path: "#{Modules.base_route}#{mod.id}", headers: headers)
+        result.status_code.should eq 200
+
+        mod.destroy
+        cs.destroy
+        zone.destroy
+      end
+
+      it "rejects show for a support user without a grant on the module's zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        cs, mod = device_in_zone.call(zone)
+
+        # group exists but has no GroupZone reach to the module's zone
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+        result = client.get(path: "#{Modules.base_route}#{mod.id}", headers: headers)
+        result.status_code.should eq 403
+
+        mod.destroy
+        cs.destroy
+        zone.destroy
+      end
+
+      it "allows index?control_system_id= with Read on the system zones and lists the modules" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        cs, mod = device_in_zone.call(zone)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        result = client.get(path: "#{Modules.base_route}?control_system_id=#{cs.id}", headers: headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body).as_a.map(&.["id"].as_s).should contain(mod.id.as(String))
+
+        mod.destroy
+        cs.destroy
+        zone.destroy
+      end
+
+      it "rejects index?control_system_id= for a support user without a grant" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        cs, mod = device_in_zone.call(zone)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+        result = client.get(path: "#{Modules.base_route}?control_system_id=#{cs.id}", headers: headers)
+        result.status_code.should eq 403
+
+        mod.destroy
+        cs.destroy
+        zone.destroy
+      end
+
+      it "gates the whole module list: 403 with no accessible zones, 200 (scoped) with a grant" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        cs, mod = device_in_zone.call(zone)
+
+        # no group/grant => no accessible zones => 403
+        client.get(path: Modules.base_route, headers: headers).status_code.should eq 403
+
+        # grant a reachable zone => allowed (result set is zone-scoped; contents
+        # depend on ES indexing, so we only assert the gate opens)
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        client.get(path: Modules.base_route, headers: headers).status_code.should eq 200
+
+        mod.destroy
+        cs.destroy
+        zone.destroy
+      end
     end
   end
 end
