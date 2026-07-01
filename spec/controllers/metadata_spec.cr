@@ -477,6 +477,209 @@ module PlaceOS::Api
       end
     end
 
+    describe "support subsystem permissions" do
+      ::Spec.before_each { clear_group_tables }
+
+      # ----------------------------------------------------------------
+      # 1. zone parent: PATCH needs Update on both sides
+      # ----------------------------------------------------------------
+
+      it "allows PATCH metadata on a zone parent with support Update on both sides" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        Model::Generator.metadata(name: "support-meta", parent: zone_id).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        meta = Model::Metadata::Interface.new(
+          name: "support-meta",
+          description: "",
+          details: JSON.parse(%({"hello":"world"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+
+        result = client.patch(
+          path: "#{Metadata.base_route}/#{zone_id}",
+          body: meta.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 200
+
+        zone.destroy
+      end
+
+      it "rejects PATCH metadata on a zone parent when the user only has support Read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        Model::Generator.metadata(name: "support-meta", parent: zone_id).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        meta = Model::Metadata::Interface.new(
+          name: "support-meta",
+          description: "",
+          details: JSON.parse(%({"hello":"world"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+
+        result = client.patch(
+          path: "#{Metadata.base_route}/#{zone_id}",
+          body: meta.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        zone.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 2. NEW sys- parent branch: PATCH via the system's zone
+      # ----------------------------------------------------------------
+
+      it "allows PATCH metadata on a sys- parent via the system's zone with support Update" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys = Model::Generator.control_system
+        sys.zones = [zone.id.as(String)]
+        sys.save!
+        sys_id = sys.id.as(String)
+        Model::Generator.metadata(name: "support-meta", parent: sys_id).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        meta = Model::Metadata::Interface.new(
+          name: "support-meta",
+          description: "",
+          details: JSON.parse(%({"hello":"world"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+
+        result = client.patch(
+          path: "#{Metadata.base_route}/#{sys_id}",
+          body: meta.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 200
+
+        sys.destroy
+        zone.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 3. destroy on a zone parent needs Delete on both sides
+      # ----------------------------------------------------------------
+
+      it "allows DELETE metadata on a zone parent with support Delete on both sides" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        Model::Generator.metadata(name: "support-meta", parent: zone_id).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Delete).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete(
+          path: "#{Metadata.base_route}/#{zone_id}?name=support-meta",
+          headers: headers,
+        )
+        result.status_code.should eq 202
+        Model::Metadata.for(zone_id, "support-meta").first?.should be_nil
+
+        zone.destroy
+      end
+
+      it "rejects DELETE metadata on a zone parent when the user only has support Update" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        Model::Generator.metadata(name: "support-meta", parent: zone_id).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        result = client.delete(
+          path: "#{Metadata.base_route}/#{zone_id}?name=support-meta",
+          headers: headers,
+        )
+        result.status_code.should eq 403
+
+        zone.destroy
+      end
+
+      it "allows a support JWT to bypass the destroy gate" do
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        Model::Generator.metadata(name: "support-meta", parent: zone_id).save!
+
+        _, support_header = Spec::Authentication.authentication(sys_admin: false, support: true)
+
+        result = client.delete(
+          path: "#{Metadata.base_route}/#{zone_id}?name=support-meta",
+          headers: support_header,
+        )
+        result.status_code.should eq 202
+        Model::Metadata.for(zone_id, "support-meta").first?.should be_nil
+
+        zone.destroy
+      end
+
+      # ----------------------------------------------------------------
+      # 4. admin bypass
+      # ----------------------------------------------------------------
+
+      it "allows an admin to bypass support gating on PATCH and DELETE" do
+        zone = Model::Generator.zone.save!
+        zone_id = zone.id.as(String)
+        Model::Generator.metadata(name: "support-meta", parent: zone_id).save!
+
+        meta = Model::Metadata::Interface.new(
+          name: "support-meta",
+          description: "",
+          details: JSON.parse(%({"hello":"world"})),
+          parent_id: nil,
+          editors: Set(String).new,
+        )
+
+        result = client.patch(
+          path: "#{Metadata.base_route}/#{zone_id}",
+          body: meta.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 200
+
+        result = client.delete(
+          path: "#{Metadata.base_route}/#{zone_id}?name=support-meta",
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 202
+
+        zone.destroy
+      end
+    end
+
     describe "scopes" do
       context "read" do
         scope_name = "metadata"

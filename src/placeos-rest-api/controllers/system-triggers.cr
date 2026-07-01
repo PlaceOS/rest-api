@@ -2,6 +2,9 @@ require "./application"
 
 module PlaceOS::Api
   class SystemTriggers < Application
+    include Utils::Permissions
+    include Utils::GroupPermissions
+
     base "/api/engine/v2/systems/:sys_id/triggers/"
 
     # Scopes
@@ -10,8 +13,21 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, only: [:create, :update, :destroy]
-    before_action :check_support, only: [:index, :show]
+    # Permissions
+    ###############################################################################################
+
+    # A trigger instance inherits the zones of its parent control system.
+    # Reads need Read; mutations need the verb's bit (admin/support JWT and
+    # the legacy org_zone path bypass as usual).
+    @[AC::Route::Filter(:before_action, only: [:index, :show])]
+    def check_trigger_read_permissions(sys_id : String)
+      ensure_support_access!(::PlaceOS::Model::ControlSystem.find!(sys_id).zones, ::PlaceOS::Model::Permissions::Read)
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:create, :update, :destroy])]
+    def check_trigger_write_permissions(sys_id : String)
+      ensure_support_access!(::PlaceOS::Model::ControlSystem.find!(sys_id).zones, verb_permission)
+    end
 
     ###############################################################################################
 

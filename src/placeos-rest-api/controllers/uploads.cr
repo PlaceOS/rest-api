@@ -7,6 +7,9 @@ require "./application"
 
 module PlaceOS::Api
   class Uploads < Application
+    include Utils::Permissions
+    include Utils::GroupPermissions
+
     base "/api/engine/v2/uploads"
 
     @[AC::Route::Filter(:before_action)]
@@ -50,6 +53,16 @@ module PlaceOS::Api
     getter! storage : ::PlaceOS::Model::Storage?
     getter! signer : UploadSigner::Storage?
     getter! current_upload : ::PlaceOS::Model::Upload?
+
+    # Mutations on an existing upload: the owner may always proceed; otherwise
+    # a support/admin user, or a "support" subsystem user with the verb's bit
+    # on the org zone, may manage it. (`create` is always self-owned.)
+    @[AC::Route::Filter(:before_action, only: [:edit, :update, :finished, :destroy])]
+    def confirm_upload_access
+      return if current_upload.uploaded_by == current_user.id
+      required = request.method.upcase == "DELETE" ? ::PlaceOS::Model::Permissions::Delete : ::PlaceOS::Model::Permissions::Update
+      ensure_support_access!([support_org_zone_id].compact, required)
+    end
 
     # allow A–Z a–z 0–9 and .!#$%&'*+-/=?^_`{|}~@
     TAG_ALLOW_REGEX = /^[A-Za-z0-9.!#$%&'*+\-\/=?\^_`{|}~@]+$/

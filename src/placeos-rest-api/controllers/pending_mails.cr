@@ -55,12 +55,8 @@ module PlaceOS::Api
         return if check_access(current_user.groups, [org_zone_id] + mail.zones).can_manage?
       end
 
-      # "support" subsystem: OR'd across the mail's zones (the Array overload
-      # of effective_permissions already does this).
-      perms = ::PlaceOS::Model::Group.effective_permissions(
-        authority.id.as(String), "support", current_user.id.as(String), mail.zones,
-      )
-      return if perms.manage? || perms.includes?(required)
+      # "support" subsystem: OR'd across the mail's zones.
+      return if support_subsystem_grants?(mail.zones, required)
 
       raise Error::Forbidden.new
     end

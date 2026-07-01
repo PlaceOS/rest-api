@@ -3,6 +3,7 @@ require "./application"
 module PlaceOS::Api
   class Assets < Application
     include Utils::Permissions
+    include Utils::GroupPermissions
 
     base "/api/engine/v2/assets/"
 
@@ -26,6 +27,10 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:update, :destroy])]
     private def confirm_access
       return if user_support?
+
+      # "support" subsystem: the verb's bit on the asset's zone(s).
+      asset_zones = ([current_asset.zone_id] + current_asset.zones).compact.uniq!
+      return if support_subsystem_grants?(asset_zones, verb_permission)
 
       authority = current_authority.as(::PlaceOS::Model::Authority)
 
@@ -165,6 +170,8 @@ module PlaceOS::Api
     @[AC::Route::POST("/bulk", body: :assets, status_code: HTTP::Status::CREATED)]
     def bulk_create(assets : Array(::PlaceOS::Model::Asset)) : Array(::PlaceOS::Model::Asset)
       assets.map do |asset|
+        @current_asset = asset
+        confirm_access
         raise Error::ModelValidation.new(asset.errors) unless asset.save
         asset
       end
@@ -177,6 +184,7 @@ module PlaceOS::Api
       assets.compact_map do |asset|
         if asset_id = asset.id
           current = find_current_asset(asset_id)
+          confirm_access
           current.assign_attributes(asset)
           raise Error::ModelValidation.new(current.errors) unless current.save
           current
@@ -189,6 +197,7 @@ module PlaceOS::Api
     def bulk_destroy(asset_ids : Array(String)) : Nil
       asset_ids.each do |asset_id|
         current = find_current_asset(asset_id)
+        confirm_access
         current.destroy
       end
     end

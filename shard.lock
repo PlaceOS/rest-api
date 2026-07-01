@@ -163,7 +163,7 @@ shards:
 
   office365:
     git: https://github.com/placeos/office365.git
-    version: 1.27.1
+    version: 1.27.2
 
   openai:
     git: https://github.com/spider-gazelle/crystal-openai.git
@@ -187,7 +187,7 @@ shards:
 
   pg-orm:
     git: https://github.com/spider-gazelle/pg-orm.git
-    version: 2.2.1
+    version: 2.2.2
 
   pinger:
     git: https://github.com/spider-gazelle/pinger.git
@@ -215,7 +215,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.693b47914d40284458518503be7441dfc7ff98aa
+    version: 2.7.1+git.commit.4d12eb11b0b381f4d7927b3d7086cbc5b42f21c9
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -223,7 +223,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.98.3
+    version: 9.98.4
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -275,7 +275,7 @@ shards:
 
   search-ingest:
     git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.f3e14c701667f3fb185a82b352d4e053c7f082d2
+    version: 2.11.3+git.commit.57d54cc34bece9abf2c2704f76358b3cd4a3199a
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

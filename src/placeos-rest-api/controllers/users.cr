@@ -6,6 +6,9 @@ require "./metadata"
 
 module PlaceOS::Api
   class Users < Application
+    include Utils::Permissions
+    include Utils::GroupPermissions
+
     base "/api/engine/v2/users/"
 
     # Scopes
@@ -14,7 +17,17 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove, :revive]
 
-    before_action :check_admin, only: [:destroy, :create, :revive, :delete_resource_token, :user_resource_token]
+    # Resource tokens stay strictly admin-only.
+    before_action :check_admin, only: [:delete_resource_token, :user_resource_token]
+
+    # User CRUD: admin, or a "support" subsystem user with the verb's bit on
+    # the org zone (mirrors short_url). `find_user`/`create` keep everything
+    # scoped to the caller's own authority.
+    @[AC::Route::Filter(:before_action, only: [:create, :destroy, :revive])]
+    def check_user_management
+      return if user_admin?
+      ensure_support_access!([support_org_zone_id].compact, verb_permission)
+    end
 
     ###############################################################################################
 
@@ -60,8 +73,12 @@ module PlaceOS::Api
     # Check the user has access to the model
     @[AC::Route::Filter(:before_action, only: [:update])]
     protected def check_authorization
-      # Does the current user have permission to perform the current action
-      raise Error::Forbidden.new unless user.id == current_user.id || user_admin?
+      # Self-service and admins always allowed.
+      return if user.id == current_user.id || user_admin?
+      # Otherwise a "support" subsystem user may manage users within their
+      # own authority (Update on the org zone).
+      raise Error::Forbidden.new unless user.authority_id == current_user.authority_id
+      ensure_support_access!([support_org_zone_id].compact, ::PlaceOS::Model::Permissions::Update)
     end
 
     ###############################################################################################

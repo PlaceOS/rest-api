@@ -148,55 +148,6 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless has_legacy_access?(zones, admin_required: admin_required)
     end
 
-    # True if the legacy zone-based permission scheme grants the
-    # requested level across `zones`. Mirrors the previous behaviour:
-    # the system must include the org_zone, and `current_user.groups`
-    # must satisfy `admin?` or `can_manage?`.
-    private def has_legacy_access?(zones : Array(String), admin_required : Bool = false) : Bool
-      authority = current_authority.as(::PlaceOS::Model::Authority)
-      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      return false unless org_zone_id
-      return false unless zones.includes?(org_zone_id)
-      access = check_access(current_user.groups, zones)
-      admin_required ? access.admin? : access.can_manage?
-    end
-
-    # Permissions bit corresponding to the current HTTP verb.
-    private def verb_permission : ::PlaceOS::Model::Permissions
-      case request.method.upcase
-      when "POST"         then ::PlaceOS::Model::Permissions::Create
-      when "PUT", "PATCH" then ::PlaceOS::Model::Permissions::Update
-      when "DELETE"       then ::PlaceOS::Model::Permissions::Delete
-      else                     ::PlaceOS::Model::Permissions::None
-      end
-    end
-
-    # True if the user's effective permissions on `zones` (within any
-    # of `subsystems`) include `required`, or Manage (which is a
-    # superset). The resolver already ANDs the user's group perms with
-    # the GroupZone's perms, so a non-zero result means both sides
-    # agree.
-    private def subsystem_grants_on_zones?(
-      subsystems : Array(String),
-      zones : Array(String),
-      required : ::PlaceOS::Model::Permissions,
-    ) : Bool
-      return false if zones.empty?
-      authority_id = current_user.authority_id.as(String)
-      user_id = current_user.id.as(String)
-      subsystems.any? do |subsystem|
-        perms = ::PlaceOS::Model::Group.effective_permissions(authority_id, subsystem, user_id, zones)
-        perms.manage? || (perms & required) != ::PlaceOS::Model::Permissions::None
-      end
-    end
-
-    private def support_subsystem_grants?(
-      zones : Array(String),
-      required : ::PlaceOS::Model::Permissions,
-    ) : Bool
-      subsystem_grants_on_zones?(["support"], zones, required)
-    end
-
     # Response helpers
     ###############################################################################################
 
