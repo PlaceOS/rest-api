@@ -5,6 +5,7 @@ module PlaceOS::Api
     base = Playlist.base_route
 
     ::Spec.before_each do
+      Model::Playlist::ItemSchedule.clear
       Model::Playlist::Revision.clear
       Model::Playlist::Item.clear
       Model::Playlist.clear
@@ -389,6 +390,174 @@ module PlaceOS::Api
         body = JSON.parse(result.body).as_h
         body["items"].as_a.should be_empty
         body["media"].as_a.should be_empty
+      end
+
+      it "hydrates item schedules (with nested media) for a distribution playlist" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        reader_group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: reader_group, permissions: Model::Permissions::Read).save!
+
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        Model::Generator.group_playlist(group: reader_group, playlist: playlist).save!
+
+        item_a = Model::Generator.item(authority: authority).save!
+        item_b = Model::Generator.item(authority: authority).save!
+        schedule_a = Model::Generator.item_schedule(playlist: playlist, item: item_a).save!
+        schedule_b = Model::Generator.item_schedule(playlist: playlist, item: item_b).save!
+
+        author = Model::Generator.user(authority: authority).save!
+        revision = Model::Generator.revision(playlist: playlist, user: author)
+        revision.items = [schedule_a.id.as(String), schedule_b.id.as(String)]
+        revision.save!
+
+        result = client.get(File.join(base, playlist.id.to_s, "media"), headers: headers)
+        result.status_code.should eq 200
+
+        body = JSON.parse(result.body).as_h
+        # distribution revisions reference item schedules, hydrated under "schedules"
+        body["items"].as_a.map(&.as_s).sort!.should eq [schedule_a.id.to_s, schedule_b.id.to_s].sort
+        schedules = body["schedules"].as_a.map(&.as_h)
+        schedules.map(&.["id"].as_s).sort!.should eq [schedule_a.id.to_s, schedule_b.id.to_s].sort
+
+        # each schedule carries its own nested media item
+        media_by_schedule = schedules.to_h { |s| {s["id"].as_s, s["media"].as_h["id"].as_s} }
+        media_by_schedule[schedule_a.id.to_s].should eq item_a.id.to_s
+        media_by_schedule[schedule_b.id.to_s].should eq item_b.id.to_s
+      end
+    end
+
+    describe "POST /:id/media/schedule and PATCH /:id/media/schedule/:item_id" do
+      it "schedules media on a distribution playlist, creating an ItemSchedule and a revision" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        item = Model::Generator.item(authority: authority).save!
+
+        body = {item_id: item.id.as(String), schedules: [Model::Playlist::Schedule.new(play_cron: "0 9 * * *")]}.to_json
+        result = client.post(File.join(base, playlist.id.to_s, "media", "schedule"), body: body, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+
+        revision = JSON.parse(result.body).as_h
+        schedule_ids = revision["items"].as_a.map(&.as_s)
+        schedule_ids.size.should eq 1
+        schedule_id = schedule_ids.first
+
+        schedule = Model::Playlist::ItemSchedule.find?(schedule_id)
+        schedule.should_not be_nil
+        schedule = schedule.not_nil!
+        schedule.playlist_id.should eq playlist.id.as(String)
+        schedule.item_id.should eq item.id.as(String)
+        schedule.schedules.first.play_cron.should eq "0 9 * * *"
+      end
+
+      it "appends to the existing item list across successive schedule additions" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        item_a = Model::Generator.item(authority: authority).save!
+        item_b = Model::Generator.item(authority: authority).save!
+
+        first_body = {item_id: item_a.id.as(String), schedules: [Model::Playlist::Schedule.new]}.to_json
+        first = client.post(File.join(base, playlist.id.to_s, "media", "schedule"), body: first_body, headers: Spec::Authentication.headers)
+        first.status_code.should eq 200
+        first_id = JSON.parse(first.body)["items"].as_a.map(&.as_s).first
+
+        second_body = {item_id: item_b.id.as(String), schedules: [Model::Playlist::Schedule.new]}.to_json
+        second = client.post(File.join(base, playlist.id.to_s, "media", "schedule"), body: second_body, headers: Spec::Authentication.headers)
+        second.status_code.should eq 200
+        ids = JSON.parse(second.body)["items"].as_a.map(&.as_s)
+        ids.size.should eq 2
+        ids.first.should eq first_id
+      end
+
+      it "rejects scheduling media on a non-distribution playlist" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        playlist = Model::Generator.playlist(authority: authority).save!
+        item = Model::Generator.item(authority: authority).save!
+
+        body = {item_id: item.id.as(String), schedules: [Model::Playlist::Schedule.new]}.to_json
+        result = client.post(File.join(base, playlist.id.to_s, "media", "schedule"), body: body, headers: Spec::Authentication.headers)
+        result.status_code.should eq 406
+      end
+
+      it "rejects scheduling an item from a different authority (validation)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        other = Model::Generator.authority(domain: "http://other-#{Random::Secure.hex(3)}.example").save!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        foreign_item = Model::Generator.item(authority: other).save!
+
+        body = {item_id: foreign_item.id.as(String), schedules: [Model::Playlist::Schedule.new]}.to_json
+        result = client.post(File.join(base, playlist.id.to_s, "media", "schedule"), body: body, headers: Spec::Authentication.headers)
+        result.status_code.should eq 422
+      end
+
+      it "patches the schedules of an existing item schedule and cache-busts the approved revision" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        item = Model::Generator.item(authority: authority).save!
+        schedule = Model::Generator.item_schedule(playlist: playlist, item: item).save!
+        schedule_id = schedule.id.as(String)
+
+        author = Model::Generator.user(authority: authority).save!
+        revision = Model::Generator.revision(playlist: playlist, user: author)
+        revision.items = [schedule_id]
+        revision.approved = true
+        revision.save!
+        original_updated = revision.updated_at
+
+        sleep 1.seconds
+
+        body = {schedules: [Model::Playlist::Schedule.new(play_cron: "30 8 * * *")]}.to_json
+        result = client.patch(File.join(base, playlist.id.to_s, "media", "schedule", schedule_id), body: body, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+
+        JSON.parse(result.body)["schedules"].as_a.first["play_cron"].should eq "30 8 * * *"
+
+        Model::Playlist::ItemSchedule.find!(schedule_id).schedules.first.play_cron.should eq "30 8 * * *"
+        revision.reload!
+        revision.updated_at.should_not eq original_updated
+      end
+
+      it "rejects patching a schedule that belongs to a different playlist" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        other_playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        item = Model::Generator.item(authority: authority).save!
+        schedule = Model::Generator.item_schedule(playlist: other_playlist, item: item).save!
+
+        body = {schedules: [Model::Playlist::Schedule.new(play_cron: "30 8 * * *")]}.to_json
+        result = client.patch(File.join(base, playlist.id.to_s, "media", "schedule", schedule.id.to_s), body: body, headers: Spec::Authentication.headers)
+        result.status_code.should eq 406
+      end
+
+      it "forbids a read-only member from scheduling media" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        Model::Generator.group_playlist(group: group, playlist: playlist).save!
+        item = Model::Generator.item(authority: authority).save!
+
+        body = {item_id: item.id.as(String), schedules: [Model::Playlist::Schedule.new]}.to_json
+        result = client.post(File.join(base, playlist.id.to_s, "media", "schedule"), body: body, headers: headers)
+        result.status_code.should eq 403
+      end
+
+      it "lets a regular user with Update permission schedule media" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read | Model::Permissions::Update).save!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        Model::Generator.group_playlist(group: group, playlist: playlist).save!
+        item = Model::Generator.item(authority: authority).save!
+
+        body = {item_id: item.id.as(String), schedules: [Model::Playlist::Schedule.new]}.to_json
+        result = client.post(File.join(base, playlist.id.to_s, "media", "schedule"), body: body, headers: headers)
+        result.status_code.should eq 200
       end
     end
 

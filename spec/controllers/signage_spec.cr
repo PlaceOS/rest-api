@@ -4,6 +4,7 @@ require "timecop"
 module PlaceOS::Api
   describe Signage do
     ::Spec.before_each do
+      Model::Playlist::ItemSchedule.clear
       Model::Playlist::Revision.clear
       Model::Playlist::Item.clear
       Model::Playlist.clear
@@ -55,6 +56,67 @@ module PlaceOS::Api
 
         result.body.should eq ""
         result.status_code.should eq 304
+      end
+
+      it "expands a distribution playlist into per-item virtual playlists" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        playlist_id = playlist.id.as(String)
+
+        item_a = Model::Generator.item(authority: authority).save!
+        item_b = Model::Generator.item(authority: authority).save!
+
+        # each scheduled item carries its own schedule
+        schedule_a = Model::Generator.item_schedule(
+          playlist: playlist, item: item_a,
+          schedules: [Model::Playlist::Schedule.new(play_cron: "0 9 * * *")],
+        ).save!
+        schedule_b = Model::Generator.item_schedule(
+          playlist: playlist, item: item_b,
+          schedules: [Model::Playlist::Schedule.new(play_cron: "0 17 * * *")],
+        ).save!
+        schedule_a_id = schedule_a.id.as(String)
+        schedule_b_id = schedule_b.id.as(String)
+
+        revision = Model::Generator.revision(playlist: playlist)
+        revision.items = [schedule_a_id, schedule_b_id]
+        revision.approved = true
+        revision.save!
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.playlists = [playlist_id]
+        system.save!
+        system_id = system.id.as(String)
+
+        result = client.get(
+          path: "#{Signage.base_route}/#{system_id}",
+          headers: Spec::Authentication.headers,
+        )
+
+        json = JSON.parse result.body
+
+        # the distribution playlist id is replaced by its virtual (schedule) ids
+        json["playlist_mappings"].should eq({system_id => [schedule_a_id, schedule_b_id]})
+
+        config = json["playlist_config"].as_h
+        config.keys.sort!.should eq [schedule_a_id, schedule_b_id].sort
+        config.has_key?(playlist_id).should be_false
+
+        # each virtual playlist is keyed by the schedule id, holds a single media
+        # item, and carries that schedule's own schedules
+        json["playlist_config"][schedule_a_id][0]["id"].should eq schedule_a_id
+        json["playlist_config"][schedule_a_id][0]["distribution"].should eq false
+        json["playlist_config"][schedule_a_id][0]["schedules"][0]["play_cron"].should eq "0 9 * * *"
+        json["playlist_config"][schedule_a_id][1].should eq [item_a.id.as(String)]
+
+        json["playlist_config"][schedule_b_id][0]["id"].should eq schedule_b_id
+        json["playlist_config"][schedule_b_id][0]["schedules"][0]["play_cron"].should eq "0 17 * * *"
+        json["playlist_config"][schedule_b_id][1].should eq [item_b.id.as(String)]
+
+        # the underlying media items are still cached in playlist_media
+        media_ids = json["playlist_media"].as_a.map(&.["id"].as_s).sort!
+        media_ids.should eq [item_a.id.as(String), item_b.id.as(String)].sort
       end
 
       it "POST /api/engine/v2/signage/:system_id/metrics" do

@@ -50,7 +50,6 @@ module PlaceOS::Api
       # continue processing the request if the client has stale data
       if stale?(last_modified: last_updated)
         playlist_ids = playlist_map.values.flatten.uniq!
-        system.playlist_mappings = playlist_map
 
         # get the playlist configuration (default timeouts etc) and media lists (latest revisions)
         if playlist_ids.empty?
@@ -61,12 +60,45 @@ module PlaceOS::Api
           playlist_items = ::PlaceOS::Model::Playlist::Revision.revisions(playlist_ids)
         end
 
+        # distribution playlists schedule each item individually. To keep the
+        # response format unchanged for existing players, every item schedule is
+        # expanded into its own virtual single-item playlist (keyed by the
+        # ItemSchedule id), and the distribution playlist id is swapped for those
+        # virtual ids in the source => playlist mappings.
+        distribution_ids = playlist_details.select(&.distribution).map(&.id.as(String)).to_set
+        schedule_ids = distribution_ids.empty? ? [] of String : playlist_items.select { |rev| distribution_ids.includes?(rev.playlist_id.as(String)) }.flat_map(&.items).uniq!
+        schedules_by_id = schedule_ids.empty? ? {} of String => ::PlaceOS::Model::Playlist::ItemSchedule : ::PlaceOS::Model::Playlist::ItemSchedule.where(id: schedule_ids).to_a.index_by { |schedule| schedule.id.as(String) }
+
         playlist_config = Hash(String, Tuple(::PlaceOS::Model::Playlist, Array(String))).new(playlist_details.size) { raise "no default" }
+        # distribution playlist id => ordered virtual (item schedule) playlist ids
+        expansion = Hash(String, Array(String)).new
+
         playlist_details.each do |playlist|
-          items = playlist_items.find { |rev| rev.playlist_id == playlist.id }.try(&.items) || [] of String
-          playlist_config[playlist.id.as(String)] = {playlist, items}
+          playlist_id = playlist.id.as(String)
+          items = playlist_items.find { |rev| rev.playlist_id == playlist_id }.try(&.items) || [] of String
+
+          if playlist.distribution
+            expansion[playlist_id] = items
+            items.each do |schedule_id|
+              schedule = schedules_by_id[schedule_id]?
+              next unless schedule
+              media_id = schedule.item_id
+              playlist_config[schedule_id] = {virtual_playlist(playlist, schedule), media_id ? [media_id] : [] of String}
+            end
+          else
+            playlist_config[playlist_id] = {playlist, items}
+          end
         end
 
+        # rewrite the mappings so distribution playlists resolve to their
+        # per-item virtual playlists (order preserved)
+        unless expansion.empty?
+          playlist_map = playlist_map.transform_values do |ids|
+            ids.flat_map { |id| expansion[id]? || [id] }
+          end
+        end
+
+        system.playlist_mappings = playlist_map
         system.playlist_config = playlist_config
 
         # grab all the media details that should be cached / used in the media lists
@@ -88,6 +120,35 @@ module PlaceOS::Api
         response.headers["Cache-Control"] = "no-cache"
         system
       end
+    end
+
+    # Builds a virtual single-item playlist for one of a distribution playlist's
+    # item schedules. The ItemSchedule id becomes the playlist id and the
+    # schedule's own schedules drive playback, so the serialized shape is
+    # identical to a regular scheduling playlist.
+    private def virtual_playlist(playlist : ::PlaceOS::Model::Playlist, schedule : ::PlaceOS::Model::Playlist::ItemSchedule) : ::PlaceOS::Model::Playlist
+      virtual = ::PlaceOS::Model::Playlist.new(
+        name: playlist.name,
+        description: playlist.description,
+        authority_id: playlist.authority_id,
+        orientation: playlist.orientation,
+        play_count: playlist.play_count,
+        play_through_count: playlist.play_through_count,
+        default_animation: playlist.default_animation,
+        random: playlist.random,
+        enabled: playlist.enabled,
+        default_duration: playlist.default_duration,
+        valid_from: playlist.valid_from,
+        valid_until: playlist.valid_until,
+        # the schedule id is the virtual playlist id and it plays a single item
+        # on its own schedule, so it is no longer a distribution container
+        distribution: false,
+        schedules: schedule.schedules,
+      )
+      virtual.id = schedule.id
+      virtual.created_at = playlist.created_at
+      virtual.updated_at = playlist.updated_at
+      virtual
     end
 
     struct Metrics

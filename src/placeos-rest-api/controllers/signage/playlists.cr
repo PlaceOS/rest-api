@@ -13,7 +13,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :media, :media_revisions, :approvers]
-    before_action :can_write, only: [:create, :update, :destroy, :update_media, :approve_media, :share]
+    before_action :can_write, only: [:create, :update, :destroy, :update_media, :approve_media, :share, :schedule_media, :update_schedule]
 
     ###############################################################################################
 
@@ -72,7 +72,7 @@ module PlaceOS::Api
       enforce_playlist_access!(&.read?)
     end
 
-    @[AC::Route::Filter(:before_action, only: [:update, :update_media])]
+    @[AC::Route::Filter(:before_action, only: [:update, :update_media, :schedule_media, :update_schedule])]
     def check_update_access
       enforce_playlist_access!(&.update?)
     end
@@ -306,6 +306,14 @@ module PlaceOS::Api
     class ::PlaceOS::Model::Playlist::Revision
       @[JSON::Field(key: "media", ignore_deserialize: true)]
       property media : Array(::PlaceOS::Model::Playlist::Item)? = nil
+
+      @[JSON::Field(key: "schedules", ignore_deserialize: true)]
+      property schedules : Array(::PlaceOS::Model::Playlist::ItemSchedule)? = nil
+    end
+
+    class ::PlaceOS::Model::Playlist::ItemSchedule
+      @[JSON::Field(key: "media", ignore_deserialize: true)]
+      property media : ::PlaceOS::Model::Playlist::Item? = nil
     end
 
     # get the current list of media for the playlist
@@ -324,12 +332,88 @@ module PlaceOS::Api
       revisions
     end
 
+    # Revisions all belong to `current_playlist`, so they share its distribution
+    # flag: scheduling playlists reference media items directly (Revision#media),
+    # while distribution playlists reference item schedules (Revision#schedules),
+    # each of which carries its own hydrated media item (ItemSchedule#media).
     private def hydrate_media!(revisions : Array(::PlaceOS::Model::Playlist::Revision)) : Nil
+      if current_playlist.distribution
+        hydrate_schedules!(revisions)
+      else
+        hydrate_items!(revisions)
+      end
+    end
+
+    private def hydrate_items!(revisions : Array(::PlaceOS::Model::Playlist::Revision)) : Nil
       ids = revisions.flat_map(&.items).uniq!
       items_by_id = ids.empty? ? {} of String => ::PlaceOS::Model::Playlist::Item : ::PlaceOS::Model::Playlist::Item.where(id: ids).to_a.index_by { |i| i.id.as(String) }
       revisions.each do |rev|
         rev.media = rev.items.compact_map { |item_id| items_by_id[item_id]? }
       end
+    end
+
+    private def hydrate_schedules!(revisions : Array(::PlaceOS::Model::Playlist::Revision)) : Nil
+      schedule_ids = revisions.flat_map(&.items).uniq!
+      schedules_by_id = schedule_ids.empty? ? {} of String => ::PlaceOS::Model::Playlist::ItemSchedule : ::PlaceOS::Model::Playlist::ItemSchedule.where(id: schedule_ids).to_a.index_by { |s| s.id.as(String) }
+
+      # hydrate the underlying media item for every schedule in a single query
+      item_ids = schedules_by_id.each_value.compact_map(&.item_id).to_a.uniq!
+      items_by_id = item_ids.empty? ? {} of String => ::PlaceOS::Model::Playlist::Item : ::PlaceOS::Model::Playlist::Item.where(id: item_ids).to_a.index_by { |i| i.id.as(String) }
+      schedules_by_id.each_value do |schedule|
+        if item_id = schedule.item_id
+          schedule.media = items_by_id[item_id]?
+        end
+      end
+
+      revisions.each do |rev|
+        rev.schedules = rev.items.compact_map { |schedule_id| schedules_by_id[schedule_id]? }
+      end
+    end
+
+    # add scheduled media to a distribution playlist
+    @[AC::Route::POST("/:id/media/schedule", body: :schedule)]
+    def schedule_media(schedule : ::PlaceOS::Model::Playlist::ItemSchedule) : ::PlaceOS::Model::Playlist::Revision
+      # item schedules only apply to distribution playlists
+      raise Error::NotAcceptable.new("playlist is not a distribution playlist") unless current_playlist.distribution
+
+      # load up current revision and to grab item list
+      revision = current_playlist.revisions.limit(1).first? || ::PlaceOS::Model::Playlist::Revision.new
+      new_revision = ::PlaceOS::Model::Playlist::Revision.new
+      new_revision.user = current_user
+      new_revision.playlist_id = current_playlist.id
+      schedule.playlist_id = current_playlist.id
+      items = revision.items
+
+      ::PgORM::Database.transaction do |_tx|
+        raise Error::ModelValidation.new(schedule.errors) unless schedule.save
+        items << schedule.id.as(String)
+        new_revision.items = items
+        raise Error::ModelValidation.new(new_revision.errors) unless new_revision.save
+      end
+
+      new_revision
+    end
+
+    @[AC::Route::PATCH("/:id/media/schedule/:item_id", body: :schedule)]
+    def update_schedule(
+      item_id : String,
+      schedule : ::PlaceOS::Model::Playlist::ItemSchedule,
+    ) : ::PlaceOS::Model::Playlist::ItemSchedule
+      item_schedule = ::PlaceOS::Model::Playlist::ItemSchedule.find!(item_id)
+      playlist_id = item_schedule.playlist_id
+      raise Error::NotAcceptable.new("playlist id mismatch") unless playlist_id == current_playlist.id
+
+      item_schedule.schedules = schedule.schedules
+
+      # ensure we cache bust the displays so they get the change to the schedule
+      ::PgORM::Database.transaction do |_tx|
+        raise Error::ModelValidation.new(item_schedule.errors) unless item_schedule.save
+        if revision = ::PlaceOS::Model::Playlist::Revision.where(playlist_id: playlist_id, approved: true).order(updated_at: :desc).limit(1).to_a.first?
+          revision.update_fields(updated_at: Time.utc) if revision.items.includes?(item_id)
+        end
+      end
+
+      item_schedule
     end
 
     # provide an update list of media for a playlist

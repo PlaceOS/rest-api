@@ -23422,6 +23422,172 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/playlists/{id}/media/schedule:
+    post:
+      summary: add scheduled media to a distribution playlist
+      tags:
+      - Playlist
+      operationId: PlaceOS::Api::Playlist_schedule_media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Playlist__ItemSchedule'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Playlist__Revision'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/playlists/{id}/media/schedule/{item_id}:
+    patch:
+      tags:
+      - Playlist
+      operationId: PlaceOS::Api::Playlist_update_schedule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Playlist__ItemSchedule'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Playlist__ItemSchedule'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media/approve:
     post:
       summary: approve a playlist for publication on displays
@@ -25070,8 +25236,6 @@ paths:
       parameters:
       - name: sys_id
         in: path
-        description: the id of the system
-        example: sys-1234
         required: true
         schema:
           type: string
@@ -25163,8 +25327,6 @@ paths:
       parameters:
       - name: sys_id
         in: path
-        description: the id of the system
-        example: sys-1234
         required: true
         schema:
           type: string
@@ -25246,8 +25408,6 @@ paths:
       parameters:
       - name: sys_id
         in: path
-        description: the id of the system
-        example: sys-1234
         required: true
         schema:
           type: string
@@ -25331,8 +25491,6 @@ paths:
       parameters:
       - name: sys_id
         in: path
-        description: the id of the system
-        example: sys-1234
         required: true
         schema:
           type: string
@@ -33041,6 +33199,9 @@ components:
                 enabled:
                   type: boolean
                   nullable: true
+                distribution:
+                  type: boolean
+                  nullable: true
                 default_duration:
                   type: integer
                   format: Int32
@@ -35947,6 +36108,9 @@ components:
         enabled:
           type: boolean
           nullable: true
+        distribution:
+          type: boolean
+          nullable: true
         default_duration:
           type: integer
           format: Int32
@@ -36031,6 +36195,48 @@ components:
           nullable: true
         playlist_id:
           type: string
+          nullable: true
+        id:
+          type: string
+          nullable: true
+      required: []
+    PlaceOS__Model__Playlist__ItemSchedule:
+      type: object
+      properties:
+        created_at:
+          type: integer
+          format: Int64
+          nullable: true
+        updated_at:
+          type: integer
+          format: Int64
+          nullable: true
+        playlist_id:
+          type: string
+          nullable: true
+        item_id:
+          type: string
+          nullable: true
+        schedules:
+          type: array
+          items:
+            type: object
+            properties:
+              play_at:
+                type: integer
+                format: Int64
+                nullable: true
+              play_takeover:
+                type: boolean
+              play_period:
+                type: integer
+                format: Int32
+              play_cron:
+                type: string
+            required:
+            - play_takeover
+            - play_period
+            - play_cron
           nullable: true
         id:
           type: string
@@ -37085,6 +37291,9 @@ components:
                   type: boolean
                   nullable: true
                 enabled:
+                  type: boolean
+                  nullable: true
+                distribution:
                   type: boolean
                   nullable: true
                 default_duration:
@@ -39966,6 +40175,9 @@ components:
                       type: boolean
                       nullable: true
                     enabled:
+                      type: boolean
+                      nullable: true
+                    distribution:
                       type: boolean
                       nullable: true
                     default_duration:
