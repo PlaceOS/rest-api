@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: add media item scheduling support
 - [PPT-2508] add metadata rename endpoint ([#438](https://github.com/PlaceOS/rest-api/pull/438))
 - add read replica support
 - [PPT-2540] add expiry support to api key ([#437](https://github.com/PlaceOS/rest-api/pull/437))
