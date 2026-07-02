@@ -72,7 +72,16 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :asset_category)]
     def update(asset_category : ::PlaceOS::Model::AssetCategory) : ::PlaceOS::Model::AssetCategory
       current = current_asset_category
+      authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+
+      # A category that already belongs to another authority may not be edited.
+      # Legacy records with no authority get adopted by the current authority.
+      if (existing = current.authority_id) && existing != authority_id
+        raise Error::Forbidden.new("asset category belongs to another authority")
+      end
+
       current.assign_attributes(asset_category)
+      current.authority_id = authority_id
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -80,6 +89,7 @@ module PlaceOS::Api
     # add new asset category
     @[AC::Route::POST("/", body: :asset_category, status_code: HTTP::Status::CREATED)]
     def create(asset_category : ::PlaceOS::Model::AssetCategory) : ::PlaceOS::Model::AssetCategory
+      asset_category.authority_id = current_authority.as(::PlaceOS::Model::Authority).id
       raise Error::ModelValidation.new(asset_category.errors) unless asset_category.save
       asset_category
     end

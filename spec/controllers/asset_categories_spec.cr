@@ -24,6 +24,55 @@ module PlaceOS::Api
       end
     end
 
+    describe "authority ownership" do
+      it "sets the authority_id from the current authority on create" do
+        body = Model::Generator.asset_category.to_json
+        result = client.post(
+          AssetCategories.base_route,
+          body: body,
+          headers: Spec::Authentication.headers(sys_admin: true, support: false),
+        )
+        result.status_code.should eq 201
+
+        created = Model::AssetCategory.from_trusted_json(result.body)
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        created.authority_id.should eq authority.id
+        created.destroy
+      end
+
+      it "rejects updates to a category owned by another authority" do
+        other_authority = Model::Generator.authority(domain: "https://other-asset-cat.example.com").save!
+        asset_category = Model::Generator.asset_category(other_authority).save!
+
+        result = client.patch(
+          path: "#{AssetCategories.base_route}#{asset_category.id}",
+          body: {name: "renamed-#{random_name}"}.to_json,
+          headers: Spec::Authentication.headers(sys_admin: true, support: false),
+        )
+        result.status_code.should eq 403
+
+        asset_category.destroy
+        other_authority.destroy
+      end
+
+      it "adopts a legacy category with no authority on update" do
+        asset_category = Model::Generator.asset_category.save!
+        # simulate a legacy record predating the authority_id column
+        asset_category.update_fields(authority_id: nil)
+
+        result = client.patch(
+          path: "#{AssetCategories.base_route}#{asset_category.id}",
+          body: {name: "renamed-#{random_name}"}.to_json,
+          headers: Spec::Authentication.headers(sys_admin: true, support: false),
+        )
+        result.success?.should be_true
+
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        Model::AssetCategory.find!(asset_category.id).authority_id.should eq authority.id
+        asset_category.destroy
+      end
+    end
+
     describe "scopes" do
       Spec.test_controller_scope(AssetCategories)
     end
