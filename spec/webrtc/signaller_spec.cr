@@ -66,7 +66,7 @@ def signaller(on_message : Proc(String, _) = ->(_msg : String) { }, &)
 
   socket.on_message &on_message
 
-  spawn(same_thread: true) { socket.run }
+  spawn { socket.run }
 
   yield socket
 

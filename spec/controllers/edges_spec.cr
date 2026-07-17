@@ -33,7 +33,7 @@ module PlaceOS::Api
         )
 
         websocket = client.establish_ws(uri, headers: HTTP::Headers{"Host" => edge_host})
-        spawn(same_thread: true) { websocket.run }
+        spawn { websocket.run }
         edge_client.connect(websocket) do
           edge_client.transport.closed?.should be_false
           edge_client.disconnect
