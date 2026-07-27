@@ -141,6 +141,7 @@ def clear_group_tables
     PlaceOS::Model::GroupUser,
     PlaceOS::Model::GroupPlaylistItem,
     PlaceOS::Model::GroupPlaylist,
+    PlaceOS::Model::GroupSignageTemplate,
     PlaceOS::Model::Group,
     PlaceOS::Model::DoorkeeperApplication,
   ].each(&.clear)
