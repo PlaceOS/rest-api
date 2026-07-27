@@ -57,6 +57,9 @@ def clear_tables
     PlaceOS::Model::GroupInvitation,
     PlaceOS::Model::GroupZone,
     PlaceOS::Model::GroupUser,
+    PlaceOS::Model::GroupSignageTemplate,
+    PlaceOS::Model::SignageTemplate::SystemTemplate,
+    PlaceOS::Model::SignageTemplate,
     PlaceOS::Model::Group,
   ].each(&.clear)
 
