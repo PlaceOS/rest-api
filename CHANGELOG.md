@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: template management controller
 - **asset_categories**: scope to authority
 - **signage**: add media item scheduling support
 - [PPT-2508] add metadata rename endpoint ([#438](https://github.com/PlaceOS/rest-api/pull/438))
