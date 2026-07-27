@@ -206,6 +206,7 @@
 
 ### Perf
 
+- **signage**: resolve viewer zones in the database
 - **metadata**: remove metadata querying ([#289](https://github.com/PlaceOS/rest-api/pull/289))
 
 ## v1.48.0 (2022-06-01)
