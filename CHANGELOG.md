@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: template mappings controller
 - **signage**: template management controller
 - **asset_categories**: scope to authority
 - **signage**: add media item scheduling support
