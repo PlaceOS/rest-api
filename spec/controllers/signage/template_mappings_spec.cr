@@ -298,6 +298,102 @@ module PlaceOS::Api
         client.delete(File.join(base, mapping.id.to_s), headers: headers).status_code.should eq 202
       end
 
+      it "lets a viewer of a zone see mappings applied to it (read-only)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        # the template itself is NOT linked to any of the user's groups
+        template = Model::Generator.signage_template(authority: authority).save!
+        mapping = Model::Generator.system_template(template: template, zone: zone).save!
+
+        show = client.get(File.join(base, mapping.id.to_s), headers: headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["template_details"]["id"].as_s.should eq template.id.to_s
+
+        index = client.get(base, headers: headers)
+        index.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(index.body).map(&.["id"].as_s)
+        ids.should eq [mapping.id.to_s]
+
+        # viewing the target does not grant edit rights
+        body = {schedule: {play_cron: "0 9 * * *"}}.to_json
+        client.patch(File.join(base, mapping.id.to_s), body: body, headers: headers).status_code.should eq 403
+        client.delete(File.join(base, mapping.id.to_s), headers: headers).status_code.should eq 403
+      end
+
+      it "lets a viewer of a display see mappings applied to it (read-only)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        sys = Model::Generator.control_system
+        sys.zones = [zone.id.as(String)]
+        sys.save!
+
+        template = Model::Generator.signage_template(authority: authority).save!
+        mapping = Model::Generator.system_template(template: template, control_system: sys).save!
+
+        show = client.get(File.join(base, mapping.id.to_s), headers: headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["template_details"]["id"].as_s.should eq template.id.to_s
+
+        index = client.get(base, headers: headers)
+        Array(Hash(String, JSON::Any)).from_json(index.body).map(&.["id"].as_s).should eq [mapping.id.to_s]
+
+        client.delete(File.join(base, mapping.id.to_s), headers: headers).status_code.should eq 403
+      end
+
+      it "grants visibility through the zone tree (grant on a parent zone)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        parent_zone = Model::Generator.zone.save!
+        child_zone = Model::Generator.zone
+        child_zone.parent_id = parent_zone.id
+        child_zone.save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: parent_zone, permissions: Model::Permissions::Read).save!
+
+        template = Model::Generator.signage_template(authority: authority).save!
+        mapping = Model::Generator.system_template(template: template, zone: child_zone).save!
+
+        show = client.get(File.join(base, mapping.id.to_s), headers: headers)
+        show.status_code.should eq 200
+
+        index = client.get(base, headers: headers)
+        Array(Hash(String, JSON::Any)).from_json(index.body).map(&.["id"].as_s).should eq [mapping.id.to_s]
+      end
+
+      it "does not grant visibility via unrelated zones" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        granted_zone = Model::Generator.zone.save!
+        other_zone = Model::Generator.zone.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: granted_zone, permissions: Model::Permissions::Read).save!
+
+        template = Model::Generator.signage_template(authority: authority).save!
+        mapping = Model::Generator.system_template(template: template, zone: other_zone).save!
+
+        client.get(File.join(base, mapping.id.to_s), headers: headers).status_code.should eq 403
+
+        index = client.get(base, headers: headers)
+        Array(Hash(String, JSON::Any)).from_json(index.body).should be_empty
+      end
+
       it "mappings of unlinked templates are admin-only" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

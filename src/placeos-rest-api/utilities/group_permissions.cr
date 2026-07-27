@@ -288,6 +288,17 @@ module PlaceOS::Api
       zones.uniq
     end
 
+    # SQL subquery (single column: zone id) of the zones where the current
+    # user holds `required` within any of `subsystems` — the zone-subtree
+    # expansion runs in the database rather than materialising the zone set
+    # in memory (see Group.accessible_zones_sql). nil when nothing
+    # qualifies; callers should treat that as an empty set.
+    def accessible_zones_scope_sql(subsystems : Array(String), required : ::PlaceOS::Model::Permissions) : String?
+      ::PlaceOS::Model::Group.accessible_zones_sql(
+        current_user.authority_id.as(String), subsystems, current_user.id.as(String), required,
+      )
+    end
+
     # Zone ids reachable by the current user via the "support" subsystem.
     # Useful for scoping index/list queries. Served from the per-request memo.
     def support_accessible_zone_ids : Array(String)

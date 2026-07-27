@@ -17,6 +17,7 @@ module PlaceOS::Api
   end
 
   class SignageTemplateMappings < Application
+    include Utils::Permissions
     include Utils::GroupPermissions
 
     base "/api/engine/v2/signage/template_mappings"
@@ -57,11 +58,19 @@ module PlaceOS::Api
     # Permissions
     ###############################################################################################
     #
-    # Access model: mappings inherit the permissions of the TEMPLATE they
+    # Access model: writes inherit the permissions of the TEMPLATE they
     # apply — the caller's effective permission bits across the groups the
     # template is linked to (via GroupSignageTemplate), same as the
-    # signage/templates controller. sys_admin / support bypass all checks.
-    # Mappings of templates with no group links are admin/support-only.
+    # signage/templates controller. Reads are additionally granted to
+    # anyone who can view the mapping's TARGET — a signage/support
+    # subsystem Read grant (or legacy org-zone access) on the zone, or on
+    # any of the display's zones — so viewers of a display or zone can see
+    # the templates applied to it (including the hydrated template) even
+    # when they can't edit them. sys_admin / support bypass all checks.
+    # Mappings of unlinked templates on targets without zone grants are
+    # admin/support-only.
+
+    SIGNAGE_SUBSYSTEMS = ["signage", SUPPORT_SUBSYSTEM]
 
     private def linked_groups_for(template : ::PlaceOS::Model::SignageTemplate) : Array(UUID)
       ::PlaceOS::Model::GroupSignageTemplate
@@ -78,9 +87,65 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless block.call(perms)
     end
 
+    # SQL subquery of the zones on which the caller can view signage
+    # configuration: a Read (or Manage) grant via the signage/support
+    # subsystems, plus the legacy org-zone path. The zone set is resolved
+    # in the database — never materialised in memory (there can be 1000s
+    # of zones). nil means no viewable zones. Memoised per request.
+    private def viewer_zone_scope_sql : String?
+      return @viewer_zone_scope_sql if @viewer_zone_scope_checked
+      @viewer_zone_scope_checked = true
+
+      scope = accessible_zones_scope_sql(SIGNAGE_SUBSYSTEMS, ::PlaceOS::Model::Permissions::Read)
+
+      legacy_zone = if (org_zone = support_org_zone_id) && check_access(current_user.groups, [org_zone]).can_manage?
+                      org_zone
+                    end
+
+      @viewer_zone_scope_sql = if scope && legacy_zone
+                                 "(SELECT zone_id FROM #{scope} AS a(zone_id) UNION SELECT '#{legacy_zone.gsub("'", "''")}')"
+                               elsif legacy_zone
+                                 "(SELECT '#{legacy_zone.gsub("'", "''")}' AS zone_id)"
+                               else
+                                 scope
+                               end
+    end
+
+    @viewer_zone_scope_sql : String? = nil
+    @viewer_zone_scope_checked : Bool = false
+
+    # read access to the mapping's target (display or zone) grants
+    # visibility of the mapping — resolved via a single EXISTS probe
+    # against the viewer-zone subquery
+    private def can_view_target?(mapping : ::PlaceOS::Model::SignageTemplate::SystemTemplate) : Bool
+      zones = if sys_id = mapping.control_system_id.presence
+                ::PlaceOS::Model::ControlSystem.find?(sys_id).try(&.zones) || [] of String
+              elsif zone_id = mapping.zone_id.presence
+                [zone_id]
+              else
+                [] of String
+              end
+      return false if zones.empty?
+      return false unless scope = viewer_zone_scope_sql
+
+      zones_sql = ::PlaceOS::Model::Associations.format_list_for_postgres(zones)
+      ::PgORM::Database.connection do |db|
+        db.query_one(
+          "SELECT EXISTS (SELECT 1 FROM #{scope} AS v(zone_id) WHERE v.zone_id = ANY(#{zones_sql}))",
+          &.read(Bool)
+        )
+      end
+    end
+
     @[AC::Route::Filter(:before_action, only: [:show])]
     def check_read_access
-      enforce_template_access!(mapping_template, &.read?)
+      return if user_support?
+
+      groups = linked_groups_for(mapping_template)
+      return if !groups.empty? && effective_permissions_for(current_user, groups).read?
+      return if can_view_target?(current_mapping)
+
+      raise Error::Forbidden.new
     end
 
     @[AC::Route::Filter(:before_action, only: [:update])]
@@ -141,28 +206,45 @@ module PlaceOS::Api
         .where("template_id IN (SELECT id FROM signage_template WHERE authority_id = ?)", authority.id.as(String))
 
       unless user_support?
+        # templates readable via group links
         viewable = group_memberships(current_user).compact_map do |g_id, g_perms|
           g_id if g_perms.read?
         end
-        if viewable.empty?
+        readable_ids = if viewable.empty?
+                         [] of UUID
+                       else
+                         ::PlaceOS::Model::GroupSignageTemplate
+                           .where({:group_id => viewable})
+                           .to_a
+                           .map(&.signage_template_id)
+                           .uniq!
+                       end
+
+        # targets (displays / zones) viewable via zone grants — resolved as
+        # an SQL subquery so the zone set is never materialised in memory
+        zone_scope = viewer_zone_scope_sql
+
+        if readable_ids.empty? && zone_scope.nil?
           set_collection_headers(0, "template_mappings")
           return [] of ::PlaceOS::Model::SignageTemplate::SystemTemplate
         end
-        readable_ids = ::PlaceOS::Model::GroupSignageTemplate
-          .where(group_id: viewable)
-          .to_a
-          .map(&.signage_template_id)
-          .uniq!
-        if readable_ids.empty?
-          set_collection_headers(0, "template_mappings")
-          return [] of ::PlaceOS::Model::SignageTemplate::SystemTemplate
+
+        conditions = [] of String
+        unless readable_ids.empty?
+          conditions << "template_id IN (#{readable_ids.join(',') { |id| "'#{id}'" }})"
         end
-        query = query.where(template_id: readable_ids)
+        if zone_scope
+          conditions << "zone_id IN #{zone_scope}"
+          conditions << "control_system_id IN (SELECT id FROM sys WHERE zones && ARRAY#{zone_scope})"
+        end
+        query = query.where("(#{conditions.join(" OR ")})", [] of ::PgORM::Value)
       end
 
-      query = query.where(control_system_id: control_system_id) if control_system_id
-      query = query.where(zone_id: zone_id) if zone_id
-      query = query.where(template_id: template_id) if template_id
+      # raw-SQL filters: pg-orm can't compile named-arg `where` chained
+      # with the raw-SQL conditions above
+      query = query.where("control_system_id = ?", control_system_id) if control_system_id
+      query = query.where("zone_id = ?", zone_id) if zone_id
+      query = query.where("template_id = ?", template_id) if template_id
 
       hydrate! paginate_sql(query, type: "template_mappings", limit: limit, offset: offset)
     end
