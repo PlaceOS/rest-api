@@ -203,6 +203,9 @@ module PlaceOS::Api
         query = query.where("(name ILIKE ? OR description ILIKE ?)", pattern, pattern)
       end
 
+      # newest templates first; id tiebreak keeps pagination stable
+      query = query.order("created_at DESC, id")
+
       paginate_sql(query, type: "templates", limit: limit, offset: offset)
     end
 

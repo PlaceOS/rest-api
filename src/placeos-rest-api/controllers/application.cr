@@ -98,7 +98,9 @@ module PlaceOS::Api
       offset : Int32 = 0,
       route : String = base_route,
     )
-      total = query.count.to_i32
+      # ORDER BY must not reach the aggregate — Postgres rejects
+      # non-aggregated order columns in a COUNT query
+      total = query.unscope(:order).count.to_i32
       results = query.offset(offset).limit(limit).to_a
 
       range_end = offset + results.size

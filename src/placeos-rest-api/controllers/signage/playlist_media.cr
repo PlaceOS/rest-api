@@ -156,6 +156,9 @@ module PlaceOS::Api
         query = query.where("tags && ARRAY[#{placeholders}]::text[]", args: filter_tags)
       end
 
+      # newest items first; id tiebreak keeps pagination stable
+      query = query.order("created_at DESC, id")
+
       paginate_sql(query, type: "playlist_items", limit: limit, offset: offset)
     end
 

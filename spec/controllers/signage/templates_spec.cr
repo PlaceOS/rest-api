@@ -166,6 +166,18 @@ module PlaceOS::Api
     end
 
     describe "index filtering" do
+      it "returns newest templates first" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        oldest = Model::Generator.signage_template(authority: authority).save!
+        middle = Model::Generator.signage_template(authority: authority).save!
+        newest = Model::Generator.signage_template(authority: authority).save!
+
+        result = client.get(base, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should eq [newest.id.to_s, middle.id.to_s, oldest.id.to_s]
+      end
+
       it "scopes non-admin callers to templates linked to their groups" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

@@ -148,6 +148,15 @@ module PlaceOS::Api
         query = query.where("(name ILIKE ? OR description ILIKE ?)", pattern, pattern)
       end
 
+      # natural name ordering a->z: leading text, then the first embedded
+      # number numerically ("Screen 2" before "Screen 10"), then the full
+      # name case-insensitively; id tiebreak keeps pagination stable
+      query = query.order(
+        "substring(lower(name) from '^\\D*'), " \
+        "NULLIF(substring(name from '\\d+'), '')::numeric NULLS FIRST, " \
+        "lower(name), id"
+      )
+
       paginate_sql(query, type: "playlists", limit: limit, offset: offset)
     end
 

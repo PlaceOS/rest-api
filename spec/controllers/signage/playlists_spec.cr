@@ -125,6 +125,28 @@ module PlaceOS::Api
     end
 
     describe "index filtering" do
+      it "sorts playlists by name with natural ordering" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        names = ["Screen 10", "atrium", "Screen 2", "Foyer"]
+        playlists = names.map do |name|
+          playlist = Model::Generator.playlist(authority: authority)
+          playlist.name = name
+          playlist.save!
+        end
+        by_name = playlists.to_h { |p| {p.name, p.id.to_s} }
+
+        result = client.get(base, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should eq [
+          by_name["atrium"],
+          by_name["Foyer"],
+          by_name["Screen 2"],
+          by_name["Screen 10"],
+        ]
+      end
+
       it "scopes non-admin callers to playlists linked to their groups" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
