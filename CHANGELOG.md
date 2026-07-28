@@ -113,6 +113,7 @@
 
 ### Fix
 
+- **signage**: stable index ordering for pagination
 - **shard.lock**: remove same_thread references in libs
 - **websocket/session**: subscription leak on close
 - **shard.lock**: update required dependencies
