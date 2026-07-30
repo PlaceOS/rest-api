@@ -24339,6 +24339,1537 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/template_mappings:
+    get:
+      summary: list the template mappings in the current authority — what templates
+      description: 'list the template mappings in the current authority — what templates
+
+        are applied to which displays and zones. Non-admin callers see only
+
+        mappings of templates linked to groups they hold Read on.'
+      tags:
+      - SignageTemplateMappings
+      operationId: PlaceOS::Api::SignageTemplateMappings_index
+      parameters:
+      - name: control_system_id
+        in: query
+        description: filter to mappings applied to this display (control system id)
+        schema:
+          type: string
+          nullable: true
+      - name: zone_id
+        in: query
+        description: filter to mappings applied to this zone
+        schema:
+          type: string
+          nullable: true
+      - name: template_id
+        in: query
+        description: filter to mappings of this template
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          format: Int32
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: Int32
+      - name: q
+        in: query
+        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        schema:
+          type: string
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        schema:
+          type: string
+          nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      summary: apply a template to a display (control system) or a zone — exactly
+        one
+      description: 'apply a template to a display (control system) or a zone — exactly
+        one
+
+        of the two. A mapping without a schedule is the default template for
+
+        the pairing (at most one); scheduled mappings show the template during
+
+        the schedule. Requires Create permission on the template''s groups.'
+      tags:
+      - SignageTemplateMappings
+      operationId: PlaceOS::Api::SignageTemplateMappings_create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        required: true
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/template_mappings/{id}:
+    get:
+      summary: return the details of a template mapping, including the applied
+      description: 'return the details of a template mapping, including the applied
+
+        template and its background media'
+      tags:
+      - SignageTemplateMappings
+      operationId: PlaceOS::Api::SignageTemplateMappings_show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    put:
+      summary: update the schedule of a template mapping. Only the schedule can be
+      description: 'update the schedule of a template mapping. Only the schedule can
+        be
+
+        changed — apply a template elsewhere by removing the mapping and
+
+        creating a new one. An explicit `"schedule": null` clears the schedule,
+
+        making this mapping the default for its pairing.'
+      tags:
+      - SignageTemplateMappings
+      operationId: PlaceOS::Api::SignageTemplateMappings_update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: remove a template mapping from a display or zone
+      tags:
+      - SignageTemplateMappings
+      operationId: PlaceOS::Api::SignageTemplateMappings_destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: update the schedule of a template mapping. Only the schedule can be
+      description: 'update the schedule of a template mapping. Only the schedule can
+        be
+
+        changed — apply a template elsewhere by removing the mapping and
+
+        creating a new one. An explicit `"schedule": null` clears the schedule,
+
+        making this mapping the default for its pairing.'
+      tags:
+      - SignageTemplateMappings
+      operationId: PlaceOS::Api::SignageTemplateMappings_update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate__SystemTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/templates:
+    get:
+      summary: list signage templates in the current authority. Only approved (live)
+      description: 'list signage templates in the current authority. Only approved
+        (live)
+
+        templates are returned — pending drafts are resolved via `show`.
+
+
+        Non-admin callers see only templates linked to groups they''re a
+
+        member of (direct or transitive). Pass `group_id=...` to scope to
+
+        a specific group (caller must have Read on that group). Pass
+
+        `q=...` for a case-insensitive substring search over `name` and
+
+        `description`.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_index
+      parameters:
+      - name: group_id
+        in: query
+        description: filter to templates linked to this group (caller must have Read
+          on the group)
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      - name: q
+        in: query
+        description: case-insensitive substring search on name and description (SQL
+          ILIKE)
+        schema:
+          type: string
+          nullable: true
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          format: Int32
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          format: Int32
+      - name: ref
+        in: query
+        description: a token for accessing the next page of results, provided in the
+          `Link` header
+        schema:
+          type: string
+          nullable: true
+      - name: fields
+        in: query
+        description: (Optional, comma separated array of strings) Array of fields
+          you wish to search. Accepts wildcard expresssions and boost relevance score
+          for matches for particular field using a caret ^ operator.
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      summary: add a new signage template. Non-admin callers must supply `group_id`
+      description: 'add a new signage template. Non-admin callers must supply `group_id`
+
+        and hold Create permission on that group — the template is
+
+        auto-linked to the group via a GroupSignageTemplate junction row so
+
+        the creator can see it immediately. Admin/support callers may omit
+
+        `group_id`, in which case the template is created unlinked
+
+        (admin-only visibility). New templates start unapproved.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        required: true
+      parameters:
+      - name: group_id
+        in: query
+        description: group id to auto-link the new template to (required for non-admin
+          callers)
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/templates/{id}:
+    get:
+      summary: return the details of the requested template. By default the pending
+      description: 'return the details of the requested template. By default the pending
+
+        draft is returned when one exists (falling back to the approved
+
+        version); pass `approved=true` for the approved version always.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: approved
+        in: query
+        description: return the approved (live) version even when a pending draft
+          exists
+        schema:
+          type: boolean
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    put:
+      summary: 'update a template. Approved templates are never modified in place:'
+      description: 'update a template. Approved templates are never modified in place:
+
+        changes to layout fields (background_item_id, layouts,
+
+        full_screen_takeover) are staged on a draft which must be approved
+
+        before going live. Metadata (name, description, tags) is applied
+
+        directly without approval. Responds with the pending version — the
+
+        same record the default `show` returns.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: remove a signage template (pending drafts and group links cascade)
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: 'update a template. Approved templates are never modified in place:'
+      description: 'update a template. Approved templates are never modified in place:
+
+        changes to layout fields (background_item_id, layouts,
+
+        full_screen_takeover) are staged on a draft which must be approved
+
+        before going live. Metadata (name, description, tags) is applied
+
+        directly without approval. Responds with the pending version — the
+
+        same record the default `show` returns.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/templates/{id}/draft:
+    delete:
+      summary: discard the pending draft, reverting to the approved version
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_destroy_draft
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/templates/share:
+    post:
+      summary: Share one or more templates into another signage group via
+      description: "Share one or more templates into another signage group via\n`GroupSignageTemplate`
+        junctions. Existing junctions are preserved\n(no duplicates); the response
+        separates newly-created links\nfrom ones that were already in place.\n\nPermissions:\n-
+        sys_admin / support: any signage group in the caller's authority.\n- regular
+        user: must hold Share or Manage on the target group, and\n  must have Read
+        on each template they're trying to share.\n\nAll templates and the target
+        group must share the caller's\nauthority."
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_share
+      parameters:
+      - name: items
+        in: query
+        description: comma-separated template ids to share into the target group
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+      - name: to
+        in: query
+        description: target group id (must participate in the 'signage' subsystem)
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamedTuple_linked__Array_String___already_present__Array_String__'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/templates/{id}/approve:
+    post:
+      summary: approve the pending changes for a template. Promotes the pending
+      description: 'approve the pending changes for a template. Promotes the pending
+
+        draft onto the live template (or approves a template that has never
+
+        been approved). 406 when there is nothing to approve.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_approve
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__SignageTemplate'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/templates/approvers:
+    get:
+      summary: list the users who can approve templates for a group (those with the
+      description: 'list the users who can approve templates for a group (those with
+        the
+
+        Approve or Manage permission), climbing to the nearest ancestor group
+
+        that has approvers.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_approvers
+      parameters:
+      - name: group_id
+        in: query
+        description: group to find approvers for
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Api__SignageTemplates__Approver'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/templates/{id}/request_approval:
+    post:
+      summary: request approval for a template's pending changes. Notifies the group's
+      description: 'request approval for a template''s pending changes. Notifies the
+        group''s
+
+        approvers (or a specific `approver_id`) by queuing a PendingMail for the
+
+        signage mailer. Any member of the group (or a parent group) may request.'
+      tags:
+      - SignageTemplates
+      operationId: PlaceOS::Api::SignageTemplates_request_approval
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__SignageTemplates__ApprovalMessage'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: group_id
+        in: query
+        description: group whose approvers should be notified
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: approver_id
+        in: query
+        description: notify only this approver (must have approve or manage permission
+          in the group)
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/{system_id}:
     get:
       summary: return all the details for displaying signage
@@ -30591,6 +32122,9 @@ components:
         hidden:
           type: boolean
           nullable: true
+        authority_id:
+          type: string
+          nullable: true
         parent_category_id:
           type: string
           nullable: true
@@ -32335,6 +33869,11 @@ components:
         playlist_item_id:
           type: string
           nullable: true
+        space_config:
+          type: object
+          additionalProperties:
+            type: object
+          nullable: true
         remove_zones:
           type: array
           items:
@@ -33372,6 +34911,12 @@ components:
                 - static
                 - interactive
                 - playsthrough
+                nullable: true
+              plugin_type:
+                type: string
+                enum:
+                - plugin
+                - widget
                 nullable: true
               authority_id:
                 type: string
@@ -36287,6 +37832,12 @@ components:
           - interactive
           - playsthrough
           nullable: true
+        plugin_type:
+          type: string
+          enum:
+          - plugin
+          - widget
+          nullable: true
         authority_id:
           type: string
           nullable: true
@@ -36307,6 +37858,160 @@ components:
           type: string
           nullable: true
       required: []
+    PlaceOS__Model__SignageTemplate__SystemTemplate:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        control_system_id:
+          type: string
+          nullable: true
+        zone_id:
+          type: string
+          nullable: true
+        template_id:
+          type: string
+          format: uuid
+          nullable: true
+        schedule:
+          type: object
+          properties:
+            play_at:
+              type: integer
+              format: Int64
+              nullable: true
+            play_takeover:
+              type: boolean
+            play_period:
+              type: integer
+              format: Int32
+            play_cron:
+              type: string
+          required:
+          - play_takeover
+          - play_period
+          - play_cron
+          nullable: true
+      required: []
+    PlaceOS__Model__SignageTemplate:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        authority_id:
+          type: string
+          nullable: true
+        background_item_id:
+          type: string
+          nullable: true
+        layouts:
+          type: array
+          items:
+            type: object
+            properties:
+              plugin_id:
+                type: string
+                nullable: true
+              position:
+                type: string
+                enum:
+                - top
+                - bottom
+                - left
+                - right
+                - floating
+              x_pos:
+                type: number
+                format: Float32
+                nullable: true
+              y_pos:
+                type: number
+                format: Float32
+                nullable: true
+              plugin_params:
+                type: object
+                additionalProperties:
+                  type: object
+            required:
+            - position
+            - plugin_params
+          nullable: true
+        full_screen_takeover:
+          type: boolean
+          nullable: true
+        approval_requested:
+          type: boolean
+          nullable: true
+        requested_by_id:
+          type: string
+          nullable: true
+        approved:
+          type: boolean
+          nullable: true
+        approved_by_id:
+          type: string
+          nullable: true
+        approved_by_name:
+          type: string
+          nullable: true
+        approved_by_email:
+          type: string
+          format: email
+          nullable: true
+        live_template_id:
+          type: string
+          format: uuid
+          nullable: true
+      required: []
+    PlaceOS__Api__SignageTemplates__Approver:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+      - id
+      - name
+    PlaceOS__Api__SignageTemplates__ApprovalMessage:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+      - message
+      description: JSON body for `request_approval`
     _PlaceOS__Model__ControlSystem___Nil_:
       type: object
       properties:
@@ -36428,6 +38133,11 @@ components:
           nullable: true
         playlist_item_id:
           type: string
+          nullable: true
+        space_config:
+          type: object
+          additionalProperties:
+            type: object
           nullable: true
         remove_zones:
           type: array
@@ -37466,6 +39176,12 @@ components:
                 - static
                 - interactive
                 - playsthrough
+                nullable: true
+              plugin_type:
+                type: string
+                enum:
+                - plugin
+                - widget
                 nullable: true
               authority_id:
                 type: string
@@ -39313,6 +41029,11 @@ components:
             playlist_item_id:
               type: string
               nullable: true
+            space_config:
+              type: object
+              additionalProperties:
+                type: object
+              nullable: true
             remove_zones:
               type: array
               items:
@@ -40350,6 +42071,12 @@ components:
                     - static
                     - interactive
                     - playsthrough
+                    nullable: true
+                  plugin_type:
+                    type: string
+                    enum:
+                    - plugin
+                    - widget
                     nullable: true
                   authority_id:
                     type: string
