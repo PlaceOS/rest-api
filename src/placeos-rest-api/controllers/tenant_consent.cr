@@ -61,8 +61,6 @@ module PlaceOS::Api
           create_outlook_config(auth_app[:client_id])
           strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
           update_auth(authority, strat.id.as(String))
-        ensure
-          update_app_redirect_uri(false)
         end
       else
         Log.warn { {message: "Admin declined consent", error: error.to_s, description: error_description.to_s} }
