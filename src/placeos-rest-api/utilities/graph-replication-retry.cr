@@ -12,9 +12,10 @@ module PlaceOS::Api
   module GraphReplicationRetry
     Log = ::Log.for(self)
 
-    # seconds between attempts, ~23s in total. Replication typically settles
-    # within a few seconds.
-    BACKOFF = {1, 2, 4, 8, 8}
+    # seconds between attempts, ~35s in total. Replication typically settles
+    # within a few seconds but has been observed (sandbox tenant, 2026-08-04)
+    # taking 25s+.
+    BACKOFF = {1, 2, 4, 8, 8, 12}
 
     def self.run(backoff = BACKOFF, & : -> T) : T forall T
       attempt = 0
@@ -35,8 +36,12 @@ module PlaceOS::Api
       body = JSON.parse(error.http_body)
       case error.http_status
       when .not_found?
-        # a just-created object is not yet visible to a request referencing it
-        body.dig?("error", "code").try(&.as_s?) == "Request_ResourceNotFound"
+        # Request_ResourceNotFound: a just-created object is not yet visible
+        # to a request referencing it.
+        # Directory_ObjectNotFound ("Unable to read the company information
+        # from the directory"): transient directory read failure while the
+        # tenant is busy replicating - documented by Microsoft as retryable.
+        body.dig?("error", "code").try(&.as_s?).in?("Request_ResourceNotFound", "Directory_ObjectNotFound")
       when .bad_request?
         # a service principal cannot be created because the application object
         # registered moments earlier has not replicated yet

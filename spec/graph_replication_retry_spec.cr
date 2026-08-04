@@ -18,8 +18,27 @@ module PlaceOS::Api
       )
     end
 
+    directory_busy_error = -> do
+      Office365::Exception.new(
+        HTTP::Status::NOT_FOUND,
+        {error: {code: "Directory_ObjectNotFound", message: "Unable to read the company information from the directory."}}.to_json,
+        "Not Found"
+      )
+    end
+
     it "returns the block value when the call succeeds" do
       GraphReplicationRetry.run { 42 }.should eq 42
+    end
+
+    it "retries transient directory reads while the tenant replicates" do
+      attempts = 0
+      value = GraphReplicationRetry.run(backoff: {0, 0, 0}) do
+        attempts += 1
+        raise directory_busy_error.call if attempts < 2
+        :materialised
+      end
+      value.should eq :materialised
+      attempts.should eq 2
     end
 
     it "retries service principal creation racing the application object" do

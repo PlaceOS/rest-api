@@ -81,7 +81,7 @@ module PlaceOS::Api
       app = Office365::Application.single_tenant_app("PlaceOS Bookings Visualiser")
         .add_required_resource(ra)
 
-      created_app = client.create_application(app)
+      created_app = GraphReplicationRetry.run { client.create_application(app) }
       Log.debug { {message: "App registerd with Application permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
       ra.each do |resource|
@@ -109,7 +109,7 @@ module PlaceOS::Api
         .add_web_redirect_uri("https://#{domain}/auth/oauth2/callback?id=#{strat_id}")
         .add_required_resource(ra)
 
-      created_app = client.create_application(app)
+      created_app = GraphReplicationRetry.run { client.create_application(app) }
       Log.debug { {message: "App registerd with Delegated permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
       GraphReplicationRetry.run do
@@ -125,7 +125,7 @@ module PlaceOS::Api
 
     private def update_app_redirect_uri(add : Bool = true) : Nil
       client = get_client
-      app = client.get_application(PLACE_APP_CLIENT_ID, "id,web")
+      app = GraphReplicationRetry.run { client.get_application(PLACE_APP_CLIENT_ID, "id,web") }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
 
       return nil if add && app_redirect_uris.includes?(redirect_url)
