@@ -85,7 +85,9 @@ module PlaceOS::Api
       Log.debug { {message: "App registerd with Application permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
       ra.each do |resource|
-        client.application_add_app_role_assignment(created_app.app_id.as(String), resource["id"])
+        GraphReplicationRetry.run do
+          client.application_add_app_role_assignment(created_app.app_id.as(String), resource["id"])
+        end
       end
 
       created_app.app_id.as(String)
@@ -110,8 +112,10 @@ module PlaceOS::Api
       created_app = client.create_application(app)
       Log.debug { {message: "App registerd with Delegated permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
-      client.application_add_oauth2_permission_grant(created_app.app_id.as(String), "Calendars.ReadWrite Calendars.ReadWrite.Shared Group.Read.All User.Read.All offline_access openid profile")
-      secret = client.application_add_pwd(created_app.app_id.as(String), "PlaceOS User Auth Secret")
+      GraphReplicationRetry.run do
+        client.application_add_oauth2_permission_grant(created_app.app_id.as(String), "Calendars.ReadWrite Calendars.ReadWrite.Shared Group.Read.All User.Read.All offline_access openid profile")
+      end
+      secret = GraphReplicationRetry.run { client.application_add_pwd(created_app.app_id.as(String), "PlaceOS User Auth Secret") }
       {client_id: created_app.app_id.as(String), client_secret: secret.secret_text.as(String)}
     end
 
@@ -144,7 +148,7 @@ module PlaceOS::Api
 
     private def add_outlook_plugin_auth(app_id : String) : Nil
       client = get_client
-      app = client.get_application(app_id)
+      app = GraphReplicationRetry.run { client.get_application(app_id) }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
       app_redirect_uris.push("#{domain_url}/outlook/#/book/spaces")
 
@@ -171,7 +175,7 @@ module PlaceOS::Api
           ],
         },
       }
-      client.update_application(app_id, updated.to_json)
+      GraphReplicationRetry.run { client.update_application(app_id, updated.to_json) }
 
       updated = {
         "api": {
@@ -185,7 +189,7 @@ module PlaceOS::Api
           ],
         },
       }
-      client.update_application(app_id, updated.to_json)
+      GraphReplicationRetry.run { client.update_application(app_id, updated.to_json) }
     end
 
     private def create_outlook_repo : Nil
