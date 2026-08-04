@@ -32,8 +32,19 @@ module PlaceOS::Api
     end
 
     def self.replication_lag?(error : ::Office365::Exception) : Bool
-      return false unless error.http_status.not_found?
-      JSON.parse(error.http_body).dig?("error", "code").try(&.as_s?) == "Request_ResourceNotFound"
+      body = JSON.parse(error.http_body)
+      case error.http_status
+      when .not_found?
+        # a just-created object is not yet visible to a request referencing it
+        body.dig?("error", "code").try(&.as_s?) == "Request_ResourceNotFound"
+      when .bad_request?
+        # a service principal cannot be created because the application object
+        # registered moments earlier has not replicated yet
+        details = body.dig?("error", "details").try(&.as_a?) || [] of JSON::Any
+        details.any? { |detail| detail["code"]?.try(&.as_s?) == "NoBackingApplicationObject" }
+      else
+        false
+      end
     rescue JSON::ParseException
       false
     end

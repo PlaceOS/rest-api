@@ -10,8 +10,27 @@ module PlaceOS::Api
       )
     end
 
+    app_not_backed_error = -> do
+      Office365::Exception.new(
+        HTTP::Status::BAD_REQUEST,
+        {error: {code: "Request_BadRequest", message: "The appId 'x' of the service principal does not reference a valid application object.", details: [{code: "NoBackingApplicationObject", message: "The appId 'x' of the service principal does not reference a valid application object.", target: "appId"}]}}.to_json,
+        "Bad Request"
+      )
+    end
+
     it "returns the block value when the call succeeds" do
       GraphReplicationRetry.run { 42 }.should eq 42
+    end
+
+    it "retries service principal creation racing the application object" do
+      attempts = 0
+      value = GraphReplicationRetry.run(backoff: {0, 0, 0}) do
+        attempts += 1
+        raise app_not_backed_error.call if attempts < 3
+        :materialised
+      end
+      value.should eq :materialised
+      attempts.should eq 3
     end
 
     it "retries replication lag until the object materialises" do
