@@ -34,8 +34,27 @@ module PlaceOS::Api
       )
     end
 
+    duplicate_create_error = -> do
+      Office365::Exception.new(
+        HTTP::Status::CONFLICT,
+        {error: {code: "Request_MultipleObjectsWithSameKeyValue", message: "The service principal cannot be created, updated, or restored because the service principal name x is already in use.", details: [{code: "ObjectConflict", message: "already in use", target: "servicePrincipalNames"}]}}.to_json,
+        "Conflict"
+      )
+    end
+
     it "returns the block value when the call succeeds" do
       GraphReplicationRetry.run { 42 }.should eq 42
+    end
+
+    it "retries a get-or-create that double-created off a stale read" do
+      attempts = 0
+      value = GraphReplicationRetry.run(backoff: {0, 0, 0}) do
+        attempts += 1
+        raise duplicate_create_error.call if attempts < 2
+        :converged
+      end
+      value.should eq :converged
+      attempts.should eq 2
     end
 
     it "retries pre-authorization racing the scope it references" do

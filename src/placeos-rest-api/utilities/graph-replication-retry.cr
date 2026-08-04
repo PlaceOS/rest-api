@@ -58,6 +58,13 @@ module PlaceOS::Api
           code == "NoBackingApplicationObject" ||
             (code == "InvalidValue" && target == "api.preAuthorizedApplications.delegatedPermissionIds")
         end
+      when .conflict?
+        # Request_MultipleObjectsWithSameKeyValue on a service principal
+        # create: the preceding existence check read a stale replica that did
+        # not yet list the service principal created moments earlier, so the
+        # get-or-create tried to create it twice. Retrying converges - the
+        # next read eventually sees the object and the create is skipped.
+        body.dig?("error", "code").try(&.as_s?) == "Request_MultipleObjectsWithSameKeyValue"
       else
         false
       end
