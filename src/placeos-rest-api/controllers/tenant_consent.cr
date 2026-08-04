@@ -6,8 +6,8 @@ module PlaceOS::Api
   class TenantConsent < Application
     base "/api/engine/v2/admin_consent"
 
-    skip_action :authorize!, only: [:index, :azure_admin_consent_callback]
-    skip_action :set_user_id, only: [:index, :azure_admin_consent_callback]
+    skip_action :authorize!, only: [:index, :azure_admin_consent_callback, :flow_status]
+    skip_action :set_user_id, only: [:index, :azure_admin_consent_callback, :flow_status]
 
     @[AC::Route::Filter(:before_action)]
     def get_host
@@ -46,26 +46,178 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "Description of the error", example: "The admin denied the request")]
       error_description : String? = nil,
     ) : Nil
-      redirect_back = "/backoffice/#/domains/"
       if ((consent = admin_consent) && consent) && (tenant_id = tenant) && (authority_id = state)
         Log.info { "Received admin consent for tenant #{tenant_id} under authority #{authority_id}" }
         authority = ::PlaceOS::Model::Authority.find?(authority_id)
         raise Error::NotFound.new("Invalid state value returned in admin consent") unless authority
-        begin
-          redirect_back = "#{redirect_back}/#{authority_id}/authentication"
-          create_app(tenant_id)
-          create_outlook_repo
-          strat = create_strat(tenant_id, authority.id.as(String))
-          auth_app = create_delegated_app(tenant_id, authority.domain, strat.id.as(String))
-          add_outlook_plugin_auth(auth_app[:client_id])
-          create_outlook_config(auth_app[:client_id])
-          strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
-          update_auth(authority, strat.id.as(String))
-        end
+
+        flow = AdminConsentFlow.new(UUID.v4.to_s, authority_id, "/backoffice/#/domains/#{authority_id}/authentication")
+        flow.save
+        @flow = flow
+
+        # The Microsoft Graph work can take minutes when directory replication
+        # is slow - run it in a fiber and respond immediately with a progress
+        # page that polls the flow status. Request-derived state (domain_host
+        # etc.) is already captured in ivars, safe to use after the response.
+        spawn { run_consent_flow(flow, tenant_id, authority) }
+
+        render html: progress_page(flow.id)
       else
         Log.warn { {message: "Admin declined consent", error: error.to_s, description: error_description.to_s} }
+        redirect_to "/backoffice/#/domains/", status: :see_other
       end
-      redirect_to redirect_back, status: :see_other
+    end
+
+    # progress of an in-flight admin-consent flow, polled by the progress page.
+    # The flow id is an unguessable capability token; the payload contains no
+    # secrets.
+    @[AC::Route::GET("/flow/:flow_id")]
+    def flow_status(
+      @[AC::Param::Info(description: "Flow identifier issued by the consent callback", example: "uuid-1234")]
+      flow_id : String,
+    ) : AdminConsentFlow
+      flow = AdminConsentFlow.load(flow_id)
+      raise Error::NotFound.new("unknown or expired flow") unless flow
+      flow
+    end
+
+    @flow : AdminConsentFlow? = nil
+
+    private def run_consent_flow(flow : AdminConsentFlow, tenant_id : String, authority : ::PlaceOS::Model::Authority) : Nil
+      flow.start_step("visualiser")
+      create_app(tenant_id)
+
+      flow.start_step("auth_app")
+      strat = create_strat(tenant_id, authority.id.as(String))
+      auth_app = create_delegated_app(tenant_id, authority.domain, strat.id.as(String))
+
+      flow.start_step("outlook")
+      create_outlook_repo
+      add_outlook_plugin_auth(auth_app[:client_id])
+      create_outlook_config(auth_app[:client_id])
+
+      flow.start_step("saving")
+      strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
+      update_auth(authority, strat.id.as(String))
+
+      flow.complete!
+      Log.info { {message: "admin consent flow complete", flow_id: flow.id, authority_id: flow.authority_id} }
+    rescue flow_error
+      Log.error(exception: flow_error) { {message: "admin consent flow failed", flow_id: flow.id, authority_id: flow.authority_id} }
+      flow.fail!(flow_error.message || flow_error.class.name)
+    end
+
+    # surfaces replication-retry waits on the progress page
+    private def replication_progress : Proc(Int32, Nil)?
+      return nil unless flow = @flow
+      ->(attempt : Int32) { flow.detail("Waiting for Microsoft to replicate (attempt #{attempt})") }
+    end
+
+    # Self-contained progress page shown in the consent tab while the fiber
+    # works. Polls the flow endpoint; no frontend build involvement.
+    private def progress_page(flow_id : String) : String
+      <<-HTML
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Microsoft Integration - PlaceOS</title>
+      <style>
+        :root { color-scheme: light dark; }
+        body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+               display: flex; align-items: center; justify-content: center; min-height: 100vh;
+               background: light-dark(#f5f6f8, #17181c); color: light-dark(#1c1d21, #e8e9ec); }
+        .card { width: min(30rem, 92vw); background: light-dark(#ffffff, #212228);
+                border-radius: 12px; padding: 2rem 2.25rem; box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+        h1 { font-size: 1.15rem; margin: 0 0 .35rem; }
+        p.sub { margin: 0 0 1.4rem; font-size: .85rem; opacity: .65; }
+        ul { list-style: none; margin: 0; padding: 0; }
+        li { display: flex; align-items: center; gap: .65rem; padding: .45rem 0; font-size: .92rem; }
+        li .mark { width: 1.15rem; height: 1.15rem; flex: none; border-radius: 50%;
+                   display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; }
+        li.pending { opacity: .45; }
+        li.pending .mark { border: 2px solid currentColor; opacity: .4; }
+        li.done .mark { background: #16a34a; color: #fff; }
+        li.failed .mark { background: #dc2626; color: #fff; }
+        li.running .mark { border: 2px solid #2563eb; border-top-color: transparent;
+                           animation: spin   .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .detail { min-height: 1.2rem; margin-top: 1rem; font-size: .8rem; opacity: .7; font-style: italic; }
+        .error { margin-top: 1rem; padding: .8rem 1rem; border-radius: 8px; font-size: .85rem;
+                 background: light-dark(#fee2e2, #3f1d1d); color: light-dark(#991b1b, #fca5a5); display: none; }
+        .footer { margin-top: 1.4rem; font-size: .78rem; opacity: .55; }
+        a { color: #2563eb; }
+      </style>
+      </head>
+      <body>
+      <div class="card">
+        <h1>Setting up your Microsoft integration</h1>
+        <p class="sub">Microsoft consent accepted &mdash; PlaceOS is registering the applications in your directory. This can take a couple of minutes while Microsoft replicates changes.</p>
+        <ul id="steps"></ul>
+        <div class="detail" id="detail"></div>
+        <div class="error" id="error"></div>
+        <div class="footer" id="footer">Elapsed <span id="elapsed">0s</span> &middot; leave this tab open</div>
+      </div>
+      <script>
+        var flowUrl = "/api/engine/v2/admin_consent/flow/#{flow_id}";
+        var started = Date.now();
+        var misses = 0;
+        var finished = false;
+
+        function draw(flow) {
+          var list = document.getElementById("steps");
+          list.innerHTML = "";
+          flow.steps.forEach(function (step) {
+            var item = document.createElement("li");
+            item.className = step.state;
+            var mark = step.state === "done" ? "&#10003;" : step.state === "failed" ? "&#10007;" : "";
+            item.innerHTML = '<span class="mark">' + mark + '</span><span>' + step.label + '</span>';
+            list.appendChild(item);
+          });
+          document.getElementById("detail").textContent = flow.detail || "";
+          if (flow.state === "complete") {
+            finished = true;
+            document.getElementById("footer").innerHTML = "Done &mdash; returning to Backoffice&hellip;";
+            try { new BroadcastChannel("placeos_admin_consent").postMessage({authority_id: flow.authority_id, state: "complete"}); } catch (ignored) {}
+            setTimeout(function () { window.location.href = flow.redirect; }, 1200);
+          } else if (flow.state === "failed") {
+            finished = true;
+            var box = document.getElementById("error");
+            box.style.display = "block";
+            box.textContent = "The integration could not be completed: " + (flow.error || "unknown error");
+            document.getElementById("footer").innerHTML = 'You can close this tab, or <a href="' + flow.redirect + '">return to Backoffice</a> and try again.';
+          }
+        }
+
+        function poll() {
+          if (finished) return;
+          fetch(flowUrl).then(function (res) {
+            if (!res.ok) throw new Error(res.status);
+            return res.json();
+          }).then(function (flow) {
+            misses = 0;
+            draw(flow);
+          }).catch(function () {
+            misses += 1;
+            if (misses > 5) {
+              document.getElementById("detail").textContent = "Connection to PlaceOS interrupted - still trying...";
+            }
+          }).finally(function () {
+            if (!finished) setTimeout(poll, 2000);
+          });
+        }
+
+        setInterval(function () {
+          if (finished) return;
+          document.getElementById("elapsed").textContent = Math.round((Date.now() - started) / 1000) + "s";
+        }, 1000);
+
+        poll();
+      </script>
+      </body>
+      </html>
+      HTML
     end
 
     private def create_app(tenant_id : String)
@@ -79,11 +231,11 @@ module PlaceOS::Api
       app = Office365::Application.single_tenant_app("PlaceOS Bookings Visualiser")
         .add_required_resource(ra)
 
-      created_app = GraphReplicationRetry.run { client.create_application(app) }
+      created_app = GraphReplicationRetry.run(on_retry: replication_progress) { client.create_application(app) }
       Log.debug { {message: "App registerd with Application permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
       ra.each do |resource|
-        GraphReplicationRetry.run do
+        GraphReplicationRetry.run(on_retry: replication_progress) do
           client.application_add_app_role_assignment(created_app.app_id.as(String), resource["id"])
         end
       end
@@ -107,13 +259,13 @@ module PlaceOS::Api
         .add_web_redirect_uri("https://#{domain}/auth/oauth2/callback?id=#{strat_id}")
         .add_required_resource(ra)
 
-      created_app = GraphReplicationRetry.run { client.create_application(app) }
+      created_app = GraphReplicationRetry.run(on_retry: replication_progress) { client.create_application(app) }
       Log.debug { {message: "App registerd with Delegated permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
-      GraphReplicationRetry.run do
+      GraphReplicationRetry.run(on_retry: replication_progress) do
         client.application_add_oauth2_permission_grant(created_app.app_id.as(String), "Calendars.ReadWrite Calendars.ReadWrite.Shared Group.Read.All User.Read.All offline_access openid profile")
       end
-      secret = GraphReplicationRetry.run { client.application_add_pwd(created_app.app_id.as(String), "PlaceOS User Auth Secret") }
+      secret = GraphReplicationRetry.run(on_retry: replication_progress) { client.application_add_pwd(created_app.app_id.as(String), "PlaceOS User Auth Secret") }
       {client_id: created_app.app_id.as(String), client_secret: secret.secret_text.as(String)}
     end
 
@@ -123,7 +275,7 @@ module PlaceOS::Api
 
     private def update_app_redirect_uri(add : Bool = true) : Nil
       client = get_client
-      app = GraphReplicationRetry.run { client.get_application(PLACE_APP_CLIENT_ID, "id,web") }
+      app = GraphReplicationRetry.run(on_retry: replication_progress) { client.get_application(PLACE_APP_CLIENT_ID, "id,web") }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
 
       return nil if add && app_redirect_uris.includes?(redirect_url)
@@ -137,7 +289,7 @@ module PlaceOS::Api
       app.web.not_nil!.redirect_uris = app_redirect_uris
       web = {"web" => app.web}
       begin
-        GraphReplicationRetry.run { client.update_application(PLACE_APP_CLIENT_ID, web.to_json) }
+        GraphReplicationRetry.run(on_retry: replication_progress) { client.update_application(PLACE_APP_CLIENT_ID, web.to_json) }
       rescue ex : Office365::Exception
         return nil if already_exists_error?(ex.http_body)
         raise ex
@@ -146,7 +298,7 @@ module PlaceOS::Api
 
     private def add_outlook_plugin_auth(app_id : String) : Nil
       client = get_client
-      app = GraphReplicationRetry.run { client.get_application(app_id) }
+      app = GraphReplicationRetry.run(on_retry: replication_progress) { client.get_application(app_id) }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
       app_redirect_uris.push("#{domain_url}/outlook/#/book/spaces")
 
@@ -173,7 +325,7 @@ module PlaceOS::Api
           ],
         },
       }
-      GraphReplicationRetry.run { client.update_application(app_id, updated.to_json) }
+      GraphReplicationRetry.run(on_retry: replication_progress) { client.update_application(app_id, updated.to_json) }
 
       updated = {
         "api": {
@@ -187,7 +339,7 @@ module PlaceOS::Api
           ],
         },
       }
-      GraphReplicationRetry.run { client.update_application(app_id, updated.to_json) }
+      GraphReplicationRetry.run(on_retry: replication_progress) { client.update_application(app_id, updated.to_json) }
     end
 
     private def create_outlook_repo : Nil

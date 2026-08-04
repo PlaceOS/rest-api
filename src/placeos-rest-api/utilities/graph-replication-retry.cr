@@ -17,7 +17,7 @@ module PlaceOS::Api
     # taking 25s+.
     BACKOFF = {1, 2, 4, 8, 8, 12}
 
-    def self.run(backoff = BACKOFF, & : -> T) : T forall T
+    def self.run(backoff = BACKOFF, on_retry : Proc(Int32, Nil)? = nil, & : -> T) : T forall T
       attempt = 0
       loop do
         begin
@@ -27,6 +27,7 @@ module PlaceOS::Api
           raise error unless delay && replication_lag?(error)
           attempt += 1
           Log.warn { "graph resource not replicated yet (attempt #{attempt}), retrying in #{delay}s" }
+          on_retry.try &.call(attempt)
           sleep delay.seconds
         end
       end
