@@ -139,7 +139,7 @@ module PlaceOS::Api
       app.web.not_nil!.redirect_uris = app_redirect_uris
       web = {"web" => app.web}
       begin
-        client.update_application(PLACE_APP_CLIENT_ID, web.to_json)
+        GraphReplicationRetry.run { client.update_application(PLACE_APP_CLIENT_ID, web.to_json) }
       rescue ex : Office365::Exception
         return nil if already_exists_error?(ex.http_body)
         raise ex

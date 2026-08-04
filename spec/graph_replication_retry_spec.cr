@@ -26,8 +26,42 @@ module PlaceOS::Api
       )
     end
 
+    stale_scope_error = -> do
+      Office365::Exception.new(
+        HTTP::Status::BAD_REQUEST,
+        {error: {code: "Request_BadRequest", message: "Property api.preAuthorizedApplications.delegatedPermissionIds has a Permission Id that cannot be found in the AppPermissions sets.", details: [{code: "InvalidValue", message: "Property api.preAuthorizedApplications.delegatedPermissionIds has a Permission Id that cannot be found in the AppPermissions sets.", target: "api.preAuthorizedApplications.delegatedPermissionIds"}]}}.to_json,
+        "Bad Request"
+      )
+    end
+
     it "returns the block value when the call succeeds" do
       GraphReplicationRetry.run { 42 }.should eq 42
+    end
+
+    it "retries pre-authorization racing the scope it references" do
+      attempts = 0
+      value = GraphReplicationRetry.run(backoff: {0, 0, 0}) do
+        attempts += 1
+        raise stale_scope_error.call if attempts < 2
+        :materialised
+      end
+      value.should eq :materialised
+      attempts.should eq 2
+    end
+
+    it "does not retry InvalidValue errors on other properties" do
+      attempts = 0
+      expect_raises(Office365::Exception) do
+        GraphReplicationRetry.run(backoff: {0, 0}) do
+          attempts += 1
+          raise Office365::Exception.new(
+            HTTP::Status::BAD_REQUEST,
+            {error: {code: "Request_BadRequest", message: "bad", details: [{code: "InvalidValue", message: "bad", target: "identifierUris"}]}}.to_json,
+            "Bad Request"
+          )
+        end
+      end
+      attempts.should eq 1
     end
 
     it "retries transient directory reads while the tenant replicates" do

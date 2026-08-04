@@ -43,10 +43,21 @@ module PlaceOS::Api
         # tenant is busy replicating - documented by Microsoft as retryable.
         body.dig?("error", "code").try(&.as_s?).in?("Request_ResourceNotFound", "Directory_ObjectNotFound")
       when .bad_request?
-        # a service principal cannot be created because the application object
-        # registered moments earlier has not replicated yet
+        # NoBackingApplicationObject: a service principal cannot be created
+        # because the application object registered moments earlier has not
+        # replicated yet.
+        # InvalidValue on preAuthorizedApplications.delegatedPermissionIds:
+        # the PATCH that added the permission scope moments earlier has not
+        # replicated, so the follow-up PATCH fails validation against a stale
+        # copy of the application. Deliberately narrow - a generic InvalidValue
+        # retry would mask real validation errors.
         details = body.dig?("error", "details").try(&.as_a?) || [] of JSON::Any
-        details.any? { |detail| detail["code"]?.try(&.as_s?) == "NoBackingApplicationObject" }
+        details.any? do |detail|
+          code = detail["code"]?.try(&.as_s?)
+          target = detail["target"]?.try(&.as_s?)
+          code == "NoBackingApplicationObject" ||
+            (code == "InvalidValue" && target == "api.preAuthorizedApplications.delegatedPermissionIds")
+        end
       else
         false
       end
