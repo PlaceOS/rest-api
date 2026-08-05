@@ -233,6 +233,7 @@ module PlaceOS::Api
       ra << {id: "ef54d2bf-783f-4e0f-bca1-3210c0444d99", type: "Role"} # Calendars.ReadWrite
       ra << {id: "5b567255-7703-4780-807c-7be8301ae99b", type: "Role"} # Group.Read.All
       ra << {id: "df021288-bdef-4463-88db-98f22de89214", type: "Role"} # User.Read.All
+      ra << {id: "913b9306-0ce1-42b8-9137-6a7df690a760", type: "Role"} # Place.Read.All - room discovery via the places API
 
       client = get_client(tenant_id)
 
