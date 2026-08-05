@@ -8,7 +8,7 @@ module PlaceOS::Api
 
       loaded = AdminConsentFlow.load(flow.id).not_nil!
       loaded.state.should eq "running"
-      loaded.steps.size.should eq 4
+      loaded.steps.size.should eq 5
       loaded.steps.all? { |step| step.state == "pending" }.should be_true
       loaded.redirect.should eq "/backoffice/#/domains/authority-test/authentication"
 

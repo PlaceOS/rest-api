@@ -85,7 +85,10 @@ module PlaceOS::Api
 
     private def run_consent_flow(flow : AdminConsentFlow, tenant_id : String, authority : ::PlaceOS::Model::Authority) : Nil
       flow.start_step("visualiser")
-      create_app(tenant_id)
+      visualiser_app = create_app(tenant_id)
+
+      flow.start_step("calendar")
+      self.class.upsert_calendar_tenant(domain_host, tenant_id, visualiser_app, authority.name)
 
       flow.start_step("auth_app")
       strat = create_strat(tenant_id, authority.id.as(String))
@@ -102,9 +105,9 @@ module PlaceOS::Api
 
       flow.complete!
       Log.info { {message: "admin consent flow complete", flow_id: flow.id, authority_id: flow.authority_id} }
-    rescue flow_error
-      Log.error(exception: flow_error) { {message: "admin consent flow failed", flow_id: flow.id, authority_id: flow.authority_id} }
-      flow.fail!(flow_error.message || flow_error.class.name)
+    rescue error
+      Log.error(exception: error) { {message: "admin consent flow failed", flow_id: flow.id, authority_id: flow.authority_id} }
+      flow.fail!(error.message || error.class.name)
     end
 
     # surfaces replication-retry waits on the progress page
@@ -240,7 +243,8 @@ module PlaceOS::Api
         end
       end
 
-      created_app.app_id.as(String)
+      secret = GraphReplicationRetry.run(on_retry: replication_progress) { client.application_add_pwd(created_app.app_id.as(String), "PlaceOS Bookings Visualiser Secret") }
+      {client_id: created_app.app_id.as(String), client_secret: secret.secret_text.as(String)}
     end
 
     private def create_delegated_app(tenant_id : String, domain : String, strat_id : String)
@@ -340,6 +344,36 @@ module PlaceOS::Api
         },
       }
       GraphReplicationRetry.run(on_retry: replication_progress) { client.update_application(app_id, updated.to_json) }
+    end
+
+    # Store the visualiser app's app-only Graph credential in the staff-api
+    # tenant for this domain - this is what gives PlaceOS calendar access
+    # without a signed-in user. The flow owns the domain's Microsoft
+    # configuration (like login_url and outlook_config), so an existing
+    # tenant is switched to these credentials; delegated mode can be
+    # re-enabled afterwards in Backoffice if a customer prefers it.
+    def self.upsert_calendar_tenant(domain : String, azure_tenant_id : String, app : NamedTuple(client_id: String, client_secret: String), name : String?) : ::PlaceOS::Model::Tenant
+      credentials = {
+        tenant:        azure_tenant_id,
+        client_id:     app[:client_id],
+        client_secret: app[:client_secret],
+      }.to_json
+
+      if tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain)
+        tenant.platform = "office365"
+        tenant.delegated = false
+        tenant.credentials = credentials
+        tenant.save!
+        tenant
+      else
+        ::PlaceOS::Model::Tenant.create!(
+          name: name,
+          domain: domain,
+          platform: "office365",
+          delegated: false,
+          credentials: credentials,
+        )
+      end
     end
 
     private def create_outlook_repo : Nil
