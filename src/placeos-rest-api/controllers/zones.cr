@@ -180,7 +180,7 @@ module PlaceOS::Api
             query = query.where("(parent_id IS NULL OR parent_id = ?)", "")
           else
             # Mix of root and specific parents (OR logic)
-            query = query.where("(parent_id IS NULL OR parent_id = '' OR parent_id = ANY(?))", other_parents)
+            query = query.where("(parent_id IS NULL OR parent_id = '' OR parent_id = ANY(#{sql_array(other_parents)}))", other_parents)
           end
         else
           # Limit results to the children of these parents (OR logic)
@@ -190,7 +190,7 @@ module PlaceOS::Api
 
       # Limit results to zones containing ALL of the passed tags
       if (filter_tags = tags) && !filter_tags.empty?
-        query = query.where("tags @> ?", filter_tags)
+        query = query.where("tags @> #{sql_array(filter_tags)}", filter_tags)
       elsif group_zone_ids.nil?
         raise Error::Forbidden.new unless parent_id || user_support?
       end

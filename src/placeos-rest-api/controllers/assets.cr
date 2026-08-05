@@ -67,69 +67,78 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return assets which have the features provided", example: "sit-to-stand,whiteboard")]
       features : Array(String)? = nil,
     ) : Array(::PlaceOS::Model::Asset)
-      elastic = ::PlaceOS::Model::Asset.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::Asset.all
 
       if zone_id
-        query.must({
-          "zone_id" => [zone_id],
-        })
+        query = query.where(zone_id: zone_id)
       end
 
-      # Filter systems by the zones it's in
+      # asset must be in every one of the listed zones (parity with the
+      # Elasticsearch AND-term semantics)
       if zones && !zones.empty?
-        query.must({
-          "zones" => zones,
-        })
+        query = query.where("zones @> #{sql_array(zones)}", zones)
       end
 
+      # asset_type_id / purchase_order_id are bigint columns; a non-numeric id
+      # can never match (the Elasticsearch term filter returned no results for
+      # unknown ids, so short-circuit rather than erroring on the cast)
       if type_id
-        query.must({
-          "asset_type_id" => [type_id],
-        })
+        if type_id_number = type_id.to_i64?
+          query = query.where(asset_type_id: type_id_number)
+        else
+          set_collection_headers(0, ::PlaceOS::Model::Asset.table_name)
+          return [] of ::PlaceOS::Model::Asset
+        end
       end
 
       if order_id
-        query.must({
-          "purchase_order_id" => [order_id],
-        })
+        if order_id_number = order_id.to_i64?
+          query = query.where(purchase_order_id: order_id_number)
+        else
+          set_collection_headers(0, ::PlaceOS::Model::Asset.table_name)
+          return [] of ::PlaceOS::Model::Asset
+        end
       end
 
       if barcode
-        query.must({
-          "barcode" => [barcode],
-        })
+        query = query.where(barcode: barcode)
       end
 
       if serial_number
-        query.must({
-          "serial_number" => [serial_number],
-        })
+        query = query.where(serial_number: serial_number)
       end
 
-      if !bookable.nil?
-        query.must({
-          "bookable" => [bookable],
-        })
+      unless bookable.nil?
+        query = query.where(bookable: bookable)
       end
 
-      if !accessible.nil?
-        query.must({
-          "accessible" => [accessible],
-        })
+      unless accessible.nil?
+        query = query.where(accessible: accessible)
       end
 
+      # asset matches any of the listed features (parity with the
+      # Elasticsearch should + minimum_should_match(1) OR semantics)
       if features && !features.empty?
-        query.should({
-          "features" => features,
-        })
-        query.minimum_should_match(1)
+        query = query.where("features && #{sql_array(features)}", features)
       end
 
-      # query.has_parent(parent: ::PlaceOS::Model::AssetType, parent_index: ::PlaceOS::Model::AssetType.table_name)
+      # searching also matches text on the asset's type (name, brand, model
+      # number) — implements the previously commented-out has_parent(AssetType)
+      # query, mirroring modules-by-driver search
+      if tsq = search_tsquery
+        query = query.where(
+          "(search_vector @@ to_tsquery('simple', ?) OR EXISTS (SELECT 1 FROM asset_type at WHERE at.id = asset.asset_type_id AND at.search_vector @@ to_tsquery('simple', ?)))",
+          tsq, tsq
+        )
+      end
 
-      query.sort({"id" => {order: :asc}})
-      paginate_results(elastic, query)
+      paginate_sql(
+        query.order("name, id"),
+        ::PlaceOS::Model::Asset.table_name,
+        limit: search_limit,
+        offset: search_offset,
+      )
     end
 
     # show the selected asset

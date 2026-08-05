@@ -1,5 +1,13 @@
 require "../helper"
 
+# GET the oauth application index, returning the ids in response order.
+# The PG-backed search is synchronous — no retry polling needed.
+def oauth_app_index_ids(path : String, headers : HTTP::Headers) : Array(String)
+  response = client.get(path, headers: headers)
+  response.status_code.should eq 200
+  Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_i64.to_s)
+end
+
 module PlaceOS::Api
   describe OAuthApplications do
     base = OAuthApplications.base_route
@@ -7,6 +15,10 @@ module PlaceOS::Api
     ::Spec.before_each do
       clear_group_tables
       Model::DoorkeeperApplication.clear
+    end
+
+    describe "index", tags: "search" do
+      Spec.test_base_index(Model::DoorkeeperApplication, OAuthApplications)
     end
 
     describe "index access" do
@@ -17,15 +29,22 @@ module PlaceOS::Api
         own = Model::Generator.doorkeeper_application(owner: common_authority).save!
         foreign = Model::Generator.doorkeeper_application(owner: other_authority).save!
 
-        sleep 1.second
-        refresh_elastic(Model::DoorkeeperApplication.table_name)
-        found = until_expected("GET", base, Spec::Authentication.headers) do |response|
-          response.success? && begin
-            ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_i.to_s)
-            ids.includes?(own.id.to_s) && ids.includes?(foreign.id.to_s)
-          end
-        end
-        found.should be_true
+        ids = oauth_app_index_ids(base, Spec::Authentication.headers)
+        ids.should contain(own.id.to_s)
+        ids.should contain(foreign.id.to_s)
+      end
+
+      it "sys_admin can filter by authority_id" do
+        common_authority = Model::Authority.find_by_domain("localhost").not_nil!
+        other_authority = Model::Generator.authority(domain: "http://other-#{Random::Secure.hex(3)}.example").save!
+
+        own = Model::Generator.doorkeeper_application(owner: common_authority).save!
+        foreign = Model::Generator.doorkeeper_application(owner: other_authority).save!
+
+        params = HTTP::Params.encode({"authority_id" => other_authority.id.as(String)})
+        ids = oauth_app_index_ids("#{base}?#{params}", Spec::Authentication.headers)
+        ids.should contain(foreign.id.to_s)
+        ids.should_not contain(own.id.to_s)
       end
 
       it "regular user with no subsystem_access only sees apps without subsystems" do
@@ -35,15 +54,9 @@ module PlaceOS::Api
         common = Model::Generator.doorkeeper_application(owner: authority).save!
         signage = Model::Generator.doorkeeper_application(owner: authority, subsystems: ["signage"]).save!
 
-        sleep 1.second
-        refresh_elastic(Model::DoorkeeperApplication.table_name)
-        found = until_expected("GET", base, headers) do |response|
-          response.success? && begin
-            ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_i.to_s)
-            ids.includes?(common.id.to_s) && !ids.includes?(signage.id.to_s)
-          end
-        end
-        found.should be_true
+        ids = oauth_app_index_ids(base, headers)
+        ids.should contain(common.id.to_s)
+        ids.should_not contain(signage.id.to_s)
       end
 
       it "regular user with subsystems sees their matching apps and the common ones, not unrelated subsystems" do
@@ -57,17 +70,10 @@ module PlaceOS::Api
         events = Model::Generator.doorkeeper_application(owner: authority, subsystems: ["events"]).save!
         common = Model::Generator.doorkeeper_application(owner: authority).save!
 
-        sleep 1.second
-        refresh_elastic(Model::DoorkeeperApplication.table_name)
-        found = until_expected("GET", base, headers) do |response|
-          response.success? && begin
-            ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_i.to_s)
-            ids.includes?(signage.id.to_s) &&
-              ids.includes?(common.id.to_s) &&
-              !ids.includes?(events.id.to_s)
-          end
-        end
-        found.should be_true
+        ids = oauth_app_index_ids(base, headers)
+        ids.should contain(signage.id.to_s)
+        ids.should contain(common.id.to_s)
+        ids.should_not contain(events.id.to_s)
       end
 
       it "ignores authority_id from non-admin callers (forces own authority)" do
@@ -81,16 +87,29 @@ module PlaceOS::Api
         # honoured for non-admin callers, the caller could enumerate.
         foreign_common = Model::Generator.doorkeeper_application(owner: other_authority).save!
 
-        sleep 1.second
-        refresh_elastic(Model::DoorkeeperApplication.table_name)
         params = HTTP::Params.encode({"authority_id" => other_authority.id.as(String)})
-        found = until_expected("GET", "#{base}?#{params}", headers) do |response|
-          response.success? && begin
-            ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_i.to_s)
-            ids.includes?(own_common.id.to_s) && !ids.includes?(foreign_common.id.to_s)
-          end
-        end
-        found.should be_true
+        ids = oauth_app_index_ids("#{base}?#{params}", headers)
+        ids.should contain(own_common.id.to_s)
+        ids.should_not contain(foreign_common.id.to_s)
+      end
+
+      it "q search combines with the non-admin subsystem gating" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        target_name = "app #{random_name}"
+        common = Model::Generator.doorkeeper_application(owner: authority, name: target_name).save!
+        other_common = Model::Generator.doorkeeper_application(owner: authority).save!
+        # matches q but is subsystem-gated away from this user
+        gated = Model::Generator.doorkeeper_application(
+          owner: authority, name: "#{target_name} gated", subsystems: ["signage"]
+        ).save!
+
+        params = HTTP::Params.encode({"q" => target_name})
+        ids = oauth_app_index_ids("#{base}?#{params}", headers)
+        ids.should contain(common.id.to_s)
+        ids.should_not contain(other_common.id.to_s)
+        ids.should_not contain(gated.id.to_s)
       end
     end
 

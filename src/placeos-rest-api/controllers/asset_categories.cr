@@ -49,16 +49,17 @@ module PlaceOS::Api
         example: "true")]
       hidden : Bool? = nil,
     ) : Array(::PlaceOS::Model::AssetCategory)
-      elastic = ::PlaceOS::Model::AssetCategory.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::AssetCategory.all
 
-      if value = hidden
-        query.must({
-          "hidden" => [value],
-        })
+      # NOTE:: the Elasticsearch implementation silently skipped this filter
+      # when `hidden=false` (Crystal falsy), contradicting the documented
+      # behaviour — both values now filter as described
+      unless hidden.nil?
+        query = query.where(hidden: hidden)
       end
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+
+      paginate_search(query, ::PlaceOS::Model::AssetCategory.table_name)
     end
 
     # show the selected asset category

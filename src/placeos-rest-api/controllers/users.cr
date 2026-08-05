@@ -199,32 +199,35 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
       authority_id : String? = nil,
     ) : Array(UserDetails)
-      elastic = ::PlaceOS::Model::User.elastic
-      search_query = search_params
-      search_query["q"] = %("#{search_query["q"]}") if search_query["q"]?.to_s.is_email?
-      query = elastic.query(search_query)
-      query.sort(NAME_SORT_ASC)
+      # PG full-text search (PPT-2644)
+      # NOTE: email-shaped queries used to be quote-wrapped for an
+      # Elasticsearch phrase match; the user table's search_vector tokenizes
+      # email addresses on [@._] and also keeps the whole address as a
+      # lexeme, so `q` passes straight through `paginate_search`
+      query = ::PlaceOS::Model::User.all
 
-      query.must_not({"deleted" => [true]}) unless include_deleted
+      query = query.where(deleted: false) unless include_deleted
 
       if !user_admin?
         # regular users can only see their own domain
-        query.filter({"authority_id" => [current_user.authority_id.as(String)]})
+        query = query.where(authority_id: current_user.authority_id.as(String))
       elsif authority = authority_id
-        query.filter({"authority_id" => [authority]})
+        query = query.where(authority_id: authority)
       end
+
+      results = paginate_search(query, ::PlaceOS::Model::User.table_name)
 
       if user_admin?
         if include_metadata
-          paginate_results(elastic, query).map &.to_admin_metadata_struct.as(UserDetails)
+          results.map &.to_admin_metadata_struct.as(UserDetails)
         else
-          paginate_results(elastic, query).map &.to_admin_struct.as(UserDetails)
+          results.map &.to_admin_struct.as(UserDetails)
         end
       else
         if include_metadata
-          paginate_results(elastic, query).map &.to_public_metadata_struct.as(UserDetails)
+          results.map &.to_public_metadata_struct.as(UserDetails)
         else
-          paginate_results(elastic, query).map &.to_public_struct.as(UserDetails)
+          results.map &.to_public_struct.as(UserDetails)
         end
       end
     end

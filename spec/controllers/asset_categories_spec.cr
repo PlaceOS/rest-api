@@ -1,11 +1,52 @@
 require "../helper"
 
+# asserts a successful asset categories index response and extracts the returned ids
+def asset_category_index_ids(result) : Array(String)
+  result.status_code.should eq 200
+  Array(Hash(String, JSON::Any))
+    .from_json(result.body)
+    .map(&.["id"].to_s)
+end
+
 module PlaceOS::Api
   describe AssetCategories do
     Spec.test_404(AssetCategories.base_route, model_name: Model::AssetCategory.table_name, headers: Spec::Authentication.headers, clz: Int64)
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::AssetCategory, AssetCategories)
+
+      it "filters categories by hidden status, including hidden=false", tags: "search" do
+        _, headers = Spec::Authentication.authentication
+
+        visible = PlaceOS::Model::Generator.asset_category
+        visible.hidden = false
+        visible.save!
+
+        concealed = PlaceOS::Model::Generator.asset_category
+        concealed.hidden = true
+        concealed.save!
+
+        base = AssetCategories.base_route.rstrip('/')
+
+        # hidden=false returns only non-hidden categories (the Elasticsearch
+        # implementation silently ignored `hidden=false`; this pins the fix)
+        ids = asset_category_index_ids(client.get("#{base}?hidden=false&limit=1000", headers: headers))
+        ids.should contain(visible.id)
+        ids.should_not contain(concealed.id)
+
+        # hidden=true returns only hidden categories
+        ids = asset_category_index_ids(client.get("#{base}?hidden=true&limit=1000", headers: headers))
+        ids.should contain(concealed.id)
+        ids.should_not contain(visible.id)
+
+        # no hidden param returns all categories
+        ids = asset_category_index_ids(client.get("#{base}?limit=1000", headers: headers))
+        ids.should contain(visible.id)
+        ids.should contain(concealed.id)
+
+        visible.destroy
+        concealed.destroy
+      end
     end
 
     describe "CRUD operations", tags: "crud" do

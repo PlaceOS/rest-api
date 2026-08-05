@@ -16,9 +16,6 @@ module PlaceOS::Api
         child2.parent_id = parent.id
         child2.save!
 
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
-
         params = HTTP::Params.encode({"parent_id" => parent.id.as(String)})
         path = "#{Zones.base_route}?#{params}"
         result = client.get(path, headers: Spec::Authentication.headers)
@@ -51,9 +48,6 @@ module PlaceOS::Api
         child3.parent_id = parent3.id
         child3.save!
 
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
-
         # Query for children of parent1 and parent2 (should not include child3)
         parent_ids = "#{parent1.id},#{parent2.id}"
         params = HTTP::Params.encode({"parent_id" => parent_ids})
@@ -83,9 +77,6 @@ module PlaceOS::Api
         child.parent_id = root1.id
         child.save!
 
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
-
         params = HTTP::Params.encode({"parent_id" => "root"})
         path = "#{Zones.base_route}?#{params}"
         result = client.get(path, headers: Spec::Authentication.headers)
@@ -113,9 +104,6 @@ module PlaceOS::Api
         child = Model::Generator.zone
         child.parent_id = nil_root.id
         child.save!
-
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
 
         params = HTTP::Params.encode({"parent_id" => "root"})
         path = "#{Zones.base_route}?#{params}"
@@ -146,9 +134,6 @@ module PlaceOS::Api
         anchor_child.save!
 
         unrelated = Model::Generator.zone.save!
-
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
 
         params = HTTP::Params.encode({"parent_id" => "root,#{anchor.id}"})
         path = "#{Zones.base_route}?#{params}"
@@ -186,9 +171,6 @@ module PlaceOS::Api
         grandchild.parent_id = child1.id
         grandchild.save!
 
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
-
         params = HTTP::Params.encode({"parent_id" => parent.id.as(String), "include_children_count" => "true"})
         path = "#{Zones.base_route}?#{params}"
         result = client.get(path, headers: Spec::Authentication.headers)
@@ -221,9 +203,6 @@ module PlaceOS::Api
           child.save!
           children << child
         end
-
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
 
         params = HTTP::Params.encode({
           "parent_id"              => parent.id.as(String),
@@ -261,9 +240,6 @@ module PlaceOS::Api
 
         group = Model::Generator.group(authority: authority).save!
         Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
-
-        sleep 1.second
-        refresh_elastic(Model::Zone.table_name)
 
         params = HTTP::Params.encode({"group_id" => group.id.to_s})
         result = client.get("#{Zones.base_route}?#{params}", headers: Spec::Authentication.headers)
