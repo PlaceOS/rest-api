@@ -208,23 +208,19 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return systems which are signage", example: "true")]
       signage : Bool? = nil,
     ) : Array(::PlaceOS::Model::ControlSystem)
-      elastic = ::PlaceOS::Model::ControlSystem.elastic
-      query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::ControlSystem.all
 
       # `zone_id` keeps its original AND semantics — a system must
       # contain *every* listed zone. The intended use is intersection
       # filters like "all meeting rooms on level 3", where each zone
       # tag narrows the result.
       if zone_id && !zone_id.empty?
-        query.must({
-          "zones" => zone_id,
-        })
+        query = query.where("zones @> #{sql_array(zone_id)}", zone_id)
       end
 
       # `group_id` and `subsystem` build an OR scope — a system needs
-      # to be in *any one* of the resolved zones. Their zone lists are
-      # combined into a single `should` clause with
-      # `minimum_should_match(1)` so the OR semantic is preserved.
+      # to be in *any one* of the resolved zones (array overlap).
       # When both are supplied the lists union; when neither is, no
       # scope clause is added.
       scope_zones = [] of String
@@ -250,74 +246,66 @@ module PlaceOS::Api
           set_collection_headers(0, ::PlaceOS::Model::ControlSystem.table_name)
           return [] of ::PlaceOS::Model::ControlSystem
         end
-        query.should({
-          "zones" => scope_zones.uniq!,
-        })
-        query.minimum_should_match(1)
+        scope_zones.uniq!
+        query = query.where("zones && #{sql_array(scope_zones)}", scope_zones)
       end
 
       # Filter by module_id
       if module_id
-        query.must({
-          "modules" => [module_id],
-        })
+        query = query.where("? = ANY(modules)", module_id)
       end
 
-      # Filter by trigger_id
+      # Filter by trigger_id — systems that have a TriggerInstance of
+      # the given trigger.
+      # NOTE: the Elasticsearch version combined a has_child clause with
+      # a same-document type filter that no document could satisfy, so
+      # `?trigger_id=` always returned an empty list — this implements
+      # the intended semantics.
       if trigger_id
-        query.has_child(::PlaceOS::Model::TriggerInstance)
-        query.must({
-          "trigger_id" => [trigger_id],
-        })
+        query = query.where(
+          "EXISTS (SELECT 1 FROM trig WHERE trig.control_system_id = sys.id AND trig.trigger_id = ?)",
+          trigger_id
+        )
       end
 
-      # Filter by features
-      if features
-        query.must({
-          "features" => features,
-        })
+      # Filter by features — the system must have all of those requested
+      if features && !features.empty?
+        query = query.where("features @> #{sql_array(features)}", features)
       end
 
-      # filter by capacity
+      # filter by capacity (equal or greater)
       if capacity
-        query.range({
-          "capacity" => {
-            :gte => capacity,
-          },
-        })
+        query = query.where("capacity >= ?", capacity)
       end
 
       # filter by bookable
       unless bookable.nil?
-        query.must({
-          "bookable" => [bookable],
-        })
+        query = query.where(bookable: bookable)
       end
 
-      # filter by emails
-      if email
-        query.should({
-          "email" => email,
-        })
+      # filter by emails — exact (case-insensitive) match on any of the
+      # provided addresses.
+      # NOTE: the Elasticsearch version placed email in an optional
+      # `should` clause: on its own it filtered nothing and, combined
+      # with `group_id`/`subsystem`, it OR-ed into (widened) the zone
+      # scope. It is now a strict AND filter.
+      if email && !email.empty?
+        emails = email.map(&.strip.downcase)
+        query = query.where("LOWER(email) = ANY(#{sql_array(emails)})", emails)
       end
 
-      # filter by public
+      # filter by public (only filters when true, parity with the
+      # previous behaviour — `?public=false` returns everything)
       if public
-        query.must({
-          "public" => [true],
-        })
+        query = query.where(public: true)
       end
 
       # filter by signage
       unless signage.nil?
-        query.must({
-          "signage" => [signage],
-        })
+        query = query.where(signage: signage)
       end
 
-      query.search_field "name"
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      paginate_search(query, ::PlaceOS::Model::ControlSystem.table_name)
     end
 
     # Finds all the systems with the specified email address

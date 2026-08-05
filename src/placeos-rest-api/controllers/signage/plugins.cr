@@ -63,25 +63,18 @@ module PlaceOS::Api
     ) : Array(::PlaceOS::Model::SignagePlugin)
       authority_id = authority.id.as(String)
 
-      elastic = ::PlaceOS::Model::SignagePlugin.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      # this domain's plugins OR shared plugins (no authority) — SQL expresses
+      # the OR-with-NULL directly, unlike the Elasticsearch should-clause
+      # encoding this replaces
+      query = ::PlaceOS::Model::SignagePlugin.all
+        .where("(authority_id = ? OR authority_id IS NULL)", authority_id)
 
-      if !enabled.nil?
-        query.must({
-          "enabled" => [enabled],
-        })
+      unless enabled.nil?
+        query = query.where(enabled: enabled)
       end
 
-      query.should({
-        "authority_id" => [authority_id, nil],
-      })
-      query.minimum_should_match(1)
-      query.search_field "name"
-      query.sort(NAME_SORT_ASC)
-
-      # ES can't express "field = X OR field IS NULL" in a single should clause,
-      # so we fetch authority-scoped results from ES and merge shared plugins from PG
-      paginate_results(elastic, query)
+      paginate_search(query, ::PlaceOS::Model::SignagePlugin.table_name)
     end
 
     # return the details of the requested signage plugin

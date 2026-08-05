@@ -31,15 +31,14 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the ID of the domain to be listed", example: "auth-12345")]
       authority_id : String? = nil,
     ) : Array(::PlaceOS::Model::ApiKey::PublicResponse)
-      elastic = ::PlaceOS::Model::ApiKey.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::ApiKey.all
 
       if authority = authority_id
-        query.filter({"authority_id" => [authority]})
+        query = query.where(authority_id: authority)
       end
 
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query).map(&.to_public_struct)
+      paginate_search(query, ::PlaceOS::Model::ApiKey.table_name).map(&.to_public_struct)
     end
 
     # returns the requested API key details

@@ -45,10 +45,14 @@ module PlaceOS::Api
     # list the asset purchase_orders
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::AssetPurchaseOrder)
-      elastic = ::PlaceOS::Model::AssetPurchaseOrder.elastic
-      query = elastic.query(search_params)
-      # query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      # PG full-text search (PPT-2644): q matches purchase_order_number and
+      # invoice_number. The table has no name column so order by PO number
+      # for a deterministic listing (Elasticsearch had no explicit sort here).
+      paginate_search(
+        ::PlaceOS::Model::AssetPurchaseOrder.all,
+        ::PlaceOS::Model::AssetPurchaseOrder.table_name,
+        order: "purchase_order_number, id",
+      )
     end
 
     # show the selected asset purchase_order

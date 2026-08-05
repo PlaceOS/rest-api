@@ -9,6 +9,35 @@ module PlaceOS::Api
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::ApiKey, ApiKeys)
+
+      it "filters by authority_id" do
+        other_authority = PlaceOS::Model::Generator.authority("other-#{random_name}.example.com")
+        other_authority.save!
+
+        other_key = PlaceOS::Model::Generator.api_key(other_authority)
+        other_key.save!
+
+        # a key under the default (localhost) authority must be excluded
+        local_key = PlaceOS::Model::Generator.api_key
+        local_key.save!
+
+        params = HTTP::Params.encode({"authority_id" => other_authority.id.as(String)})
+        result = client.get(
+          "#{ApiKeys.base_route}?#{params}",
+          headers: Spec::Authentication.headers
+        )
+
+        result.status_code.should eq 200
+        keys = Array(Hash(String, JSON::Any)).from_json(result.body)
+        ids = keys.map(&.["id"].as_s)
+        ids.should contain(other_key.id)
+        ids.should_not contain(local_key.id)
+        keys.each &.["authority_id"].as_s.should eq other_authority.id
+
+        other_key.destroy
+        local_key.destroy
+        other_authority.destroy
+      end
     end
 
     describe "CRUD operations", tags: "crud" do

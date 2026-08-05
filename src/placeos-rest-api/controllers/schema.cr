@@ -29,9 +29,10 @@ module PlaceOS::Api
     # schemas can be used to ensure metadata conforms to the desired state
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::JsonSchema)
-      elastic = ::PlaceOS::Model::JsonSchema.elastic
-      query = elastic.query(search_params)
-      paginate_results(elastic, query)
+      # PG full-text search (PPT-2644). The Elasticsearch version had no
+      # explicit sort (relevance-score order only); "name, id" keeps the
+      # listing deterministic.
+      paginate_search(::PlaceOS::Model::JsonSchema.all, ::PlaceOS::Model::JsonSchema.table_name)
     end
 
     # return the details of a schema

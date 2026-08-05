@@ -222,7 +222,10 @@ module PlaceOS::Api
       end
 
       if as_of
-        query = query.where("updated_at <= ?", Time.unix(as_of))
+        # as_of is epoch seconds; compare at second granularity (the ES
+        # pipeline stored epoch-second integers, so lte was second-precise —
+        # a naive <= would exclude rows with sub-second timestamps)
+        query = query.where("updated_at < ?", Time.unix(as_of + 1))
       end
 
       # searching also matches text on the parent driver — parity with the

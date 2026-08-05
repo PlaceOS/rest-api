@@ -102,9 +102,12 @@ module PlaceOS::Api
       else
         raise Error::Forbidden.new unless user_support?
 
-        elastic = ::PlaceOS::Model::Settings.elastic
-        query = elastic.query(search_params)
-        paginate_results(elastic, query)
+        # PG full-text search (PPT-2644): `q` matches the settings keys (and
+        # id) — the settings body itself is deliberately not searchable.
+        # NOTE: parity with the Elasticsearch implementation — this branch
+        # intentionally does NOT decrypt results (no `decrypt_for!`), unlike
+        # the parent_id branch above. No name column — order by id.
+        paginate_search(::PlaceOS::Model::Settings.all, ::PlaceOS::Model::Settings.table_name, order: "id")
       end
     end
 

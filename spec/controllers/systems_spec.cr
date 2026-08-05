@@ -87,18 +87,14 @@ module PlaceOS::Api
           systems.each &.save!
 
           expected_ids = expected_systems.compact_map(&.id)
-          total_ids = expected_ids.size
 
           params = HTTP::Params.encode({"zone_id" => zone_id})
           path = "#{Systems.base_route}?#{params}"
 
-          refresh_elastic(Model::ControlSystem.table_name)
-          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            (returned_ids | expected_ids).size == total_ids
-          end
-
-          found.should be_true
+          result = client.get(path, headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          returned_ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          returned_ids.sort.should eq expected_ids.sort
         end
 
         it "non-admin / non-support user can list systems (baseline)" do
@@ -116,12 +112,11 @@ module PlaceOS::Api
 
           _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
-          refresh_elastic(Model::ControlSystem.table_name)
-          found = until_expected("GET", Systems.base_route, headers) do |response|
-            response.success? &&
-              Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s).includes?(mine.id.as(String))
-          end
-          found.should be_true
+          result = client.get(Systems.base_route, headers: headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(mine.id.as(String))
+          ids.should contain(unrelated.id.as(String))
 
           mine.destroy
           unrelated.destroy
@@ -141,15 +136,12 @@ module PlaceOS::Api
 
           _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
-          refresh_elastic(Model::ControlSystem.table_name)
           path = "#{Systems.base_route}?#{HTTP::Params.encode({"zone_id" => zone_id})}"
-          found = until_expected("GET", path, headers) do |response|
-            response.success? && begin
-              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-              ids.includes?(mine.id.as(String)) && !ids.includes?(other.id.as(String))
-            end
-          end
-          found.should be_true
+          result = client.get(path, headers: headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(mine.id.as(String))
+          ids.should_not contain(other.id.as(String))
 
           mine.destroy
           other.destroy
@@ -174,15 +166,12 @@ module PlaceOS::Api
           in_anchor.save!
           unrelated = Model::Generator.control_system.save!
 
-          refresh_elastic(Model::ControlSystem.table_name)
           path = "#{Systems.base_route}?#{HTTP::Params.encode({"group_id" => group.id.to_s})}"
-          found = until_expected("GET", path, headers) do |response|
-            response.success? && begin
-              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-              ids.includes?(in_anchor.id.as(String)) && !ids.includes?(unrelated.id.as(String))
-            end
-          end
-          found.should be_true
+          result = client.get(path, headers: headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(in_anchor.id.as(String))
+          ids.should_not contain(unrelated.id.as(String))
 
           in_anchor.destroy
           unrelated.destroy
@@ -224,16 +213,12 @@ module PlaceOS::Api
           in_child.save!
           out_of_scope = Model::Generator.control_system.save!
 
-          sleep 1.second
-          refresh_elastic(Model::ControlSystem.table_name)
           path = "#{Systems.base_route}?#{HTTP::Params.encode({"subsystem" => "signage"})}"
-          found = until_expected("GET", path, headers) do |response|
-            response.success? && begin
-              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-              ids.includes?(in_child.id.as(String)) && !ids.includes?(out_of_scope.id.as(String))
-            end
-          end
-          found.should be_true
+          result = client.get(path, headers: headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(in_child.id.as(String))
+          ids.should_not contain(out_of_scope.id.as(String))
 
           in_child.destroy
           out_of_scope.destroy
@@ -249,7 +234,6 @@ module PlaceOS::Api
 
           existing = Model::Generator.control_system.save!
 
-          refresh_elastic(Model::ControlSystem.table_name)
           path = "#{Systems.base_route}?#{HTTP::Params.encode({"subsystem" => "signage"})}"
           result = client.get(path, headers: headers)
           result.status_code.should eq 200
@@ -291,22 +275,17 @@ module PlaceOS::Api
           group_only.zones = [group_zone.id.as(String)]
           group_only.save!
 
-          sleep 1.second
-          refresh_elastic(Model::ControlSystem.table_name)
           params = HTTP::Params.encode({
             "zone_id"  => tag_zone.id.as(String),
             "group_id" => group.id.to_s,
           })
           path = "#{Systems.base_route}?#{params}"
-          found = until_expected("GET", path, headers) do |response|
-            response.success? && begin
-              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-              ids.includes?(both.id.as(String)) &&
-                !ids.includes?(tag_only.id.as(String)) &&
-                !ids.includes?(group_only.id.as(String))
-            end
-          end
-          found.should be_true
+          result = client.get(path, headers: headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(both.id.as(String))
+          ids.should_not contain(tag_only.id.as(String))
+          ids.should_not contain(group_only.id.as(String))
 
           both.destroy
           tag_only.destroy
@@ -332,16 +311,12 @@ module PlaceOS::Api
           a_only.zones = [a.id.as(String)]
           a_only.save!
 
-          sleep 1.second
-          refresh_elastic(Model::ControlSystem.table_name)
           path = "#{Systems.base_route}?#{HTTP::Params.encode({"zone_id" => "#{a.id},#{b.id}"})}"
-          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            response.success? && begin
-              ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-              ids.includes?(both.id.as(String)) && !ids.includes?(a_only.id.as(String))
-            end
-          end
-          found.should be_true
+          result = client.get(path, headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(both.id.as(String))
+          ids.should_not contain(a_only.id.as(String))
 
           both.destroy
           a_only.destroy
@@ -349,32 +324,94 @@ module PlaceOS::Api
           b.destroy
         end
 
-        it "email filters systems by email" do
+        it "email filters systems by email (exact, case-insensitive)" do
+          # NOTE: the Elasticsearch version of this filter was a no-op on
+          # its own (optional `should` clause) and the old spec passed on
+          # empty results. It is now a strict filter — pin the real
+          # inclusion/exclusion behaviour.
           Model::ControlSystem.clear
-          num_systems = 5
 
-          systems = Array.new(size: num_systems) do
-            Model::Generator.control_system
+          matched = Array.new(2) do |i|
+            sys = Model::Generator.control_system
+            sys.email = PlaceOS::Model::Email.new("room#{i}-#{Random.rand(9999)}@example.com")
+            sys.save!
           end
 
-          # Add the zone to a subset of systems
-          expected_systems = systems.shuffle[0..2]
-          systems.each &.save!
+          unmatched = Model::Generator.control_system
+          unmatched.email = PlaceOS::Model::Email.new("other-#{Random.rand(9999)}@example.com")
+          unmatched.save!
+          no_email = Model::Generator.control_system.save!
 
-          expected_emails = expected_systems.compact_map(&.email)
-          expected_ids = expected_systems.compact_map(&.id)
+          expected_ids = matched.compact_map(&.id)
+          emails = matched.compact_map(&.email).map(&.to_s)
 
-          total_ids = expected_ids.size
-          params = HTTP::Params.encode({"email" => expected_emails.join(',')})
+          params = HTTP::Params.encode({"email" => emails.join(',')})
           path = "#{Systems.base_route}?#{params}"
 
-          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            refresh_elastic(Model::ControlSystem.table_name)
-            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            (returned_ids | expected_ids).size == total_ids
-          end
+          result = client.get(path, headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          returned_ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          returned_ids.sort.should eq expected_ids.sort
+          returned_ids.should_not contain(unmatched.id.as(String))
+          returned_ids.should_not contain(no_email.id.as(String))
 
-          found.should be_true
+          # matching is case-insensitive
+          params = HTTP::Params.encode({"email" => emails.first.upcase})
+          result = client.get("#{Systems.base_route}?#{params}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          returned_ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          returned_ids.should eq [matched.first.id.as(String)]
+        end
+
+        it "email ANDs with the group_id scope instead of widening it" do
+          # The Elasticsearch implementation merged email into the same
+          # optional OR group as the zone scope, so a system merely
+          # matching the email leaked into (widened) the authorization
+          # scope. email is now a strict AND filter — a matching email
+          # outside the scope must NOT be returned.
+          clear_group_tables
+          Model::ControlSystem.clear
+
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          group = Model::Generator.group(authority: authority).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+          zone = Model::Generator.zone.save!
+          Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+          in_scope_match = Model::Generator.control_system
+          in_scope_match.zones = [zone.id.as(String)]
+          in_scope_match.email = PlaceOS::Model::Email.new("target-#{Random.rand(9999)}@example.com")
+          in_scope_match.save!
+
+          in_scope_other = Model::Generator.control_system
+          in_scope_other.zones = [zone.id.as(String)]
+          in_scope_other.email = PlaceOS::Model::Email.new("nomatch-#{Random.rand(9999)}@example.com")
+          in_scope_other.save!
+
+          out_of_scope_match = Model::Generator.control_system
+          out_of_scope_match.email = PlaceOS::Model::Email.new("leaked-#{Random.rand(9999)}@example.com")
+          out_of_scope_match.save!
+
+          # ask for both the in-scope and the out-of-scope email — only
+          # the in-scope system may come back
+          emails = [in_scope_match.email, out_of_scope_match.email].compact.join(',', &.to_s)
+          params = HTTP::Params.encode({
+            "group_id" => group.id.to_s,
+            "email"    => emails,
+          })
+
+          result = client.get("#{Systems.base_route}?#{params}", headers: headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [in_scope_match.id.as(String)]
+
+          in_scope_match.destroy
+          in_scope_other.destroy
+          out_of_scope_match.destroy
+          zone.destroy
         end
 
         it "should return systems by email" do
@@ -454,20 +491,187 @@ module PlaceOS::Api
             sys.modules = [module_id]
           end
           systems.each &.save!
-          sleep 1.second
           expected_ids = expected_systems.compact_map(&.id)
-          total_ids = expected_ids.size
 
           params = HTTP::Params.encode({"module_id" => module_id})
           path = "#{Systems.base_route}?#{params}"
 
-          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            refresh_elastic(Model::ControlSystem.table_name)
-            returned_ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            (returned_ids | expected_ids).size == total_ids
-          end
+          result = client.get(path, headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          returned_ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          returned_ids.sort.should eq expected_ids.sort
+        end
 
-          found.should be_true
+        it "trigger_id filters systems to those with an instance of the trigger" do
+          # The Elasticsearch implementation combined a has_child clause
+          # with a document-type filter no document could satisfy, so
+          # `?trigger_id=` always returned an empty list — this pins the
+          # intended (fixed) behaviour.
+          Model::ControlSystem.clear
+
+          trigger = Model::Generator.trigger.save!
+          with_trigger = Model::Generator.control_system.save!
+          without_trigger = Model::Generator.control_system.save!
+          instance = Model::Generator.trigger_instance(trigger, control_system: with_trigger).save!
+
+          params = HTTP::Params.encode({"trigger_id" => trigger.id.as(String)})
+          result = client.get("#{Systems.base_route}?#{params}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [with_trigger.id.as(String)]
+          ids.should_not contain(without_trigger.id.as(String))
+
+          # an unused trigger matches no systems
+          other_trigger = Model::Generator.trigger.save!
+          params = HTTP::Params.encode({"trigger_id" => other_trigger.id.as(String)})
+          result = client.get("#{Systems.base_route}?#{params}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          Array(Hash(String, JSON::Any)).from_json(result.body).should be_empty
+
+          instance.destroy
+          trigger.destroy
+          other_trigger.destroy
+        end
+
+        it "capacity returns systems with capacity equal or greater" do
+          Model::ControlSystem.clear
+
+          small = Model::Generator.control_system
+          small.capacity = 2
+          small.save!
+
+          exact = Model::Generator.control_system
+          exact.capacity = 5
+          exact.save!
+
+          large = Model::Generator.control_system
+          large.capacity = 10
+          large.save!
+
+          result = client.get("#{Systems.base_route}?capacity=5", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.sort.should eq [exact.id.as(String), large.id.as(String)].sort
+        end
+
+        it "bookable filters on both true and false" do
+          Model::ControlSystem.clear
+
+          bookable_sys = Model::Generator.control_system
+          bookable_sys.bookable = true
+          bookable_sys.save!
+
+          non_bookable = Model::Generator.control_system.save!
+
+          result = client.get("#{Systems.base_route}?bookable=true", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [bookable_sys.id.as(String)]
+
+          result = client.get("#{Systems.base_route}?bookable=false", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [non_bookable.id.as(String)]
+        end
+
+        it "signage filters on both true and false" do
+          Model::ControlSystem.clear
+
+          signage_sys = Model::Generator.control_system
+          signage_sys.signage = true
+          signage_sys.save!
+
+          regular = Model::Generator.control_system.save!
+
+          result = client.get("#{Systems.base_route}?signage=true", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [signage_sys.id.as(String)]
+
+          result = client.get("#{Systems.base_route}?signage=false", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [regular.id.as(String)]
+        end
+
+        it "features requires all of the requested features" do
+          Model::ControlSystem.clear
+
+          full = Model::Generator.control_system
+          full.features = Set{"whiteboard", "vidconf", "display"}
+          full.save!
+
+          partial = Model::Generator.control_system
+          partial.features = Set{"whiteboard"}
+          partial.save!
+
+          none = Model::Generator.control_system.save!
+
+          result = client.get("#{Systems.base_route}?features=whiteboard,vidconf", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [full.id.as(String)]
+
+          # a single feature matches every system that has it
+          result = client.get("#{Systems.base_route}?features=whiteboard", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.sort.should eq [full.id.as(String), partial.id.as(String)].sort
+          ids.should_not contain(none.id.as(String))
+        end
+
+        it "public only filters when true" do
+          Model::ControlSystem.clear
+
+          public_sys = Model::Generator.control_system
+          public_sys.public = true
+          public_sys.save!
+
+          private_sys = Model::Generator.control_system.save!
+
+          result = client.get("#{Systems.base_route}?public=true", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [public_sys.id.as(String)]
+
+          # `?public=false` does NOT filter (parity with the previous
+          # behaviour) — both systems are returned
+          result = client.get("#{Systems.base_route}?public=false", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.sort.should eq [public_sys.id.as(String), private_sys.id.as(String)].sort
+        end
+
+        it "q combines with zone_id filtering" do
+          Model::ControlSystem.clear
+
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.as(String)
+          token = random_name
+
+          match = Model::Generator.control_system
+          match.name = "#{token} one"
+          match.zones = [zone_id]
+          match.save!
+
+          same_zone = Model::Generator.control_system
+          same_zone.zones = [zone_id]
+          same_zone.save!
+
+          same_name = Model::Generator.control_system
+          same_name.name = "#{token} two"
+          same_name.save!
+
+          params = HTTP::Params.encode({"q" => token, "zone_id" => zone_id})
+          result = client.get("#{Systems.base_route}?#{params}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should eq [match.id.as(String)]
+
+          match.destroy
+          same_zone.destroy
+          same_name.destroy
+          zone.destroy
         end
       end
     end

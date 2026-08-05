@@ -4,7 +4,6 @@ require "mutex"
 require "promise"
 require "random"
 require "pg-orm"
-require "simple_retry"
 require "spec"
 
 require "./spec_helpers/*"
@@ -90,42 +89,6 @@ def clear_tables
       {% end %}
     ).get
   {% end %}
-end
-
-def until_expected(method, path, headers : HTTP::Headers, timeout : Time::Span = 3.seconds, &block : HTTP::Client::Response -> Bool)
-  client = ActionController::SpecHelper.client
-  channel = Channel(Bool).new
-  spawn do
-    before = Time.utc
-    begin
-      SimpleRetry.try_to(base_interval: 50.milliseconds, max_elapsed_time: 2.seconds, retry_on: Exception) do
-        result = client.exec(method: method, path: path, headers: headers)
-
-        unless result.success?
-          puts "\nrequest failed with: #{result.status_code}"
-          puts result.body
-        end
-
-        expected = block.call(result)
-
-        raise Exception.new("retry") unless expected || channel.closed?
-        channel.send(true) if expected
-      end
-    rescue e
-      raise e unless e.message == "retry"
-    ensure
-      after = Time.utc
-      puts "took #{(after - before).milliseconds}ms"
-    end
-  end
-
-  select
-  when found = channel.receive?
-    channel.close
-    !!found
-  when timeout(timeout)
-    false
-  end
 end
 
 def random_name

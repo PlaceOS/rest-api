@@ -4,16 +4,19 @@ module PlaceOS::Api
   describe Users do
     Spec.test_404(Users.base_route, model_name: Model::User.table_name, headers: Spec::Authentication.headers)
 
-    describe "CRUD operations", tags: "crud" do
+    describe "index", tags: "search" do
+      Spec.test_base_index(klass: Model::User, controller_klass: Users)
+
       it "query via email" do
         model = Model::Generator.user.save!
         model.persisted?.should be_true
         id = model.id.as(String)
 
-        params = HTTP::Params.encode({"q" => model.email.to_s, "fields" => "email,"})
+        # NOTE: previously sent `fields=email,` for a field-scoped
+        # Elasticsearch phrase match — under PG full-text search the email
+        # is tokenized into the user's search_vector so a plain `q` works
+        params = HTTP::Params.encode({"q" => model.email.to_s})
         path = "#{Users.base_route}?#{params}"
-
-        sleep 2.seconds
 
         result = client.get(
           path: path,
@@ -26,6 +29,84 @@ module PlaceOS::Api
         response.first.id.should eq id
       end
 
+      it "excludes soft-deleted users unless include_deleted is passed" do
+        model = Model::Generator.user
+        name = random_name
+        model.name = name
+        model.save!
+        model.deleted = true
+        model.save!
+
+        params = HTTP::Params.encode({"q" => name})
+        result = client.get(
+          path: "#{Users.base_route}?#{params}",
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 200
+        result.headers["X-Total-Count"].should eq "0"
+        Array(JSON::Any).from_json(result.body).should be_empty
+
+        params = HTTP::Params.encode({"q" => name, "include_deleted" => "true"})
+        result = client.get(
+          path: "#{Users.base_route}?#{params}",
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should contain(model.id)
+      end
+
+      it "filters by authority_id for admins" do
+        other_authority = Model::Generator.authority("other-#{random_name}.example.com").save!
+
+        name = random_name
+        local_user = Model::Generator.user
+        local_user.name = name
+        local_user.save!
+        other_user = Model::Generator.user(other_authority)
+        other_user.name = name
+        other_user.save!
+
+        params = HTTP::Params.encode({"q" => name, "authority_id" => other_authority.id.as(String)})
+        result = client.get(
+          path: "#{Users.base_route}?#{params}",
+          headers: Spec::Authentication.headers,
+        )
+
+        result.status_code.should eq 200
+        users = Array(Hash(String, JSON::Any)).from_json(result.body)
+        users.size.should eq 1
+        users.first["id"].as_s.should eq other_user.id
+        users.first["authority_id"].as_s.should eq other_authority.id
+      end
+
+      it "forces non-admin callers to their own authority (authority_id param ignored)" do
+        non_admin, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        other_authority = Model::Generator.authority("other-#{random_name}.example.com").save!
+
+        name = random_name
+        own_domain_user = Model::Generator.user
+        own_domain_user.name = name
+        own_domain_user.save!
+        foreign_user = Model::Generator.user(other_authority)
+        foreign_user.name = name
+        foreign_user.save!
+
+        params = HTTP::Params.encode({"q" => name, "authority_id" => other_authority.id.as(String)})
+        result = client.get(
+          path: "#{Users.base_route}?#{params}",
+          headers: headers,
+        )
+
+        result.status_code.should eq 200
+        users = Array(Hash(String, JSON::Any)).from_json(result.body)
+        users.size.should eq 1
+        users.first["id"].as_s.should eq own_domain_user.id
+        users.first["authority_id"].as_s.should eq non_admin.authority_id
+      end
+    end
+
+    describe "CRUD operations", tags: "crud" do
       it "show" do
         model = Model::Generator.user.save!
         model.persisted?.should be_true

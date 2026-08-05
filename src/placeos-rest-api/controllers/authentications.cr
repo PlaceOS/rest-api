@@ -34,17 +34,14 @@ module PlaceOS::Api
         @[AC::Param::Info(description: "return authentications that belong to the provided domain", example: "auth-12345")]
         authority_id : String? = nil,
       ) : Array(::PlaceOS::Model::{{auth_type.id}}Authentication)
-        elastic = ::PlaceOS::Model::{{auth_type.id}}Authentication.elastic
-        query = elastic.query(search_params)
+        # PG full-text search (PPT-2644)
+        query = ::PlaceOS::Model::{{auth_type.id}}Authentication.all
 
         if authority = authority_id
-          query.filter({
-            "authority_id" => [authority],
-          })
+          query = query.where(authority_id: authority)
         end
 
-        query.sort(NAME_SORT_ASC)
-        paginate_results(elastic, query)
+        paginate_search(query, ::PlaceOS::Model::{{auth_type.id}}Authentication.table_name)
       end
 
       # returns the details of a particular authentication

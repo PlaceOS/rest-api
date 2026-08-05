@@ -11,6 +11,7 @@ def create_pending_mail(
   rejected_at : Time? = nil,
   expiry : Time? = nil,
   send_at : Time? = nil,
+  template : Array(String)? = nil,
 ) : PlaceOS::Model::PendingMail
   mail = PlaceOS::Model::Generator.pending_mail(authority: authority, user: user)
   mail.source_service = source_service
@@ -20,6 +21,7 @@ def create_pending_mail(
   mail.rejected_at = rejected_at
   mail.expiry = expiry
   mail.send_at = send_at
+  mail.template = template if template
   mail.save!
   mail
 end
@@ -29,15 +31,13 @@ def other_authority : PlaceOS::Model::Authority
   PlaceOS::Model::Generator.authority(domain: "http://other-#{random_name}.test").save!
 end
 
-# GET the index with the supplied params, retrying until `block` holds
-# (Elasticsearch indexing is asynchronous).
-def pending_mail_index_ids(params : Hash(String, String), headers : HTTP::Headers, &block : Array(String) -> Bool) : Bool
+# GET the index with the supplied params, returning the ids in response
+# order. The PG-backed search is synchronous — no retry polling needed.
+def pending_mail_index_ids(params : Hash(String, String), headers : HTTP::Headers) : Array(String)
   path = "#{PlaceOS::Api::PendingMails.base_route.rstrip('/')}?#{HTTP::Params.encode(params)}"
-  until_expected("GET", path, headers) do |response|
-    next false unless response.success?
-    ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-    block.call(ids)
-  end
+  response = client.get(path, headers: headers)
+  response.status_code.should eq 200
+  Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
 end
 
 module PlaceOS::Api
@@ -51,12 +51,9 @@ module PlaceOS::Api
         match = create_pending_mail(source_service: svc)
         other = create_pending_mail(source_service: "svc-#{random_name}")
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
-        pending_mail_index_ids({"source_service" => svc}, headers) do |ids|
-          ids.includes?(match.id.to_s) && !ids.includes?(other.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc}, headers)
+        ids.should contain(match.id.to_s)
+        ids.should_not contain(other.id.to_s)
 
         match.destroy
         other.destroy
@@ -68,12 +65,9 @@ module PlaceOS::Api
         match = create_pending_mail(source_reference: ref)
         other = create_pending_mail(source_reference: "ref-#{random_name}")
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
-        pending_mail_index_ids({"source_reference" => ref}, headers) do |ids|
-          ids.includes?(match.id.to_s) && !ids.includes?(other.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_reference" => ref}, headers)
+        ids.should contain(match.id.to_s)
+        ids.should_not contain(other.id.to_s)
 
         match.destroy
         other.destroy
@@ -87,12 +81,9 @@ module PlaceOS::Api
         match = create_pending_mail(source_service: svc, user: user)
         other = create_pending_mail(source_service: svc)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
-        pending_mail_index_ids({"source_service" => svc, "user_id" => user.id.to_s}, headers) do |ids|
-          ids.includes?(match.id.to_s) && !ids.includes?(other.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "user_id" => user.id.to_s}, headers)
+        ids.should contain(match.id.to_s)
+        ids.should_not contain(other.id.to_s)
 
         match.destroy
         other.destroy
@@ -106,15 +97,28 @@ module PlaceOS::Api
         match = create_pending_mail(source_service: svc, zones: [zone])
         other = create_pending_mail(source_service: svc, zones: ["zone-#{random_name}"])
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
-        pending_mail_index_ids({"source_service" => svc, "zones" => zone}, headers) do |ids|
-          ids.includes?(match.id.to_s) && !ids.includes?(other.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "zones" => zone}, headers)
+        ids.should contain(match.id.to_s)
+        ids.should_not contain(other.id.to_s)
 
         match.destroy
         other.destroy
+      end
+
+      it "multiple zones require the mail to reference all of them (AND)" do
+        headers = Spec::Authentication.headers
+        svc = "svc-#{random_name}"
+        zone_a = "zone-#{random_name}"
+        zone_b = "zone-#{random_name}"
+        both = create_pending_mail(source_service: svc, zones: [zone_a, zone_b])
+        only_a = create_pending_mail(source_service: svc, zones: [zone_a])
+
+        ids = pending_mail_index_ids({"source_service" => svc, "zones" => "#{zone_a},#{zone_b}"}, headers)
+        ids.should contain(both.id.to_s)
+        ids.should_not contain(only_a.id.to_s)
+
+        both.destroy
+        only_a.destroy
       end
 
       it "excludes rejected mail by default and includes it on request" do
@@ -123,16 +127,13 @@ module PlaceOS::Api
         pending = create_pending_mail(source_service: svc)
         rejected = create_pending_mail(source_service: svc, rejected_at: Time.utc)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
+        ids = pending_mail_index_ids({"source_service" => svc}, headers)
+        ids.should contain(pending.id.to_s)
+        ids.should_not contain(rejected.id.to_s)
 
-        pending_mail_index_ids({"source_service" => svc}, headers) do |ids|
-          ids.includes?(pending.id.to_s) && !ids.includes?(rejected.id.to_s)
-        end.should be_true
-
-        pending_mail_index_ids({"source_service" => svc, "include_rejected" => "true"}, headers) do |ids|
-          ids.includes?(pending.id.to_s) && ids.includes?(rejected.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "include_rejected" => "true"}, headers)
+        ids.should contain(pending.id.to_s)
+        ids.should contain(rejected.id.to_s)
 
         pending.destroy
         rejected.destroy
@@ -145,12 +146,10 @@ module PlaceOS::Api
         sent = create_pending_mail(source_service: svc, sent_at: Time.utc)
         rejected = create_pending_mail(source_service: svc, rejected_at: Time.utc)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
-        pending_mail_index_ids({"source_service" => svc, "unsent_only" => "true"}, headers) do |ids|
-          ids.includes?(pending.id.to_s) && !ids.includes?(sent.id.to_s) && !ids.includes?(rejected.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "unsent_only" => "true"}, headers)
+        ids.should contain(pending.id.to_s)
+        ids.should_not contain(sent.id.to_s)
+        ids.should_not contain(rejected.id.to_s)
 
         pending.destroy
         sent.destroy
@@ -164,16 +163,15 @@ module PlaceOS::Api
         future = create_pending_mail(source_service: svc, expiry: Time.utc + 1.hour)
         expired = create_pending_mail(source_service: svc, expiry: Time.utc - 1.hour)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
+        ids = pending_mail_index_ids({"source_service" => svc}, headers)
+        ids.should contain(no_expiry.id.to_s)
+        ids.should contain(future.id.to_s)
+        ids.should_not contain(expired.id.to_s)
 
-        pending_mail_index_ids({"source_service" => svc}, headers) do |ids|
-          ids.includes?(no_expiry.id.to_s) && ids.includes?(future.id.to_s) && !ids.includes?(expired.id.to_s)
-        end.should be_true
-
-        pending_mail_index_ids({"source_service" => svc, "include_expired" => "true"}, headers) do |ids|
-          ids.includes?(no_expiry.id.to_s) && ids.includes?(future.id.to_s) && ids.includes?(expired.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "include_expired" => "true"}, headers)
+        ids.should contain(no_expiry.id.to_s)
+        ids.should contain(future.id.to_s)
+        ids.should contain(expired.id.to_s)
 
         no_expiry.destroy
         future.destroy
@@ -186,16 +184,35 @@ module PlaceOS::Api
         old_mail = create_pending_mail(source_service: svc, sent_at: Time.utc - 10.days)
         recent = create_pending_mail(source_service: svc, sent_at: Time.utc - 1.hour)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
         cutoff = (Time.utc - 1.day).to_rfc3339
-        pending_mail_index_ids({"source_service" => svc, "sent_after" => cutoff}, headers) do |ids|
-          ids.includes?(recent.id.to_s) && !ids.includes?(old_mail.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "sent_after" => cutoff}, headers)
+        ids.should contain(recent.id.to_s)
+        ids.should_not contain(old_mail.id.to_s)
 
         old_mail.destroy
         recent.destroy
+      end
+
+      it "filters by a sent_after..sent_before window" do
+        headers = Spec::Authentication.headers
+        svc = "svc-#{random_name}"
+        too_old = create_pending_mail(source_service: svc, sent_at: Time.utc - 10.days)
+        in_window = create_pending_mail(source_service: svc, sent_at: Time.utc - 12.hours)
+        too_new = create_pending_mail(source_service: svc, sent_at: Time.utc - 1.minute)
+
+        params = {
+          "source_service" => svc,
+          "sent_after"     => (Time.utc - 1.day).to_rfc3339,
+          "sent_before"    => (Time.utc - 1.hour).to_rfc3339,
+        }
+        ids = pending_mail_index_ids(params, headers)
+        ids.should contain(in_window.id.to_s)
+        ids.should_not contain(too_old.id.to_s)
+        ids.should_not contain(too_new.id.to_s)
+
+        too_old.destroy
+        in_window.destroy
+        too_new.destroy
       end
 
       it "sent window also matches rejected time when include_rejected is set" do
@@ -204,13 +221,10 @@ module PlaceOS::Api
         recently_rejected = create_pending_mail(source_service: svc, rejected_at: Time.utc - 1.hour)
         old_rejected = create_pending_mail(source_service: svc, rejected_at: Time.utc - 10.days)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
         cutoff = (Time.utc - 1.day).to_rfc3339
-        pending_mail_index_ids({"source_service" => svc, "sent_after" => cutoff, "include_rejected" => "true"}, headers) do |ids|
-          ids.includes?(recently_rejected.id.to_s) && !ids.includes?(old_rejected.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "sent_after" => cutoff, "include_rejected" => "true"}, headers)
+        ids.should contain(recently_rejected.id.to_s)
+        ids.should_not contain(old_rejected.id.to_s)
 
         recently_rejected.destroy
         old_rejected.destroy
@@ -222,13 +236,10 @@ module PlaceOS::Api
         soon = create_pending_mail(source_service: svc, send_at: Time.utc + 1.hour)
         later = create_pending_mail(source_service: svc, send_at: Time.utc + 10.days)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
         cutoff = (Time.utc + 1.day).to_rfc3339
-        pending_mail_index_ids({"source_service" => svc, "send_at_after" => cutoff}, headers) do |ids|
-          ids.includes?(later.id.to_s) && !ids.includes?(soon.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "send_at_after" => cutoff}, headers)
+        ids.should contain(later.id.to_s)
+        ids.should_not contain(soon.id.to_s)
 
         soon.destroy
         later.destroy
@@ -246,12 +257,9 @@ module PlaceOS::Api
         match = create_pending_mail(source_service: svc, zones: [zone.id.as(String)])
         other = create_pending_mail(source_service: svc, zones: ["zone-#{random_name}"])
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
-        pending_mail_index_ids({"source_service" => svc, "group_id" => group.id.to_s}, headers) do |ids|
-          ids.includes?(match.id.to_s) && !ids.includes?(other.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc, "group_id" => group.id.to_s}, headers)
+        ids.should contain(match.id.to_s)
+        ids.should_not contain(other.id.to_s)
 
         match.destroy
         other.destroy
@@ -268,12 +276,9 @@ module PlaceOS::Api
         mine = create_pending_mail(authority: local_auth, source_service: svc)
         theirs = create_pending_mail(authority: other_auth, source_service: svc)
 
-        sleep 1.second
-        refresh_elastic(Model::PendingMail.table_name)
-
-        pending_mail_index_ids({"source_service" => svc}, scoped_headers) do |ids|
-          ids.includes?(mine.id.to_s) && !ids.includes?(theirs.id.to_s)
-        end.should be_true
+        ids = pending_mail_index_ids({"source_service" => svc}, scoped_headers)
+        ids.should contain(mine.id.to_s)
+        ids.should_not contain(theirs.id.to_s)
 
         # explicitly targeting another authority is forbidden for non-support
         path = "#{PendingMails.base_route.rstrip('/')}?#{HTTP::Params.encode({"authority_id" => other_auth.id.to_s})}"
@@ -282,6 +287,41 @@ module PlaceOS::Api
         mine.destroy
         theirs.destroy
         other_auth.destroy
+      end
+
+      it "q searches template text (prefix match) and combines with filters" do
+        headers = Spec::Authentication.headers
+        svc = "svc-#{random_name}"
+        token = "tmpl#{random_name}"
+        match = create_pending_mail(source_service: svc, template: [token, "email"])
+        other = create_pending_mail(source_service: svc)
+
+        ids = pending_mail_index_ids({"q" => token, "source_service" => svc}, headers)
+        ids.should contain(match.id.to_s)
+        ids.should_not contain(other.id.to_s)
+
+        # prefix matching (parity with the trailing * Elasticsearch appended)
+        prefix_ids = pending_mail_index_ids({"q" => token[0, 8], "source_service" => svc}, headers)
+        prefix_ids.should contain(match.id.to_s)
+
+        # a q that matches nothing returns an empty result
+        pending_mail_index_ids({"q" => "zzz#{random_name}", "source_service" => svc}, headers).should be_empty
+
+        match.destroy
+        other.destroy
+      end
+
+      it "returns newest mail first (created_at DESC)" do
+        headers = Spec::Authentication.headers
+        svc = "svc-#{random_name}"
+        first = create_pending_mail(source_service: svc)
+        second = create_pending_mail(source_service: svc)
+        third = create_pending_mail(source_service: svc)
+
+        ids = pending_mail_index_ids({"source_service" => svc}, headers)
+        ids.should eq [third.id.to_s, second.id.to_s, first.id.to_s]
+
+        [first, second, third].each(&.destroy)
       end
     end
 

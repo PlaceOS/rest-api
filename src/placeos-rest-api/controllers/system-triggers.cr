@@ -73,40 +73,53 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return triggers updated before the time specified, unix epoch", example: "123456")]
       as_of : Int64? = nil,
     ) : Array(::PlaceOS::Model::TriggerInstance)
-      elastic = ::PlaceOS::Model::TriggerInstance.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::TriggerInstance.all
 
       # Filter by system ID
-      query.must({"control_system_id" => [control_system_id]})
+      query = query.where(control_system_id: control_system_id)
 
       # Filter by trigger ID
       if trigger_id
-        query.filter({"trigger_id" => [trigger_id]})
+        query = query.where(trigger_id: trigger_id)
       end
 
       # That occurred before a particular time
       if as_of
-        query.range({
-          "updated_at" => {
-            :lte => as_of,
-          },
-        })
+        # as_of is epoch seconds; compare at second granularity (the ES
+        # pipeline stored epoch-second integers, so lte was second-precise —
+        # a naive <= would exclude rows with sub-second timestamps)
+        query = query.where("updated_at < ?", Time.unix(as_of + 1))
       end
 
       # Filter by importance
       if important
-        query.filter({"important" => [true]})
+        query = query.where(important: true)
       end
 
       # Filter by triggered
       if triggered
-        query.filter({"triggered" => [true]})
+        query = query.where(triggered: true)
       end
 
-      # Include parent documents in the search
-      query.has_parent(parent: ::PlaceOS::Model::Trigger, parent_index: ::PlaceOS::Model::Trigger.table_name)
+      # A trigger instance has no searchable text of its own, so `q` matches
+      # the text of the parent trigger (replacing the Elasticsearch
+      # has_parent(Trigger) query — search a system's trigger instances by
+      # the trigger's name / description)
+      if tsq = search_tsquery
+        query = query.where(
+          %[EXISTS (SELECT 1 FROM "trigger" t WHERE t.id = trig.trigger_id AND t.search_vector @@ to_tsquery('simple', ?))],
+          tsq
+        )
+      end
 
-      trigger_instances = paginate_results(elastic, query).map { |t| render_system_trigger(t, complete: complete) }
+      # no name column on this table — order by creation for determinism
+      trigger_instances = paginate_sql(
+        query.order("created_at, id"),
+        ::PlaceOS::Model::TriggerInstance.table_name,
+        limit: search_limit,
+        offset: search_offset,
+      ).map { |t| render_system_trigger(t, complete: complete) }
       trigger_instances
     end
 

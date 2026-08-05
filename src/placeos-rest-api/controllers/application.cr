@@ -38,37 +38,12 @@ module PlaceOS::Api
     # Helpers for defining scope checks on controller actions
     include Utils::Scopes
 
-    # Default sort for elasticsearch
-    NAME_SORT_ASC = {"name.keyword" => {order: :asc}}
-
     # for converting comma seperated lists
     # i.e. `"id-1,id-2,id-3"`
     struct ConvertStringArray
       def convert(raw : String)
         raw.split(',').map!(&.strip).reject(&.empty?).uniq!
       end
-    end
-
-    def paginate_results(elastic, query, route = base_route)
-      data = elastic.search(query)
-      range_start = query.offset
-      range_end = data[:results].size + range_start
-      total_items = data[:total]
-      item_type = elastic.elastic_index
-      response.headers["X-Total-Count"] = total_items.to_s
-      # response.headers["Accept-Ranges"] = item_type
-      response.headers["Content-Range"] = "#{item_type} #{range_start}-#{range_end}/#{total_items}"
-
-      if range_end < total_items
-        query_params["offset"] = (range_end + 1).to_s
-        query_params["limit"] = query.limit.to_s
-        if ref = data[:ref]
-          query_params["ref"] = ref
-        end
-        response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
-      end
-
-      data[:results]
     end
 
     def set_collection_headers(size : Int32, content_type : String)
@@ -89,8 +64,7 @@ module PlaceOS::Api
     # SQL-based pagination for models that aren't Elasticsearch-indexed.
     # Accepts any PgORM relation (`Model.where(...)` etc.) and returns
     # the requested page. Sets `X-Total-Count`, `Content-Range`, and
-    # `Link` response headers the same way `paginate_results` does for
-    # Elasticsearch queries, so clients can paginate uniformly.
+    # `Link` response headers so clients can paginate uniformly.
     def paginate_sql(
       query,
       type : String,
@@ -135,6 +109,14 @@ module PlaceOS::Api
       (search_params["offset"]?.as?(String).try(&.to_i?) || 0).clamp(0, 1_000_000)
     end
 
+    # Splices an array into raw SQL as "ARRAY[?, ?, ...]::text[]".
+    # pg-orm's raw `where(sql, args)` binds each element of an Enumerable as a
+    # separate parameter, so a Crystal array cannot be passed as one bound
+    # array value — spell out a placeholder per element instead.
+    def sql_array(list : Array) : String
+      "ARRAY[#{list.join(", ") { "?" }}]::text[]"
+    end
+
     # Standard paginated index route body (PPT-2644, replacing Elasticsearch):
     # applies the `q` param against the model's generated `search_vector`
     # column, orders deterministically and emits the pagination headers.
@@ -156,15 +138,15 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:index], converters: {fields: ConvertStringArray})]
     def build_search_params(
-      @[AC::Param::Info(name: "q", description: "returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)")]
+      @[AC::Param::Info(name: "q", description: "filters results by the given text; words match as prefixes against the resource's searchable fields and all words must match")]
       query : String = "*",
       @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
       limit : UInt32 = 100_u32,
-      @[AC::Param::Info(description: "deprecated, the starting offset of the result set. Used to implement pagination")]
+      @[AC::Param::Info(description: "the starting offset of the result set, used to implement pagination")]
       offset : UInt32 = 0_u32,
-      @[AC::Param::Info(description: "a token for accessing the next page of results, provided in the `Link` header")]
+      @[AC::Param::Info(description: "deprecated, ignored — pagination follows the `Link` header's offset")]
       ref : String? = nil,
-      @[AC::Param::Info(description: "(Optional, comma separated array of strings) Array of fields you wish to search. Accepts wildcard expresssions and boost relevance score for matches for particular field using a caret ^ operator.")]
+      @[AC::Param::Info(description: "deprecated, ignored — search covers the resource's indexed fields")]
       fields : Array(String) = [] of String,
     )
       search_params = {
