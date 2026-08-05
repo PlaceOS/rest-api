@@ -84,20 +84,25 @@ module PlaceOS::Api
     @flow : AdminConsentFlow? = nil
 
     private def run_consent_flow(flow : AdminConsentFlow, tenant_id : String, authority : ::PlaceOS::Model::Authority) : Nil
+      # Everything this flow configures belongs to the authority being
+      # integrated, which is not necessarily the host the admin happens to be
+      # browsing - Backoffice can drive the flow for any domain.
+      authority_domain = authority.domain
+
       flow.start_step("visualiser")
       visualiser_app = create_app(tenant_id)
 
       flow.start_step("calendar")
-      self.class.upsert_calendar_tenant(domain_host, tenant_id, visualiser_app, authority.name)
+      self.class.upsert_calendar_tenant(authority_domain, tenant_id, visualiser_app, authority.name)
 
       flow.start_step("auth_app")
       strat = create_strat(tenant_id, authority.id.as(String))
-      auth_app = create_delegated_app(tenant_id, authority.domain, strat.id.as(String))
+      auth_app = create_delegated_app(tenant_id, authority_domain, strat.id.as(String))
 
       flow.start_step("outlook")
       create_outlook_repo
-      add_outlook_plugin_auth(auth_app[:client_id])
-      create_outlook_config(auth_app[:client_id])
+      add_outlook_plugin_auth(auth_app[:client_id], authority_domain)
+      create_outlook_config(auth_app[:client_id], authority_domain)
 
       flow.start_step("saving")
       strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
@@ -300,16 +305,16 @@ module PlaceOS::Api
       end
     end
 
-    private def add_outlook_plugin_auth(app_id : String) : Nil
+    private def add_outlook_plugin_auth(app_id : String, domain : String) : Nil
       client = get_client
       app = GraphReplicationRetry.run(on_retry: replication_progress) { client.get_application(app_id) }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
-      app_redirect_uris.push("#{domain_url}/outlook/#/book/spaces")
+      app_redirect_uris.push("https://#{domain}/outlook/#/book/spaces")
 
       scope_id = UUID.v4.to_s
 
       updated = {
-        "identifierUris": ["api://#{domain_host}/#{app_id}"],
+        "identifierUris": ["api://#{domain}/#{app_id}"],
         "web":            {
           "redirectUris":          app_redirect_uris,
           "implicitGrantSettings": {"enableAccessTokenIssuance" => true, "enableIdTokenIssuance" => true},
@@ -386,16 +391,16 @@ module PlaceOS::Api
       )
     end
 
-    private def create_outlook_config(app_id : String) : Nil
-      tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain_host)
+    private def create_outlook_config(app_id : String, domain : String) : Nil
+      tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain)
       unless tenant
-        Log.error { {message: "Tenant not found", domain: domain_host} }
+        Log.error { {message: "Tenant not found", domain: domain} }
         return
       end
 
       outlook_config = {
-        app_id: app_id, base_path: "outlook", app_domain: "#{domain_url}/outlook/",
-        app_resource: "api://#{domain_host}/#{app_id}", source_location: "",
+        app_id: app_id, base_path: "outlook", app_domain: "https://#{domain}/outlook/",
+        app_resource: "api://#{domain}/#{app_id}", source_location: "",
       }
       tenant.outlook_config = ::PlaceOS::Model::Tenant::OutlookConfig.from_json(outlook_config.to_json)
       tenant.save!

@@ -31,6 +31,30 @@ module PlaceOS::Api
         end
       end
 
+      # the flow can be driven from Backoffice on any host, so it must key off
+      # the authority being integrated, never the host in the request
+      it "writes to the authority's own domain, leaving another domain's tenant alone" do
+        authority_domain = "consent-authority-#{Random::Secure.hex(4)}.example.com"
+        other_domain = "consent-bystander-#{Random::Secure.hex(4)}.example.com"
+        begin
+          bystander = ::PlaceOS::Model::Tenant.create!(
+            name: "Bystander", domain: other_domain, platform: "office365",
+            delegated: true, credentials: {conference_type: "teamsForBusiness"}.to_json,
+          )
+          before = ::PlaceOS::Model::Tenant.find!(bystander.id).credentials
+
+          TenantConsent.upsert_calendar_tenant(authority_domain, azure_tenant, app, "Authority Org")
+
+          ::PlaceOS::Model::Tenant.find_by?(domain: authority_domain).should_not be_nil
+          untouched = ::PlaceOS::Model::Tenant.find!(bystander.id)
+          untouched.delegated.should be_true
+          untouched.credentials.should eq before
+        ensure
+          ::PlaceOS::Model::Tenant.find_by?(domain: authority_domain).try &.destroy
+          ::PlaceOS::Model::Tenant.find_by?(domain: other_domain).try &.destroy
+        end
+      end
+
       it "switches an existing delegated tenant onto the app-only credential" do
         domain = "consent-update-#{Random::Secure.hex(4)}.example.com"
         begin
