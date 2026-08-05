@@ -108,12 +108,48 @@ module PlaceOS::Api
       response.headers["Content-Range"] = "#{type} #{offset}-#{range_end}/#{total}"
 
       if range_end < total
-        query_params["offset"] = (range_end + 1).to_s
+        # NOTE: previously `range_end + 1`, which silently skipped one row per
+        # page for clients following the Link header's offset
+        query_params["offset"] = range_end.to_s
         query_params["limit"] = limit.to_s
         response.headers["Link"] = %(<#{route}?#{query_params}>; rel="next")
       end
 
       results
+    end
+
+    # The `q` param of the current request as a safe tsquery string, or nil
+    # when no text filter applies (empty / "*" / nothing searchable).
+    # See `Utils::TextSearch`.
+    def search_tsquery : String?
+      Utils::TextSearch.tsquery(search_params["q"]?.as?(String))
+    end
+
+    # `limit`/`offset` with the caps the Elasticsearch layer used to enforce
+    # (Neuroplastic::Query), hardened to never raise on unexpected values
+    def search_limit : Int32
+      (search_params["limit"]?.as?(String).try(&.to_i?) || 100).clamp(0, 10_000)
+    end
+
+    def search_offset : Int32
+      (search_params["offset"]?.as?(String).try(&.to_i?) || 0).clamp(0, 1_000_000)
+    end
+
+    # Standard paginated index route body (PPT-2644, replacing Elasticsearch):
+    # applies the `q` param against the model's generated `search_vector`
+    # column, orders deterministically and emits the pagination headers.
+    # Routes with parent-child search or bespoke text handling apply
+    # `search_tsquery` themselves and call `paginate_sql` directly.
+    def paginate_search(
+      query,
+      type : String,
+      route : String = base_route,
+      order : String = "name, id",
+    )
+      if tsq = search_tsquery
+        query = query.where("search_vector @@ to_tsquery('simple', ?)", tsq)
+      end
+      paginate_sql(query.order(order), type, limit: search_limit, offset: search_offset, route: route)
     end
 
     getter! search_params : Hash(String, String | Array(String))

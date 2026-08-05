@@ -53,24 +53,18 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "list only drivers for which update is available", example: "true")]
       update_available : Bool? = nil,
     ) : Array(::PlaceOS::Model::Driver)
-      elastic = ::PlaceOS::Model::Driver.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::Driver.all
 
       if role
-        query.filter({
-          "role" => [role.to_i],
-        })
+        query = query.where(role: role.to_i)
       end
 
       if update_available
-        query.filter({
-          "update_available" => [update_available.as(Bool)],
-        })
+        query = query.where(update_available: true)
       end
 
-      query.search_field "name"
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      paginate_search(query, ::PlaceOS::Model::Driver.table_name)
     end
 
     # view the details of a driver
