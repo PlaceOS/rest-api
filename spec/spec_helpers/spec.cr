@@ -12,7 +12,7 @@ module PlaceOS::Api::Spec
     end
   end
 
-  # Test search on name field
+  # Test search on name field (PG full-text search — synchronous, no index lag)
   macro test_base_index(klass, controller_klass)
     {% klass_name = klass.stringify.split("::").last.underscore %}
 
@@ -22,21 +22,17 @@ module PlaceOS::Api::Spec
       name = random_name
       doc.name = name
       doc.save!
-      sleep 1.second
-
-      refresh_elastic({{ klass }}.table_name)
-
       doc.persisted?.should be_true
+
       params = HTTP::Params.encode({"q" => name})
       path = "#{{{controller_klass}}.base_route.rstrip('/')}?#{params}"
 
-      found = until_expected("GET", path, headers) do |response|
-        Array(Hash(String, JSON::Any))
-          .from_json(response.body)
-          .map{|v| v.["id"].as_i64? || v.["id"].as_s?}
-          .any?(doc.id)
-      end
-      found.should be_true
+      result = client.get(path, headers: headers)
+      result.status_code.should eq 200
+      ids = Array(Hash(String, JSON::Any))
+        .from_json(result.body)
+        .map { |v| v["id"].as_i64? || v["id"].as_s? }
+      ids.should contain(doc.id)
     end
   end
 
