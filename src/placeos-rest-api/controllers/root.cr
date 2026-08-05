@@ -1,7 +1,6 @@
 require "./application"
 
 require "pg-orm"
-require "search-ingest/client"
 require "placeos-frontend-loader/client"
 
 require "placeos-models/version"
@@ -135,7 +134,7 @@ module PlaceOS::Api
       )
     end
 
-    SERVICES = %w(core dispatch frontend_loader rest_api search_ingest source triggers)
+    SERVICES = %w(core dispatch frontend_loader rest_api source triggers)
 
     def self.construct_versions : Array(::PlaceOS::Model::Version)
       version_channel = Channel(::PlaceOS::Model::Version?).new
@@ -162,10 +161,6 @@ module PlaceOS::Api
 
     protected def self.frontend_loader_version : ::PlaceOS::Model::Version
       FrontendLoader::Client.client(&.version)
-    end
-
-    protected def self.search_ingest_version : ::PlaceOS::Model::Version
-      SearchIngest::Client.client(&.version)
     end
 
     protected def self.core_version : ::PlaceOS::Model::Version
@@ -216,21 +211,21 @@ module PlaceOS::Api
       end
     end
 
-    # maps the database tables to indexes in elasticsearch
+    # DEPRECATED: search is served directly from PostgreSQL (PPT-2644); there
+    # is no external index to rebuild. Kept as a no-op so existing admin UIs
+    # and automation don't error. Remove in a future release.
     @[AC::Route::POST("/reindex")]
     def reindex(
-      @[AC::Param::Info(description: "backfill the database after re-indexing?", example: "true")]
+      @[AC::Param::Info(description: "deprecated, has no effect", example: "true")]
       backfill : Bool = false,
     ) : Nil
-      success = SearchIngest::Client.client &.reindex(backfill: backfill)
-      raise "reindex failed" unless success
     end
 
-    # pushes all the data from the database into elasticsearch
+    # DEPRECATED: search is served directly from PostgreSQL (PPT-2644); the
+    # database is always authoritative. Kept as a no-op so existing admin UIs
+    # and automation don't error. Remove in a future release.
     @[AC::Route::POST("/backfill")]
-    def backfill
-      success = SearchIngest::Client.client &.backfill
-      raise "backfill failed" unless success
+    def backfill : Nil
     end
   end
 end
