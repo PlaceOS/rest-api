@@ -168,10 +168,8 @@ module PlaceOS::Api
         return results
       end
 
-      # we use Elasticsearch
-      elastic = ::PlaceOS::Model::Module.elastic
-      query = elastic.query(search_params)
-      query.minimum_should_match(1)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::Module.all
 
       # TODO:: we can remove this once there is a tenant_id field on modules
       # which will make this much simpler to filter
@@ -200,34 +198,48 @@ module PlaceOS::Api
           conn.query_one(sql_query, args: scope_zones.map(&.as(PgORM::Value)), &.read(Array(String)?))
         end || [] of String
 
-        query.must({
-          "id" => module_ids,
-        })
+        if module_ids.empty?
+          set_collection_headers(0, ::PlaceOS::Model::Module.table_name)
+          return [] of ::PlaceOS::Model::Module
+        end
+
+        # NOTE: the Elasticsearch version ANDed each id as a separate term
+        # filter, returning nothing whenever a scoped user could access more
+        # than one module — this is the intended IN() semantics
+        query = query.where(id: module_ids)
       end
 
       if no_logic
-        query.must_not({"role" => [Model::Driver::Role::Logic.to_i]})
+        query = query.where("role != ?", Model::Driver::Role::Logic.to_i)
       end
 
       if driver_id
-        query.filter({"driver_id" => [driver_id]})
+        query = query.where(driver_id: driver_id)
       end
 
       unless running.nil?
-        query.should({"running" => [running]})
+        query = query.where(running: running)
       end
 
       if as_of
-        query.range({
-          "updated_at" => {
-            :lte => as_of,
-          },
-        })
+        query = query.where("updated_at <= ?", Time.unix(as_of))
       end
 
-      query.has_parent(parent: ::PlaceOS::Model::Driver, parent_index: ::PlaceOS::Model::Driver.table_name)
+      # searching also matches text on the parent driver — parity with the
+      # Elasticsearch has_parent(Driver) query (search modules by driver name)
+      if tsq = search_tsquery
+        query = query.where(
+          "(search_vector @@ to_tsquery('simple', ?) OR EXISTS (SELECT 1 FROM driver d WHERE d.id = mod.driver_id AND d.search_vector @@ to_tsquery('simple', ?)))",
+          tsq, tsq
+        )
+      end
 
-      search_results = paginate_results(elastic, query)
+      search_results = paginate_sql(
+        query.order("custom_name, name, id"),
+        ::PlaceOS::Model::Module.table_name,
+        limit: search_limit,
+        offset: search_offset,
+      )
 
       # Include subset of association data with results
       # avoid n+1 requests
