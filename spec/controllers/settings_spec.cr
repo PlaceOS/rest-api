@@ -87,7 +87,7 @@ module PlaceOS::Api
         result.status_code.should eq 200
         returned = Array(Model::Settings).from_json(result.body)
         returned.map(&.id).should contain(setting.id)
-        returned.find { |s| s.id == setting.id }.not_nil!.is_encrypted?.should be_true
+        returned.find! { |s| s.id == setting.id }.is_encrypted?.should be_true
       end
 
       it "rejects the search branch for non-support users" do
