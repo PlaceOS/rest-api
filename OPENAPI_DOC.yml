@@ -21,7 +21,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -33,23 +34,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -613,7 +611,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -625,23 +624,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -1115,7 +1111,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -1127,23 +1124,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -1681,7 +1675,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -1693,23 +1688,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -2168,7 +2160,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -2180,23 +2173,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -2683,7 +2673,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -2695,23 +2686,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -3237,7 +3225,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -3249,23 +3238,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -4034,7 +4020,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -4046,23 +4033,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -4528,7 +4512,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -4540,23 +4525,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -5022,7 +5004,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -5034,23 +5017,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -6118,7 +6098,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -6130,23 +6111,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -7028,7 +7006,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -7040,23 +7019,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -7612,7 +7588,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -7624,23 +7601,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -8410,7 +8384,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -8422,23 +8397,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -9023,7 +8995,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -9035,23 +9008,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -10296,7 +10266,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -10308,23 +10279,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -12081,7 +12049,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -12093,23 +12062,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -13704,16 +13670,14 @@ paths:
           format: Int32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -14276,21 +14240,20 @@ paths:
           format: Int32
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -14463,21 +14426,20 @@ paths:
           format: Int32
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -14886,21 +14848,20 @@ paths:
           format: Int32
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -15399,21 +15360,20 @@ paths:
           format: Int32
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -16899,7 +16859,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -16911,23 +16872,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -17379,7 +17337,7 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/emails:
     get:
-      summary: list queued/processed mail, filtered via Elasticsearch
+      summary: list queued/processed mail
       tags:
       - PendingMails
       operationId: PlaceOS::Api::PendingMails_index
@@ -17474,7 +17432,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -17486,23 +17445,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -18075,7 +18031,8 @@ paths:
           type: string
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -18087,23 +18044,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -18270,7 +18224,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -18282,23 +18237,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -20364,14 +20316,21 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/reindex:
     post:
-      summary: maps the database tables to indexes in elasticsearch
+      summary: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
+        there'
+      description: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
+        there
+
+        is no external index to rebuild. Kept as a no-op so existing admin UIs
+
+        and automation don''t error. Remove in a future release.'
       tags:
       - Root
       operationId: PlaceOS::Api::Root_reindex
       parameters:
       - name: backfill
         in: query
-        description: backfill the database after re-indexing?
+        description: deprecated, has no effect
         example: "true"
         schema:
           type: boolean
@@ -20436,7 +20395,14 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/backfill:
     post:
-      summary: pushes all the data from the database into elasticsearch
+      summary: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
+        the'
+      description: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
+        the
+
+        database is always authoritative. Kept as a no-op so existing admin UIs
+
+        and automation don''t error. Remove in a future release.'
       tags:
       - Root
       operationId: PlaceOS::Api::Root_backfill
@@ -20512,7 +20478,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -20524,23 +20491,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -20999,7 +20963,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -21011,23 +20976,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -21842,16 +21804,14 @@ paths:
           format: Int32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -22615,16 +22575,14 @@ paths:
           format: Int32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -23861,7 +23819,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -23873,23 +23832,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -24382,21 +24338,20 @@ paths:
           format: Int32
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -24927,16 +24882,14 @@ paths:
           format: Int32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -26051,7 +26004,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -26063,23 +26017,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -26578,7 +26529,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -26590,23 +26542,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -27108,7 +27057,8 @@ paths:
           type: string
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -27120,23 +27070,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -27313,7 +27260,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -27325,23 +27273,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -27922,21 +27867,20 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -29095,7 +29039,8 @@ paths:
           nullable: true
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -29107,23 +29052,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -30503,7 +30445,8 @@ paths:
       parameters:
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -30515,23 +30458,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:
@@ -30710,7 +30650,8 @@ paths:
           type: boolean
       - name: q
         in: query
-        description: returns results based on a [simple query string](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html)
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
         schema:
           type: string
       - name: limit
@@ -30722,23 +30663,20 @@ paths:
           format: UInt32
       - name: offset
         in: query
-        description: deprecated, the starting offset of the result set. Used to implement
-          pagination
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: UInt32
       - name: ref
         in: query
-        description: a token for accessing the next page of results, provided in the
-          `Link` header
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
         schema:
           type: string
           nullable: true
       - name: fields
         in: query
-        description: (Optional, comma separated array of strings) Array of fields
-          you wish to search. Accepts wildcard expresssions and boost relevance score
-          for matches for particular field using a caret ^ operator.
+        description: deprecated, ignored — search covers the resource's indexed fields
         schema:
           type: array
           items:

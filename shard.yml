@@ -31,7 +31,6 @@ dependencies:
     github: crystal-community/jwt
     version: ~> 1
 
-  # Elasticsearch extension for PgORM
   # Performs ping requests
   pinger:
     github: spider-gazelle/pinger
@@ -70,7 +69,6 @@ dependencies:
   pg-orm:
     github: spider-gazelle/pg-orm
 
-  # Client for Search Ingest PostgreSQL Elasticsearch indexer
   # Scheduling
   tasker:
     github: spider-gazelle/tasker
