@@ -80,25 +80,12 @@ module PlaceOS::Api
         query = query.where("zones @> #{sql_array(zones)}", zones)
       end
 
-      # asset_type_id / purchase_order_id are bigint columns; a non-numeric id
-      # can never match (the Elasticsearch term filter returned no results for
-      # unknown ids, so short-circuit rather than erroring on the cast)
       if type_id
-        if type_id_number = type_id.to_i64?
-          query = query.where(asset_type_id: type_id_number)
-        else
-          set_collection_headers(0, ::PlaceOS::Model::Asset.table_name)
-          return [] of ::PlaceOS::Model::Asset
-        end
+        query = query.where(asset_type_id: type_id)
       end
 
       if order_id
-        if order_id_number = order_id.to_i64?
-          query = query.where(purchase_order_id: order_id_number)
-        else
-          set_collection_headers(0, ::PlaceOS::Model::Asset.table_name)
-          return [] of ::PlaceOS::Model::Asset
-        end
+        query = query.where(purchase_order_id: order_id)
       end
 
       if barcode

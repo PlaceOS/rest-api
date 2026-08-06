@@ -62,7 +62,9 @@ module PlaceOS::Api
           sys = Model::Generator.control_system.save!
           base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id)
 
-          flagged = Model::Generator.trigger_instance(control_system: sys)
+          # NOTE: set flags via update — `before_create :set_importance`
+          # overwrites `important` with the parent trigger's value on create
+          flagged = Model::Generator.trigger_instance(control_system: sys).save!
           flagged.important = true
           flagged.triggered = true
           flagged.save!
