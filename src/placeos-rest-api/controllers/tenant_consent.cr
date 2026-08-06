@@ -6,8 +6,15 @@ module PlaceOS::Api
   class TenantConsent < Application
     base "/api/engine/v2/admin_consent"
 
-    skip_action :authorize!, only: [:index, :azure_admin_consent_callback, :flow_status]
-    skip_action :set_user_id, only: [:index, :azure_admin_consent_callback, :flow_status]
+    # Only the callback is unauthenticated, and it has to be: Microsoft
+    # redirects the browser here, so there is no session to present. It is
+    # guarded instead by the single-use `state` token minted below — see
+    # `ConsentState`. Starting a flow requires an administrator, because that
+    # is what decides which authority the callback is allowed to reconfigure.
+    skip_action :authorize!, only: [:azure_admin_consent_callback, :flow_status]
+    skip_action :set_user_id, only: [:azure_admin_consent_callback, :flow_status]
+
+    before_action :check_admin, only: [:index]
 
     @[AC::Route::Filter(:before_action)]
     def get_host
@@ -29,7 +36,11 @@ module PlaceOS::Api
       authority = ::PlaceOS::Model::Authority.find!(id)
       update_app_redirect_uri
       callback_url = URI.encode_www_form(redirect_url)
-      consent_url = "https://login.microsoftonline.com/common/adminconsent?client_id=#{PLACE_APP_CLIENT_ID}&redirect_uri=#{callback_url}&state=#{authority.id.as(String)}"
+      # Not the authority id. `state` comes back from Microsoft through the
+      # user's browser and is the only thing telling the callback which
+      # authority to reconfigure, so it has to be unguessable and single use.
+      state = ConsentState.issue(authority.id.as(String))
+      consent_url = "https://login.microsoftonline.com/common/adminconsent?client_id=#{PLACE_APP_CLIENT_ID}&redirect_uri=#{callback_url}&state=#{URI.encode_www_form(state)}"
       render json: {"url": consent_url}
     end
 
@@ -46,7 +57,17 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "Description of the error", example: "The admin denied the request")]
       error_description : String? = nil,
     ) : Nil
-      if ((consent = admin_consent) && consent) && (tenant_id = tenant) && (authority_id = state)
+      if ((consent = admin_consent) && consent) && (tenant_id = tenant) && (consent_state = state)
+        # Redeem the token rather than trusting the parameter. This is what
+        # stops an unauthenticated caller naming an authority of their choosing
+        # and having the rest of this method reconfigure it. Redeeming is
+        # single use, so a captured callback URL cannot be replayed either.
+        authority_id = ConsentState.consume(consent_state)
+        unless authority_id
+          Log.warn { "Rejected admin consent callback with an unknown, expired or already used state" }
+          raise Error::NotFound.new("Invalid state value returned in admin consent")
+        end
+
         Log.info { "Received admin consent for tenant #{tenant_id} under authority #{authority_id}" }
         authority = ::PlaceOS::Model::Authority.find?(authority_id)
         raise Error::NotFound.new("Invalid state value returned in admin consent") unless authority
@@ -84,17 +105,25 @@ module PlaceOS::Api
     @flow : AdminConsentFlow? = nil
 
     private def run_consent_flow(flow : AdminConsentFlow, tenant_id : String, authority : ::PlaceOS::Model::Authority) : Nil
+      # Everything this flow configures belongs to the authority being
+      # integrated, which is not necessarily the host the admin happens to be
+      # browsing - Backoffice can drive the flow for any domain.
+      authority_domain = authority.domain
+
       flow.start_step("visualiser")
-      create_app(tenant_id)
+      visualiser_app = create_app(tenant_id)
+
+      flow.start_step("calendar")
+      self.class.upsert_calendar_tenant(authority_domain, tenant_id, visualiser_app, authority.name)
 
       flow.start_step("auth_app")
       strat = create_strat(tenant_id, authority.id.as(String))
-      auth_app = create_delegated_app(tenant_id, authority.domain, strat.id.as(String))
+      auth_app = create_delegated_app(tenant_id, authority_domain, strat.id.as(String))
 
       flow.start_step("outlook")
       create_outlook_repo
-      add_outlook_plugin_auth(auth_app[:client_id])
-      create_outlook_config(auth_app[:client_id])
+      add_outlook_plugin_auth(auth_app[:client_id], authority_domain)
+      create_outlook_config(auth_app[:client_id], authority_domain)
 
       flow.start_step("saving")
       strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
@@ -102,9 +131,9 @@ module PlaceOS::Api
 
       flow.complete!
       Log.info { {message: "admin consent flow complete", flow_id: flow.id, authority_id: flow.authority_id} }
-    rescue flow_error
-      Log.error(exception: flow_error) { {message: "admin consent flow failed", flow_id: flow.id, authority_id: flow.authority_id} }
-      flow.fail!(flow_error.message || flow_error.class.name)
+    rescue error
+      Log.error(exception: error) { {message: "admin consent flow failed", flow_id: flow.id, authority_id: flow.authority_id} }
+      flow.fail!(error.message || error.class.name)
     end
 
     # surfaces replication-retry waits on the progress page
@@ -225,6 +254,7 @@ module PlaceOS::Api
       ra << {id: "ef54d2bf-783f-4e0f-bca1-3210c0444d99", type: "Role"} # Calendars.ReadWrite
       ra << {id: "5b567255-7703-4780-807c-7be8301ae99b", type: "Role"} # Group.Read.All
       ra << {id: "df021288-bdef-4463-88db-98f22de89214", type: "Role"} # User.Read.All
+      ra << {id: "913b9306-0ce1-42b8-9137-6a7df690a760", type: "Role"} # Place.Read.All - room discovery via the places API
 
       client = get_client(tenant_id)
 
@@ -240,7 +270,8 @@ module PlaceOS::Api
         end
       end
 
-      created_app.app_id.as(String)
+      secret = GraphReplicationRetry.run(on_retry: replication_progress) { client.application_add_pwd(created_app.app_id.as(String), "PlaceOS Bookings Visualiser Secret") }
+      {client_id: created_app.app_id.as(String), client_secret: secret.secret_text.as(String)}
     end
 
     private def create_delegated_app(tenant_id : String, domain : String, strat_id : String)
@@ -296,16 +327,16 @@ module PlaceOS::Api
       end
     end
 
-    private def add_outlook_plugin_auth(app_id : String) : Nil
+    private def add_outlook_plugin_auth(app_id : String, domain : String) : Nil
       client = get_client
       app = GraphReplicationRetry.run(on_retry: replication_progress) { client.get_application(app_id) }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
-      app_redirect_uris.push("#{domain_url}/outlook/#/book/spaces")
+      app_redirect_uris.push("https://#{domain}/outlook/#/book/spaces")
 
       scope_id = UUID.v4.to_s
 
       updated = {
-        "identifierUris": ["api://#{domain_host}/#{app_id}"],
+        "identifierUris": ["api://#{domain}/#{app_id}"],
         "web":            {
           "redirectUris":          app_redirect_uris,
           "implicitGrantSettings": {"enableAccessTokenIssuance" => true, "enableIdTokenIssuance" => true},
@@ -342,6 +373,36 @@ module PlaceOS::Api
       GraphReplicationRetry.run(on_retry: replication_progress) { client.update_application(app_id, updated.to_json) }
     end
 
+    # Store the visualiser app's app-only Graph credential in the staff-api
+    # tenant for this domain - this is what gives PlaceOS calendar access
+    # without a signed-in user. The flow owns the domain's Microsoft
+    # configuration (like login_url and outlook_config), so an existing
+    # tenant is switched to these credentials; delegated mode can be
+    # re-enabled afterwards in Backoffice if a customer prefers it.
+    def self.upsert_calendar_tenant(domain : String, azure_tenant_id : String, app : NamedTuple(client_id: String, client_secret: String), name : String?) : ::PlaceOS::Model::Tenant
+      credentials = {
+        tenant:        azure_tenant_id,
+        client_id:     app[:client_id],
+        client_secret: app[:client_secret],
+      }.to_json
+
+      if tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain)
+        tenant.platform = "office365"
+        tenant.delegated = false
+        tenant.credentials = credentials
+        tenant.save!
+        tenant
+      else
+        ::PlaceOS::Model::Tenant.create!(
+          name: name,
+          domain: domain,
+          platform: "office365",
+          delegated: false,
+          credentials: credentials,
+        )
+      end
+    end
+
     private def create_outlook_repo : Nil
       return if on_primary { ::PlaceOS::Model::Repository.where(name: "Outlook Plugin", uri: "https://github.com/placeos/user-interfaces", branch: "build/outlook-rooms-addin/prod",
                   folder_name: "outlookplugin", repo_type: ::PlaceOS::Model::Repository::Type::Interface.value).count } > 0
@@ -352,16 +413,16 @@ module PlaceOS::Api
       )
     end
 
-    private def create_outlook_config(app_id : String) : Nil
-      tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain_host)
+    private def create_outlook_config(app_id : String, domain : String) : Nil
+      tenant = ::PlaceOS::Model::Tenant.find_by?(domain: domain)
       unless tenant
-        Log.error { {message: "Tenant not found", domain: domain_host} }
+        Log.error { {message: "Tenant not found", domain: domain} }
         return
       end
 
       outlook_config = {
-        app_id: app_id, base_path: "outlook", app_domain: "#{domain_url}/outlook/",
-        app_resource: "api://#{domain_host}/#{app_id}", source_location: "",
+        app_id: app_id, base_path: "outlook", app_domain: "https://#{domain}/outlook/",
+        app_resource: "api://#{domain}/#{app_id}", source_location: "",
       }
       tenant.outlook_config = ::PlaceOS::Model::Tenant::OutlookConfig.from_json(outlook_config.to_json)
       tenant.save!

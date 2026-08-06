@@ -14,6 +14,7 @@ module PlaceOS::Api
 
     STEP_DEFINITIONS = [
       {"visualiser", "Register the Bookings Visualiser application"},
+      {"calendar", "Connect room calendar access"},
       {"auth_app", "Register the User Authentication application"},
       {"outlook", "Configure the Outlook add-in"},
       {"saving", "Save the authentication configuration"},
@@ -62,7 +63,7 @@ module PlaceOS::Api
     end
 
     def complete! : Nil
-      @steps.each { |step| step.state = "done" }
+      @steps.each(&.state=("done"))
       @state = "complete"
       @detail = nil
       save
