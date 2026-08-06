@@ -61,8 +61,6 @@ module PlaceOS::Api
           create_outlook_config(auth_app[:client_id])
           strat.update!(client_id: auth_app[:client_id], client_secret: auth_app[:client_secret])
           update_auth(authority, strat.id.as(String))
-        ensure
-          update_app_redirect_uri(false)
         end
       else
         Log.warn { {message: "Admin declined consent", error: error.to_s, description: error_description.to_s} }
@@ -81,11 +79,13 @@ module PlaceOS::Api
       app = Office365::Application.single_tenant_app("PlaceOS Bookings Visualiser")
         .add_required_resource(ra)
 
-      created_app = client.create_application(app)
+      created_app = GraphReplicationRetry.run { client.create_application(app) }
       Log.debug { {message: "App registerd with Application permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
       ra.each do |resource|
-        client.application_add_app_role_assignment(created_app.app_id.as(String), resource["id"])
+        GraphReplicationRetry.run do
+          client.application_add_app_role_assignment(created_app.app_id.as(String), resource["id"])
+        end
       end
 
       created_app.app_id.as(String)
@@ -107,11 +107,13 @@ module PlaceOS::Api
         .add_web_redirect_uri("https://#{domain}/auth/oauth2/callback?id=#{strat_id}")
         .add_required_resource(ra)
 
-      created_app = client.create_application(app)
+      created_app = GraphReplicationRetry.run { client.create_application(app) }
       Log.debug { {message: "App registerd with Delegated permissions", tenant: tenant_id, client_id: created_app.app_id.as(String)} }
 
-      client.application_add_oauth2_permission_grant(created_app.app_id.as(String), "Calendars.ReadWrite Calendars.ReadWrite.Shared Group.Read.All User.Read.All offline_access openid profile")
-      secret = client.application_add_pwd(created_app.app_id.as(String), "PlaceOS User Auth Secret")
+      GraphReplicationRetry.run do
+        client.application_add_oauth2_permission_grant(created_app.app_id.as(String), "Calendars.ReadWrite Calendars.ReadWrite.Shared Group.Read.All User.Read.All offline_access openid profile")
+      end
+      secret = GraphReplicationRetry.run { client.application_add_pwd(created_app.app_id.as(String), "PlaceOS User Auth Secret") }
       {client_id: created_app.app_id.as(String), client_secret: secret.secret_text.as(String)}
     end
 
@@ -121,7 +123,7 @@ module PlaceOS::Api
 
     private def update_app_redirect_uri(add : Bool = true) : Nil
       client = get_client
-      app = client.get_application(PLACE_APP_CLIENT_ID, "id,web")
+      app = GraphReplicationRetry.run { client.get_application(PLACE_APP_CLIENT_ID, "id,web") }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
 
       return nil if add && app_redirect_uris.includes?(redirect_url)
@@ -135,7 +137,7 @@ module PlaceOS::Api
       app.web.not_nil!.redirect_uris = app_redirect_uris
       web = {"web" => app.web}
       begin
-        client.update_application(PLACE_APP_CLIENT_ID, web.to_json)
+        GraphReplicationRetry.run { client.update_application(PLACE_APP_CLIENT_ID, web.to_json) }
       rescue ex : Office365::Exception
         return nil if already_exists_error?(ex.http_body)
         raise ex
@@ -144,7 +146,7 @@ module PlaceOS::Api
 
     private def add_outlook_plugin_auth(app_id : String) : Nil
       client = get_client
-      app = client.get_application(app_id)
+      app = GraphReplicationRetry.run { client.get_application(app_id) }
       app_redirect_uris = app.web.try &.redirect_uris || [] of String
       app_redirect_uris.push("#{domain_url}/outlook/#/book/spaces")
 
@@ -171,7 +173,7 @@ module PlaceOS::Api
           ],
         },
       }
-      client.update_application(app_id, updated.to_json)
+      GraphReplicationRetry.run { client.update_application(app_id, updated.to_json) }
 
       updated = {
         "api": {
@@ -185,7 +187,7 @@ module PlaceOS::Api
           ],
         },
       }
-      client.update_application(app_id, updated.to_json)
+      GraphReplicationRetry.run { client.update_application(app_id, updated.to_json) }
     end
 
     private def create_outlook_repo : Nil
