@@ -6,8 +6,15 @@ module PlaceOS::Api
   class TenantConsent < Application
     base "/api/engine/v2/admin_consent"
 
-    skip_action :authorize!, only: [:index, :azure_admin_consent_callback, :flow_status]
-    skip_action :set_user_id, only: [:index, :azure_admin_consent_callback, :flow_status]
+    # Only the callback is unauthenticated, and it has to be: Microsoft
+    # redirects the browser here, so there is no session to present. It is
+    # guarded instead by the single-use `state` token minted below — see
+    # `ConsentState`. Starting a flow requires an administrator, because that
+    # is what decides which authority the callback is allowed to reconfigure.
+    skip_action :authorize!, only: [:azure_admin_consent_callback, :flow_status]
+    skip_action :set_user_id, only: [:azure_admin_consent_callback, :flow_status]
+
+    before_action :check_admin, only: [:index]
 
     @[AC::Route::Filter(:before_action)]
     def get_host
@@ -29,7 +36,11 @@ module PlaceOS::Api
       authority = ::PlaceOS::Model::Authority.find!(id)
       update_app_redirect_uri
       callback_url = URI.encode_www_form(redirect_url)
-      consent_url = "https://login.microsoftonline.com/common/adminconsent?client_id=#{PLACE_APP_CLIENT_ID}&redirect_uri=#{callback_url}&state=#{authority.id.as(String)}"
+      # Not the authority id. `state` comes back from Microsoft through the
+      # user's browser and is the only thing telling the callback which
+      # authority to reconfigure, so it has to be unguessable and single use.
+      state = ConsentState.issue(authority.id.as(String))
+      consent_url = "https://login.microsoftonline.com/common/adminconsent?client_id=#{PLACE_APP_CLIENT_ID}&redirect_uri=#{callback_url}&state=#{URI.encode_www_form(state)}"
       render json: {"url": consent_url}
     end
 
@@ -46,7 +57,17 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "Description of the error", example: "The admin denied the request")]
       error_description : String? = nil,
     ) : Nil
-      if ((consent = admin_consent) && consent) && (tenant_id = tenant) && (authority_id = state)
+      if ((consent = admin_consent) && consent) && (tenant_id = tenant) && (consent_state = state)
+        # Redeem the token rather than trusting the parameter. This is what
+        # stops an unauthenticated caller naming an authority of their choosing
+        # and having the rest of this method reconfigure it. Redeeming is
+        # single use, so a captured callback URL cannot be replayed either.
+        authority_id = ConsentState.consume(consent_state)
+        unless authority_id
+          Log.warn { "Rejected admin consent callback with an unknown, expired or already used state" }
+          raise Error::NotFound.new("Invalid state value returned in admin consent")
+        end
+
         Log.info { "Received admin consent for tenant #{tenant_id} under authority #{authority_id}" }
         authority = ::PlaceOS::Model::Authority.find?(authority_id)
         raise Error::NotFound.new("Invalid state value returned in admin consent") unless authority

@@ -2,6 +2,36 @@ require "./helper"
 
 module PlaceOS::Api
   describe TenantConsent do
+    describe ".consent_state" do
+      # `state` comes back from Microsoft through the user's browser and is the
+      # only thing telling the callback which authority to reconfigure. The
+      # callback cannot be authenticated - Microsoft redirects to it - so these
+      # properties are the whole of its protection.
+      it "redeems a token for the authority it was issued to" do
+        authority_id = "authority-#{Random::Secure.hex(4)}"
+        token = ConsentState.issue(authority_id)
+
+        token.should_not eq authority_id
+        ConsentState.consume(token).should eq authority_id
+      end
+
+      it "refuses a token a second time" do
+        # A captured callback URL must be worthless once it has been used.
+        authority_id = "authority-#{Random::Secure.hex(4)}"
+        token = ConsentState.issue(authority_id)
+
+        ConsentState.consume(token).should eq authority_id
+        ConsentState.consume(token).should be_nil
+      end
+
+      it "refuses a token it never issued" do
+        # i.e. an attacker naming an authority directly, which is what the
+        # parameter used to be.
+        ConsentState.consume("authority-1").should be_nil
+        ConsentState.consume(UUID.random.to_s).should be_nil
+      end
+    end
+
     describe ".upsert_calendar_tenant" do
       app = {client_id: UUID.v4.to_s, client_secret: "sup3r-s3cret"}
       azure_tenant = UUID.v4.to_s
