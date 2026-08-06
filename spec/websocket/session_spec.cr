@@ -65,7 +65,7 @@ module PlaceOS::Api::WebSocket
         status_name = "nugget"
 
         id = rand(10).to_i64
-        results = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
+        results = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod, updates|
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
@@ -74,9 +74,9 @@ module PlaceOS::Api::WebSocket
             command:     Session::Request::Command::Bind,
           }
           ws.send Session::Request.new(**request).to_json
-          sleep 100.milliseconds
+          wait_for_updates(updates, 1)
           ws.send Session::Request.new(**request.merge({command: Session::Request::Command::Bind})).to_json
-          sleep 100.milliseconds
+          wait_for_updates(updates, 2)
         end
 
         updates, control_system, mod = results
@@ -121,7 +121,7 @@ module PlaceOS::Api::WebSocket
         status_name = "nugget"
 
         id = rand(10).to_i64
-        updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
+        updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod, updates|
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
@@ -130,7 +130,7 @@ module PlaceOS::Api::WebSocket
             command:     Session::Request::Command::Debug,
           }
           ws.send Session::Request.new(**request).to_json
-          sleep 100.milliseconds
+          wait_for_updates(updates, 1)
         end
 
         # Check all messages received
@@ -143,7 +143,7 @@ module PlaceOS::Api::WebSocket
         status_name = "nugget"
 
         id = rand(10).to_i64
-        updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod|
+        updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod, updates|
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
@@ -152,7 +152,7 @@ module PlaceOS::Api::WebSocket
             command:     Session::Request::Command::Ignore,
           }
           ws.send Session::Request.new(**request).to_json
-          sleep 100.milliseconds
+          wait_for_updates(updates, 1)
         end
 
         # Check all messages received
