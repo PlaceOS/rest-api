@@ -27251,6 +27251,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/admin_consent/flow/{flow_id}:
+    get:
+      summary: progress of an in-flight admin-consent flow, polled by the progress
+        page.
+      description: 'progress of an in-flight admin-consent flow, polled by the progress
+        page.
+
+        The flow id is an unguessable capability token; the payload contains no
+
+        secrets.'
+      tags:
+      - TenantConsent
+      operationId: PlaceOS::Api::TenantConsent_flow_status
+      parameters:
+      - name: flow_id
+        in: path
+        description: Flow identifier issued by the consent callback
+        example: uuid-1234
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__AdminConsentFlow'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/triggers:
     get:
       summary: returns the list of available triggers
@@ -39312,6 +39396,56 @@ components:
           type: string
       required:
       - url
+    PlaceOS__Api__AdminConsentFlow:
+      type: object
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              label:
+                type: string
+              state:
+                type: string
+            required:
+            - key
+            - label
+            - state
+        detail:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        redirect:
+          type: string
+        authority_id:
+          type: string
+        updated_at:
+          type: integer
+          format: Int64
+      required:
+      - id
+      - state
+      - steps
+      - redirect
+      - authority_id
+      - updated_at
+      description: 'Progress state for an in-flight Azure admin-consent flow.
+
+
+        The consent callback spawns the Microsoft Graph work into a fiber and
+
+        responds immediately with a progress page; state lives in redis (with a
+
+        TTL) so any replica can answer the page''s polling.'
     PlaceOS__Model__Trigger:
       type: object
       properties:
