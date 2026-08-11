@@ -478,7 +478,11 @@ module PlaceOS::Api
           Model::ControlSystem.clear
           num_systems = 5
 
-          mod = Model::Generator.module.save!
+          # Pin a non-logic role: Generator.module rolls a RANDOM driver role,
+          # and a logic module gets attached to its own home system — which
+          # then legitimately matches the module_id filter as an extra result.
+          service_driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+          mod = Model::Generator.module(driver: service_driver).save!
           module_id = mod.id.as(String)
 
           systems = Array.new(size: num_systems) do

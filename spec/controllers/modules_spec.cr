@@ -165,7 +165,13 @@ module PlaceOS::Api
         Model::Generator.module.save!
         Model::Generator.module.save!
         Model::Generator.module.save!
-        mod = Model::Generator.module.save!
+        # The scoped whole-list deliberately excludes logic modules
+        # (`mod.role <> 99` in the zone-scope CTE, inherited from the
+        # group-permissions work) — and Generator.module rolls a RANDOM driver
+        # role, so the visible module must be pinned to a non-logic role or
+        # this example fails ~1 run in 5.
+        service_driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+        mod = Model::Generator.module(driver: service_driver).save!
         sys = Model::Generator.control_system
         sys.zones << Spec::Authentication.org_zone.id.as(String)
         sys.zones_will_change!
