@@ -80,20 +80,26 @@ module PlaceOS::Api::Spec::Authentication
 
   def self.org_zone
     zone = PlaceOS::Model::Zone.find?("zone-perm-org")
-    return zone if zone
+    unless zone
+      zone = Model::Generator.zone
+      zone.id = "zone-perm-org"
+      zone.tags = Set.new ["org"]
+      zone.save!
+    end
 
-    zone = Model::Generator.zone
-    zone.id = "zone-perm-org"
-    zone.tags = Set.new ["org"]
-    zone.save!
+    # The permissions doc is what grants the management/concierge groups their
+    # access — a spec that clears Metadata can remove it while the zone itself
+    # survives, so it must be re-ensured independently of zone creation.
+    unless Model::Metadata.where(parent_id: zone.id.as(String), name: "permissions").first?
+      metadata = Model::Generator.metadata("permissions", zone)
+      metadata.details = JSON.parse({
+        admin:  ["management"],
+        manage: ["concierge"],
+      }.to_json)
 
-    metadata = Model::Generator.metadata("permissions", zone)
-    metadata.details = JSON.parse({
-      admin:  ["management"],
-      manage: ["concierge"],
-    }.to_json)
+      metadata.save!
+    end
 
-    metadata.save!
     zone
   end
 end
