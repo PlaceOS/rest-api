@@ -1,5 +1,13 @@
 require "../helper"
 
+# asserts a successful purchase orders index response and extracts the returned ids
+def purchase_order_index_ids(result) : Array(String)
+  result.status_code.should eq 200
+  Array(Hash(String, JSON::Any))
+    .from_json(result.body)
+    .map(&.["id"].to_s)
+end
+
 module PlaceOS::Api
   describe AssetPurchaseOrders do
     Spec.test_404(AssetPurchaseOrders.base_route, model_name: Model::AssetPurchaseOrder.table_name, headers: Spec::Authentication.headers, clz: Int64)
@@ -11,20 +19,37 @@ module PlaceOS::Api
         purchase_order_number = random_name
         doc.purchase_order_number = purchase_order_number
         doc.save!
-
-        refresh_elastic(Model::AssetPurchaseOrder.table_name)
-
         doc.persisted?.should be_true
-        params = HTTP::Params.encode({"q" => purchase_order_number})
-        path = "#{AssetPurchaseOrders.base_route.rstrip('/')}?#{params}"
 
-        found = until_expected("GET", path, headers) do |response|
-          Array(Hash(String, JSON::Any))
-            .from_json(response.body)
-            .map(&.["id"].to_s)
-            .any?(doc.id)
-        end
-        found.should be_true
+        other = PlaceOS::Model::Generator.asset_purchase_order.save!
+
+        params = HTTP::Params.encode({"q" => purchase_order_number, "limit" => "1000"})
+        path = "#{AssetPurchaseOrders.base_route.rstrip('/')}?#{params}"
+        ids = purchase_order_index_ids(client.get(path, headers: headers))
+        ids.should contain(doc.id)
+        ids.should_not contain(other.id)
+
+        doc.destroy
+        other.destroy
+      end
+
+      it "queries AssetPurchaseOrder by invoice number", tags: "search" do
+        _, headers = Spec::Authentication.authentication
+        doc = PlaceOS::Model::Generator.asset_purchase_order
+        invoice_number = random_name
+        doc.invoice_number = invoice_number
+        doc.save!
+
+        other = PlaceOS::Model::Generator.asset_purchase_order.save!
+
+        params = HTTP::Params.encode({"q" => invoice_number, "limit" => "1000"})
+        path = "#{AssetPurchaseOrders.base_route.rstrip('/')}?#{params}"
+        ids = purchase_order_index_ids(client.get(path, headers: headers))
+        ids.should contain(doc.id)
+        ids.should_not contain(other.id)
+
+        doc.destroy
+        other.destroy
       end
     end
 

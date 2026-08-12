@@ -29,10 +29,8 @@ module PlaceOS::Api
     # returns the list of available triggers
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Trigger)
-      elastic = ::PlaceOS::Model::Trigger.elastic
-      query = elastic.query(search_params)
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      # PG full-text search (PPT-2644)
+      paginate_search(::PlaceOS::Model::Trigger.all, ::PlaceOS::Model::Trigger.table_name)
     end
 
     # update so we can provide instance details

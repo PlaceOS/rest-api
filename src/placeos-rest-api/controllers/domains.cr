@@ -29,10 +29,8 @@ module PlaceOS::Api
     # list the domains
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Authority)
-      elastic = ::PlaceOS::Model::Authority.elastic
-      query = elastic.query(search_params)
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      # PG full-text search (PPT-2644)
+      paginate_search(::PlaceOS::Model::Authority.all, ::PlaceOS::Model::Authority.table_name)
     end
 
     # skip authentication for the lookup

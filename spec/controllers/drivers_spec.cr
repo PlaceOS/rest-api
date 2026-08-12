@@ -15,16 +15,13 @@ module PlaceOS::Api
           "q"    => service.name,
         })
 
-        refresh_elastic(Model::Driver.table_name)
         path = "#{Drivers.base_route}?#{params}"
-        found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-          results = Array(Hash(String, JSON::Any)).from_json(response.body)
-          all_service_roles = results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }
-          contains_search_term = results.any? { |r| r["id"] == service.id }
-          !results.empty? && all_service_roles && contains_search_term
-        end
-
-        found.should be_true
+        response = client.get(path, headers: Spec::Authentication.headers)
+        response.status_code.should eq 200
+        results = Array(Hash(String, JSON::Any)).from_json(response.body)
+        results.should_not be_empty
+        results.all? { |r| r["role"] == Model::Driver::Role::Service.to_i }.should be_true
+        results.any? { |r| r["id"] == service.id }.should be_true
       end
     end
 

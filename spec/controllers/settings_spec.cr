@@ -38,13 +38,12 @@ module PlaceOS::Api
 
     describe "index", tags: "search" do
       it "searches on keys" do
-        unencrypted = %({"secret_key": "secret1234"})
+        key = "skey#{Random.rand(99999)}"
+        value = "sval#{Random.rand(99999)}"
+        unencrypted = %({"#{key}": "#{value}"})
         settings = Model::Generator.settings(settings_string: unencrypted).save!
 
-        sleep 1.seconds
-        refresh_elastic(Model::Settings.table_name)
-
-        params = HTTP::Params.encode({"q" => settings.keys.first})
+        params = HTTP::Params.encode({"q" => key})
         path = "#{Settings.base_route.rstrip('/')}?#{params}"
 
         result = client.get(
@@ -54,9 +53,48 @@ module PlaceOS::Api
 
         result.status_code.should eq 200
 
-        settings = Array(Model::Settings).from_json(result.body)
-        settings.should_not be_empty
-        settings.first.keys.should contain("secret_key")
+        returned = Array(Model::Settings).from_json(result.body)
+        returned.map(&.id).should contain(settings.id)
+        returned.first.keys.should contain(key)
+
+        # only the keys are searchable — the settings body content is not
+        params = HTTP::Params.encode({"q" => value})
+        result = client.get(
+          path: "#{Settings.base_route.rstrip('/')}?#{params}",
+          headers: Spec::Authentication.headers
+        )
+
+        result.status_code.should eq 200
+        Array(Model::Settings).from_json(result.body).map(&.id).should_not contain(settings.id)
+      end
+
+      # Pins Elasticsearch-parity behavior: the search branch returns
+      # settings as stored, without `decrypt_for!` (unlike the parent_id
+      # branch, which decrypts for the requesting user).
+      it "does not decrypt settings in the search branch" do
+        key = "ekey#{Random.rand(99999)}"
+        setting = Model::Generator.settings(
+          settings_string: %({"#{key}": "value"}),
+          encryption_level: Encryption::Level::Admin,
+        ).save!
+
+        params = HTTP::Params.encode({"q" => key})
+        result = client.get(
+          path: "#{Settings.base_route.rstrip('/')}?#{params}",
+          headers: Spec::Authentication.headers
+        )
+
+        result.status_code.should eq 200
+        returned = Array(Model::Settings).from_json(result.body)
+        returned.map(&.id).should contain(setting.id)
+        returned.find! { |s| s.id == setting.id }.is_encrypted?.should be_true
+      end
+
+      it "rejects the search branch for non-support users" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        result = client.get(path: Settings.base_route, headers: headers)
+        result.status_code.should eq 403
       end
 
       it "returns settings for a set of parent ids" do
@@ -69,8 +107,6 @@ module PlaceOS::Api
         end
 
         sys, sys2 = systems
-
-        refresh_elastic(Model::Settings.table_name)
 
         result = client.get(
           path: File.join(Settings.base_route, "?parent_id=#{sys.id},#{sys2.id}"),
@@ -98,7 +134,6 @@ module PlaceOS::Api
           Model::Generator.settings(encryption_level: Encryption::Level::NeverDisplay, control_system: sys),
         ]
         clear, admin, never_displayed = settings.map(&.save!)
-        refresh_elastic(Model::Settings.table_name)
 
         result = client.get(
           path: File.join(Settings.base_route, "?parent_id=#{sys.id}"),

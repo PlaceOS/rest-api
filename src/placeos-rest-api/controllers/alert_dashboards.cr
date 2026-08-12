@@ -41,22 +41,17 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return dashboards for a specific authority", example: "authority-1234")]
       authority_id : String? = nil,
     ) : Array(::PlaceOS::Model::AlertDashboard)
-      elastic = ::PlaceOS::Model::AlertDashboard.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::AlertDashboard.all
 
       if authority_id
-        query.filter({
-          "authority_id" => [authority_id],
-        })
+        query = query.where(authority_id: authority_id)
       elsif !user_support?
         # Limit to current authority for non-support users
-        query.filter({
-          "authority_id" => [authority.id.as(String)],
-        })
+        query = query.where(authority_id: authority.id.as(String))
       end
 
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      paginate_search(query, ::PlaceOS::Model::AlertDashboard.table_name)
     end
 
     # returns the details of an alert dashboard

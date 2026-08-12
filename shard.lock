@@ -223,7 +223,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.105.2
+    version: 9.107.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
@@ -272,10 +272,6 @@ shards:
   sanitize:
     git: https://github.com/straight-shoota/sanitize.git
     version: 0.1.0+git.commit.c17d933fed22c6d3d615cca91a895166414389af
-
-  search-ingest:
-    git: https://github.com/placeos/search-ingest.git
-    version: 2.11.3+git.commit.fc43c1f8ad8733b6a6aa829e6def8a4e6756cf18
 
   secrets-env: # Overridden
     git: https://github.com/spider-gazelle/secrets-env.git

@@ -27,19 +27,105 @@ module PlaceOS::Api
           inst2.save!
           inst2.persisted?.should be_true
 
-          refresh_elastic(Model::TriggerInstance.table_name)
-
           params = HTTP::Params.encode({"as_of" => (inst1.updated_at.try &.to_unix).to_s})
           path = "#{path}?#{params}"
-          correct_response = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            contains_correct = results.any?(inst1.id)
-            contains_incorrect = results.any?(inst2.id)
 
-            !results.empty? && contains_correct && !contains_incorrect
-          end
+          result = client.get(path: path, headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
 
-          correct_response.should be_true
+          results = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          results.should contain(inst1.id)
+          results.should_not contain(inst2.id)
+        end
+
+        it "trigger_id" do
+          sys = Model::Generator.control_system.save!
+          base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id)
+
+          trigger1 = Model::Generator.trigger.save!
+          trigger2 = Model::Generator.trigger.save!
+          inst1 = Model::Generator.trigger_instance(trigger1, control_system: sys).save!
+          inst2 = Model::Generator.trigger_instance(trigger2, control_system: sys).save!
+
+          params = HTTP::Params.encode({"trigger_id" => trigger1.id.as(String)})
+          result = client.get(path: "#{base}?#{params}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+
+          results = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          results.should contain(inst1.id)
+          results.should_not contain(inst2.id)
+
+          {inst1, inst2, trigger1, trigger2, sys}.each &.destroy
+        end
+
+        it "important and triggered filter only when true" do
+          sys = Model::Generator.control_system.save!
+          base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id)
+
+          # NOTE: set flags via update — `before_create :set_importance`
+          # overwrites `important` with the parent trigger's value on create
+          flagged = Model::Generator.trigger_instance(control_system: sys).save!
+          flagged.important = true
+          flagged.triggered = true
+          flagged.save!
+
+          plain = Model::Generator.trigger_instance(control_system: sys).save!
+
+          # no params => both returned
+          result = client.get(path: base, headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          results = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          results.should contain(flagged.id)
+          results.should contain(plain.id)
+
+          # important=true => only the important instance
+          result = client.get(path: "#{base}?important=true", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          results = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          results.should contain(flagged.id)
+          results.should_not contain(plain.id)
+
+          # triggered=true => only the triggered instance
+          result = client.get(path: "#{base}?triggered=true", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          results = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          results.should contain(flagged.id)
+          results.should_not contain(plain.id)
+
+          {flagged, plain, sys}.each &.destroy
+        end
+
+        # Pins the PPT-2644 fix: under Elasticsearch the `q` param on this
+        # route was a silent no-op (the has_parent `should` clause was never
+        # required as minimum_should_match was unset). `q` now searches the
+        # parent trigger's text.
+        it "q searches by parent trigger name" do
+          sys = Model::Generator.control_system.save!
+          base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id)
+
+          trigger = Model::Generator.trigger
+          trigger.name = "Motion Detected"
+          trigger.save!
+          inst = Model::Generator.trigger_instance(trigger, control_system: sys).save!
+
+          other_trigger = Model::Generator.trigger
+          other_trigger.name = "Door Held Open"
+          other_trigger.save!
+          other_inst = Model::Generator.trigger_instance(other_trigger, control_system: sys).save!
+
+          # q matching the parent trigger's name returns its instance only
+          result = client.get(path: "#{base}?q=motion", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          results = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          results.should contain(inst.id)
+          results.should_not contain(other_inst.id)
+
+          # q matching no trigger returns no instances
+          result = client.get(path: "#{base}?q=nonsensequery", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          Array(Hash(String, JSON::Any)).from_json(result.body).should be_empty
+
+          {inst, other_inst, trigger, other_trigger, sys}.each &.destroy
         end
       end
     end

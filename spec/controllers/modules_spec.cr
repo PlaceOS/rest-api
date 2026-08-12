@@ -135,18 +135,12 @@ module PlaceOS::Api
         doc = Model::Generator.module(driver: driver).save!
         doc.persisted?.should be_true
 
-        refresh_elastic(Model::Module.table_name)
-
         params = HTTP::Params.encode({"q" => name})
         path = "#{Modules.base_route.rstrip('/')}?#{params}"
-        header = Spec::Authentication.headers
-        found = until_expected("GET", path, header) do |response|
-          Array(Hash(String, JSON::Any)).from_json(response.body).any? do |result|
-            result["id"].as_s == doc.id
-          end
-        end
-
-        found.should be_true
+        response = client.get(path, headers: Spec::Authentication.headers)
+        response.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+        ids.should contain(doc.id)
       end
 
       it "looks up by system_id" do
@@ -168,22 +162,21 @@ module PlaceOS::Api
       end
 
       it "ensures management users can only see the modules they have access to" do
-        # before_each clears the DB but not ES; this assertion counts the
-        # unscoped index, so start from a clean ES slate to avoid stale docs
-        # from earlier examples inflating the management-visible count.
-        clear_elastic(Model::Module.table_name)
-
         Model::Generator.module.save!
         Model::Generator.module.save!
         Model::Generator.module.save!
-        mod = Model::Generator.module.save!
+        # The scoped whole-list deliberately excludes logic modules
+        # (`mod.role <> 99` in the zone-scope CTE, inherited from the
+        # group-permissions work) — and Generator.module rolls a RANDOM driver
+        # role, so the visible module must be pinned to a non-logic role or
+        # this example fails ~1 run in 5.
+        service_driver = Model::Generator.driver(role: Model::Driver::Role::Service).save!
+        mod = Model::Generator.module(driver: service_driver).save!
         sys = Model::Generator.control_system
         sys.zones << Spec::Authentication.org_zone.id.as(String)
         sys.zones_will_change!
         sys.modules = [mod.id.as(String)]
         sys.save!
-
-        refresh_elastic(Model::Module.table_name)
 
         # ensure regular users can't use the route
         params = HTTP::Params{"control_system_id" => sys.id.as(String)}
@@ -202,22 +195,15 @@ module PlaceOS::Api
         response.status_code.should eq 200
 
         # Admins can see everything
-        header = Spec::Authentication.headers
-        until_expected("GET", Modules.base_route, header) do |resp|
-          response = resp
-          resp.success? ? (resp.headers["X-Total-Count"].to_i > 1) : false
-        end
+        response = client.get(Modules.base_route, headers: Spec::Authentication.headers)
         response.status_code.should eq 200
-        response.headers["X-Total-Count"].to_i > 1
+        response.headers["X-Total-Count"].to_i.should be > 1
 
         # Management can only see the one
-        header = Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"])
-        until_expected("GET", Modules.base_route, header) do |resp|
-          response = resp
-          resp.success? ? (resp.headers["X-Total-Count"].to_i > 0) : false
-        end
-
-        # check the results
+        response = client.get(
+          Modules.base_route,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"]),
+        )
         response.status_code.should eq 200
         response.headers["X-Total-Count"].should eq("1")
         Array(Hash(String, JSON::Any)).from_json(response.body.to_s).map(&.["id"].as_s).first?.should eq(mod.id)
@@ -240,14 +226,11 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"as_of" => (mod1.updated_at.try &.to_unix).to_s})
           path = "#{Modules.base_route}?#{params}"
 
-          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
-            contains_correct = results.any?(mod1.id)
-            contains_incorrect = results.any?(mod2.id)
-            !results.empty? && contains_correct && !contains_incorrect
-          end
-
-          found.should be_true
+          response = client.get(path, headers: Spec::Authentication.headers)
+          response.status_code.should eq 200
+          results = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+          results.should contain(mod1.id)
+          results.should_not contain(mod2.id)
         end
 
         it "no_logic" do
@@ -259,16 +242,12 @@ module PlaceOS::Api
           params = HTTP::Params.encode({"no_logic" => "true"})
           path = "#{Modules.base_route}?#{params}"
 
-          found = until_expected("GET", path, Spec::Authentication.headers) do |response|
-            results = Array(Hash(String, JSON::Any)).from_json(response.body)
-
-            no_logic = results.all? { |r| r["role"].as_i != Model::Driver::Role::Logic.to_i }
-            contains_created = results.any? { |r| r["id"].as_s == mod.id }
-
-            !results.empty? && no_logic && contains_created
-          end
-
-          found.should be_true
+          response = client.get(path, headers: Spec::Authentication.headers)
+          response.status_code.should eq 200
+          results = Array(Hash(String, JSON::Any)).from_json(response.body)
+          results.should_not be_empty
+          results.all? { |r| r["role"].as_i != Model::Driver::Role::Logic.to_i }.should be_true
+          results.any? { |r| r["id"].as_s == mod.id }.should be_true
         end
       end
 
@@ -287,18 +266,14 @@ module PlaceOS::Api
         doc_two = Model::Generator.module(driver: driver_two).save!
         doc_two.persisted?.should be_true
 
-        refresh_elastic(Model::Module.table_name)
-
         params = HTTP::Params.encode({"q" => name_one})
         path = "#{Modules.base_route.rstrip('/')}?#{params}"
-        header = Spec::Authentication.headers
 
-        found = until_expected("GET", path, header) do |response|
-          result = Array(Hash(String, JSON::Any)).from_json(response.body)
-          result.any? { |r| r["id"].as_s == doc_one.id } && !result.any? { |r| r["id"].as_s == doc_two.id } ? true : false
-        end
-
-        found.should be_true
+        response = client.get(path, headers: Spec::Authentication.headers)
+        response.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(response.body).map(&.["id"].as_s)
+        ids.should contain(doc_one.id)
+        ids.should_not contain(doc_two.id)
       end
     end
 

@@ -63,7 +63,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    # list queued/processed mail, filtered via Elasticsearch
+    # list queued/processed mail
     @[AC::Route::GET("/", converters: {zones: ConvertStringArray})]
     def index(
       @[AC::Param::Info(description: "only mail whose zones are anchored to this group; non-support callers need Read on the group", example: "group-uuid")]
@@ -91,16 +91,16 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "mail scheduled to send at or after this time")]
       send_at_after : Time? = nil,
     ) : Array(::PlaceOS::Model::PendingMail)
-      elastic = ::PlaceOS::Model::PendingMail.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::PendingMail.all
 
       # Authority scoping: regular users are pinned to their own authority;
       # only support/admin may target another (or all) authorities.
       if requested = authority_id
         raise Error::Forbidden.new unless user_support?
-        query.filter({"authority_id" => [requested]})
+        query = query.where(authority_id: requested)
       elsif !user_support?
-        query.filter({"authority_id" => [current_user.authority_id.as(String)]})
+        query = query.where(authority_id: current_user.authority_id.as(String))
       end
 
       # Group-anchor filter: resolve the group's zones first so we can
@@ -115,73 +115,67 @@ module PlaceOS::Api
           set_collection_headers(0, ::PlaceOS::Model::PendingMail.table_name)
           return [] of ::PlaceOS::Model::PendingMail
         end
-        query.filter({"zones" => group_zone_ids})
+        # AND-contains: the mail must reference every zone anchored to the
+        # group (parity with the ES term-per-value semantics)
+        query = query.where("zones @> #{sql_array(group_zone_ids)}", group_zone_ids)
       end
 
       if (filter_zones = zones) && !filter_zones.empty?
-        query.must({"zones" => filter_zones})
+        # AND-contains, as above
+        query = query.where("zones @> #{sql_array(filter_zones)}", filter_zones)
       end
 
-      query.filter({"source_service" => [source_service]}) if source_service
-      query.filter({"source_reference" => [source_reference]}) if source_reference
-      query.filter({"user_id" => [user_id]}) if user_id
+      query = query.where(source_service: source_service) if source_service
+      query = query.where(source_reference: source_reference) if source_reference
+      query = query.where(user_id: user_id) if user_id
 
-      # Exclude rejected mail unless explicitly requested (nil ⇒ must_not exists).
-      query.filter({"rejected_at" => [nil] of String?}) unless include_rejected
+      # Exclude rejected mail unless explicitly requested.
+      query = query.where(rejected_at: nil) unless include_rejected
 
       # Neither sent nor rejected.
-      query.filter({"sent_at" => [nil] of String?, "rejected_at" => [nil] of String?}) if unsent_only
+      query = query.where(sent_at: nil, rejected_at: nil) if unsent_only
 
-      # Not expired: expiry missing OR in the future. Needs an OR group that
-      # mixes a missing-field check with a range, so it goes in raw.
+      # Not expired: expiry missing OR in the future. SQL expresses the
+      # OR-with-missing directly (the old ES query needed a raw bool for this).
       unless include_expired
-        query.raw_filter(JSON.parse({
-          bool: {
-            should: [
-              {bool: {must_not: {exists: {field: "expiry"}}}},
-              {range: {expiry: {gte: Time.utc.to_rfc3339}}},
-            ],
-            minimum_should_match: 1,
-          },
-        }.to_json))
+        query = query.where("(expiry IS NULL OR expiry >= ?)", Time.utc)
       end
 
       # Sent window. When include_rejected is set, the window also matches the
-      # rejected time (a mail is either sent or rejected) — an OR across two
-      # range fields, hence raw.
+      # rejected time (a mail is either sent or rejected).
       if sent_after || sent_before
-        window = time_window(sent_after, sent_before)
+        sent_sql, sent_args = time_window("sent_at", sent_after, sent_before)
         if include_rejected
-          query.raw_filter(JSON.parse({
-            bool: {
-              should: [
-                {range: {sent_at: window}},
-                {range: {rejected_at: window}},
-              ],
-              minimum_should_match: 1,
-            },
-          }.to_json))
+          rejected_sql, rejected_args = time_window("rejected_at", sent_after, sent_before)
+          query = query.where("(#{sent_sql} OR #{rejected_sql})", sent_args + rejected_args)
         else
-          query.raw_filter(JSON.parse({range: {sent_at: window}}.to_json))
+          query = query.where(sent_sql, sent_args)
         end
       end
 
       if send_at = send_at_after
-        query.raw_filter(JSON.parse({range: {send_at: {gte: send_at.to_rfc3339}}}.to_json))
+        query = query.where("send_at >= ?", send_at)
       end
 
-      query.sort({"created_at" => {order: :desc}})
-      paginate_results(elastic, query)
+      # Feed-like route with no name column: newest first, id tie-break
+      paginate_search(query, ::PlaceOS::Model::PendingMail.table_name, order: "created_at DESC, id")
     end
 
-    # RFC3339 range bounds for ES. These Time fields (send_at/expiry/sent_at/
-    # rejected_at) are mapped as ES `date` and serialized as ISO8601 strings —
-    # a bare integer in a range would be read as epoch-millis, so use strings.
-    private def time_window(after : Time?, before : Time?) : Hash(String, String)
-      window = {} of String => String
-      window["gte"] = after.to_rfc3339 if after
-      window["lte"] = before.to_rfc3339 if before
-      window
+    # SQL fragment + bound args for an inclusive time window over `column`
+    # (a trusted, controller-supplied name — never user input). Bounds are
+    # only emitted for the params provided, mirroring the old ES range clause.
+    private def time_window(column : String, after : Time?, before : Time?) : Tuple(String, Array(Time))
+      parts = [] of String
+      args = [] of Time
+      if after
+        parts << "#{column} >= ?"
+        args << after
+      end
+      if before
+        parts << "#{column} <= ?"
+        args << before
+      end
+      {"(#{parts.join(" AND ")})", args}
     end
 
     # show the selected mail

@@ -58,14 +58,10 @@ module PlaceOS::Api
     # list the short URLs for this domain
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Shortener)
-      elastic = ::PlaceOS::Model::Shortener.elastic
-      query = elastic.query(search_params)
-      query.filter({
-        "authority_id" => [authority.id.as(String)],
-      })
-      query.search_field "name"
-      query.sort({"created_at" => {order: :desc}})
-      paginate_results(elastic, query)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::Shortener.all
+        .where(authority_id: authority.id.as(String))
+      paginate_search(query, ::PlaceOS::Model::Shortener.table_name)
     end
 
     # return the details of the requested shortened URL

@@ -40,10 +40,8 @@ module PlaceOS::Api
     # lists the repositories added to the system
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Repository)
-      elastic = ::PlaceOS::Model::Repository.elastic
-      query = elastic.query(search_params)
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      # PG full-text search (PPT-2644)
+      paginate_search(::PlaceOS::Model::Repository.all, ::PlaceOS::Model::Repository.table_name)
     end
 
     # returns the details of a saved repository

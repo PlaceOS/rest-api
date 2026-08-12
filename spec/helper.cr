@@ -4,7 +4,6 @@ require "mutex"
 require "promise"
 require "random"
 require "pg-orm"
-require "simple_retry"
 require "spec"
 
 require "./spec_helpers/*"
@@ -92,42 +91,6 @@ def clear_tables
   {% end %}
 end
 
-def until_expected(method, path, headers : HTTP::Headers, timeout : Time::Span = 3.seconds, &block : HTTP::Client::Response -> Bool)
-  client = ActionController::SpecHelper.client
-  channel = Channel(Bool).new
-  spawn do
-    before = Time.utc
-    begin
-      SimpleRetry.try_to(base_interval: 50.milliseconds, max_elapsed_time: 2.seconds, retry_on: Exception) do
-        result = client.exec(method: method, path: path, headers: headers)
-
-        unless result.success?
-          puts "\nrequest failed with: #{result.status_code}"
-          puts result.body
-        end
-
-        expected = block.call(result)
-
-        raise Exception.new("retry") unless expected || channel.closed?
-        channel.send(true) if expected
-      end
-    rescue e
-      raise e unless e.message == "retry"
-    ensure
-      after = Time.utc
-      puts "took #{(after - before).milliseconds}ms"
-    end
-  end
-
-  select
-  when found = channel.receive?
-    channel.close
-    !!found
-  when timeout(timeout)
-    false
-  end
-end
-
 def random_name
   UUID.random.to_s.split('-').first
 end
@@ -148,35 +111,4 @@ def clear_group_tables
     PlaceOS::Model::Group,
     PlaceOS::Model::DoorkeeperApplication,
   ].each(&.clear)
-end
-
-def refresh_elastic(index : String? = nil)
-  path = "/_refresh"
-  path = "/#{index}" + path unless index.nil?
-  Neuroplastic::Client.new.perform_request("POST", path)
-end
-
-# Ensures the given fields are mapped as `keyword` on an existing ES index.
-# The spec stack runs a pinned `search-ingest` image whose schema does not map
-# enum-typed columns (its klass→ES-type table skips enums), so fields like
-# `Alert#severity` aren't queryable in the test index even though the value is
-# in `_source`. This mirrors the mapping that `es_type: "keyword"` on the model
-# produces once search-ingest is rebuilt, letting controller ES filters be
-# exercised locally. Adding fields to an existing mapping is non-destructive.
-def ensure_keyword_mapping(index : String, fields : Enumerable(String))
-  props = {} of String => Hash(String, String)
-  fields.each { |field| props[field] = {"type" => "keyword"} }
-  Neuroplastic::Client.new.perform_request("PUT", "/#{index}/_mapping", body: {properties: props})
-end
-
-# Removes all documents from an Elasticsearch index (keeping its mapping) and
-# refreshes. `before_each` hooks clear the Postgres tables but not ES, so tests
-# that assert exact counts on the *unscoped* index need a clean ES slate to be
-# deterministic — otherwise stale docs from earlier examples inflate the count.
-def clear_elastic(index : String)
-  Neuroplastic::Client.new.perform_request(
-    "POST",
-    "/#{index}/_delete_by_query?conflicts=proceed&refresh=true",
-    body: {query: {match_all: {} of String => String}}
-  )
 end

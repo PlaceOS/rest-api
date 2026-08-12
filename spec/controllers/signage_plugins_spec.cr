@@ -114,9 +114,6 @@ module PlaceOS::Api
         plugin.save!
         plugin_id = plugin.id.as(String)
 
-        sleep 1.second
-        refresh_elastic(Model::SignagePlugin.table_name)
-
         result = client.get(
           path: SignagePlugins.base_route,
           headers: headers,
@@ -166,6 +163,122 @@ module PlaceOS::Api
         updated = Model::SignagePlugin.from_trusted_json(result.body)
         updated.name.should eq "Updated Shared Plugin"
         updated.authority_id.should be_nil
+      end
+
+      it "GET / lists this domain's plugins and filters with q", tags: "search" do
+        headers = Spec::Authentication.headers
+
+        target = random_name
+        match = Model::Generator.signage_plugin(name: target).save!
+        other = Model::Generator.signage_plugin(name: random_name).save!
+
+        result = client.get(path: SignagePlugins.base_route, headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should contain(match.id.as(String))
+        ids.should contain(other.id.as(String))
+        result.headers["X-Total-Count"].should eq "2"
+
+        params = HTTP::Params.encode({"q" => target})
+        result = client.get(path: "#{SignagePlugins.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should contain(match.id.as(String))
+        ids.should_not contain(other.id.as(String))
+        result.headers["X-Total-Count"].should eq "1"
+      end
+
+      it "GET / excludes other authorities' plugins", tags: "search" do
+        headers = Spec::Authentication.headers
+
+        mine = Model::Generator.signage_plugin.save!
+
+        shared = Model::Generator.signage_plugin
+        shared.authority_id = nil
+        shared.save!
+
+        other_authority = Model::Generator.authority("https://other-#{random_name}.example.com").save!
+        foreign = Model::Generator.signage_plugin(authority: other_authority).save!
+
+        result = client.get(path: SignagePlugins.base_route, headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should contain(mine.id.as(String))
+        ids.should contain(shared.id.as(String))
+        ids.should_not contain(foreign.id.as(String))
+        result.headers["X-Total-Count"].should eq "2"
+      end
+
+      it "GET /?enabled= filters on both true and false", tags: "search" do
+        headers = Spec::Authentication.headers
+
+        enabled_name = random_name
+        enabled_plugin = Model::Generator.signage_plugin(name: enabled_name)
+        enabled_plugin.enabled = true
+        enabled_plugin.save!
+
+        disabled_plugin = Model::Generator.signage_plugin
+        disabled_plugin.enabled = false
+        disabled_plugin.save!
+
+        result = client.get(path: "#{SignagePlugins.base_route}?enabled=true", headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should contain(enabled_plugin.id.as(String))
+        ids.should_not contain(disabled_plugin.id.as(String))
+
+        # enabled=false must filter too, not be ignored
+        result = client.get(path: "#{SignagePlugins.base_route}?enabled=false", headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should contain(disabled_plugin.id.as(String))
+        ids.should_not contain(enabled_plugin.id.as(String))
+
+        # q combines with the enabled filter
+        params = HTTP::Params.encode({"q" => enabled_name, "enabled" => "true"})
+        result = client.get(path: "#{SignagePlugins.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should eq [enabled_plugin.id.as(String)]
+
+        params = HTTP::Params.encode({"q" => enabled_name, "enabled" => "false"})
+        result = client.get(path: "#{SignagePlugins.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        Array(JSON::Any).from_json(result.body).should be_empty
+        result.headers["X-Total-Count"].should eq "0"
+      end
+
+      it "GET / paginates deterministically by name", tags: "search" do
+        headers = Spec::Authentication.headers
+
+        first = Model::Generator.signage_plugin(name: "aaa-#{random_name}").save!
+        second = Model::Generator.signage_plugin(name: "bbb-#{random_name}").save!
+
+        result = client.get(path: "#{SignagePlugins.base_route}?limit=1", headers: headers)
+        result.status_code.should eq 200
+        page = Array(Hash(String, JSON::Any)).from_json(result.body)
+        page.size.should eq 1
+        page.first["id"].as_s.should eq first.id.as(String)
+        result.headers["X-Total-Count"].should eq "2"
+        result.headers["Link"]?.should_not be_nil
+
+        result = client.get(path: "#{SignagePlugins.base_route}?limit=1&offset=1", headers: headers)
+        result.status_code.should eq 200
+        page = Array(Hash(String, JSON::Any)).from_json(result.body)
+        page.size.should eq 1
+        page.first["id"].as_s.should eq second.id.as(String)
       end
     end
   end

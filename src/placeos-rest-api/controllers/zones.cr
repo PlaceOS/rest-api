@@ -159,104 +159,70 @@ module PlaceOS::Api
         include_children_count = true
       end
 
-      elastic = ::PlaceOS::Model::Zone.elastic
-      query = elastic.query(search_params)
-      query.sort(NAME_SORT_ASC)
+      # PG full-text search (PPT-2644)
+      # normalise an empty list to nil so the authorisation logic below reads
+      # the same for `?parent_id=` as for no param at all
+      parent_id = nil if parent_id.try(&.empty?)
+
+      query = ::PlaceOS::Model::Zone.all
 
       if group_zone_ids
-        query.should({
-          "id" => group_zone_ids,
-        })
-        query.minimum_should_match(1)
+        query = query.where(id: group_zone_ids)
       end
 
       # Handle tree view queries
       if parent_id
         # Special case: "root" means zones with no parent
         if parent_id.includes?("root")
-          # Remove "root" and add any other parent_ids if present
           other_parents = parent_id.reject("root")
           if other_parents.empty?
-            # Only root zones: parent_id is missing OR equals "".
-            # Must go through `should` + `minimum_should_match(1)` — the
-            # neuroplastic DSL AND-s every entry in a `filter:` array, so
-            # using `filter` for [nil, ""] becomes (missing AND term="")
-            # which no document can satisfy.
-            parent_values = Array(String?).new(2)
-            parent_values << nil
-            parent_values << ""
-            query.should({
-              "parent_id" => parent_values,
-            })
-            query.minimum_should_match(1)
+            # Only root zones: parent_id is missing OR equals ""
+            query = query.where("(parent_id IS NULL OR parent_id = ?)", "")
           else
-            # Mix of root and specific parents: use OR logic
-            # Build array with nil and other parent IDs
-            parent_values = Array(String?).new(other_parents.size + 2)
-            parent_values << nil
-            parent_values << ""
-            parent_values.concat(other_parents)
-            query.should({
-              "parent_id" => parent_values,
-            })
-            query.minimum_should_match(1)
+            # Mix of root and specific parents (OR logic)
+            query = query.where("(parent_id IS NULL OR parent_id = '' OR parent_id = ANY(#{sql_array(other_parents)}))", other_parents)
           end
         else
           # Limit results to the children of these parents (OR logic)
-          query.should({
-            "parent_id" => parent_id,
-          })
-          query.minimum_should_match(1)
+          query = query.where(parent_id: parent_id)
         end
       end
 
-      # Limit results to zones containing the passed list of tags
+      # Limit results to zones containing ALL of the passed tags
       if (filter_tags = tags) && !filter_tags.empty?
-        query.must({
-          "tags" => filter_tags,
-        })
+        query = query.where("tags @> #{sql_array(filter_tags)}", filter_tags)
       elsif group_zone_ids.nil?
-        raise Error::Forbidden.new unless (parent_id && !parent_id.empty?) || user_support?
-        query.search_field "name"
+        raise Error::Forbidden.new unless parent_id || user_support?
       end
 
-      results = paginate_results(elastic, query)
+      results = paginate_search(query, ::PlaceOS::Model::Zone.table_name)
 
       # Add children count if requested
       if include_children_count
-        results = add_children_counts_from_es(results, elastic, query)
+        results = add_children_counts(results)
       end
 
       results
     end
 
-    # Helper to add children counts to zones using Elasticsearch aggregations
-    private def add_children_counts_from_es(zones : Array(::PlaceOS::Model::Zone), elastic, base_query)
+    # Helper to add children counts to zones (GROUP BY over parent_id,
+    # replacing the Elasticsearch terms aggregation)
+    private def add_children_counts(zones : Array(::PlaceOS::Model::Zone))
       return zones if zones.empty?
 
       zone_ids = zones.map(&.id.as(String))
 
-      # Query all zones whose parent_id matches any of our zone_ids, then aggregate by parent_id
-      agg_query = ::PlaceOS::Model::Zone.elastic.query({} of String => String)
-      agg_query.should({"parent_id" => zone_ids})
-      agg_query.minimum_should_match(1)
-      agg_query.terms("children_by_parent", "parent_id", size: zone_ids.size)
-
-      # Execute query with aggregation
-      data = ::PlaceOS::Model::Zone.elastic.search(agg_query)
-
-      # Extract aggregation results
-      count_map = Hash(String, Int32).new
-      if aggs = data[:aggregations]?
-        if buckets = aggs.dig?("children_by_parent", "buckets").try(&.as_a?)
-          buckets.each do |bucket|
-            parent_id = bucket["key"].as_s
-            count_map[parent_id] = bucket["doc_count"].as_i
-          end
+      count_map = Hash(String, Int32).new(0)
+      PgORM::Database.connection do |db|
+        db.query_each(
+          "SELECT parent_id, COUNT(*)::int FROM zone WHERE parent_id = ANY($1) GROUP BY parent_id",
+          args: [zone_ids]
+        ) do |rs|
+          parent = rs.read(String)
+          count_map[parent] = rs.read(Int32)
         end
       end
 
-      # Assign counts to zones
       zones.each do |zone|
         zone.children_count = count_map[zone.id.as(String)]? || 0
       end

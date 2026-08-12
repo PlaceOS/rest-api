@@ -226,21 +226,14 @@ module PlaceOS::Api
     # this route provides a list of public chat rooms for the current domain
     @[AC::Route::GET("/rooms")]
     def index : Array(::PlaceOS::Model::ControlSystem)
-      elastic = ::PlaceOS::Model::ControlSystem.elastic
-      query = ::PlaceOS::Model::ControlSystem.elastic.query(search_params)
-      query.must({
-        "public" => [true],
-      })
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::ControlSystem.where(public: true)
 
       if zone_id = current_authority.not_nil!.internals["webrtc_zone"]?.try(&.as_s?)
-        query.must({
-          "zones" => [zone_id],
-        })
+        query = query.where("? = ANY(zones)", zone_id)
       end
 
-      query.search_field "name"
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      paginate_search(query, ::PlaceOS::Model::ControlSystem.table_name)
     end
 
     ICE_CONFIG = {} of String => String

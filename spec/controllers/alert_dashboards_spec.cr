@@ -6,6 +6,61 @@ module PlaceOS::Api
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::AlertDashboard, AlertDashboards)
+
+      it "filters by authority_id" do
+        other_authority = PlaceOS::Model::Generator.authority("other-#{random_name}.example.com")
+        other_authority.save!
+
+        other_dashboard = PlaceOS::Model::Generator.alert_dashboard(name: "Other Authority Dashboard", description: "Test Description", authority_id: other_authority.id)
+        other_dashboard.save!
+
+        local_dashboard = PlaceOS::Model::Generator.alert_dashboard(name: "Local Dashboard", description: "Test Description")
+        local_dashboard.save!
+
+        params = HTTP::Params.encode({"authority_id" => other_authority.id.as(String)})
+        result = client.get(
+          "#{AlertDashboards.base_route}?#{params}",
+          headers: Spec::Authentication.headers
+        )
+
+        result.success?.should be_true
+        dashboards = Array(Hash(String, JSON::Any)).from_json(result.body)
+        ids = dashboards.map(&.["id"].as_s)
+        ids.should contain(other_dashboard.id)
+        ids.should_not contain(local_dashboard.id)
+        dashboards.each &.["authority_id"].as_s.should eq other_authority.id
+
+        other_dashboard.destroy
+        local_dashboard.destroy
+        other_authority.destroy
+      end
+
+      it "limits non-support users to their own authority's dashboards" do
+        other_authority = PlaceOS::Model::Generator.authority("other-#{random_name}.example.com")
+        other_authority.save!
+
+        foreign_dashboard = PlaceOS::Model::Generator.alert_dashboard(name: "Foreign Dashboard", description: "Test Description", authority_id: other_authority.id)
+        foreign_dashboard.save!
+
+        # generator defaults to the localhost authority the test user belongs to
+        own_dashboard = PlaceOS::Model::Generator.alert_dashboard(name: "Own Dashboard", description: "Test Description")
+        own_dashboard.save!
+
+        params = HTTP::Params.encode({"limit" => "1000"})
+        result = client.get(
+          "#{AlertDashboards.base_route}?#{params}",
+          headers: Spec::Authentication.headers(sys_admin: false, support: false)
+        )
+
+        result.success?.should be_true
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should contain(own_dashboard.id)
+        ids.should_not contain(foreign_dashboard.id)
+
+        foreign_dashboard.destroy
+        own_dashboard.destroy
+        other_authority.destroy
+      end
     end
 
     describe "CRUD operations", tags: "crud" do

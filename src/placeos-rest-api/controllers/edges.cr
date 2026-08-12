@@ -68,10 +68,8 @@ module PlaceOS::Api
     # an edge can be thought of as a location and each edge location can have multiple nodes servicing it
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Edge)
-      elastic = ::PlaceOS::Model::Edge.elastic
-      query = elastic.query(search_params)
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      # PG full-text search (PPT-2644)
+      paginate_search(::PlaceOS::Model::Edge.all, ::PlaceOS::Model::Edge.table_name)
     end
 
     # return the details of an edge location

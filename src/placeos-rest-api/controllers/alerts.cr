@@ -43,42 +43,53 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "filter by enabled status", example: "true")]
       enabled : Bool? = nil,
     ) : Array(::PlaceOS::Model::Alert)
-      elastic = ::PlaceOS::Model::Alert.elastic
-      query = elastic.query(search_params)
+      # PG full-text search (PPT-2644)
+      query = ::PlaceOS::Model::Alert.all
 
       if adi = alert_dashboard_id
-        query.filter({
-          "alert_dashboard_id" => [adi],
-        })
+        query = query.where(alert_dashboard_id: adi)
       elsif !user_support?
         # Limit to current authority's dashboards for non-support users
         auth = current_authority.as(::PlaceOS::Model::Authority)
         dashboard_ids = ::PlaceOS::Model::AlertDashboard.where(authority_id: auth.id).select(:id).map(&.id.as(String))
-        query.filter({
-          "alert_dashboard_id" => dashboard_ids,
-        })
+        if dashboard_ids.empty?
+          set_collection_headers(0, ::PlaceOS::Model::Alert.table_name)
+          return [] of ::PlaceOS::Model::Alert
+        end
+        # NOTE: the Elasticsearch version ANDed each dashboard id as a separate
+        # term filter, matching nothing whenever the authority had more than
+        # one dashboard — IN() is the intended semantics
+        query = query.where(alert_dashboard_id: dashboard_ids)
       end
 
       if sev = severity
-        query.filter({
-          "severity" => [sev.downcase],
-        })
+        # the PG enum column stores UPPERCASE labels while the API accepts and
+        # emits lowercase; an unrecognised value matches nothing (parity with
+        # the old Elasticsearch term filter, rather than a SQL cast error)
+        if parsed_severity = ::PlaceOS::Model::Alert::Severity.parse?(sev)
+          query = query.where("severity = ?::alert_severity", parsed_severity.to_s.upcase)
+        else
+          set_collection_headers(0, ::PlaceOS::Model::Alert.table_name)
+          return [] of ::PlaceOS::Model::Alert
+        end
       end
 
       if at = alert_type
-        query.filter({
-          "alert_type" => [at.downcase],
-        })
+        if parsed_type = ::PlaceOS::Model::Alert::AlertType.parse?(at)
+          query = query.where("alert_type = ?::alert_type", parsed_type.to_s.upcase)
+        else
+          set_collection_headers(0, ::PlaceOS::Model::Alert.table_name)
+          return [] of ::PlaceOS::Model::Alert
+        end
       end
 
-      if enb = enabled
-        query.filter({
-          "enabled" => [enb],
-        })
+      # NOTE: previously `if enb = enabled`, which silently ignored
+      # `enabled=false` — the filter now applies for both values
+      unless enabled.nil?
+        query = query.where(enabled: enabled)
       end
 
-      query.sort(NAME_SORT_ASC)
-      paginate_results(elastic, query)
+      paginate_search(query, ::PlaceOS::Model::Alert.table_name)
     end
 
     # returns the details of an alert
