@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **search**: match Elasticsearch token semantics exactly (PPT-2644) ([#446](https://github.com/PlaceOS/rest-api/pull/446))
 - replace Elasticsearch with PostgreSQL full-text search (PPT-2644, 2/2) ([#445](https://github.com/PlaceOS/rest-api/pull/445))
 - store app-only Graph credentials in the staff-api tenant (PPT-2000) ([#442](https://github.com/PlaceOS/rest-api/pull/442))
 - **tenant_consent**: live progress page for the admin-consent flow (PPT-2032) ([#441](https://github.com/PlaceOS/rest-api/pull/441))
