@@ -39,6 +39,15 @@ module PlaceOS::Api
         Utils::TextSearch.tsquery("meeting adele@example.com notes").should eq "meeting | 'adele@example.com' | notes:*"
       end
 
+      it "cannot confuse literal input with the email handling (Greptile P2 on #446)" do
+        # the single-pass tokenizer has no placeholder namespace to collide with
+        Utils::TextSearch.tsquery("adele@example.com placeosemailtoken0x")
+          .should eq "'adele@example.com' | placeosemailtoken0x:*"
+        # an email immediately followed by a colon is not mistaken for a field prefix
+        Utils::TextSearch.tsquery("adele@example.com: hello")
+          .should eq "'adele@example.com' | hello:*"
+      end
+
       it "splits hyphenated identifiers" do
         Utils::TextSearch.tsquery("sys-abc123").should eq "sys | abc123:*"
       end

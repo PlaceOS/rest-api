@@ -32,6 +32,13 @@ module PlaceOS::Api
     # never break out of the tsquery syntax.
     EMAIL = /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[\p{L}]{2,}/
 
+    # One ordered pass over the input: capture whole email addresses, consume
+    # `field:` prefixes (Backoffice's zone tag filter sends ES syntax like
+    # `tags:(+level AND +building)`) without emitting them, and collect plain
+    # word tokens. A single scan means no intermediate placeholder text, so no
+    # user-typed input can collide with the email handling.
+    TOKENIZER = /(#{EMAIL.source})|[\w.]+\s*:|([\p{L}\p{N}]+)/
+
     # Builds the argument for `to_tsquery('simple', ?)` from user input, or
     # returns `nil` when the input imposes no text filter (nil / blank / "*" /
     # nothing searchable) — ES treated those as match-all.
@@ -39,29 +46,15 @@ module PlaceOS::Api
       return nil if q.nil?
       q = q[0, MAX_QUERY_CHARS] if q.size > MAX_QUERY_CHARS
 
-      # protect email addresses from tokenization (see EMAIL above); the
-      # placeholder is alphanumeric so it survives the splits below
-      emails = [] of String
-      text = q.gsub(EMAIL) do |address|
-        emails << address
-        " placeosemailtoken#{emails.size - 1}x "
+      tokens = [] of String
+      q.scan(TOKENIZER) do |match|
+        break if tokens.size >= MAX_TOKENS
+        if address = match[1]?
+          tokens << "'#{address}'"
+        elsif word = match[2]?
+          tokens << word unless OPERATOR_WORDS.includes?(word.downcase)
+        end
       end
-
-      # drop `field:` prefixes (Backoffice's zone tag filter sends ES syntax
-      # like `tags:(+level AND +building)`)
-      text = text.gsub(/[\w.]+\s*:/, ' ')
-
-      tokens = text
-        .split(/[^\p{L}\p{N}]+/, remove_empty: true)
-        .reject { |token| OPERATOR_WORDS.includes?(token.downcase) }
-        .map { |token|
-          if token =~ /^placeosemailtoken(\d+)x$/ && (address = emails[$1.to_i]?)
-            "'#{address}'"
-          else
-            token
-          end
-        }
-        .first(MAX_TOKENS)
 
       return nil if tokens.empty?
       last = tokens.size - 1
