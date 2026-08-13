@@ -10,7 +10,7 @@ dependencies:
   # Server framework
   action-controller:
     github: spider-gazelle/action-controller
-    version: ~> 7.2
+    version: ">= 8.1"
 
   # Data validation library
   active-model:
@@ -63,7 +63,7 @@ dependencies:
   # An abstraction over Fibers
   promise:
     github: spider-gazelle/promise
-    version: ~> 3.0
+    version: ">= 3.0"
 
   # ORM for PostgreSQL built on active-model
   pg-orm:
