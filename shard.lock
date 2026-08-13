@@ -215,7 +215,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.0d12cf63aef957f97097f8648e245007e21e8eb0
+    version: 2.7.1+git.commit.879b4b9ac8dcbe2c9def5e27ee4bfe450cae6796
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
