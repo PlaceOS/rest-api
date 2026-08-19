@@ -81,32 +81,57 @@ module PlaceOS::Api
       raise Error::Forbidden.new
     end
 
+    # Subsystems that may act on a system through the group-permissions
+    # model: "support" always; "signage" only for signage displays.
+    SYSTEM_SUBSYSTEMS         = ["support"]
+    SIGNAGE_SYSTEM_SUBSYSTEMS = ["support", "signage"]
+
     @[AC::Route::Filter(:before_action, only: [:update])]
     def check_update_permissions
       return if user_support?
 
-      legacy_ok = has_legacy_access?(current_control_system.zones, admin_required: false) &&
-                  has_legacy_access?(control_system_update.zones, admin_required: false)
+      current = current_control_system
+      updated = control_system_update
+
+      legacy_ok = has_legacy_access?(current.zones, admin_required: false) &&
+                  has_legacy_access?(updated.zones, admin_required: false)
       return if legacy_ok
 
-      # "signage" or "support" subsystem with Update (or Manage) on the
-      # existing system's zones.
-      return if subsystem_grants_on_zones?(
-                  ["signage", "support"],
-                  current_control_system.zones,
-                  ::PlaceOS::Model::Permissions::Update,
-                )
+      # "signage" users may only touch systems that are (and remain)
+      # signage displays; "support" covers any system.
+      # NOTE: `Application`'s JSON parser rebuilds the model via
+      # `assign_attributes_from_json`, so `*_assigned?` (not `*_present?`)
+      # tells us which fields the request body actually supplied.
+      stays_signage = current.signage && (!updated.signage_assigned? || updated.signage)
+      subsystems = stays_signage ? SIGNAGE_SYSTEM_SUBSYSTEMS : SYSTEM_SUBSYSTEMS
 
-      raise Error::Forbidden.new
+      # Update (or Manage) on the existing system's zones.
+      unless subsystem_grants_on_zones?(subsystems, current.zones, ::PlaceOS::Model::Permissions::Update)
+        raise Error::Forbidden.new
+      end
+
+      # Any zones being *added* must be granted or sit above a granted
+      # zone in the resulting zone set — unrelated zones can't be attached.
+      # Zones already on the system are not re-checked.
+      if updated.zones_assigned?
+        added = updated.zones - current.zones
+        unless added.empty? || subsystem_covers_zones?(subsystems, added, ::PlaceOS::Model::Permissions::Update, within: updated.zones)
+          raise Error::Forbidden.new
+        end
+      end
     end
 
     @[AC::Route::Filter(:before_action, only: [:create])]
     def check_create_permissions
       return if user_support?
-      return if has_legacy_access?(control_system_update.zones, admin_required: false)
-      # "support" subsystem with Create (or Manage) on the proposed
-      # zones.
-      return if support_subsystem_grants?(control_system_update.zones, ::PlaceOS::Model::Permissions::Create)
+      sys = control_system_update
+      return if has_legacy_access?(sys.zones, admin_required: false)
+
+      # Create (or Manage) covering *every* proposed zone via "support"
+      # (or "signage" when creating a signage display) — see
+      # `subsystem_covers_zones?`.
+      subsystems = sys.signage ? SIGNAGE_SYSTEM_SUBSYSTEMS : SYSTEM_SUBSYSTEMS
+      return if subsystem_covers_zones?(subsystems, sys.zones, ::PlaceOS::Model::Permissions::Create)
       raise Error::Forbidden.new
     end
 

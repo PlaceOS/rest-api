@@ -27,7 +27,7 @@ module PlaceOS::Api
   # Build a non-admin user with a GroupUser + GroupZone wired to the
   # given subsystem and permission level, plus a ControlSystem in that
   # zone. Returns (cs, zone, group, headers).
-  def self.setup_subsystem_cs(subsystem : String, perm : Model::Permissions)
+  def self.setup_subsystem_cs(subsystem : String, perm : Model::Permissions, signage : Bool = false)
     authority = Model::Authority.find_by_domain("localhost").not_nil!
     user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
@@ -37,11 +37,43 @@ module PlaceOS::Api
     zone = Model::Generator.zone.save!
     Model::Generator.group_zone(group: group, zone: zone, permissions: perm).save!
 
-    cs = Model::Generator.control_system.save!
+    cs = Model::Generator.control_system
+    cs.signage = signage
+    cs.save!
     cs.zones = [zone.id.as(String)]
     cs.save!
 
     {cs, zone, group, headers}
+  end
+
+  # org -> building -> level; the user only has a `perm` grant on `level`
+  # within `subsystem`. Returns (headers, org, building, level, unrelated).
+  def self.setup_zone_hierarchy_create(subsystem : String = "support", perm : Model::Permissions = Model::Permissions::Create)
+    authority = Model::Authority.find_by_domain("localhost").not_nil!
+    user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+    org = Model::Generator.zone.save!
+    building = Model::Generator.zone
+    building.parent_id = org.id
+    building.save!
+    level = Model::Generator.zone
+    level.parent_id = building.id
+    level.save!
+    unrelated = Model::Generator.zone.save!
+
+    group = Model::Generator.group(authority: authority, subsystems: [subsystem]).save!
+    Model::Generator.group_user(user: user, group: group, permissions: perm).save!
+    Model::Generator.group_zone(group: group, zone: level, permissions: perm).save!
+
+    {headers, org, building, level, unrelated}
+  end
+
+  def self.patch_zones(headers, cs, zones)
+    client.patch(
+      path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+      body: {zones: zones}.to_json,
+      headers: headers,
+    )
   end
 
   def self.spec_delete_module(system, mod, headers)
@@ -1228,8 +1260,8 @@ module PlaceOS::Api
     describe "subsystem-based permissions" do
       ::Spec.before_each { clear_group_tables }
 
-      it "PATCH allowed for 'signage' subsystem with Update perm" do
-        cs, _zone, _group, headers = setup_subsystem_cs("signage", Model::Permissions::Update)
+      it "PATCH allowed for 'signage' subsystem with Update perm on a signage system" do
+        cs, _zone, _group, headers = setup_subsystem_cs("signage", Model::Permissions::Update, signage: true)
 
         # update requires a `version` query param to guard against
         # concurrent edits — pass the current value.
@@ -1241,6 +1273,30 @@ module PlaceOS::Api
         result.success?.should be_true
         cs.reload!
         cs.description.should eq "renamed via signage"
+      end
+
+      it "PATCH rejected for 'signage' subsystem when the system is not a signage display" do
+        cs, _zone, _group, headers = setup_subsystem_cs("signage", Model::Permissions::Update, signage: false)
+
+        result = client.patch(
+          path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+          body: {description: "should fail"}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+      end
+
+      it "PATCH rejected for 'signage' subsystem when turning signage off" do
+        cs, _zone, _group, headers = setup_subsystem_cs("signage", Model::Permissions::Update, signage: true)
+
+        result = client.patch(
+          path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+          body: {signage: false}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+        cs.reload!
+        cs.signage.should be_true
       end
 
       it "PATCH allowed for 'support' subsystem with Update perm" do
@@ -1280,6 +1336,134 @@ module PlaceOS::Api
 
         result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
         result.status_code.should eq 201
+      end
+
+      describe "POST with a zone hierarchy" do
+        it "allows the granted zone together with its ancestor zones" do
+          headers, org, building, level, _unrelated = setup_zone_hierarchy_create
+
+          new_cs = Model::Generator.control_system
+          new_cs.zones = [level.id.as(String), building.id.as(String), org.id.as(String)]
+
+          result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
+          result.status_code.should eq 201
+          created = Model::ControlSystem.from_trusted_json(result.body)
+          created.zones.should eq [level.id, building.id, org.id]
+        end
+
+        it "rejects when only ancestor zones (no granted zone) are specified" do
+          headers, org, building, _level, _unrelated = setup_zone_hierarchy_create
+
+          new_cs = Model::Generator.control_system
+          new_cs.zones = [building.id.as(String), org.id.as(String)]
+
+          result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
+          result.status_code.should eq 403
+        end
+
+        it "rejects when an unrelated zone is included alongside the granted zone" do
+          headers, org, building, level, unrelated = setup_zone_hierarchy_create
+
+          new_cs = Model::Generator.control_system
+          new_cs.zones = [level.id.as(String), building.id.as(String), org.id.as(String), unrelated.id.as(String)]
+
+          result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
+          result.status_code.should eq 403
+        end
+
+        it "'signage' subsystem can create a signage system in the granted zone and its ancestors" do
+          headers, org, building, level, _unrelated = setup_zone_hierarchy_create("signage")
+
+          new_cs = Model::Generator.control_system
+          new_cs.signage = true
+          new_cs.zones = [level.id.as(String), building.id.as(String), org.id.as(String)]
+
+          result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
+          result.status_code.should eq 201
+        end
+
+        it "'signage' subsystem cannot create a non-signage system" do
+          headers, _org, _building, level, _unrelated = setup_zone_hierarchy_create("signage")
+
+          new_cs = Model::Generator.control_system
+          new_cs.signage = false
+          new_cs.zones = [level.id.as(String)]
+
+          result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
+          result.status_code.should eq 403
+        end
+
+        it "'signage' subsystem cannot attach an unrelated zone to a signage system" do
+          headers, _org, _building, level, unrelated = setup_zone_hierarchy_create("signage")
+
+          new_cs = Model::Generator.control_system
+          new_cs.signage = true
+          new_cs.zones = [level.id.as(String), unrelated.id.as(String)]
+
+          result = client.post(Systems.base_route, body: new_cs.to_json, headers: headers)
+          result.status_code.should eq 403
+        end
+      end
+
+      describe "PATCH zones with a zone hierarchy" do
+        it "allows adding ancestor zones of the granted zone" do
+          headers, org, building, level, _unrelated = setup_zone_hierarchy_create("support", Model::Permissions::Update)
+          cs = Model::Generator.control_system
+          cs.zones = [level.id.as(String)]
+          cs.save!
+
+          result = patch_zones(headers, cs, [level.id, building.id, org.id])
+          result.status_code.should eq 200
+          cs.reload!
+          cs.zones.should eq [level.id, building.id, org.id]
+        end
+
+        it "rejects adding an unrelated zone" do
+          headers, _org, _building, level, unrelated = setup_zone_hierarchy_create("support", Model::Permissions::Update)
+          cs = Model::Generator.control_system
+          cs.zones = [level.id.as(String)]
+          cs.save!
+
+          result = patch_zones(headers, cs, [level.id, unrelated.id])
+          result.status_code.should eq 403
+          cs.reload!
+          cs.zones.should eq [level.id]
+        end
+
+        it "does not re-check zones already on the system when adding an ancestor" do
+          headers, _org, building, level, unrelated = setup_zone_hierarchy_create("support", Model::Permissions::Update)
+          # an admin previously placed the system in an extra, unrelated zone
+          cs = Model::Generator.control_system
+          cs.zones = [level.id.as(String), unrelated.id.as(String)]
+          cs.save!
+
+          result = patch_zones(headers, cs, [level.id, unrelated.id, building.id])
+          result.status_code.should eq 200
+          cs.reload!
+          cs.zones.should eq [level.id, unrelated.id, building.id]
+        end
+
+        it "'signage' subsystem can add ancestor zones to a signage system" do
+          headers, org, building, level, _unrelated = setup_zone_hierarchy_create("signage", Model::Permissions::Update)
+          cs = Model::Generator.control_system
+          cs.signage = true
+          cs.zones = [level.id.as(String)]
+          cs.save!
+
+          result = patch_zones(headers, cs, [level.id, building.id, org.id])
+          result.status_code.should eq 200
+        end
+
+        it "'signage' subsystem cannot add an unrelated zone to a signage system" do
+          headers, _org, _building, level, unrelated = setup_zone_hierarchy_create("signage", Model::Permissions::Update)
+          cs = Model::Generator.control_system
+          cs.signage = true
+          cs.zones = [level.id.as(String)]
+          cs.save!
+
+          result = patch_zones(headers, cs, [level.id, unrelated.id])
+          result.status_code.should eq 403
+        end
       end
 
       it "DELETE allowed for 'support' subsystem with Delete perm" do

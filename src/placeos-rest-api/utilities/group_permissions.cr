@@ -221,6 +221,70 @@ module PlaceOS::Api
       end
     end
 
+    # Stricter variant of `subsystem_grants_on_zones?` for writes that
+    # *assign* zones (create / adding zones on update): every zone in
+    # `zones` must be covered, not just one of them. A zone is covered when
+    #   - the user holds `required` (or Manage) on it within one of
+    #     `subsystems`, or
+    #   - it is an ancestor of such a granted zone that is *also* in `zones`
+    #     (a system placed on a level naturally also lists the building and
+    #     org above it, so a grant on the leaf is enough for the chain).
+    # Unrelated zones — neither granted nor above a granted zone in the
+    # set — cause a false result.
+    #
+    # `within` is the full zone set the anchors are drawn from; it defaults
+    # to `zones` and only differs on update, where `zones` is just the
+    # zones being *added* while `within` is the system's resulting zone
+    # list (so a new ancestor can anchor on an already-present granted zone).
+    def subsystem_covers_zones?(
+      subsystems : Array(String),
+      zones : Array(String),
+      required : ::PlaceOS::Model::Permissions,
+      within : Array(String) = zones,
+    ) : Bool
+      return false if zones.empty?
+
+      granted = within.select do |zone|
+        subsystems.any? do |subsystem|
+          perms = subsystem_zone_permissions(subsystem)[zone]?
+          !perms.nil? && (perms.manage? || (perms & required) != ::PlaceOS::Model::Permissions::None)
+        end
+      end
+      return false if granted.empty?
+
+      remaining = zones - granted
+      return true if remaining.empty?
+
+      ancestors = zone_ancestor_ids(granted)
+      remaining.all? { |zone| ancestors.includes?(zone) }
+    end
+
+    # Ancestor zone ids (excluding the zones themselves) of `zone_ids`,
+    # walked up `zone.parent_id` in the database. Bounded by the depth of
+    # the zone tree; UNION (not UNION ALL) terminates on accidental cycles.
+    def zone_ancestor_ids(zone_ids : Array(String)) : Set(String)
+      ancestors = Set(String).new
+      return ancestors if zone_ids.empty?
+
+      sql = <<-SQL
+        WITH RECURSIVE ancestors AS (
+          SELECT z.parent_id
+          FROM zone z
+          WHERE z.id = ANY($1) AND z.parent_id IS NOT NULL AND z.parent_id <> ''
+          UNION
+          SELECT z.parent_id
+          FROM zone z
+          INNER JOIN ancestors a ON z.id = a.parent_id
+          WHERE z.parent_id IS NOT NULL AND z.parent_id <> ''
+        )
+        SELECT parent_id FROM ancestors
+      SQL
+      ::PgORM::Database.connection do |conn|
+        conn.query_each(sql, args: [zone_ids]) { |rs| ancestors << rs.read(String) }
+      end
+      ancestors
+    end
+
     # Convenience wrapper for the "support" subsystem.
     def support_subsystem_grants?(zones : Array(String), required : ::PlaceOS::Model::Permissions) : Bool
       subsystem_grants_on_zones?([SUPPORT_SUBSYSTEM], zones, required)
