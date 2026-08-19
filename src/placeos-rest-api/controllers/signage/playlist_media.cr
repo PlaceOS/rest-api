@@ -13,12 +13,12 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show, :tags]
+    before_action :can_read, only: [:index, :show, :tags, :tag_counts]
     before_action :can_write, only: [:create, :update, :destroy, :share]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :tags, :create, :share])]
+    @[AC::Route::Filter(:before_action, except: [:index, :tags, :tag_counts, :create, :share])]
     def current_item(id : String)
       Log.context.set(item_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -198,6 +198,44 @@ module PlaceOS::Api
           db.query_all(sql, args: [authority.id.as(String), scope.map(&.to_s)], as: String)
         end
       end
+    end
+
+    # return the number of media items carrying each tag. Scopes the same
+    # way as `index`/`tags`: `group_id=...` limits to media linked to that
+    # group (caller must have Read on it); without `group_id`, admin/support
+    # callers see counts across the authority while regular users see counts
+    # from media in groups they can read. An item carrying a tag twice still
+    # counts once.
+    @[AC::Route::GET("/tag_counts")]
+    def tag_counts(
+      @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read on the group)")]
+      group_id : UUID? = nil,
+    ) : Hash(String, Int32)
+      scope = accessible_group_scope(group_id)
+      counts = {} of String => Int32
+      return counts if !scope.nil? && scope.empty?
+
+      # Aggregate in SQL — item ids are never materialised. `DISTINCT` in the
+      # unnest subquery guards against duplicate tags on a single item.
+      sql = String.build do |str|
+        str << "SELECT t.tag, COUNT(*)::int FROM playlist_items i, LATERAL (SELECT DISTINCT unnest(i.tags) AS tag) t WHERE i.authority_id = $1"
+        str << " AND i.id IN (SELECT playlist_item_id FROM group_playlist_items WHERE group_id = ANY($2::uuid[]))" unless scope.nil?
+        str << " GROUP BY t.tag ORDER BY t.tag"
+      end
+
+      read_counts = ->(rs : ::DB::ResultSet) do
+        tag = rs.read(String)
+        counts[tag] = rs.read(Int32)
+      end
+
+      PgORM::Database.connection do |db|
+        if scope.nil?
+          db.query_each(sql, args: [authority.id.as(String)], &read_counts)
+        else
+          db.query_each(sql, args: [authority.id.as(String), scope.map(&.to_s)], &read_counts)
+        end
+      end
+      counts
     end
 
     # return the details of the requested media item

@@ -321,6 +321,89 @@ module PlaceOS::Api
       end
     end
 
+    describe "GET /tag_counts" do
+      it "returns per-tag item counts for the authority (admin)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        a = Model::Generator.item(authority: authority)
+        a.tags = Set{"promo", "lobby"}
+        a.save!
+        b = Model::Generator.item(authority: authority)
+        b.tags = Set{"promo"}
+        b.save!
+        c = Model::Generator.item(authority: authority)
+        c.tags = Set(String).new
+        c.save!
+
+        result = client.get("#{base}/tag_counts", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        counts = Hash(String, Int32).from_json(result.body)
+        counts.should eq({"lobby" => 1, "promo" => 2})
+      end
+
+      it "scopes non-admin callers to media in groups they can read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+        mine = Model::Generator.item(authority: authority)
+        mine.tags = Set{"promo"}
+        mine.save!
+        Model::Generator.group_playlist_item(group: group, playlist_item: mine).save!
+
+        hidden = Model::Generator.item(authority: authority)
+        hidden.tags = Set{"promo", "secret"}
+        hidden.save!
+
+        result = client.get("#{base}/tag_counts", headers: headers)
+        result.status_code.should eq 200
+        counts = Hash(String, Int32).from_json(result.body)
+        counts.should eq({"promo" => 1})
+      end
+
+      it "?group_id= scopes to one group and is 403 without Read on it" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        root = Model::Generator.group(authority: authority).save!
+        group_a = Model::Generator.group(authority: authority, parent: root).save!
+        group_b = Model::Generator.group(authority: authority, parent: root).save!
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read).save!
+
+        in_a = Model::Generator.item(authority: authority)
+        in_a.tags = Set{"lobby"}
+        in_a.save!
+        Model::Generator.group_playlist_item(group: group_a, playlist_item: in_a).save!
+
+        in_b = Model::Generator.item(authority: authority)
+        in_b.tags = Set{"lobby", "promo"}
+        in_b.save!
+        Model::Generator.group_playlist_item(group: group_b, playlist_item: in_b).save!
+
+        result = client.get("#{base}/tag_counts?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 200
+        counts = Hash(String, Int32).from_json(result.body)
+        counts.should eq({"lobby" => 1})
+
+        forbidden = client.get("#{base}/tag_counts?group_id=#{group_b.id}", headers: headers)
+        forbidden.status_code.should eq 403
+      end
+
+      it "returns an empty hash for a user with no group memberships" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        tagged = Model::Generator.item(authority: authority)
+        tagged.tags = Set{"promo"}
+        tagged.save!
+
+        result = client.get("#{base}/tag_counts", headers: headers)
+        result.status_code.should eq 200
+        Hash(String, Int32).from_json(result.body).should be_empty
+      end
+    end
+
     describe "DELETE /:id?group_id= (unlink from a single group)" do
       it "admin unlinks the item from one group; the item and its other links remain" do
         _authority, item, _parent_a, group_a, group_b = setup_shared_media

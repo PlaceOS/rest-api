@@ -22061,6 +22061,96 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/media/tag_counts:
+    get:
+      summary: return the number of media items carrying each tag. Scopes the same
+      description: 'return the number of media items carrying each tag. Scopes the
+        same
+
+        way as `index`/`tags`: `group_id=...` limits to media linked to that
+
+        group (caller must have Read on it); without `group_id`, admin/support
+
+        callers see counts across the authority while regular users see counts
+
+        from media in groups they can read. An item carrying a tag twice still
+
+        counts once.'
+      tags:
+      - PlaylistMedia
+      operationId: PlaceOS::Api::PlaylistMedia_tag_counts
+      parameters:
+      - name: group_id
+        in: query
+        description: limit to media linked to this group (caller must have Read on
+          the group)
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__Int32_'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/{id}:
     get:
       summary: return the details of the requested media item
@@ -22217,7 +22307,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
-      summary: remove a media item from the library
+      summary: remove a media item from the library. With `group_id` the item is
+      description: 'remove a media item from the library. With `group_id` the item
+        is
+
+        unlinked from that group (its `GroupPlaylistItem` row is removed) and
+
+        remains available to any other groups it is shared with; when that was
+
+        its last group link the item itself is deleted so nothing is orphaned.'
       tags:
       - PlaylistMedia
       operationId: PlaceOS::Api::PlaylistMedia_destroy
@@ -22227,6 +22325,15 @@ paths:
         required: true
         schema:
           type: string
+      - name: group_id
+        in: query
+        description: remove the item from this group instead of deleting it outright
+          (caller needs Delete or Manage on the group); the item is deleted if no
+          group links remain
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         202:
           description: Accepted
@@ -25233,7 +25340,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
-      summary: remove a signage template (pending drafts and group links cascade)
+      summary: remove a signage template (pending drafts and group links cascade).
+      description: 'remove a signage template (pending drafts and group links cascade).
+
+        With `group_id` the template is unlinked from that group (its
+
+        `GroupSignageTemplate` row is removed) and remains available to any
+
+        other groups it is shared with; when that was its last group link the
+
+        template itself is deleted so nothing is orphaned.'
       tags:
       - SignageTemplates
       operationId: PlaceOS::Api::SignageTemplates_destroy
@@ -25244,6 +25360,15 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: group_id
+        in: query
+        description: remove the template from this group instead of deleting it outright
+          (caller needs Delete or Manage on the group); the template is deleted if
+          no group links remain
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         202:
           description: Accepted
