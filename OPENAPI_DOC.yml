@@ -23924,6 +23924,16 @@ paths:
         schema:
           type: boolean
           nullable: true
+      - name: plugin_type
+        in: query
+        description: only return plugins of this type
+        example: widget
+        schema:
+          type: string
+          enum:
+          - plugin
+          - widget
+          nullable: true
       - name: q
         in: query
         description: filters results by the given text; words match as prefixes against

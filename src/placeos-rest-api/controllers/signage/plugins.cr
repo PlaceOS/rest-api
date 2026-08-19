@@ -56,10 +56,12 @@ module PlaceOS::Api
     ###############################################################################################
 
     # list signage plugins for this domain and shared plugins (no authority)
-    @[AC::Route::GET("/")]
+    @[AC::Route::GET("/", config: {plugin_type: {strict: true}})]
     def index(
       @[AC::Param::Info(description: "only return plugins that are enabled", example: "true")]
       enabled : Bool? = nil,
+      @[AC::Param::Info(description: "only return plugins of this type", example: "widget")]
+      plugin_type : ::PlaceOS::Model::SignagePlugin::PluginType? = nil,
     ) : Array(::PlaceOS::Model::SignagePlugin)
       authority_id = authority.id.as(String)
 
@@ -72,6 +74,11 @@ module PlaceOS::Api
 
       unless enabled.nil?
         query = query.where(enabled: enabled)
+      end
+
+      if type = plugin_type
+        # the PG enum column stores UPPERCASE labels
+        query = query.where("plugin_type = ?::signage_plugin_plugin_type", type.to_s.upcase)
       end
 
       paginate_search(query, ::PlaceOS::Model::SignagePlugin.table_name)

@@ -260,6 +260,43 @@ module PlaceOS::Api
         result.headers["X-Total-Count"].should eq "0"
       end
 
+      it "GET /?plugin_type= filters plugins and widgets", tags: "search" do
+        headers = Spec::Authentication.headers
+
+        plugin = Model::Generator.signage_plugin.save!
+        widget = Model::Generator.widget_plugin.save!
+
+        # no filter returns both types
+        result = client.get(path: SignagePlugins.base_route, headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should contain(plugin.id.as(String))
+        ids.should contain(widget.id.as(String))
+        result.headers["X-Total-Count"].should eq "2"
+
+        result = client.get(path: "#{SignagePlugins.base_route}?plugin_type=widget", headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should eq [widget.id.as(String)]
+        result.headers["X-Total-Count"].should eq "1"
+
+        result = client.get(path: "#{SignagePlugins.base_route}?plugin_type=plugin", headers: headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any))
+          .from_json(result.body)
+          .map(&.["id"].as_s)
+        ids.should eq [plugin.id.as(String)]
+        result.headers["X-Total-Count"].should eq "1"
+
+        # unrecognised type is a client error, not silently ignored
+        result = client.get(path: "#{SignagePlugins.base_route}?plugin_type=unknown", headers: headers)
+        result.status_code.should eq 400
+      end
+
       it "GET / paginates deterministically by name", tags: "search" do
         headers = Spec::Authentication.headers
 
