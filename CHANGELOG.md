@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage/plugins**: allow filtering on plugin type
 - **signage/media**: add tag_counts route
 - **signage**: implement unshare for media and templates
 - **search**: match Elasticsearch token semantics exactly (PPT-2644) ([#446](https://github.com/PlaceOS/rest-api/pull/446))
