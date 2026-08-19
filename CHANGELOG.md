@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage/media**: add tag_counts route
 - **signage**: implement unshare for media and templates
 - **search**: match Elasticsearch token semantics exactly (PPT-2644) ([#446](https://github.com/PlaceOS/rest-api/pull/446))
 - replace Elasticsearch with PostgreSQL full-text search (PPT-2644, 2/2) ([#445](https://github.com/PlaceOS/rest-api/pull/445))
