@@ -1,6 +1,26 @@
 require "../../helper"
 
 module PlaceOS::Api
+  # Two groups sharing one template: `group_a` and `group_b`, both children
+  # of the authority root `parent_a`. Returns (authority, template, parent_a, group_a, group_b).
+  def self.setup_shared_template
+    authority = Model::Authority.find_by_domain("localhost").not_nil!
+    # an authority has a single root group; everything else hangs off it
+    parent_a = Model::Generator.group(authority: authority).save!
+    group_a = Model::Generator.group(authority: authority, parent: parent_a).save!
+    group_b = Model::Generator.group(authority: authority, parent: parent_a).save!
+
+    template = Model::Generator.signage_template(authority: authority).save!
+    Model::Generator.group_signage_template(group: group_a, signage_template: template).save!
+    Model::Generator.group_signage_template(group: group_b, signage_template: template).save!
+
+    {authority, template, parent_a, group_a, group_b}
+  end
+
+  def self.template_link?(group, template) : Bool
+    !Model::GroupSignageTemplate.find?({group.id.not_nil!, template.id.not_nil!}).nil?
+  end
+
   describe SignageTemplates do
     base = SignageTemplates.base_route
 
@@ -466,6 +486,159 @@ module PlaceOS::Api
         Model::SignageTemplate.find?(parent.id.as(UUID)).should be_nil
         Model::SignageTemplate.find?(draft.id.as(UUID)).should be_nil
         Model::GroupSignageTemplate.find?({group.id.not_nil!, parent.id.not_nil!}).should be_nil
+      end
+    end
+
+    describe "DELETE /:id?group_id= (unlink from a single group)" do
+      it "admin unlinks the template from one group; the template and its other links remain" do
+        _authority, template, _parent_a, group_a, group_b = setup_shared_template
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 202
+
+        Model::SignageTemplate.find?(template.id.as(UUID)).should_not be_nil
+        template_link?(group_a, template).should be_false
+        template_link?(group_b, template).should be_true
+      end
+
+      it "a user with Delete on the group can unlink (without needing rights on other linked groups)" do
+        _authority, template, _parent_a, group_a, group_b = setup_shared_template
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::SignageTemplate.find?(template.id.as(UUID)).should_not be_nil
+        template_link?(group_a, template).should be_false
+        template_link?(group_b, template).should be_true
+      end
+
+      it "Delete inherited from a parent group unlinks from the child group" do
+        _authority, template, parent_a, group_a, group_b = setup_shared_template
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: parent_a, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::SignageTemplate.find?(template.id.as(UUID)).should_not be_nil
+        template_link?(group_a, template).should be_false
+        template_link?(group_b, template).should be_true
+      end
+
+      it "Manage on the group also permits unlinking" do
+        _authority, template, _parent_a, group_a, _group_b = setup_shared_template
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Manage).save!
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+        template_link?(group_a, template).should be_false
+      end
+
+      it "is 403 without Delete or Manage on the group (link kept)" do
+        _authority, template, _parent_a, group_a, _group_b = setup_shared_template
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        perms = Model::Permissions::Read | Model::Permissions::Update | Model::Permissions::Share
+        Model::Generator.group_user(user: user, group: group_a, permissions: perms).save!
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 403
+        template_link?(group_a, template).should be_true
+      end
+
+      it "is 403 when the user's Delete is on a different group than the one specified" do
+        _authority, template, _parent_a, group_a, group_b = setup_shared_template
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_b, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 403
+        template_link?(group_a, template).should be_true
+        template_link?(group_b, template).should be_true
+      end
+
+      it "is 404 when the template is not linked to the specified group" do
+        authority, template, parent_a, group_a, group_b = setup_shared_template
+        other = Model::Generator.group(authority: authority, parent: parent_a).save!
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{other.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+
+        Model::SignageTemplate.find?(template.id.as(UUID)).should_not be_nil
+        template_link?(group_a, template).should be_true
+        template_link?(group_b, template).should be_true
+      end
+
+      it "is 404 for an unknown group or a group in another authority" do
+        _authority, template, _parent_a, _group_a, _group_b = setup_shared_template
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{UUID.random}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+
+        other_authority = Model::Generator.authority(domain: "http://other-#{Random::Secure.hex(3)}.example").save!
+        foreign = Model::Generator.group(authority: other_authority).save!
+        result = client.delete("#{base}/#{template.id}?group_id=#{foreign.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+        Model::SignageTemplate.find?(template.id.as(UUID)).should_not be_nil
+      end
+
+      it "unlinking leaves a pending draft intact" do
+        authority, template, _parent_a, group_a, _group_b = setup_shared_template
+        approver = Model::Generator.user(authority).save!
+        template.approver = approver
+        template.save!
+        client.patch(
+          File.join(base, template.id.to_s),
+          body: {full_screen_takeover: true}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        draft = Model::SignageTemplate.where(live_template_id: template.id.as(UUID)).to_a.first
+
+        result = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 202
+        Model::SignageTemplate.find?(draft.id.as(UUID)).should_not be_nil
+      end
+
+      it "deletes the template (and its draft) outright when the last group link is removed" do
+        authority, template, _parent_a, group_a, group_b = setup_shared_template
+        approver = Model::Generator.user(authority).save!
+        template.approver = approver
+        template.save!
+        client.patch(
+          File.join(base, template.id.to_s),
+          body: {full_screen_takeover: true}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        draft = Model::SignageTemplate.where(live_template_id: template.id.as(UUID)).to_a.first
+
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+        Model::Generator.group_user(user: user, group: group_b, permissions: Model::Permissions::Delete).save!
+
+        first = client.delete("#{base}/#{template.id}?group_id=#{group_a.id}", headers: headers)
+        first.status_code.should eq 202
+        Model::SignageTemplate.find?(template.id.as(UUID)).should_not be_nil
+
+        last = client.delete("#{base}/#{template.id}?group_id=#{group_b.id}", headers: headers)
+        last.status_code.should eq 202
+        Model::SignageTemplate.find?(template.id.as(UUID)).should be_nil
+        Model::SignageTemplate.find?(draft.id.as(UUID)).should be_nil
+        template_link?(group_b, template).should be_false
+      end
+
+      it "without group_id a user with Delete on a linked group still deletes the template outright" do
+        _authority, template, _parent_a, group_a, group_b = setup_shared_template
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{template.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::SignageTemplate.find?(template.id.as(UUID)).should be_nil
+        template_link?(group_a, template).should be_false
+        template_link?(group_b, template).should be_false
       end
     end
 

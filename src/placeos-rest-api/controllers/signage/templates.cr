@@ -82,9 +82,16 @@ module PlaceOS::Api
       enforce_template_access!(&.update?)
     end
 
+    # `group_id` switches destroy from "delete the template" to "unlink the
+    # template from this one group": the caller then only needs Delete (or
+    # Manage) on that group rather than on the template's linked groups.
     @[AC::Route::Filter(:before_action, only: [:destroy])]
-    def check_destroy_access
-      enforce_template_access!(&.delete?)
+    def check_destroy_access(group_id : UUID? = nil)
+      if group_id
+        ensure_group_delete_access!(group_id)
+      else
+        enforce_template_access!(&.delete?)
+      end
     end
 
     @[AC::Route::Filter(:before_action, only: [:approve])]
@@ -304,10 +311,27 @@ module PlaceOS::Api
       template
     end
 
-    # remove a signage template (pending drafts and group links cascade)
+    # remove a signage template (pending drafts and group links cascade).
+    # With `group_id` the template is unlinked from that group (its
+    # `GroupSignageTemplate` row is removed) and remains available to any
+    # other groups it is shared with; when that was its last group link the
+    # template itself is deleted so nothing is orphaned.
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
-    def destroy : Nil
-      current_template.destroy
+    def destroy(
+      @[AC::Param::Info(description: "remove the template from this group instead of deleting it outright (caller needs Delete or Manage on the group); the template is deleted if no group links remain")]
+      group_id : UUID? = nil,
+    ) : Nil
+      return current_template.destroy unless group_id
+
+      template_id = current_template.id.as(UUID)
+      link = ::PlaceOS::Model::GroupSignageTemplate.find?({group_id, template_id})
+      raise Error::NotFound.new("template is not linked to group #{group_id}") unless link
+
+      ::PgORM::Database.transaction do |_tx|
+        link.destroy
+        remaining = ::PlaceOS::Model::GroupSignageTemplate.where(signage_template_id: template_id).count
+        current_template.destroy if remaining == 0
+      end
     end
 
     # discard the pending draft, reverting to the approved version

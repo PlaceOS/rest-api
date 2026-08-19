@@ -71,9 +71,16 @@ module PlaceOS::Api
       enforce_item_access!(&.update?)
     end
 
+    # `group_id` switches destroy from "delete the item" to "unlink the item
+    # from this one group": the caller then only needs Delete (or Manage) on
+    # that group rather than on the item's linked groups.
     @[AC::Route::Filter(:before_action, only: [:destroy])]
-    def check_destroy_access
-      enforce_item_access!(&.delete?)
+    def check_destroy_access(group_id : UUID? = nil)
+      if group_id
+        ensure_group_delete_access!(group_id)
+      else
+        enforce_item_access!(&.delete?)
+      end
     end
 
     ###############################################################################################
@@ -346,9 +353,30 @@ module PlaceOS::Api
       end
     end
 
-    # remove a media item from the library
+    # remove a media item from the library. With `group_id` the item is
+    # unlinked from that group (its `GroupPlaylistItem` row is removed) and
+    # remains available to any other groups it is shared with; when that was
+    # its last group link the item itself is deleted so nothing is orphaned.
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
-    def destroy : Nil
+    def destroy(
+      @[AC::Param::Info(description: "remove the item from this group instead of deleting it outright (caller needs Delete or Manage on the group); the item is deleted if no group links remain")]
+      group_id : UUID? = nil,
+    ) : Nil
+      return destroy_item! unless group_id
+
+      item_id = current_item.id.as(String)
+      link = ::PlaceOS::Model::GroupPlaylistItem.find?({group_id, item_id})
+      raise Error::NotFound.new("item is not linked to group #{group_id}") unless link
+
+      PgORM::Database.transaction do |_tx|
+        link.destroy
+        remaining = ::PlaceOS::Model::GroupPlaylistItem.where(playlist_item_id: item_id).count
+        destroy_item! if remaining == 0
+      end
+    end
+
+    # delete the item and any uploads not referenced by other items
+    private def destroy_item! : Nil
       PgORM::Database.transaction do |_tx|
         {current_item.media, current_item.thumbnail}.each do |upload|
           next unless upload

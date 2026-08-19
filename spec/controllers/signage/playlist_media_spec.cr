@@ -1,6 +1,26 @@
 require "../../helper"
 
 module PlaceOS::Api
+  # Two groups sharing one media item: `group_a` and `group_b`, both children
+  # of the authority root `parent_a`. Returns (authority, item, parent_a, group_a, group_b).
+  def self.setup_shared_media
+    authority = Model::Authority.find_by_domain("localhost").not_nil!
+    # an authority has a single root group; everything else hangs off it
+    parent_a = Model::Generator.group(authority: authority).save!
+    group_a = Model::Generator.group(authority: authority, parent: parent_a).save!
+    group_b = Model::Generator.group(authority: authority, parent: parent_a).save!
+
+    item = Model::Generator.item(authority: authority).save!
+    Model::Generator.group_playlist_item(group: group_a, playlist_item: item).save!
+    Model::Generator.group_playlist_item(group: group_b, playlist_item: item).save!
+
+    {authority, item, parent_a, group_a, group_b}
+  end
+
+  def self.media_link?(group, item) : Bool
+    !Model::GroupPlaylistItem.find?({group.id.not_nil!, item.id.not_nil!}).nil?
+  end
+
   describe PlaylistMedia do
     base = PlaylistMedia.base_route
 
@@ -298,6 +318,133 @@ module PlaceOS::Api
 
         result = client.get("#{base}/tags?group_id=#{group.id}", headers: headers)
         result.status_code.should eq 403
+      end
+    end
+
+    describe "DELETE /:id?group_id= (unlink from a single group)" do
+      it "admin unlinks the item from one group; the item and its other links remain" do
+        _authority, item, _parent_a, group_a, group_b = setup_shared_media
+
+        result = client.delete("#{base}/#{item.id}?group_id=#{group_a.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 202
+
+        Model::Playlist::Item.find?(item.id.not_nil!).should_not be_nil
+        media_link?(group_a, item).should be_false
+        media_link?(group_b, item).should be_true
+      end
+
+      it "a user with Delete on the group can unlink (without needing rights on other linked groups)" do
+        _authority, item, _parent_a, group_a, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+
+        # a full delete would need Delete via a linked group too — this user
+        # has it, but the item is also in group_b which they know nothing about
+        result = client.delete("#{base}/#{item.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::Playlist::Item.find?(item.id.not_nil!).should_not be_nil
+        media_link?(group_a, item).should be_false
+        media_link?(group_b, item).should be_true
+      end
+
+      it "Delete inherited from a parent group unlinks from the child group" do
+        _authority, item, parent_a, group_a, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: parent_a, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{item.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::Playlist::Item.find?(item.id.not_nil!).should_not be_nil
+        media_link?(group_a, item).should be_false
+        media_link?(group_b, item).should be_true
+      end
+
+      it "Manage on the group also permits unlinking" do
+        _authority, item, _parent_a, group_a, _group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Manage).save!
+
+        result = client.delete("#{base}/#{item.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+        media_link?(group_a, item).should be_false
+      end
+
+      it "is 403 without Delete or Manage on the group (link kept)" do
+        _authority, item, _parent_a, group_a, _group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        perms = Model::Permissions::Read | Model::Permissions::Update | Model::Permissions::Share
+        Model::Generator.group_user(user: user, group: group_a, permissions: perms).save!
+
+        result = client.delete("#{base}/#{item.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 403
+        media_link?(group_a, item).should be_true
+      end
+
+      it "is 403 when the user's Delete is on a different group than the one specified" do
+        _authority, item, _parent_a, group_a, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_b, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{item.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 403
+        media_link?(group_a, item).should be_true
+        media_link?(group_b, item).should be_true
+      end
+
+      it "is 404 when the item is not linked to the specified group" do
+        authority, item, parent_a, group_a, group_b = setup_shared_media
+        other = Model::Generator.group(authority: authority, parent: parent_a).save!
+
+        result = client.delete("#{base}/#{item.id}?group_id=#{other.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+
+        Model::Playlist::Item.find?(item.id.not_nil!).should_not be_nil
+        media_link?(group_a, item).should be_true
+        media_link?(group_b, item).should be_true
+      end
+
+      it "is 404 for an unknown group or a group in another authority" do
+        _authority, item, _parent_a, _group_a, _group_b = setup_shared_media
+
+        result = client.delete("#{base}/#{item.id}?group_id=#{UUID.random}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+
+        other_authority = Model::Generator.authority(domain: "http://other-#{Random::Secure.hex(3)}.example").save!
+        foreign = Model::Generator.group(authority: other_authority).save!
+        result = client.delete("#{base}/#{item.id}?group_id=#{foreign.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+        Model::Playlist::Item.find?(item.id.not_nil!).should_not be_nil
+      end
+
+      it "deletes the item outright when the last group link is removed" do
+        _authority, item, _parent_a, group_a, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+        Model::Generator.group_user(user: user, group: group_b, permissions: Model::Permissions::Delete).save!
+
+        first = client.delete("#{base}/#{item.id}?group_id=#{group_a.id}", headers: headers)
+        first.status_code.should eq 202
+        Model::Playlist::Item.find?(item.id.not_nil!).should_not be_nil
+
+        last = client.delete("#{base}/#{item.id}?group_id=#{group_b.id}", headers: headers)
+        last.status_code.should eq 202
+        Model::Playlist::Item.find?(item.id.not_nil!).should be_nil
+        media_link?(group_b, item).should be_false
+      end
+
+      it "without group_id a user with Delete on a linked group still deletes the item outright" do
+        _authority, item, _parent_a, group_a, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{item.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::Playlist::Item.find?(item.id.not_nil!).should be_nil
+        media_link?(group_a, item).should be_false
+        media_link?(group_b, item).should be_false
       end
     end
 

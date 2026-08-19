@@ -142,6 +142,22 @@ module PlaceOS::Api
       raise Error::Forbidden.new("zone not reachable from any of your manageable groups") unless user_can_delegate_zone?(user, zone_id)
     end
 
+    # Authorise a group-scoped removal (e.g. unlinking a shared media item or
+    # template from one group rather than deleting it outright). The group
+    # must exist in the caller's authority (404 otherwise, so ids from other
+    # authorities aren't distinguishable from unknown ones). Support/admin
+    # callers bypass; everyone else needs Delete or Manage on the group —
+    # effective permissions, so membership of an ancestor group counts.
+    def ensure_group_delete_access!(group_id : UUID) : ::PlaceOS::Model::Group
+      group = ::PlaceOS::Model::Group.find?(group_id)
+      authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+      raise Error::NotFound.new("group #{group_id} not found") if group.nil? || group.authority_id != authority_id
+      return group if user_support?
+      perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
+      raise Error::Forbidden.new("missing Delete permission on group #{group_id}") unless perms.delete? || perms.manage?
+      group
+    end
+
     # OR of the user's effective permissions across the supplied group
     # ids. Pairs with a junction-table lookup: fetch the groups linked
     # to a resource, pass them here to get the user's effective bitmask
