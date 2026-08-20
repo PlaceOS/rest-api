@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: show groups media is shared with
 - **signage/plugins**: allow filtering on plugin type
 - **signage/media**: add tag_counts route
 - **signage**: implement unshare for media and templates
