@@ -124,6 +124,7 @@
 
 ### Fix
 
+- **models**: template widget validation fix
 - **systems**: signage manager users can add and edit displays
 - **tenant_consent**: retry Graph calls that race directory replication (PPT-2000) ([#440](https://github.com/PlaceOS/rest-api/pull/440))
 - **signage**: stable index ordering for pagination
