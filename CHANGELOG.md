@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage/playlists**: add unshare option to destroy
 - **signage/playlist_media**: return playlists on show route
 - **signage**: show groups media is shared with
 - **signage/plugins**: allow filtering on plugin type
