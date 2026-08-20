@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **proxy**: add GET proxy for use by frontends
 - **signage/playlists**: add unshare option to destroy
 - **signage/playlist_media**: return playlists on show route
 - **signage**: show groups media is shared with
