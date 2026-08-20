@@ -158,6 +158,16 @@ module PlaceOS::Api
       group
     end
 
+    # Resolve group ids (typically the junction rows a resource is shared
+    # into) to the `Group` records, ordered by name. No permission filtering
+    # is applied — callers use this to hydrate "shared with" details, where
+    # the point is seeing every group holding the resource, including ones
+    # the caller isn't a member of.
+    def groups_by_id(group_ids : Array(UUID)) : Array(::PlaceOS::Model::Group)
+      return [] of ::PlaceOS::Model::Group if group_ids.empty?
+      ::PlaceOS::Model::Group.where(id: group_ids).order(name: :asc).to_a
+    end
+
     # OR of the user's effective permissions across the supplied group
     # ids. Pairs with a junction-table lookup: fetch the groups linked
     # to a resource, pass them here to get the user's effective bitmask

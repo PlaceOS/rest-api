@@ -212,6 +212,62 @@ module PlaceOS::Api
       end
     end
 
+    describe "shared_with on show" do
+      # Two groups sharing one playlist, both children of the authority root.
+      setup_shared_playlist = -> do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        parent_a = Model::Generator.group(authority: authority).save!
+        group_a = Model::Generator.group(authority: authority, parent: parent_a).save!
+        group_b = Model::Generator.group(authority: authority, parent: parent_a).save!
+
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: group_a, playlist: playlist).save!
+        Model::Generator.group_playlist(group: group_b, playlist: playlist).save!
+
+        {playlist, group_a, group_b}
+      end
+
+      it "lists every group the playlist is shared with" do
+        playlist, group_a, group_b = setup_shared_playlist.call
+
+        show = client.get(File.join(base, playlist.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+
+        shared = JSON.parse(show.body)["shared_with"].as_a
+        shared.map(&.["id"].as_s).sort!.should eq [group_a.id.to_s, group_b.id.to_s].sort!
+        shared.map(&.["name"].as_s).sort!.should eq [group_a.name, group_b.name].sort!
+      end
+
+      it "includes groups the caller is not a member of" do
+        playlist, group_a, group_b = setup_shared_playlist.call
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read).save!
+
+        show = client.get(File.join(base, playlist.id.to_s), headers: headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["shared_with"].as_a.map(&.["id"].as_s).sort!
+          .should eq [group_a.id.to_s, group_b.id.to_s].sort!
+      end
+
+      it "is an empty array for an unlinked playlist" do
+        playlist = Model::Generator.playlist.save!
+
+        show = client.get(File.join(base, playlist.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["shared_with"].as_a.should be_empty
+      end
+
+      it "is not present on index results" do
+        playlist, _, _ = setup_shared_playlist.call
+
+        index = client.get(base, headers: Spec::Authentication.headers)
+        index.status_code.should eq 200
+        listed = Array(JSON::Any).from_json(index.body).find { |i| i["id"].as_s == playlist.id.to_s }
+        listed.should_not be_nil
+        listed.not_nil!.as_h.has_key?("shared_with").should be_false
+      end
+    end
+
     describe "POST /share" do
       it "admin shares playlists into a signage group, skipping duplicates" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!

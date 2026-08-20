@@ -404,6 +404,49 @@ module PlaceOS::Api
       end
     end
 
+    describe "shared_with on show" do
+      it "lists every group the item is shared with" do
+        _, item, _, group_a, group_b = setup_shared_media
+
+        show = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+
+        shared = JSON.parse(show.body)["shared_with"].as_a
+        shared.map(&.["id"].as_s).sort!.should eq [group_a.id.to_s, group_b.id.to_s].sort!
+        shared.map(&.["name"].as_s).sort!.should eq [group_a.name, group_b.name].sort!
+      end
+
+      it "includes groups the caller is not a member of" do
+        _, item, _, group_a, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read).save!
+
+        show = client.get(File.join(base, item.id.to_s), headers: headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["shared_with"].as_a.map(&.["id"].as_s).sort!
+          .should eq [group_a.id.to_s, group_b.id.to_s].sort!
+      end
+
+      it "is an empty array for an unlinked item" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        item = Model::Generator.item(authority: authority).save!
+
+        show = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["shared_with"].as_a.should be_empty
+      end
+
+      it "is not present on index results" do
+        _, item, _, _, _ = setup_shared_media
+
+        index = client.get(base, headers: Spec::Authentication.headers)
+        index.status_code.should eq 200
+        listed = Array(JSON::Any).from_json(index.body).find { |i| i["id"].as_s == item.id.to_s }
+        listed.should_not be_nil
+        listed.not_nil!.as_h.has_key?("shared_with").should be_false
+      end
+    end
+
     describe "DELETE /:id?group_id= (unlink from a single group)" do
       it "admin unlinks the item from one group; the item and its other links remain" do
         _authority, item, _parent_a, group_a, group_b = setup_shared_media

@@ -5,6 +5,15 @@ require "placeos-models/group/playlist_item"
 require "../application"
 
 module PlaceOS::Api
+  # hydrated into `show` responses so clients can see which groups an item
+  # has been shared into without a second request — the caller may not be a
+  # member of every one of those groups, so it can't resolve the records
+  # itself. Nil is omitted from JSON, so other routes are unaffected.
+  class ::PlaceOS::Model::Playlist::Item
+    @[JSON::Field(ignore_deserialize: true)]
+    property shared_with : Array(::PlaceOS::Model::Group)? = nil
+  end
+
   class PlaylistMedia < Application
     include Utils::GroupPermissions
 
@@ -238,10 +247,13 @@ module PlaceOS::Api
       counts
     end
 
-    # return the details of the requested media item
+    # return the details of the requested media item, including the groups
+    # it has been shared with
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::Playlist::Item
-      current_item
+      item = current_item
+      item.shared_with = groups_by_id(linked_item_groups)
+      item
     end
 
     # redirects to the thumbnail image URL

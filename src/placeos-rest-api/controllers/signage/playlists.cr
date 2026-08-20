@@ -4,6 +4,15 @@ require "placeos-models/group/playlist"
 require "../application"
 
 module PlaceOS::Api
+  # hydrated into `show` responses so clients can see which groups a playlist
+  # has been shared into without a second request — the caller may not be a
+  # member of every one of those groups, so it can't resolve the records
+  # itself. Nil is omitted from JSON, so other routes are unaffected.
+  class ::PlaceOS::Model::Playlist
+    @[JSON::Field(ignore_deserialize: true)]
+    property shared_with : Array(::PlaceOS::Model::Group)? = nil
+  end
+
   class Playlist < Application
     include Utils::GroupPermissions
 
@@ -160,10 +169,13 @@ module PlaceOS::Api
       paginate_sql(query, type: "playlists", limit: limit, offset: offset)
     end
 
-    # return the details of the requested media playlist
+    # return the details of the requested media playlist, including the
+    # groups it has been shared with
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::Playlist
-      current_playlist
+      playlist = current_playlist
+      playlist.shared_with = groups_by_id(linked_playlist_groups)
+      playlist
     end
 
     # update the details of a media playlist

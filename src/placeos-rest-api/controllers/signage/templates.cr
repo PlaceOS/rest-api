@@ -4,6 +4,15 @@ require "placeos-models/group/signage_template"
 require "../application"
 
 module PlaceOS::Api
+  # hydrated into `show` responses so clients can see which groups a template
+  # has been shared into without a second request — the caller may not be a
+  # member of every one of those groups, so it can't resolve the records
+  # itself. Nil is omitted from JSON, so other routes are unaffected.
+  class ::PlaceOS::Model::SignageTemplate
+    @[JSON::Field(ignore_deserialize: true)]
+    property shared_with : Array(::PlaceOS::Model::Group)? = nil
+  end
+
   class SignageTemplates < Application
     include Utils::GroupPermissions
 
@@ -216,16 +225,20 @@ module PlaceOS::Api
       paginate_sql(query, type: "templates", limit: limit, offset: offset)
     end
 
-    # return the details of the requested template. By default the pending
-    # draft is returned when one exists (falling back to the approved
-    # version); pass `approved=true` for the approved version always.
+    # return the details of the requested template, including the groups it
+    # has been shared with. By default the pending draft is returned when one
+    # exists (falling back to the approved version); pass `approved=true` for
+    # the approved version always.
     @[AC::Route::GET("/:id")]
     def show(
       @[AC::Param::Info(description: "return the approved (live) version even when a pending draft exists")]
       approved : Bool = false,
     ) : ::PlaceOS::Model::SignageTemplate
-      return current_template if approved
-      find_draft(current_template) || current_template
+      template = approved ? current_template : (find_draft(current_template) || current_template)
+      # group links hang off the approved (parent) template — drafts carry
+      # none — so the shares are always resolved from `current_template`
+      template.shared_with = groups_by_id(linked_template_groups)
+      template
     end
 
     # update a template. Approved templates are never modified in place:

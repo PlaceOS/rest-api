@@ -489,6 +489,80 @@ module PlaceOS::Api
       end
     end
 
+    describe "shared_with on show" do
+      it "lists every group the template is shared with" do
+        _authority, template, _parent_a, group_a, group_b = setup_shared_template
+
+        show = client.get(File.join(base, template.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+
+        shared = JSON.parse(show.body)["shared_with"].as_a
+        shared.map(&.["id"].as_s).sort!.should eq [group_a.id.to_s, group_b.id.to_s].sort!
+        shared.map(&.["name"].as_s).sort!.should eq [group_a.name, group_b.name].sort!
+      end
+
+      it "includes groups the caller is not a member of" do
+        _authority, template, _parent_a, group_a, group_b = setup_shared_template
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read).save!
+
+        show = client.get(File.join(base, template.id.to_s), headers: headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["shared_with"].as_a.map(&.["id"].as_s).sort!
+          .should eq [group_a.id.to_s, group_b.id.to_s].sort!
+      end
+
+      it "is an empty array for an unlinked template" do
+        template = Model::Generator.signage_template.save!
+
+        show = client.get(File.join(base, template.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["shared_with"].as_a.should be_empty
+      end
+
+      # group links hang off the approved (parent) template — a draft carries
+      # none — so the shares must still resolve when `show` returns the draft
+      it "resolves the parent's shares when showing a pending draft" do
+        authority, template, _parent_a, group_a, group_b = setup_shared_template
+        approver = Model::Generator.user(authority).save!
+        template.approver = approver
+        template.save!
+
+        staged = client.patch(
+          File.join(base, template.id.to_s),
+          body: {layouts: [{position: "bottom", y_pos: 0.2}]}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        staged.status_code.should eq 200
+        draft_id = JSON.parse(staged.body)["id"].as_s
+        draft_id.should_not eq template.id.to_s
+
+        show = client.get(File.join(base, template.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        body = JSON.parse(show.body)
+        body["id"].as_s.should eq draft_id
+        body["shared_with"].as_a.map(&.["id"].as_s).sort!
+          .should eq [group_a.id.to_s, group_b.id.to_s].sort!
+
+        approved = client.get("#{File.join(base, template.id.to_s)}?approved=true", headers: Spec::Authentication.headers)
+        approved.status_code.should eq 200
+        approved_body = JSON.parse(approved.body)
+        approved_body["id"].as_s.should eq template.id.to_s
+        approved_body["shared_with"].as_a.map(&.["id"].as_s).sort!
+          .should eq [group_a.id.to_s, group_b.id.to_s].sort!
+      end
+
+      it "is not present on index results" do
+        _authority, template, _parent_a, _group_a, _group_b = setup_shared_template
+
+        index = client.get(base, headers: Spec::Authentication.headers)
+        index.status_code.should eq 200
+        listed = Array(JSON::Any).from_json(index.body).find { |i| i["id"].as_s == template.id.to_s }
+        listed.should_not be_nil
+        listed.not_nil!.as_h.has_key?("shared_with").should be_false
+      end
+    end
+
     describe "DELETE /:id?group_id= (unlink from a single group)" do
       it "admin unlinks the template from one group; the template and its other links remain" do
         _authority, template, _parent_a, group_a, group_b = setup_shared_template

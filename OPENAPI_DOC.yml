@@ -22153,7 +22153,11 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/{id}:
     get:
-      summary: return the details of the requested media item
+      summary: return the details of the requested media item, including the groups
+      description: 'return the details of the requested media item, including the
+        groups
+
+        it has been shared with'
       tags:
       - PlaylistMedia
       operationId: PlaceOS::Api::PlaylistMedia_show
@@ -22855,7 +22859,11 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}:
     get:
-      summary: return the details of the requested media playlist
+      summary: return the details of the requested media playlist, including the
+      description: 'return the details of the requested media playlist, including
+        the
+
+        groups it has been shared with'
       tags:
       - Playlist
       operationId: PlaceOS::Api::Playlist_show
@@ -25172,12 +25180,16 @@ paths:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates/{id}:
     get:
-      summary: return the details of the requested template. By default the pending
-      description: 'return the details of the requested template. By default the pending
+      summary: return the details of the requested template, including the groups
+        it
+      description: 'return the details of the requested template, including the groups
+        it
 
-        draft is returned when one exists (falling back to the approved
+        has been shared with. By default the pending draft is returned when one
 
-        version); pass `approved=true` for the approved version always.'
+        exists (falling back to the approved version); pass `approved=true` for
+
+        the approved version always.'
       tags:
       - SignageTemplates
       operationId: PlaceOS::Api::SignageTemplates_show
