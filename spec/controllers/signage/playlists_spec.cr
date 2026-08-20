@@ -1,6 +1,26 @@
 require "../../helper"
 
 module PlaceOS::Api
+  # Two groups sharing one playlist: `group_a` and `group_b`, both children of
+  # the authority root `parent_a`. Returns (authority, playlist, parent_a, group_a, group_b).
+  def self.setup_shared_playlist
+    authority = Model::Authority.find_by_domain("localhost").not_nil!
+    # an authority has a single root group; everything else hangs off it
+    parent_a = Model::Generator.group(authority: authority).save!
+    group_a = Model::Generator.group(authority: authority, parent: parent_a).save!
+    group_b = Model::Generator.group(authority: authority, parent: parent_a).save!
+
+    playlist = Model::Generator.playlist(authority: authority).save!
+    Model::Generator.group_playlist(group: group_a, playlist: playlist).save!
+    Model::Generator.group_playlist(group: group_b, playlist: playlist).save!
+
+    {authority, playlist, parent_a, group_a, group_b}
+  end
+
+  def self.playlist_link?(group, playlist) : Bool
+    !Model::GroupPlaylist.find?({group.id.not_nil!, playlist.id.not_nil!}).nil?
+  end
+
   describe Playlist do
     base = Playlist.base_route
 
@@ -213,22 +233,8 @@ module PlaceOS::Api
     end
 
     describe "shared_with on show" do
-      # Two groups sharing one playlist, both children of the authority root.
-      setup_shared_playlist = -> do
-        authority = Model::Authority.find_by_domain("localhost").not_nil!
-        parent_a = Model::Generator.group(authority: authority).save!
-        group_a = Model::Generator.group(authority: authority, parent: parent_a).save!
-        group_b = Model::Generator.group(authority: authority, parent: parent_a).save!
-
-        playlist = Model::Generator.playlist(authority: authority).save!
-        Model::Generator.group_playlist(group: group_a, playlist: playlist).save!
-        Model::Generator.group_playlist(group: group_b, playlist: playlist).save!
-
-        {playlist, group_a, group_b}
-      end
-
       it "lists every group the playlist is shared with" do
-        playlist, group_a, group_b = setup_shared_playlist.call
+        _, playlist, _, group_a, group_b = setup_shared_playlist
 
         show = client.get(File.join(base, playlist.id.to_s), headers: Spec::Authentication.headers)
         show.status_code.should eq 200
@@ -239,7 +245,7 @@ module PlaceOS::Api
       end
 
       it "includes groups the caller is not a member of" do
-        playlist, group_a, group_b = setup_shared_playlist.call
+        _, playlist, _, group_a, group_b = setup_shared_playlist
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
         Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read).save!
 
@@ -258,7 +264,7 @@ module PlaceOS::Api
       end
 
       it "is not present on index results" do
-        playlist, _, _ = setup_shared_playlist.call
+        _, playlist, _, _, _ = setup_shared_playlist
 
         index = client.get(base, headers: Spec::Authentication.headers)
         index.status_code.should eq 200
@@ -268,6 +274,132 @@ module PlaceOS::Api
       end
     end
 
+    describe "DELETE /:id?group_id= (unlink from a single group)" do
+      it "admin unlinks the playlist from one group; the playlist and its other links remain" do
+        _authority, playlist, _parent_a, group_a, group_b = setup_shared_playlist
+
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{group_a.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 202
+
+        Model::Playlist.find?(playlist.id.not_nil!).should_not be_nil
+        playlist_link?(group_a, playlist).should be_false
+        playlist_link?(group_b, playlist).should be_true
+      end
+
+      it "a user with Delete on the group can unlink (without needing rights on other linked groups)" do
+        _authority, playlist, _parent_a, group_a, group_b = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+
+        # a full delete would need Delete via a linked group too — this user
+        # has it, but the playlist is also in group_b which they know nothing about
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::Playlist.find?(playlist.id.not_nil!).should_not be_nil
+        playlist_link?(group_a, playlist).should be_false
+        playlist_link?(group_b, playlist).should be_true
+      end
+
+      it "Delete inherited from a parent group unlinks from the child group" do
+        _authority, playlist, parent_a, group_a, group_b = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: parent_a, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::Playlist.find?(playlist.id.not_nil!).should_not be_nil
+        playlist_link?(group_a, playlist).should be_false
+        playlist_link?(group_b, playlist).should be_true
+      end
+
+      it "Manage on the group also permits unlinking" do
+        _authority, playlist, _parent_a, group_a, _group_b = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Manage).save!
+
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 202
+        playlist_link?(group_a, playlist).should be_false
+      end
+
+      it "is 403 without Delete or Manage on the group (link kept)" do
+        _authority, playlist, _parent_a, group_a, _group_b = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        perms = Model::Permissions::Read | Model::Permissions::Update | Model::Permissions::Share
+        Model::Generator.group_user(user: user, group: group_a, permissions: perms).save!
+
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 403
+        playlist_link?(group_a, playlist).should be_true
+      end
+
+      it "is 403 when the user's Delete is on a different group than the one specified" do
+        _authority, playlist, _parent_a, group_a, group_b = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_b, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{group_a.id}", headers: headers)
+        result.status_code.should eq 403
+        playlist_link?(group_a, playlist).should be_true
+        playlist_link?(group_b, playlist).should be_true
+      end
+
+      it "is 404 when the playlist is not linked to the specified group" do
+        authority, playlist, parent_a, group_a, group_b = setup_shared_playlist
+        other = Model::Generator.group(authority: authority, parent: parent_a).save!
+
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{other.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+
+        Model::Playlist.find?(playlist.id.not_nil!).should_not be_nil
+        playlist_link?(group_a, playlist).should be_true
+        playlist_link?(group_b, playlist).should be_true
+      end
+
+      it "is 404 for an unknown group or a group in another authority" do
+        _authority, playlist, _parent_a, _group_a, _group_b = setup_shared_playlist
+
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{UUID.random}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+
+        other_authority = Model::Generator.authority(domain: "http://other-#{Random::Secure.hex(3)}.example").save!
+        foreign = Model::Generator.group(authority: other_authority).save!
+        result = client.delete("#{base}/#{playlist.id}?group_id=#{foreign.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+        Model::Playlist.find?(playlist.id.not_nil!).should_not be_nil
+      end
+
+      it "deletes the playlist outright when the last group link is removed" do
+        _authority, playlist, _parent_a, group_a, group_b = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+        Model::Generator.group_user(user: user, group: group_b, permissions: Model::Permissions::Delete).save!
+
+        first = client.delete("#{base}/#{playlist.id}?group_id=#{group_a.id}", headers: headers)
+        first.status_code.should eq 202
+        Model::Playlist.find?(playlist.id.not_nil!).should_not be_nil
+
+        last = client.delete("#{base}/#{playlist.id}?group_id=#{group_b.id}", headers: headers)
+        last.status_code.should eq 202
+        Model::Playlist.find?(playlist.id.not_nil!).should be_nil
+        playlist_link?(group_b, playlist).should be_false
+      end
+
+      it "without group_id a user with Delete on a linked group still deletes the playlist outright" do
+        _authority, playlist, _parent_a, group_a, group_b = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete("#{base}/#{playlist.id}", headers: headers)
+        result.status_code.should eq 202
+
+        Model::Playlist.find?(playlist.id.not_nil!).should be_nil
+        playlist_link?(group_a, playlist).should be_false
+        playlist_link?(group_b, playlist).should be_false
+      end
+    end
     describe "POST /share" do
       it "admin shares playlists into a signage group, skipping duplicates" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!

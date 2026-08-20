@@ -86,9 +86,16 @@ module PlaceOS::Api
       enforce_playlist_access!(&.update?)
     end
 
+    # `group_id` switches destroy from "delete the playlist" to "unlink the
+    # playlist from this one group": the caller then only needs Delete (or
+    # Manage) on that group rather than on the playlist's linked groups.
     @[AC::Route::Filter(:before_action, only: [:destroy])]
-    def check_destroy_access
-      enforce_playlist_access!(&.delete?)
+    def check_destroy_access(group_id : UUID? = nil)
+      if group_id
+        ensure_group_delete_access!(group_id)
+      else
+        enforce_playlist_access!(&.delete?)
+      end
     end
 
     @[AC::Route::Filter(:before_action, only: [:approve_media])]
@@ -224,10 +231,27 @@ module PlaceOS::Api
       playlist
     end
 
-    # remove a media playlist from the library
+    # remove a media playlist from the library. With `group_id` the playlist
+    # is unlinked from that group (its `GroupPlaylist` row is removed) and
+    # remains available to any other groups it is shared with; when that was
+    # its last group link the playlist itself is deleted so nothing is
+    # orphaned.
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
-    def destroy : Nil
-      current_playlist.destroy
+    def destroy(
+      @[AC::Param::Info(description: "remove the playlist from this group instead of deleting it outright (caller needs Delete or Manage on the group); the playlist is deleted if no group links remain")]
+      group_id : UUID? = nil,
+    ) : Nil
+      return current_playlist.destroy unless group_id
+
+      playlist_id = current_playlist.id.as(String)
+      link = ::PlaceOS::Model::GroupPlaylist.find?({group_id, playlist_id})
+      raise Error::NotFound.new("playlist is not linked to group #{group_id}") unless link
+
+      ::PgORM::Database.transaction do |_tx|
+        link.destroy
+        remaining = ::PlaceOS::Model::GroupPlaylist.where(playlist_id: playlist_id).count
+        current_playlist.destroy if remaining == 0
+      end
     end
 
     # Share one or more playlists into another signage group via

@@ -23017,7 +23017,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     delete:
-      summary: remove a media playlist from the library
+      summary: remove a media playlist from the library. With `group_id` the playlist
+      description: 'remove a media playlist from the library. With `group_id` the
+        playlist
+
+        is unlinked from that group (its `GroupPlaylist` row is removed) and
+
+        remains available to any other groups it is shared with; when that was
+
+        its last group link the playlist itself is deleted so nothing is
+
+        orphaned.'
       tags:
       - Playlist
       operationId: PlaceOS::Api::Playlist_destroy
@@ -23027,6 +23037,15 @@ paths:
         required: true
         schema:
           type: string
+      - name: group_id
+        in: query
+        description: remove the playlist from this group instead of deleting it outright
+          (caller needs Delete or Manage on the group); the playlist is deleted if
+          no group links remain
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         202:
           description: Accepted
