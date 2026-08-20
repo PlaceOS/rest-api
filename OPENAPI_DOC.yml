@@ -22157,7 +22157,7 @@ paths:
       description: 'return the details of the requested media item, including the
         groups
 
-        it has been shared with'
+        it has been shared with and the playlists it appears in'
       tags:
       - PlaylistMedia
       operationId: PlaceOS::Api::PlaylistMedia_show

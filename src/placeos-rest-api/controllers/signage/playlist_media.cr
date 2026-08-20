@@ -12,6 +12,11 @@ module PlaceOS::Api
   class ::PlaceOS::Model::Playlist::Item
     @[JSON::Field(ignore_deserialize: true)]
     property shared_with : Array(::PlaceOS::Model::Group)? = nil
+
+    # the playlists this item currently appears in, filtered to those the
+    # caller can read. Also `show` only, also omitted when nil.
+    @[JSON::Field(ignore_deserialize: true)]
+    property playlists : Array(::PlaceOS::Model::Playlist)? = nil
   end
 
   class PlaylistMedia < Application
@@ -248,12 +253,62 @@ module PlaceOS::Api
     end
 
     # return the details of the requested media item, including the groups
-    # it has been shared with
+    # it has been shared with and the playlists it appears in
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::Playlist::Item
       item = current_item
       item.shared_with = groups_by_id(linked_item_groups)
+      item.playlists = playlists_containing_item
       item
+    end
+
+    # A playlist's media list lives in its most recent revision -- the same
+    # one `GET /playlists/:id/media` returns (the pending draft when there is
+    # one, otherwise the latest approved). Regular playlists reference media
+    # ids directly; distribution playlists reference `playlist_item_schedules`
+    # rows, each pointing back at a media item. Both are matched here, and the
+    # correlated subqueries keep the work in Postgres -- no revision or
+    # playlist ids are pulled into memory to be filtered.
+    LATEST_REVISION_CONTAINS_ITEM = <<-SQL
+      EXISTS (
+        SELECT 1 FROM playlist_revisions r
+        WHERE r.playlist_id = playlists.id
+          AND r.created_at = (
+            SELECT MAX(r2.created_at) FROM playlist_revisions r2
+            WHERE r2.playlist_id = r.playlist_id
+          )
+          AND (
+            ? = ANY(r.items)
+            OR EXISTS (
+              SELECT 1 FROM playlist_item_schedules s
+              WHERE s.playlist_id = r.playlist_id AND s.item_id = ? AND s.id = ANY(r.items)
+            )
+          )
+      )
+      SQL
+
+    # Raw-SQL `WHERE id IN (...junction subquery...)` fragment scoping
+    # `playlists` to those linked to any of `group_ids` (bound placeholders,
+    # never interpolated). Caller guarantees `group_ids` is non-empty.
+    private def linked_playlist_subquery(group_ids : Array(UUID)) : String
+      placeholders = Array.new(group_ids.size, "?").join(", ")
+      "id IN (SELECT playlist_id FROM group_playlists WHERE group_id IN (#{placeholders}))"
+    end
+
+    # Playlists the item appears in, narrowed to the ones the caller may see:
+    # admin/support get every playlist in the authority, everyone else only
+    # those shared into a group they hold Read on (a grant on a parent group
+    # covers its children, per `group_memberships`).
+    private def playlists_containing_item : Array(::PlaceOS::Model::Playlist)
+      scope = accessible_group_scope(nil)
+      return [] of ::PlaceOS::Model::Playlist if scope && scope.empty?
+
+      item_id = current_item.id.as(String)
+      query = ::PlaceOS::Model::Playlist
+        .where(authority_id: authority.id.as(String))
+        .where(LATEST_REVISION_CONTAINS_ITEM, item_id, item_id)
+      query = query.where(linked_playlist_subquery(scope), args: scope) unless scope.nil?
+      query.order("lower(name), id").to_a
     end
 
     # redirects to the thumbnail image URL

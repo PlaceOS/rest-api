@@ -447,6 +447,125 @@ module PlaceOS::Api
       end
     end
 
+    describe "playlists on show" do
+      # Adds `item` to `playlist` as its latest revision. `approved` mirrors
+      # the real lifecycle: an unapproved revision is a pending draft (and
+      # replaces any previous draft), an approved one is what displays play.
+      add_to_playlist = ->(playlist : Model::Playlist, items : Array(String), approved : Bool) do
+        rev = Model::Generator.revision(playlist: playlist)
+        rev.items = items
+        rev.approver = Model::Generator.user(Model::Authority.find!(playlist.authority_id.not_nil!)).save! if approved
+        rev.save!
+      end
+
+      it "lists the playlists an item appears in" do
+        authority, item, _, group_a, _ = setup_shared_media
+
+        holding = Model::Generator.playlist(name: "holding", authority: authority).save!
+        Model::Generator.group_playlist(group: group_a, playlist: holding).save!
+        add_to_playlist.call(holding, [item.id.as(String)], true)
+
+        # a playlist in the same group that doesn't reference the item
+        other = Model::Generator.playlist(name: "other", authority: authority).save!
+        Model::Generator.group_playlist(group: group_a, playlist: other).save!
+        add_to_playlist.call(other, [] of String, true)
+
+        show = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["playlists"].as_a.map(&.["id"].as_s).should eq [holding.id.to_s]
+      end
+
+      it "reflects the newest revision, not older ones" do
+        authority, item, _, group_a, _ = setup_shared_media
+
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: group_a, playlist: playlist).save!
+        add_to_playlist.call(playlist, [item.id.as(String)], true)
+
+        show = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        JSON.parse(show.body)["playlists"].as_a.map(&.["id"].as_s).should eq [playlist.id.to_s]
+
+        # a newer (draft) revision drops the item
+        add_to_playlist.call(playlist, [] of String, false)
+
+        show = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        JSON.parse(show.body)["playlists"].as_a.should be_empty
+      end
+
+      it "finds the item behind a distribution playlist's item schedule" do
+        authority, item, _, group_a, _ = setup_shared_media
+
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        Model::Generator.group_playlist(group: group_a, playlist: playlist).save!
+        schedule = Model::Generator.item_schedule(playlist: playlist, item: item).save!
+        add_to_playlist.call(playlist, [schedule.id.as(String)], true)
+
+        show = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["playlists"].as_a.map(&.["id"].as_s).should eq [playlist.id.to_s]
+      end
+
+      it "hides playlists the caller has no group access to" do
+        authority, item, _, group_a, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read).save!
+
+        visible = Model::Generator.playlist(name: "visible", authority: authority).save!
+        Model::Generator.group_playlist(group: group_a, playlist: visible).save!
+        add_to_playlist.call(visible, [item.id.as(String)], true)
+
+        # same item, but in a playlist shared only with the group the user
+        # isn't a member of
+        hidden = Model::Generator.playlist(name: "hidden", authority: authority).save!
+        Model::Generator.group_playlist(group: group_b, playlist: hidden).save!
+        add_to_playlist.call(hidden, [item.id.as(String)], true)
+
+        show = client.get(File.join(base, item.id.to_s), headers: headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["playlists"].as_a.map(&.["id"].as_s).should eq [visible.id.to_s]
+
+        # admin sees both
+        admin = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        JSON.parse(admin.body)["playlists"].as_a.map(&.["id"].as_s).sort!
+          .should eq [hidden.id.to_s, visible.id.to_s].sort!
+      end
+
+      it "counts membership of a parent group as access to a child group's playlists" do
+        authority, item, parent_a, _, group_b = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        # Read on the root group, the playlist hangs off a child of it
+        Model::Generator.group_user(user: user, group: parent_a, permissions: Model::Permissions::Read).save!
+
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: group_b, playlist: playlist).save!
+        add_to_playlist.call(playlist, [item.id.as(String)], true)
+
+        show = client.get(File.join(base, item.id.to_s), headers: headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["playlists"].as_a.map(&.["id"].as_s).should eq [playlist.id.to_s]
+      end
+
+      it "is an empty array when the item is in no playlist" do
+        _, item, _, _, _ = setup_shared_media
+
+        show = client.get(File.join(base, item.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        JSON.parse(show.body)["playlists"].as_a.should be_empty
+      end
+
+      it "is not present on index results" do
+        authority, item, _, group_a, _ = setup_shared_media
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: group_a, playlist: playlist).save!
+        add_to_playlist.call(playlist, [item.id.as(String)], true)
+
+        index = client.get(base, headers: Spec::Authentication.headers)
+        index.status_code.should eq 200
+        listed = Array(JSON::Any).from_json(index.body).find { |i| i["id"].as_s == item.id.to_s }
+        listed.should_not be_nil
+        listed.not_nil!.as_h.has_key?("playlists").should be_false
+      end
+    end
     describe "DELETE /:id?group_id= (unlink from a single group)" do
       it "admin unlinks the item from one group; the item and its other links remain" do
         _authority, item, _parent_a, group_a, group_b = setup_shared_media
