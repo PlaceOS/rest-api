@@ -443,7 +443,7 @@ module PlaceOS::Api
         JSON.parse(approved.body)["id"].as_s.should eq parent.id.to_s
       end
 
-      it "404s when a draft is addressed by its own id" do
+      it "show works when a draft is addressed by its own id" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         approver = Model::Generator.user(authority).save!
         parent = Model::Generator.signage_template(authority: authority).save!
@@ -457,8 +457,71 @@ module PlaceOS::Api
         )
         draft = Model::SignageTemplate.where(live_template_id: parent.id.as(UUID)).to_a.first
 
-        result = client.get(File.join(base, draft.id.to_s), headers: Spec::Authentication.headers)
-        result.status_code.should eq 404
+        default = client.get(File.join(base, draft.id.to_s), headers: Spec::Authentication.headers)
+        default.status_code.should eq 200
+        JSON.parse(default.body)["id"].as_s.should eq draft.id.to_s
+
+        approved = client.get("#{base}/#{draft.id}?approved=true", headers: Spec::Authentication.headers)
+        approved.status_code.should eq 200
+        JSON.parse(approved.body)["id"].as_s.should eq parent.id.to_s
+      end
+
+      it "update and approve accept a draft id" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        approver = Model::Generator.user(authority).save!
+        parent = Model::Generator.signage_template(authority: authority).save!
+        parent.approver = approver
+        parent.save!
+
+        client.patch(
+          File.join(base, parent.id.to_s),
+          body: {full_screen_takeover: true}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        draft = Model::SignageTemplate.where(live_template_id: parent.id.as(UUID)).to_a.first
+        item = Model::Generator.item(authority: authority).save!
+
+        # a metadata patch via the draft id applies to the parent (and syncs
+        # onto the draft), a layout patch stages onto the same draft
+        update = client.patch(
+          File.join(base, draft.id.to_s),
+          body: {name: "via draft id", background_item_id: item.id}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        update.status_code.should eq 200
+        JSON.parse(update.body)["id"].as_s.should eq draft.id.to_s
+        Model::SignageTemplate.find!(parent.id.as(UUID)).name.should eq "via draft id"
+        Model::SignageTemplate.find!(draft.id.as(UUID)).background_item_id.should eq item.id
+
+        # approving via the draft id promotes the draft onto the live template
+        approve = client.post(File.join(base, draft.id.to_s, "approve"), headers: Spec::Authentication.headers)
+        approve.status_code.should eq 200
+        JSON.parse(approve.body)["id"].as_s.should eq parent.id.to_s
+
+        promoted = Model::SignageTemplate.find!(parent.id.as(UUID))
+        promoted.full_screen_takeover.should be_true
+        promoted.background_item_id.should eq item.id
+        Model::SignageTemplate.find?(draft.id.as(UUID)).should be_nil
+      end
+
+      it "destroy accepts a draft id, removing the whole template" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        approver = Model::Generator.user(authority).save!
+        parent = Model::Generator.signage_template(authority: authority).save!
+        parent.approver = approver
+        parent.save!
+
+        client.patch(
+          File.join(base, parent.id.to_s),
+          body: {full_screen_takeover: true}.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        draft = Model::SignageTemplate.where(live_template_id: parent.id.as(UUID)).to_a.first
+
+        destroy = client.delete(File.join(base, draft.id.to_s), headers: Spec::Authentication.headers)
+        destroy.status_code.should eq 202
+        Model::SignageTemplate.find?(parent.id.as(UUID)).should be_nil
+        Model::SignageTemplate.find?(draft.id.as(UUID)).should be_nil
       end
 
       it "approve promotes the draft onto the live template" do

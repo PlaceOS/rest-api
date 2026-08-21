@@ -26,16 +26,23 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    # NOTE: all routes address the approved (live) template id — drafts are
-    # transparent, resolved internally, and never addressed by their own id.
+    # NOTE: routes accept either the approved (live) template id or a pending
+    # draft id — clients see draft ids in `update`/`index`/`show` responses.
+    # A draft id is transparently resolved to its approved parent (permissions
+    # and group links hang off the parent), so both ids address the same
+    # underlying template and each route then operates on the draft or
+    # approved version as appropriate.
     @[AC::Route::Filter(:before_action, except: [:index, :create, :share, :approvers])]
     def current_template(id : UUID)
       Log.context.set(template_id: id.to_s)
       # Find will raise a 404 (not found) if there is an error
-      @current_template = template = ::PlaceOS::Model::SignageTemplate.find!(id)
+      template = ::PlaceOS::Model::SignageTemplate.find!(id)
 
-      # draft ids are an implementation detail (and carry no group links)
-      raise Error::NotFound.new("template #{id} not found") if template.draft?
+      # draft ids resolve to the approved parent (drafts carry no group links)
+      if parent_id = template.live_template_id
+        template = ::PlaceOS::Model::SignageTemplate.find!(parent_id)
+      end
+      @current_template = template
 
       # ensure the current user has access
       raise Error::Forbidden.new unless authority.id == template.authority_id
