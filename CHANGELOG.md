@@ -124,6 +124,7 @@
 
 ### Fix
 
+- **signage/templates**: improve draft handling
 - **signage/templates**: should return the drafts by default
 - **models**: template widget validation fix
 - **systems**: signage manager users can add and edit displays
