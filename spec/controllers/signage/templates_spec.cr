@@ -21,6 +21,57 @@ module PlaceOS::Api
     !Model::GroupSignageTemplate.find?({group.id.not_nil!, template.id.not_nil!}).nil?
   end
 
+  # a widget plugin whose params schema matches the layouts used in the
+  # plugin data round-trip specs below
+  def self.widget_plugin(authority) : Model::SignagePlugin
+    properties = {
+      "feed_url"     => JSON::Any.new({"type" => JSON::Any.new("string")} of String => JSON::Any),
+      "max_items"    => JSON::Any.new({"type" => JSON::Any.new("integer")} of String => JSON::Any),
+      "show_images"  => JSON::Any.new({"type" => JSON::Any.new("boolean")} of String => JSON::Any),
+      "scroll_speed" => JSON::Any.new({"type" => JSON::Any.new("number")} of String => JSON::Any),
+    } of String => JSON::Any
+
+    plugin = Model::Generator.signage_plugin(
+      authority: authority,
+      params: {"type" => JSON::Any.new("object"), "properties" => JSON::Any.new(properties)},
+      defaults: {} of String => JSON::Any,
+    )
+    plugin.plugin_type = Model::SignagePlugin::PluginType::Widget
+    plugin.save!
+  end
+
+  # the layouts payload from the bug report: a spacer plus a widget with params
+  def self.plugin_layouts_body(plugin : Model::SignagePlugin) : String
+    {
+      layouts: [
+        {position: "left", x_pos: 0.2, plugin_params: {} of String => JSON::Any},
+        {
+          position:      "bottom",
+          y_pos:         0.15,
+          plugin_id:     plugin.id,
+          plugin_params: {
+            feed_url:     "https://www.abc.net.au/news/feed/45910/rss.xml",
+            max_items:    10,
+            show_images:  true,
+            scroll_speed: 1.5,
+          },
+        },
+      ],
+    }.to_json
+  end
+
+  # asserts the widget layout entry carries its plugin data
+  def self.expect_plugin_data(layouts : JSON::Any, plugin : Model::SignagePlugin)
+    layouts.as_a.size.should eq 2
+    widget = layouts.as_a[1]
+    widget["plugin_id"].as_s.should eq plugin.id.to_s
+    params = widget["plugin_params"].as_h
+    params["feed_url"].as_s.should eq "https://www.abc.net.au/news/feed/45910/rss.xml"
+    params["max_items"].as_i.should eq 10
+    params["show_images"].as_bool.should be_true
+    params["scroll_speed"].as_f.should eq 1.5
+  end
+
   describe SignageTemplates do
     base = SignageTemplates.base_route
 
@@ -240,7 +291,7 @@ module PlaceOS::Api
         ids.should_not contain(miss.id.to_s)
       end
 
-      it "excludes drafts from the index" do
+      it "lists a template with staged changes once, as its pending draft" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         approver = Model::Generator.user(authority).save!
 
@@ -255,11 +306,19 @@ module PlaceOS::Api
           headers: Spec::Authentication.headers,
         )
         patch.status_code.should eq 200
+        draft_id = JSON.parse(patch.body)["id"].as_s
         Model::SignageTemplate.where(live_template_id: parent.id.as(UUID)).count.should eq 1
 
+        # the draft replaces the live row in the listing — never an extra row
         result = client.get(base, headers: Spec::Authentication.headers)
         result.status_code.should eq 200
         ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should eq [draft_id]
+
+        # approved=true keeps the live-only listing
+        live = client.get("#{base}?approved=true", headers: Spec::Authentication.headers)
+        live.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(live.body).map(&.["id"].as_s)
         ids.should eq [parent.id.to_s]
       end
     end
@@ -486,6 +545,109 @@ module PlaceOS::Api
         Model::SignageTemplate.find?(parent.id.as(UUID)).should be_nil
         Model::SignageTemplate.find?(draft.id.as(UUID)).should be_nil
         Model::GroupSignageTemplate.find?({group.id.not_nil!, parent.id.not_nil!}).should be_nil
+      end
+    end
+
+    describe "layout plugin data round-trip" do
+      it "persists plugin_id and plugin_params through PATCH → GET (unapproved template)" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        plugin = PlaceOS::Api.widget_plugin(authority)
+        template = Model::Generator.signage_template(authority: authority).save!
+
+        patch = client.patch(
+          File.join(base, template.id.to_s),
+          body: PlaceOS::Api.plugin_layouts_body(plugin),
+          headers: Spec::Authentication.headers,
+        )
+        patch.status_code.should eq 200
+        PlaceOS::Api.expect_plugin_data(JSON.parse(patch.body)["layouts"], plugin)
+
+        # the data must survive the database round-trip
+        found = Model::SignageTemplate.find!(template.id.as(UUID))
+        PlaceOS::Api.expect_plugin_data(JSON.parse(found.layouts.to_json), plugin)
+
+        show = client.get(File.join(base, template.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        PlaceOS::Api.expect_plugin_data(JSON.parse(show.body)["layouts"], plugin)
+      end
+
+      it "persists plugin data on the staged draft of an approved template" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        approver = Model::Generator.user(authority).save!
+        plugin = PlaceOS::Api.widget_plugin(authority)
+        parent = Model::Generator.signage_template(authority: authority).save!
+        parent.approver = approver
+        parent.save!
+
+        patch = client.patch(
+          File.join(base, parent.id.to_s),
+          body: PlaceOS::Api.plugin_layouts_body(plugin),
+          headers: Spec::Authentication.headers,
+        )
+        patch.status_code.should eq 200
+        PlaceOS::Api.expect_plugin_data(JSON.parse(patch.body)["layouts"], plugin)
+
+        # default show resolves the draft, which must carry the plugin data
+        show = client.get(File.join(base, parent.id.to_s), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        PlaceOS::Api.expect_plugin_data(JSON.parse(show.body)["layouts"], plugin)
+
+        # approving promotes the layouts (with plugin data) onto the live row
+        approve = client.post(File.join(base, parent.id.to_s, "approve"), headers: Spec::Authentication.headers)
+        approve.status_code.should eq 200
+
+        index = client.get(base, headers: Spec::Authentication.headers)
+        index.status_code.should eq 200
+        row = JSON.parse(index.body).as_a.find! { |t| t["id"].as_s == parent.id.to_s }
+        PlaceOS::Api.expect_plugin_data(row["layouts"], plugin)
+      end
+
+      it "index returns the pending version with the staged plugin data" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        approver = Model::Generator.user(authority).save!
+        plugin = PlaceOS::Api.widget_plugin(authority)
+        parent = Model::Generator.signage_template(authority: authority).save!
+        parent.approver = approver
+        parent.save!
+
+        patch = client.patch(
+          File.join(base, parent.id.to_s),
+          body: PlaceOS::Api.plugin_layouts_body(plugin),
+          headers: Spec::Authentication.headers,
+        )
+        patch.status_code.should eq 200
+        draft_id = JSON.parse(patch.body)["id"].as_s
+
+        # the listing surfaces the pending draft, same as the default `show`
+        index = client.get(base, headers: Spec::Authentication.headers)
+        index.status_code.should eq 200
+        row = JSON.parse(index.body).as_a.find! { |t|
+          t["id"].as_s.in?(draft_id, parent.id.to_s)
+        }
+        row["id"].as_s.should eq draft_id
+        row["live_template_id"].as_s.should eq parent.id.to_s
+        PlaceOS::Api.expect_plugin_data(row["layouts"], plugin)
+
+        # approved=true keeps the live-only listing
+        live = client.get("#{base}?approved=true", headers: Spec::Authentication.headers)
+        live.status_code.should eq 200
+        live_row = JSON.parse(live.body).as_a.find! { |t| t["id"].as_s == parent.id.to_s }
+        live_row["layouts"].as_a.should be_empty
+      end
+
+      it "persists plugin data supplied at creation" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        plugin = PlaceOS::Api.widget_plugin(authority)
+
+        body = JSON.parse(PlaceOS::Api.plugin_layouts_body(plugin)).as_h
+        body["name"] = JSON.parse(%("rss board"))
+        result = client.post(base, body: body.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 201
+        id = JSON.parse(result.body)["id"].as_s
+
+        show = client.get(File.join(base, id), headers: Spec::Authentication.headers)
+        show.status_code.should eq 200
+        PlaceOS::Api.expect_plugin_data(JSON.parse(show.body)["layouts"], plugin)
       end
     end
 

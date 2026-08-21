@@ -157,8 +157,10 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    # list signage templates in the current authority. Only approved (live)
-    # templates are returned — pending drafts are resolved via `show`.
+    # list signage templates in the current authority. Like the default
+    # `show`, a template with staged changes is returned as its pending
+    # draft (falling back to the approved row) so listings always reflect
+    # the latest edits — pass `approved=true` for the live versions only.
     #
     # Non-admin callers see only templates linked to groups they're a
     # member of (direct or transitive). Pass `group_id=...` to scope to
@@ -171,6 +173,8 @@ module PlaceOS::Api
       group_id : UUID? = nil,
       @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
       q : String? = nil,
+      @[AC::Param::Info(description: "return the approved (live) versions even when pending drafts exist")]
+      approved : Bool = false,
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::SignageTemplate)
@@ -222,7 +226,23 @@ module PlaceOS::Api
       # newest templates first; id tiebreak keeps pagination stable
       query = query.order("created_at DESC, id")
 
-      paginate_sql(query, type: "templates", limit: limit, offset: offset)
+      templates = paginate_sql(query, type: "templates", limit: limit, offset: offset)
+      approved ? templates : resolve_pending_drafts(templates)
+    end
+
+    # swaps each live template for its pending draft when one exists, so
+    # listings return the same pending version the default `show` does
+    # (drafts carry `live_template_id` pointing back at the approved row)
+    private def resolve_pending_drafts(templates : Array(::PlaceOS::Model::SignageTemplate)) : Array(::PlaceOS::Model::SignageTemplate)
+      return templates if templates.empty?
+
+      drafts = ::PlaceOS::Model::SignageTemplate
+        .where(live_template_id: templates.compact_map(&.id))
+        .order(created_at: :asc)
+        .to_a
+        .index_by(&.live_template_id) # later rows overwrite: newest draft wins
+
+      templates.map { |template| drafts[template.id]? || template }
     end
 
     # return the details of the requested template, including the groups it
