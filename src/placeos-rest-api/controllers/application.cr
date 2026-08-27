@@ -249,6 +249,31 @@ module PlaceOS::Api
       CommonError.new(error, false)
     end
 
+    # Signage AI image generation. `kind` lets a client branch without matching
+    # on message text.
+    struct ImageGenError
+      include JSON::Serializable
+      include YAML::Serializable
+
+      getter error : String
+      getter kind : String
+
+      def initialize(@error, @kind)
+      end
+    end
+
+    @[AC::Route::Exception(Error::ImageGen::Quota, status_code: HTTP::Status::TOO_MANY_REQUESTS)]
+    @[AC::Route::Exception(Error::ImageGen::Moderated, status_code: HTTP::Status::UNPROCESSABLE_ENTITY)]
+    @[AC::Route::Exception(Error::ImageGen::Busy, status_code: HTTP::Status::SERVICE_UNAVAILABLE)]
+    @[AC::Route::Exception(Error::ImageGen::NotConfigured, status_code: HTTP::Status::SERVICE_UNAVAILABLE)]
+    @[AC::Route::Exception(Error::ImageGen::Vendor, status_code: HTTP::Status::BAD_GATEWAY)]
+    @[AC::Route::Exception(Error::ImageGen::Timeout, status_code: HTTP::Status::GATEWAY_TIMEOUT)]
+    @[AC::Route::Exception(Error::ImageGen::Permission, status_code: HTTP::Status::FORBIDDEN)]
+    def image_generation_failed(error) : ImageGenError
+      Log.debug(exception: error) { error.message }
+      ImageGenError.new(error.message || "image generation failed", error.kind)
+    end
+
     # 406 when a request cannot be satisfied (e.g. no approvers available)
     @[AC::Route::Exception(Error::NotAcceptable, status_code: HTTP::Status::NOT_ACCEPTABLE)]
     def resource_not_acceptable(error) : CommonError
