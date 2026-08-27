@@ -30,9 +30,18 @@ module PlaceOS::Api::ImageGen
         user_id: context.user.id,
       )
 
+      # Slots were reserved by the request handler, one per planned vendor call.
+      # This is the only thing that hands them back, so every exit path has to
+      # drain the ledger. Atomic because the candidate fibers decrement it as
+      # they finish, and `swap` makes each drain a one time claim.
+      held = Atomic(Int32).new(context.adapter.calls_for(context.request.candidates))
+
       started = Time.utc
       job = ::PlaceOS::Model::SignageAIJob.find?(context.job_id)
-      return if job.nil?
+      if job.nil?
+        release(held.swap(0))
+        return
+      end
 
       job.state = ::PlaceOS::Model::SignageAIJob::State::Running
       job.started_at = started
@@ -84,6 +93,7 @@ module PlaceOS::Api::ImageGen
           ensure
             # one release per finished vendor call
             ImageGen.slots.release
+            held.sub(1)
             done.send(nil)
           end
         end
@@ -91,11 +101,20 @@ module PlaceOS::Api::ImageGen
 
       calls.size.times { done.receive }
 
+      release(held.swap(0))
+
       finish(context, produced, cost, failure, started)
     rescue ex
+      # a failure before or between the candidate fibers: the ones that ran gave
+      # their slot back in an ensure, the rest never will, so square the ledger
       Log.error(exception: ex) { "signage AI job failed outside a vendor call" }
       fail_job(context.job_id, ex)
-      # nothing reserved past this point, but a partial plan may still hold slots
+      release(held.swap(0)) if held
+    end
+
+    # hand back slots this run still holds, never more
+    private def self.release(count : Int32) : Nil
+      count.times { ImageGen.slots.release } if count > 0
     end
 
     # Fetch the source and reference bytes once, before any vendor call.

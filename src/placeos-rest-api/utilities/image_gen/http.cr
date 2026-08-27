@@ -43,6 +43,16 @@ module PlaceOS::Api::ImageGen
       raise Error::ImageGen::Vendor.new("too many redirects reading image")
     end
 
+    # What the bytes actually are, rather than what the request asked for. A
+    # gateway in front of a vendor may transcode, and the stored object's
+    # content type has to match what a browser will be served.
+    def self.mime_of(bytes : Bytes, fallback : String = "image/jpeg") : String
+      return "image/png" if bytes.size > 8 && bytes[0] == 0x89 && bytes[1] == 0x50
+      return "image/jpeg" if bytes.size > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8
+      return "image/webp" if bytes.size > 12 && bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50
+      fallback
+    end
+
     # Width and height straight out of the file header. The api binary is built
     # `--static` from scratch and has no image library, and we only ever deal
     # with JPEG and PNG here.

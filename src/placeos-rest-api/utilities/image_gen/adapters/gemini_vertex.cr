@@ -196,7 +196,7 @@ module PlaceOS::Api::ImageGen::Adapters
 
       [AdapterImage.new(
         bytes: bytes,
-        mime: inline["mimeType"]?.try(&.as_s?) || "image/jpeg",
+        mime: Http.mime_of(bytes, inline["mimeType"]?.try(&.as_s?) || "image/jpeg"),
         width: dimensions.try(&.[0]),
         height: dimensions.try(&.[1]),
         vendor_id: payload["responseId"]?.try(&.as_s?),

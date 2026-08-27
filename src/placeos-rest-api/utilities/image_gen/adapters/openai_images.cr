@@ -182,7 +182,7 @@ module PlaceOS::Api::ImageGen::Adapters
         dimensions = Http.dimensions(bytes)
         AdapterImage.new(
           bytes: bytes,
-          mime: "image/jpeg",
+          mime: Http.mime_of(bytes),
           width: dimensions.try(&.[0]),
           height: dimensions.try(&.[1]),
           cost_units: per_image,

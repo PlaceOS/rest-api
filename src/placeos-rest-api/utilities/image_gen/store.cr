@@ -104,10 +104,7 @@ module PlaceOS::Api::ImageGen
       bytes, mime = Http.get_bytes(url)
 
       # trust the file header over whatever the bucket reported
-      mime = "image/png" if bytes.size > 8 && bytes[0] == 0x89 && bytes[1] == 0x50
-      mime = "image/jpeg" if bytes.size > 3 && bytes[0] == 0xFF && bytes[1] == 0xD8
-
-      Reference.new(bytes: bytes, mime: mime)
+      Reference.new(bytes: bytes, mime: Http.mime_of(bytes, mime))
     end
   end
 end

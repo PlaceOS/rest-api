@@ -48,6 +48,11 @@ require "placeos-models/spec/generator"
 PgORM::Database.configure { |_| }
 
 def clear_tables
+  # Neither signage AI model is a ModelBase, so nothing else picks them up.
+  # Jobs FK into providers, so they go first.
+  PlaceOS::Model::SignageAIJob.clear
+  PlaceOS::Model::SignageAIProvider.clear
+
   # Clear group-system tables first — they FK into User/Authority/Zone
   # and must be dropped before their parents. Done sequentially since
   # some of them reference each other.
