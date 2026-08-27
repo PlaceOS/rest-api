@@ -176,10 +176,14 @@ module PlaceOS::Api
       raise Error::ModelValidation.new([Error::Field.new(:provider, "must be one of OPENAI, AZURE_OPENAI, GOOGLE_VERTEX")])
     end
 
+    # A field left out of the body is left alone; a field sent empty is cleared.
+    # Without the second half an endpoint could be set but never unset, which
+    # matters because an empty endpoint is what sends a provider to the vendor's
+    # own host rather than to a gateway.
     private def apply_optional(row : ::PlaceOS::Model::SignageAIProvider, params : ProviderParams) : Nil
-      row.endpoint = params.endpoint if params.endpoint
-      row.location = params.location if params.location
-      row.default_model = params.default_model if params.default_model
+      row.endpoint = params.endpoint.try(&.presence) if params.endpoint
+      row.location = params.location.try(&.presence) if params.location
+      row.default_model = params.default_model.try(&.presence) if params.default_model
       row.allowed_models = params.allowed_models.not_nil! if params.allowed_models
       row.enabled = params.enabled.not_nil! unless params.enabled.nil?
       row.is_default = params.is_default.not_nil! unless params.is_default.nil?
