@@ -97,16 +97,25 @@ module PlaceOS::Api::ImageGen
                     else             "Landscape"
                     end
 
-      parts = ["#{orientation} #{options.aspect} poster background for a digital signage screen."]
+      parts = [] of String
 
       case options.text_mode
       in TextMode::Layer
+        # the app draws the words over the top, so the model is asked for a
+        # background and told to keep the lettering out of it
+        parts << "#{orientation} #{options.aspect} poster background for a digital signage screen."
         parts << "Leave the top third clear and plain so a headline can be added over it."
         parts << "Leave a clear area in the bottom right corner for a logo." if options.include_logo
         parts << "Do not render any text, letters, numbers, words or logos anywhere in the image."
       in TextMode::Model
+        # the caller opted out of the text layer, so the model has to produce a
+        # finished poster. Without this it is asked for a background and answers
+        # with one, and the words never appear.
+        parts << "#{orientation} #{options.aspect} poster for a digital signage screen."
         if (words = options.words) && words.presence
-          parts << "Render exactly this text and nothing else: #{words.inspect}."
+          parts << "Render exactly this text, spelt correctly and large enough to read across a room: #{words.inspect}."
+        else
+          parts << "Render the wording from the brief as part of the poster, spelt correctly and large enough to read across a room."
         end
         parts << "Leave a clear area in the bottom right corner for a logo." if options.include_logo
       end
