@@ -53,6 +53,8 @@ module PlaceOS::Api
       getter references : Array(String) = [] of String
       getter include_logo : Bool = true
       getter add_text_with_layer : Bool = true
+      # false leaves the organisation's colours, face and tone out of it
+      getter use_branding : Bool = true
       getter words : String? = nil
       getter provider_id : UUID? = nil
       getter model : String? = nil
@@ -70,6 +72,8 @@ module PlaceOS::Api
       getter references : Array(String) = [] of String
       getter include_logo : Bool = true
       getter add_text_with_layer : Bool = true
+      # false leaves the organisation's colours, face and tone out of it
+      getter use_branding : Bool = true
       getter words : String? = nil
       getter provider_id : UUID? = nil
       getter model : String? = nil
@@ -197,6 +201,7 @@ module PlaceOS::Api
         references: params.references,
         include_logo: params.include_logo,
         text_layer: params.add_text_with_layer,
+        use_branding: params.use_branding,
         words: params.words,
         provider_id: params.provider_id,
         model: params.model,
@@ -229,6 +234,7 @@ module PlaceOS::Api
         references: params.references,
         include_logo: params.include_logo,
         text_layer: params.add_text_with_layer,
+        use_branding: params.use_branding,
         words: params.words,
         provider_id: params.provider_id,
         model: params.model,
@@ -442,6 +448,7 @@ module PlaceOS::Api
       references : Array(String),
       include_logo : Bool,
       text_layer : Bool,
+      use_branding : Bool,
       words : String?,
       provider_id : UUID?,
       model : String?,
@@ -540,6 +547,7 @@ module PlaceOS::Api
         history: history,
         instruction: editing || parent ? prompt : nil,
         references: supplied.size,
+        use_branding: use_branding,
       ))
 
       request = ImageGen::AdapterRequest.new(
@@ -577,6 +585,7 @@ module PlaceOS::Api
         "quality"      => JSON::Any.new(quality),
         "include_logo" => JSON::Any.new(include_logo),
         "text_layer"   => JSON::Any.new(text_layer),
+        "use_branding" => JSON::Any.new(use_branding),
         "references"   => JSON::Any.new(reference_ids.map { |id| JSON::Any.new(id) }),
       })
       job.result = JSON::Any.new({

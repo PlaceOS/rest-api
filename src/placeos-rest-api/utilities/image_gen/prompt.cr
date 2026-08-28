@@ -153,7 +153,9 @@ module PlaceOS::Api::ImageGen
       history : Array(String) = [] of String,
       instruction : String? = nil,
       # how many images the person attached, so the brief can name them
-      references : Int32 = 0
+      references : Int32 = 0,
+      # off means this poster is not for the organisation's own look
+      use_branding : Bool = true
 
     # What an edit is told, in place of the art direction and the layout brief.
     #
@@ -208,7 +210,10 @@ module PlaceOS::Api::ImageGen
         lines << attached
       end
 
-      if (brand = options.brand)
+      # The never-include list is not part of this: it says what the
+      # organisation will not have on a screen, which holds whether or not the
+      # poster is wearing its colours.
+      if (brand = options.brand) && options.use_branding
         parts = [] of String
         parts << "Organisation: #{brand.organisation}." if brand.organisation.presence
         if (colours = brand.palette_line)

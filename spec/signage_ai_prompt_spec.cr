@@ -148,6 +148,20 @@ module PlaceOS::Api
       prompt.should_not contain "attached"
     end
 
+    it "leaves the organisation's look out when the branding is switched off" do
+      plain = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
+        brief: "a poster for the office party",
+        aspect: "16:9",
+        brand: brand,
+        use_branding: false,
+      ))
+
+      plain.should_not contain "Organisation: Acme."
+      plain.should_not contain "primary #0E6E52"
+      # a standing prohibition, not a look: it holds either way
+      plain.should contain "Never include: competitor logos."
+    end
+
     it "carries the brand kit, the brief and each change in order" do
       prompt = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
         brief: "a poster for the office party",
