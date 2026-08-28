@@ -124,7 +124,16 @@ module PlaceOS::Api::ImageGen
       if (source_id = context.source_upload_id)
         upload = ::PlaceOS::Model::Upload.find?(source_id)
         raise Error::ImageGen::Vendor.new("the source image is gone") if upload.nil?
-        request = request.copy_with(source: Store.fetch(upload))
+        source = Store.fetch(upload)
+        request = request.copy_with(source: source)
+
+        # an edit comes back at the size we ask for, so ask for the shape we were
+        # given. Without this the aspect the caller picked reframes the poster.
+        if (dimensions = Http.dimensions(source.bytes))
+          if (size = ImageGen.editable_size(dimensions[0], dimensions[1]))
+            request = request.copy_with(size_override: size)
+          end
+        end
       end
 
       unless context.reference_upload_ids.empty?
