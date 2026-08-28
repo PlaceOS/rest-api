@@ -501,17 +501,29 @@ module PlaceOS::Api
         reference_ids << logo unless reference_ids.includes?(logo)
       end
 
-      history = parent ? (parent.chain.compact_map(&.prompt) + [parent.prompt].compact) : [] of String
+      chain = parent ? (parent.chain.compact_map(&.prompt) + [parent.prompt].compact) : [] of String
+      editing = kind == ImageGen::Kind::Edit
+
+      # An edit's words are always an instruction, never a brief. Sending them
+      # as a brief on a first edit lost the "change only this" framing, which
+      # is the one line that keeps the rest of the image still.
+      original_brief = editing ? chain.first? : (parent ? chain.first? || prompt : prompt)
+      history = if editing
+                  chain.empty? ? [] of String : chain[1..]? || [] of String
+                else
+                  parent ? chain[1..]? || [] of String : [] of String
+                end
 
       text = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
-        brief: parent ? (history.first? || prompt) : prompt,
+        brief: original_brief || "",
         aspect: aspect,
+        kind: kind,
         text_mode: text_layer ? ImageGen::Prompt::TextMode::Layer : ImageGen::Prompt::TextMode::Model,
         include_logo: include_logo,
         brand: brand_kit,
         words: words,
-        history: parent ? history[1..]? || [] of String : [] of String,
-        instruction: parent ? prompt : nil,
+        history: history,
+        instruction: editing || parent ? prompt : nil,
       ))
 
       request = ImageGen::AdapterRequest.new(

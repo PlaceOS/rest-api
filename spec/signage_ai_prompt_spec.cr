@@ -68,6 +68,55 @@ module PlaceOS::Api
       end
     end
 
+    describe "editing" do
+      it "asks for preservation rather than design" do
+        prompt = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
+          brief: "",
+          aspect: "9:16",
+          kind: ImageGen::Kind::Edit,
+          instruction: %(Make the first "EVENT NAME" text read "PIZZA DAY" instead),
+        ))
+
+        prompt.should contain "Make only the change described below"
+        prompt.should contain "every typeface, weight, size, casing and text position"
+        prompt.should contain "The change to make now, and the only one:"
+        prompt.should contain %(read "PIZZA DAY")
+
+        # none of the generation brief: it is what asks for a redesign
+        prompt.should_not contain "Avoid the generic"
+        prompt.should_not contain "AVOID:"
+        prompt.should_not contain "let that idea determine the typography"
+        prompt.should_not contain "poster background for a digital signage screen"
+        prompt.should_not contain "Do not render any text"
+      end
+
+      it "keeps the instruction an instruction on a first edit, not a brief" do
+        # the bug this replaced: with no parent job the words were sent as a
+        # brief and the change framing was dropped entirely
+        prompt = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
+          brief: "",
+          aspect: "16:9",
+          kind: ImageGen::Kind::Edit,
+          instruction: "swap the date to 12 September",
+        ))
+        prompt.should contain "The change to make now, and the only one: swap the date to 12 September"
+      end
+
+      it "lists changes already applied when refining" do
+        prompt = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
+          brief: "a poster for the office party",
+          aspect: "16:9",
+          kind: ImageGen::Kind::Edit,
+          history: ["make it warmer"],
+          instruction: "add paper decorations",
+        ))
+
+        prompt.should contain "It was made for this brief: a poster for the office party"
+        prompt.should contain "Change 1, already applied: make it warmer"
+        prompt.should contain "The change to make now, and the only one: add paper decorations"
+      end
+    end
+
     it "carries the brand kit, the brief and each change in order" do
       prompt = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
         brief: "a poster for the office party",

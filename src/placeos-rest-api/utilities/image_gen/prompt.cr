@@ -145,6 +145,7 @@ module PlaceOS::Api::ImageGen
     record Options,
       brief : String,
       aspect : String,
+      kind : Kind = Kind::Generate,
       text_mode : TextMode = TextMode::Layer,
       include_logo : Bool = true,
       brand : BrandKit? = nil,
@@ -152,7 +153,30 @@ module PlaceOS::Api::ImageGen
       history : Array(String) = [] of String,
       instruction : String? = nil
 
+    # What an edit is told, in place of the art direction and the layout brief.
+    #
+    # gpt-image-2 regenerates the whole frame rather than painting into a
+    # region, so an edit drifts unless it is held down hard. The generation
+    # style block makes that worse: it asks the model to establish a visual
+    # idea and let it "determine the typography, image treatment, composition
+    # and colour palette", which is a redesign brief. None of it is sent here.
+    EDIT_PRESERVATION = <<-TEXT
+      Edit the supplied image. Make only the change described below and leave everything else untouched.
+      Preserve exactly, unless the change itself requires otherwise:
+      - the existing layout, composition, framing and crop
+      - every colour, including backgrounds, fills and accents
+      - every typeface, weight, size, casing and text position
+      - all other text, word for word, including any wording you would consider a placeholder
+      - all existing photography, illustration, logos and graphic elements
+      Do not redesign, restyle, recolour, re-typeset, re-crop or re-compose the image.
+      Do not "improve" anything that was not part of the change.
+      Do not add text, graphics or decoration that was not asked for.
+      The result should look like the supplied image with one alteration made to it, not like a new design of the same subject.
+      TEXT
+
     def self.build(options : Options) : String
+      return build_edit(options) if options.kind.edit?
+
       lines = [] of String
 
       lines << style(options.text_mode)
@@ -177,6 +201,28 @@ module PlaceOS::Api::ImageGen
       if (instruction = options.instruction) && instruction.presence
         lines << "Change #{options.history.size + 1}: #{instruction}"
         lines << "Keep everything else exactly as it is."
+      end
+
+      if (brand = options.brand) && !brand.never_include.empty?
+        lines << "Never include: #{brand.never_include.join(", ")}."
+      end
+
+      lines.join("\n")
+    end
+
+    private def self.build_edit(options : Options) : String
+      lines = [EDIT_PRESERVATION] of String
+
+      # what the poster was originally for, so a change is read in context
+      lines << "The image is a #{options.aspect} poster for a digital signage screen."
+      lines << "It was made for this brief: #{options.brief}" if options.brief.presence
+
+      options.history.each_with_index do |entry, index|
+        lines << "Change #{index + 1}, already applied: #{entry}"
+      end
+
+      if (instruction = options.instruction) && instruction.presence
+        lines << "The change to make now, and the only one: #{instruction}"
       end
 
       if (brand = options.brand) && !brand.never_include.empty?
