@@ -117,6 +117,37 @@ module PlaceOS::Api
       end
     end
 
+    it "numbers attached images from one, and says the edited image is not one of them" do
+      generating = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
+        brief: "a poster in the style of image 1 with the person from image 2",
+        aspect: "16:9",
+        references: 2,
+      ))
+
+      generating.should contain "2 image(s) are attached with this request, numbered 1 to 2"
+      generating.should_not contain "The first attached image is the image being edited"
+
+      editing = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
+        brief: "a poster for the office party",
+        aspect: "16:9",
+        kind: ImageGen::Kind::Edit,
+        instruction: "put the person from image 1 on the right",
+        references: 1,
+      ))
+
+      editing.should contain "The first attached image is the image being edited."
+      editing.should contain "The 1 image(s) after it were supplied with this request, numbered 1 to 1"
+    end
+
+    it "says nothing about attached images when none are attached" do
+      prompt = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
+        brief: "a poster for the office party",
+        aspect: "16:9",
+      ))
+
+      prompt.should_not contain "attached"
+    end
+
     it "carries the brand kit, the brief and each change in order" do
       prompt = ImageGen::Prompt.build(ImageGen::Prompt::Options.new(
         brief: "a poster for the office party",

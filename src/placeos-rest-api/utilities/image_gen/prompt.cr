@@ -151,7 +151,9 @@ module PlaceOS::Api::ImageGen
       brand : BrandKit? = nil,
       words : String? = nil,
       history : Array(String) = [] of String,
-      instruction : String? = nil
+      instruction : String? = nil,
+      # how many images the person attached, so the brief can name them
+      references : Int32 = 0
 
     # What an edit is told, in place of the art direction and the layout brief.
     #
@@ -174,12 +176,37 @@ module PlaceOS::Api::ImageGen
       The result should look like the supplied image with one alteration made to it, not like a new design of the same subject.
       TEXT
 
+    # What "image 2" in a brief means.
+    #
+    # The vendor is handed a list of images with no names, so a brief that says
+    # "the person in image 2" is meaningless unless the order is spelled out.
+    # On an edit the image being changed is sent first, which would make the
+    # person's first reference image 2 if that went unsaid.
+    def self.references_line(count : Int32, editing : Bool) : String?
+      return nil if count < 1
+      lines = [] of String
+      if editing
+        lines << "The first attached image is the image being edited."
+        lines << "The #{count} image(s) after it were supplied with this request, numbered 1 to #{count} in that order."
+      else
+        lines << "#{count} image(s) are attached with this request, numbered 1 to #{count} in the order they are sent."
+      end
+      lines << %(Where the wording says "image 1", "image 2" and so on, it means those.)
+      lines << "Use each one as the wording asks: as a guide to style, or as something to include in the picture."
+      lines << "Do not reproduce an attached image as the whole poster unless asked to, and do not copy any lettering from one."
+      lines.join(" ")
+    end
+
     def self.build(options : Options) : String
       return build_edit(options) if options.kind.edit?
 
       lines = [] of String
 
       lines << style(options.text_mode)
+
+      if (attached = references_line(options.references, false))
+        lines << attached
+      end
 
       if (brand = options.brand)
         parts = [] of String
@@ -212,6 +239,10 @@ module PlaceOS::Api::ImageGen
 
     private def self.build_edit(options : Options) : String
       lines = [EDIT_PRESERVATION] of String
+
+      if (attached = references_line(options.references, true))
+        lines << attached
+      end
 
       # what the poster was originally for, so a change is read in context
       lines << "The image is a #{options.aspect} poster for a digital signage screen."

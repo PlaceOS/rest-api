@@ -496,8 +496,23 @@ module PlaceOS::Api
       allowed = adapter.capabilities.models.map(&.id)
       raise Error::ModelValidation.new([Error::Field.new(:model, "is not available on this provider")]) unless allowed.includes?(chosen_model)
 
-      reference_ids = references.first(8).map { |id| readable_upload(id).id.as(String) }
-      if include_logo && (logo = brand_kit.try(&.logo_upload_id).presence)
+      # Attached by the person, in the order they attached them: the prompt
+      # numbers them from 1 and the adapter sends them in this order, so the two
+      # have to agree.
+      supplied = references.first(8).compact_map { |id| readable_upload(id) }
+      supplied.each do |upload|
+        # a bare upload is one made for this request; tagging it lets the sweep
+        # clear it if the browser never gets the chance to
+        next unless upload.tags.empty?
+        upload.tags = [ImageGen::Store::REFERENCE_TAG]
+        upload.save
+      end
+      reference_ids = supplied.map(&.id.as(String))
+
+      # The logo goes to the vendor only on an edit. On a generate the app
+      # composites the real file afterwards, and an attached logo is a logo the
+      # model draws as well, leaving two.
+      if kind == ImageGen::Kind::Edit && include_logo && (logo = brand_kit.try(&.logo_upload_id).presence)
         reference_ids << logo unless reference_ids.includes?(logo)
       end
 
@@ -524,6 +539,7 @@ module PlaceOS::Api
         words: words,
         history: history,
         instruction: editing || parent ? prompt : nil,
+        references: supplied.size,
       ))
 
       request = ImageGen::AdapterRequest.new(

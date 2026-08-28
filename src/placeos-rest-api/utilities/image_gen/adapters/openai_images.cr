@@ -37,6 +37,11 @@ module PlaceOS::Api::ImageGen::Adapters
     end
 
     def generate(request : AdapterRequest) : Array(AdapterImage)
+      # Images only travel on the multipart endpoint. The JSON generations call
+      # takes a prompt and nothing else, so a request carrying references would
+      # silently lose them.
+      return with_images(request, nil) unless request.references.empty?
+
       body = {
         model:         request.model,
         prompt:        request.prompt,
@@ -53,7 +58,12 @@ module PlaceOS::Api::ImageGen::Adapters
     def edit(request : AdapterRequest) : Array(AdapterImage)
       source = request.source
       raise Error::ImageGen::Vendor.new("an edit needs a source image") if source.nil?
+      with_images(request, source)
+    end
 
+    # The order here is the order the prompt describes: the image being edited,
+    # if there is one, then each reference as the person attached it.
+    private def with_images(request : AdapterRequest, source : Reference?) : Array(AdapterImage)
       io = IO::Memory.new
       content_type = ""
       HTTP::FormData.build(io) do |form|
@@ -65,10 +75,9 @@ module PlaceOS::Api::ImageGen::Adapters
         form.field("quality", quality(request.quality))
         form.field("output_format", "jpeg")
 
-        # the image being edited goes first, references after it
-        add_image(form, source, "source")
+        add_image(form, source, "source") if source
         request.references.each_with_index do |reference, index|
-          add_image(form, reference, "reference-#{index}")
+          add_image(form, reference, "reference-#{index + 1}")
         end
       end
 
