@@ -10,6 +10,100 @@ module PlaceOS::Api::ImageGen
   # file for the same reason, so the prompt asks for room rather than a drawing
   # of it.
   module Prompt
+    # Art direction sent ahead of every brief.
+    #
+    # Image models left to themselves produce a recognisable house style:
+    # centred title over a purple gradient, glowing orbs, floating geometry.
+    # This is the counter-brief, and it is the largest single part of the
+    # prompt, so it is kept here rather than buried in a method.
+    #
+    # Split because most of it applies whatever draws the words, but a few
+    # lines only make sense when the model is setting the type. When the app
+    # composites the headline afterwards the model is producing a background,
+    # and telling it to art direct typography or to avoid "text over a generic
+    # background" argues with the layout instruction that follows.
+    STYLE_OPENING = <<-TEXT
+      Avoid the generic "AI-generated poster" aesthetic.
+      Design this as if it were created by an experienced human graphic designer working from a real creative brief, not generated from a text prompt.
+      TEXT
+
+    STYLE_REQUIREMENTS = <<-TEXT
+      STYLE REQUIREMENTS:
+      - Use deliberate, editorial graphic design with a clear visual concept.
+      - Prioritise composition, spacing, hierarchy and art direction over decorative effects.
+      - Make the layout feel designed rather than algorithmically balanced.
+      - Allow asymmetry, negative space, unusual cropping, restrained layouts and imperfect/off-centre placement where appropriate.
+      - Use a limited, intentional colour palette.
+      - Aim for the quality of a professionally commissioned event poster, cultural institution campaign, design studio project, magazine advertisement or high-end printed flyer.
+      - The finished piece should feel plausible as real-world graphic design.
+      TEXT
+
+    # only when the model is setting the type
+    STYLE_TYPOGRAPHY = <<-TEXT
+      - Prioritise strong typography alongside composition and hierarchy.
+      - Typography should feel professionally art-directed and appropriate to the subject.
+      - Use no more typefaces, weights or text effects than a competent designer would realistically choose.
+      - Treat photography/illustration as an integrated part of the composition rather than placing text over a generic background.
+      TEXT
+
+    STYLE_AVOID = <<-TEXT
+      AVOID:
+      - generic AI poster aesthetics
+      - default futuristic/corporate styling
+      - purple-blue-orange gradients unless specifically requested
+      - glowing neon edges
+      - glowing blobs or orbs
+      - random floating geometric shapes
+      - abstract 3D objects added only to fill space
+      - excessive glassmorphism
+      - unnecessary lens flares or bloom
+      - generic particle effects
+      - holographic effects
+      - fake depth-of-field added to graphic design
+      - huge centred title + subtitle + button style layouts
+      - perfectly symmetrical compositions unless the concept calls for it
+      - generic vector people or corporate illustrations
+      - arbitrary decorative squiggles
+      - excessive rounded rectangles
+      - random badges, pills or UI components
+      - meaningless microtext
+      - fake logos
+      - pseudo-technical markings
+      - ornamental elements without a clear design purpose
+      - overly polished "concept art" rendering
+      - the appearance of a Canva template
+      - the appearance of a cryptocurrency, SaaS, Web3 or AI conference poster unless specifically requested
+      - visual clutter added merely to make the design seem sophisticated
+      TEXT
+
+    STYLE_CLOSING = <<-TEXT
+      IMPORTANT:
+      Do not interpret "professional" as "futuristic", "glossy", "minimal corporate", or "luxury gradient".
+      Before designing, infer an appropriate real-world graphic-design direction from the subject matter. Establish a specific visual idea and let that idea determine the typography, image treatment, composition and colour palette.
+      The design should have character and specificity. It should look like somebody made actual aesthetic decisions.
+      Do not add text, icons, graphics, logos, dates, URLs, QR codes or decorative elements that were not requested.
+      TEXT
+
+    # only when the model is setting the type: there is no supplied wording to
+    # reproduce when the app draws it afterwards
+    STYLE_TEXT_FIDELITY = <<-TEXT
+      For any required text, reproduce the supplied wording exactly. Do not paraphrase it, invent additional copy, or fill empty areas with placeholder text.
+      TEXT
+
+    def self.style(text_mode : TextMode) : String
+      sections = [STYLE_OPENING] of String
+
+      requirements = STYLE_REQUIREMENTS
+      requirements = "#{requirements}\n#{STYLE_TYPOGRAPHY}" if text_mode.model?
+      sections << requirements
+
+      sections << STYLE_AVOID
+      sections << STYLE_CLOSING
+      sections << STYLE_TEXT_FIDELITY if text_mode.model?
+
+      sections.join("\n")
+    end
+
     # `signage_ai` metadata on the org zone
     struct BrandKit
       include JSON::Serializable
@@ -60,6 +154,8 @@ module PlaceOS::Api::ImageGen
 
     def self.build(options : Options) : String
       lines = [] of String
+
+      lines << style(options.text_mode)
 
       if (brand = options.brand)
         parts = [] of String

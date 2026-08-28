@@ -21,7 +21,10 @@ module PlaceOS::Api::ImageGen
     model : String,
     references : Array(Reference) = [] of Reference,
     source : Reference? = nil,
-    options : Hash(String, JSON::Any) = {} of String => JSON::Any do
+    options : Hash(String, JSON::Any) = {} of String => JSON::Any,
+    # overrides the size the aspect would give. Only the credentials check uses
+    # this, to ask for the cheapest thing a vendor will draw.
+    size_override : String? = nil do
     def width : Int32
       ImageGen.size_for(aspect)[0]
     end
@@ -31,7 +34,7 @@ module PlaceOS::Api::ImageGen
     end
 
     def size : String
-      "#{width}x#{height}"
+      size_override || "#{width}x#{height}"
     end
   end
 

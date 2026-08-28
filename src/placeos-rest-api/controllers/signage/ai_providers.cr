@@ -136,6 +136,10 @@ module PlaceOS::Api
       current_provider.destroy
     end
 
+    # 1024x1024 is the smallest gpt-image-2 accepts (it wants at least 655,360
+    # total pixels, and both edges a multiple of 16)
+    PROBE_SIZE = "1024x1024"
+
     record TestResult, ok : Bool, latency_ms : Int64, model : String?, error : String? = nil, kind : String? = nil do
       include JSON::Serializable
     end
@@ -152,6 +156,8 @@ module PlaceOS::Api
       begin
         raise Error::ImageGen::NotConfigured.new("no model configured") if model.nil?
 
+        # the smallest, cheapest thing the vendor will draw: this only has to
+        # prove the credentials work, and it is discarded
         adapter.generate(ImageGen::AdapterRequest.new(
           kind: ImageGen::Kind::Generate,
           prompt: "A plain mid grey background. No text, no logos, no objects.",
@@ -159,6 +165,7 @@ module PlaceOS::Api
           quality: "draft",
           candidates: 1,
           model: model,
+          size_override: PROBE_SIZE,
         ))
 
         TestResult.new(ok: true, latency_ms: (Time.utc - started).total_milliseconds.to_i64, model: model)

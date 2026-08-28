@@ -93,7 +93,11 @@ module PlaceOS::Api::ImageGen::Adapters
     # leaderboards rank first and what iteration runs at. "high" is the
     # explicit enhance step.
     private def quality(value : String) : String
-      value == "high" ? "high" : "medium"
+      case value
+      when "high"  then "high"
+      when "draft" then "low"
+      else              "medium"
+      end
     end
 
     private def azure? : Bool
