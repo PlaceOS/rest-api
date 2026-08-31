@@ -446,7 +446,7 @@ module PlaceOS::Api
         parent.destroy
       end
 
-      it "rejects 'signage' subsystem from destroying a zone (signage doesn't grant destroy)" do
+      it "rejects 'signage' subsystem from destroying a zone without the signage tag" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
@@ -576,6 +576,204 @@ module PlaceOS::Api
         zone.reload!
         zone.description.should eq "updated via support"
         zone.destroy
+      end
+
+      it "'support' subsystem users may edit tags" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+
+        zone = Model::Generator.zone
+        zone.tags = Set{"signage"}
+        zone.save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        result = client.patch(
+          path: "#{Zones.base_route}#{zone.id}",
+          body: {tags: ["display-group"]}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+
+        zone.reload!
+        zone.tags.should eq Set{"display-group"}
+        zone.destroy
+      end
+
+      it "silently reverts tag changes for a 'signage' subsystem update" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+
+        zone = Model::Generator.zone
+        zone.tags = Set{"signage", "existing"}
+        zone.save!
+
+        result = client.patch(
+          path: "#{Zones.base_route}#{zone.id}",
+          body: {description: "signage update", tags: ["hacked"]}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+
+        zone.reload!
+        zone.description.should eq "signage update"
+        zone.tags.should eq Set{"signage", "existing"}
+        zone.destroy
+      end
+
+      it "allows 'signage' subsystem to create a zone under a parent it can manage" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Manage).save!
+
+        new_zone = Model::Generator.zone
+        new_zone.parent_id = parent.id
+        new_zone.tags = Set{"signage"}
+
+        result = client.post(Zones.base_route, body: new_zone.to_json, headers: headers)
+        result.status_code.should eq 201
+
+        created = Model::Zone.from_trusted_json(result.body)
+        created.parent_id.should eq parent.id
+        created.tags.should contain "signage"
+        created.destroy
+        parent.destroy
+      end
+
+      it "adds the signage tag when a 'signage' subsystem create omits it" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Manage).save!
+
+        result = client.post(
+          Zones.base_route,
+          body: {name: "signage created #{UUID.random}", parent_id: parent.id}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 201
+
+        created = Model::Zone.from_trusted_json(result.body)
+        created.tags.should contain "signage"
+        Model::Zone.find!(created.id.as(String)).tags.should contain "signage"
+        created.destroy
+        parent.destroy
+      end
+
+      it "rejects 'signage' subsystem create without Manage on the parent" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Update).save!
+
+        new_zone = Model::Generator.zone
+        new_zone.parent_id = parent.id
+        new_zone.tags = Set{"signage"}
+
+        result = client.post(Zones.base_route, body: new_zone.to_json, headers: headers)
+        result.status_code.should eq 403
+
+        parent.destroy
+      end
+
+      it "rejects 'signage' subsystem create when user has no GroupZone reach to the parent" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        # Note: NO GroupZone — group has the right perm but zero zone reach.
+
+        parent = Model::Generator.zone.save!
+        new_zone = Model::Generator.zone
+        new_zone.parent_id = parent.id
+        new_zone.tags = Set{"signage"}
+
+        result = client.post(Zones.base_route, body: new_zone.to_json, headers: headers)
+        result.status_code.should eq 403
+
+        parent.destroy
+      end
+
+      it "rejects 'signage' subsystem creation of root zones" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        anchor = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Manage).save!
+
+        new_zone = Model::Generator.zone
+        new_zone.tags = Set{"signage"}
+
+        result = client.post(Zones.base_route, body: new_zone.to_json, headers: headers)
+        result.status_code.should eq 403
+
+        anchor.destroy
+      end
+
+      it "allows 'signage' subsystem to destroy a signage-tagged zone whose parent it can manage" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Manage).save!
+
+        child = Model::Generator.zone
+        child.parent_id = parent.id
+        child.tags = Set{"signage"}
+        child.save!
+
+        result = client.delete(path: "#{Zones.base_route}#{child.id}", headers: headers)
+        result.success?.should be_true
+        Model::Zone.find?(child.id.as(String)).should be_nil
+
+        parent.destroy
+      end
+
+      it "rejects 'signage' subsystem destroy without Manage on the parent" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+
+        parent = Model::Generator.zone.save!
+        Model::Generator.group_zone(group: group, zone: parent, permissions: Model::Permissions::Update).save!
+
+        child = Model::Generator.zone
+        child.parent_id = parent.id
+        child.tags = Set{"signage"}
+        child.save!
+
+        result = client.delete(path: "#{Zones.base_route}#{child.id}", headers: headers)
+        result.status_code.should eq 403
+
+        child.destroy
+        parent.destroy
       end
     end
 

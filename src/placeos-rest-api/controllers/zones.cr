@@ -50,6 +50,9 @@ module PlaceOS::Api
     # Permissions
     ###############################################################################################
 
+    SIGNAGE_SUBSYSTEM = "signage"
+    SIGNAGE_TAG       = "signage"
+
     @[AC::Route::Filter(:before_action, only: [:destroy])]
     def check_delete_permissions
       return if user_support?
@@ -58,6 +61,9 @@ module PlaceOS::Api
       # parent zone — root zones (no parent) stay admin-only.
       parent_id = current_zone.parent_id
       return if parent_id && support_subsystem_grants?([parent_id], verb_permission)
+      # "signage" subsystem: Manage on the parent covers signage-tagged
+      # zones only.
+      return if parent_id && current_zone.tags.includes?(SIGNAGE_TAG) && signage_manages_zone?(parent_id)
       raise Error::Forbidden.new
     end
 
@@ -71,13 +77,18 @@ module PlaceOS::Api
       end
       return if legacy_ok
 
-      # Signage subsystem: any group with signage + Update/Manage allows
-      # patching any zone (broad grant — used e.g. to set `playlists`).
-      return if has_subsystem_write_grant?(current_user, ["signage"])
-
       # Support subsystem: per-zone — needs Update (or Manage) reach on
-      # the zone itself.
+      # the zone itself. Checked before the signage grant so users who
+      # qualify here keep the ability to edit tags.
       return if support_subsystem_grants?([current_zone.id.as(String)], verb_permission)
+
+      # Signage subsystem: any group with signage + Update/Manage allows
+      # patching any zone (broad grant — used e.g. to set `playlists`),
+      # but tags are off-limits — silently revert any change.
+      if has_subsystem_write_grant?(current_user, [SIGNAGE_SUBSYSTEM])
+        zone_update.tags = current_zone.tags if zone_update.tags_assigned?
+        return
+      end
 
       raise Error::Forbidden.new
     end
@@ -90,6 +101,12 @@ module PlaceOS::Api
       # intended parent. Root creation stays admin-only.
       parent_id = zone_update.parent_id.presence
       return if parent_id && support_subsystem_grants?([parent_id], verb_permission)
+      # "signage" subsystem: Manage on the parent allows creating zones
+      # underneath it — they are always signage tagged.
+      if parent_id && signage_manages_zone?(parent_id)
+        zone_update.tags = zone_update.tags | Set{SIGNAGE_TAG}
+        return
+      end
       raise Error::Forbidden.new
     end
 
@@ -121,6 +138,12 @@ module PlaceOS::Api
         return true if subsystems.any? { |s| g.subsystems.includes?(s) }
       end
       false
+    end
+
+    # True if the "signage" subsystem grants Manage on the given zone
+    # (directly or inherited from a GroupZone anchor above it).
+    private def signage_manages_zone?(zone_id : String) : Bool
+      subsystem_grants_on_zones?([SIGNAGE_SUBSYSTEM], [zone_id], ::PlaceOS::Model::Permissions::Manage)
     end
 
     ###############################################################################################
