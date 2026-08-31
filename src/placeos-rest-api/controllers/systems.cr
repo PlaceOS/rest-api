@@ -200,6 +200,10 @@ module PlaceOS::Api
       # plugin details
       @[JSON::Field(key: "signage_plugins")]
       property signage_plugins : Array(::PlaceOS::Model::SignagePlugin)? = nil
+
+      # signage template schedules
+      @[JSON::Field(key: "template_schedules")]
+      property signage_template_schedules : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)? = nil
     end
 
     ###############################################################################################

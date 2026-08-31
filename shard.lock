@@ -15,7 +15,7 @@ shards:
 
   ameba:
     git: https://github.com/crystal-ameba/ameba.git
-    version: 1.6.4
+    version: 1.7.0
 
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
@@ -223,7 +223,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.108.1
+    version: 9.108.2
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git

@@ -31,6 +31,13 @@ module PlaceOS::Api
       playlist_map = system.all_playlists
       last_updated = system.playlists_last_updated(playlist_map)
 
+      # the signage templates applied to this display or its zones
+      template_mappings = signage_template_mappings(system)
+      # the latest approved template or template schedule time
+      if templates_last_updated = templates_last_updated(template_mappings)
+        last_updated = templates_last_updated if templates_last_updated > last_updated
+      end
+
       if !preview
         # Save last seen and currently playing item
         item_id = item_id.presence
@@ -100,20 +107,24 @@ module PlaceOS::Api
 
         system.playlist_mappings = playlist_map
         system.playlist_config = playlist_config
+        template_mappings = resolve_default_template(template_mappings)
+        system.signage_template_schedules = SignageTemplateMappings.hydrate!(template_mappings)
 
         # grab all the media details that should be cached / used in the media lists
         media_ids = playlist_config.values.flat_map(&.[](1)).uniq!
 
-        if media_ids.empty?
-          system.playlist_media = [] of ::PlaceOS::Model::Playlist::Item
-        else
-          media_details = ::PlaceOS::Model::Playlist::Item.where(id: media_ids).to_a
-          system.playlist_media = media_details
+        media_details = media_ids.empty? ? [] of ::PlaceOS::Model::Playlist::Item : ::PlaceOS::Model::Playlist::Item.where(id: media_ids).to_a
+        system.playlist_media = media_details
 
-          plugin_ids = media_details.compact_map(&.plugin_id).uniq!
-          if !plugin_ids.empty?
-            system.signage_plugins = ::PlaceOS::Model::SignagePlugin.where(id: plugin_ids).to_a
-          end
+        # the plugins required to render the media and any template widgets
+        plugin_ids = media_details.compact_map(&.plugin_id)
+        template_mappings.each do |mapping|
+          next unless template = mapping.template_details
+          plugin_ids.concat template.layouts.compact_map(&.plugin_id)
+        end
+        plugin_ids.uniq!
+        unless plugin_ids.empty?
+          system.signage_plugins = ::PlaceOS::Model::SignagePlugin.where(id: plugin_ids).to_a
         end
 
         # ensure response caching is configured correctly
@@ -149,6 +160,88 @@ module PlaceOS::Api
       virtual.created_at = playlist.created_at
       virtual.updated_at = playlist.updated_at
       virtual
+    end
+
+    # the template mappings that apply to this display — applied directly or
+    # via one of its zones. Only approved templates are shown on displays:
+    # pending edits are staged on separate draft rows (which are never mapped)
+    # and a never-approved template is its own unapproved version
+    private def signage_template_mappings(system : ::PlaceOS::Model::ControlSystem) : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)
+      zones_sql = ::PlaceOS::Model::Associations.format_list_for_postgres(system.zones)
+      ::PlaceOS::Model::SignageTemplate::SystemTemplate.where(
+        "(control_system_id = ? OR zone_id = ANY(#{zones_sql})) AND template_id IN (SELECT id FROM signage_template WHERE approved = true)",
+        system.id.as(String)
+      ).to_a
+    end
+
+    # only one default template (a mapping without a schedule) applies to a
+    # display. Priority: mapped directly to the system, then the default on
+    # the most specific (deepest / most child) zone, breaking ties with the
+    # older zone and finally the older mapping
+    private def resolve_default_template(mappings : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)) : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)
+      defaults = mappings.select(&.default?)
+      return mappings if defaults.size <= 1
+
+      epoch = Time.unix(0)
+      direct = defaults.select(&.control_system_id.presence)
+      winner = if direct.empty?
+                 depths = zone_depths(defaults.compact_map(&.zone_id.presence).uniq!)
+                 defaults.min_by do |mapping|
+                   depth, zone_created = depths[mapping.zone_id.as(String)]? || {0, epoch}
+                   {-depth, zone_created, mapping.created_at || epoch}
+                 end
+               else
+                 direct.min_by { |mapping| mapping.created_at || epoch }
+               end
+
+      mappings.reject { |mapping| mapping.default? && !mapping.same?(winner) }
+    end
+
+    # depth (ancestor count) and creation time of each of the provided zones,
+    # resolved in a single recursive query over the parent chains
+    private def zone_depths(zone_ids : Array(String)) : Hash(String, Tuple(Int32, Time))
+      return {} of String => Tuple(Int32, Time) if zone_ids.empty?
+
+      zones_sql = ::PlaceOS::Model::Associations.format_list_for_postgres(zone_ids)
+      query = <<-SQL
+        WITH RECURSIVE ancestry AS (
+          SELECT id, parent_id, 0 AS depth
+          FROM zone
+          WHERE id = ANY(#{zones_sql})
+
+          UNION ALL
+
+          SELECT a.id, z.parent_id, a.depth + 1
+          FROM zone z
+          INNER JOIN ancestry a ON z.id = a.parent_id
+        )
+        SELECT a.id, MAX(a.depth), z.created_at
+        FROM ancestry a
+        INNER JOIN zone z ON z.id = a.id
+        GROUP BY a.id, z.created_at
+        SQL
+
+      depths = {} of String => Tuple(Int32, Time)
+      ::PgORM::Database.connection do |db|
+        db.query_all(query) do |rs|
+          depths[rs.read(String)] = {rs.read(Int32), rs.read(Time)}
+        end
+      end
+      depths
+    end
+
+    # the most recent change to an applied template or its schedule
+    private def templates_last_updated(mappings : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)) : Time?
+      return nil if mappings.empty?
+
+      times = mappings.compact_map(&.updated_at)
+      template_ids = mappings.map(&.template_id).uniq!
+      template_updated = ::PlaceOS::Model::SignageTemplate
+        .where(id: template_ids)
+        .order(updated_at: :desc)
+        .limit(1).to_a.first?.try(&.updated_at)
+      times << template_updated if template_updated
+      times.max?
     end
 
     struct Metrics

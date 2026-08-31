@@ -4,6 +4,8 @@ require "timecop"
 module PlaceOS::Api
   describe Signage do
     ::Spec.before_each do
+      Model::SignageTemplate::SystemTemplate.clear
+      Model::SignageTemplate.clear
       Model::Playlist::ItemSchedule.clear
       Model::Playlist::Revision.clear
       Model::Playlist::Item.clear
@@ -117,6 +119,166 @@ module PlaceOS::Api
         # the underlying media items are still cached in playlist_media
         media_ids = json["playlist_media"].as_a.map(&.["id"].as_s).sort!
         media_ids.should eq [item_a.id.as(String), item_b.id.as(String)].sort
+      end
+
+      it "includes applied signage templates in the display response" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        background = Model::Generator.item(authority: authority).save!
+        widget = Model::Generator.widget_plugin(authority: authority).save!
+
+        layout = Model::SignageTemplate::Layout.new(
+          position: Model::SignageTemplate::Layout::Position::Top,
+          plugin_id: widget.id.as(String),
+          y_pos: 0.2_f32,
+        )
+
+        template = Model::Generator.signage_template(authority: authority, layouts: [layout])
+        template.background_item_id = background.id
+        template.approved = true
+        template.save!
+
+        zone_template = Model::Generator.signage_template(authority: authority)
+        zone_template.approved = true
+        zone_template.save!
+
+        # never approved, so never shown on displays
+        pending_template = Model::Generator.signage_template(authority: authority).save!
+
+        zone = Model::Generator.zone.save!
+        system = Model::Generator.control_system
+        system.signage = true
+        system.zones = [zone.id.as(String)]
+        system.save!
+        system_id = system.id.as(String)
+
+        direct = Model::Generator.system_template(template: template, control_system: system).save!
+        zoned = Model::Generator.system_template(
+          template: zone_template, zone: zone,
+          schedule: Model::Playlist::Schedule.new(play_cron: "0 9 * * *"),
+        ).save!
+        Model::Generator.system_template(template: pending_template, control_system: system).save!
+
+        result = client.get(
+          path: "#{Signage.base_route}/#{system_id}",
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 200
+        json = JSON.parse result.body
+
+        schedules = json["template_schedules"].as_a
+        schedules.map(&.["id"].as_s).sort!.should eq [direct.id.to_s, zoned.id.to_s].sort
+
+        hydrated = schedules.find! { |mapping| mapping["id"].as_s == direct.id.to_s }
+        hydrated["template_details"]["id"].as_s.should eq template.id.to_s
+        hydrated["template_details"]["background_media"]["id"].as_s.should eq background.id.as(String)
+
+        from_zone = schedules.find! { |mapping| mapping["id"].as_s == zoned.id.to_s }
+        from_zone["template_details"]["id"].as_s.should eq zone_template.id.to_s
+        from_zone["schedule"]["play_cron"].as_s.should eq "0 9 * * *"
+
+        # widget plugins referenced by template layouts are included
+        json["signage_plugins"].as_a.map(&.["id"].as_s).should contain(widget.id.as(String))
+      end
+
+      it "returns a single default template, preferring the most specific mapping" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        org_zone = Model::Generator.zone.save!
+        older_zone = Model::Generator.zone
+        older_zone.parent_id = org_zone.id
+        older_zone.save!
+        newer_zone = Model::Generator.zone
+        newer_zone.parent_id = org_zone.id
+        newer_zone.save!
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.zones = [org_zone.id.as(String), older_zone.id.as(String), newer_zone.id.as(String)]
+        system.save!
+        system_id = system.id.as(String)
+
+        templates = Array.new(5) do
+          template = Model::Generator.signage_template(authority: authority)
+          template.approved = true
+          template.save!
+        end
+
+        Model::Generator.system_template(template: templates[0], zone: org_zone).save!
+        older_default = Model::Generator.system_template(template: templates[1], zone: older_zone).save!
+        Model::Generator.system_template(template: templates[2], zone: newer_zone).save!
+        # scheduled mappings are never filtered
+        scheduled = Model::Generator.system_template(
+          template: templates[3], zone: org_zone,
+          schedule: Model::Playlist::Schedule.new(play_cron: "0 9 * * *"),
+        ).save!
+
+        get_ids = -> do
+          result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          JSON.parse(result.body)["template_schedules"].as_a.map(&.["id"].as_s).sort!
+        end
+
+        # the deepest zone wins, ties broken by the older zone
+        get_ids.call.should eq [older_default.id.to_s, scheduled.id.to_s].sort
+
+        # a mapping directly on the system outranks every zone default
+        direct_default = Model::Generator.system_template(template: templates[4], control_system: system).save!
+        get_ids.call.should eq [direct_default.id.to_s, scheduled.id.to_s].sort
+      end
+
+      it "invalidates cached signage when templates or their schedules change" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        template = Model::Generator.signage_template(authority: authority)
+        template.approved = true
+        template.save!
+
+        # not yet approved, its mapping is hidden
+        pending_template = Model::Generator.signage_template(authority: authority).save!
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.save!
+        system_id = system.id.as(String)
+
+        mapping = Model::Generator.system_template(template: template, control_system: system).save!
+        Model::Generator.system_template(
+          template: pending_template, control_system: system,
+          schedule: Model::Playlist::Schedule.new(play_cron: "30 8 * * *"),
+        ).save!
+
+        headers = Spec::Authentication.headers
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        json = JSON.parse result.body
+        json["template_schedules"].as_a.map(&.["id"].as_s).should eq [mapping.id.to_s]
+
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers).status_code.should eq 304
+
+        # skip forward a moment (Last-Modified has second granularity)
+        sleep 1.seconds
+
+        # updating a mapping schedule moves Last-Modified forward
+        mapping.schedule = Model::Playlist::Schedule.new(play_cron: "0 17 * * *")
+        mapping.save!
+
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers).status_code.should eq 304
+
+        sleep 1.seconds
+
+        # approving a template moves Last-Modified forward and reveals its mappings
+        pending_template.approved = true
+        pending_template.save!
+
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["template_schedules"].as_a.size.should eq 2
       end
 
       it "POST /api/engine/v2/signage/:system_id/metrics" do

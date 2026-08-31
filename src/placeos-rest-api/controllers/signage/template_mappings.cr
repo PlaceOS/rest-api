@@ -162,6 +162,10 @@ module PlaceOS::Api
     ###############################################################################################
 
     private def hydrate!(mappings : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)) : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)
+      self.class.hydrate!(mappings)
+    end
+
+    def self.hydrate!(mappings : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)) : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)
       return mappings if mappings.empty?
 
       template_ids = mappings.map(&.template_id).uniq!
