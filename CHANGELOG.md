@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **zones**: allow signage managers to create signage zones
 - **signage**: add template mappings to player response
 - **proxy**: add GET proxy for use by frontends
 - **signage/playlists**: add unshare option to destroy
