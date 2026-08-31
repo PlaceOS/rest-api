@@ -125,6 +125,7 @@
 
 ### Fix
 
+- **signage/playlist_media**: bust signage caches on updates
 - **signage/templates**: improve draft handling
 - **signage/templates**: should return the drafts by default
 - **models**: template widget validation fix
