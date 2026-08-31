@@ -281,6 +281,93 @@ module PlaceOS::Api
         JSON.parse(result.body)["template_schedules"].as_a.size.should eq 2
       end
 
+      it "invalidates cached signage when media items are edited or removed" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        # item rendered via a playlist mapped to the display
+        playlist_item = Model::Generator.item(authority: authority).save!
+        playlist_item_id = playlist_item.id.as(String)
+
+        revision = Model::Generator.revision
+        revision.items = [playlist_item_id]
+        revision.approved = true
+        revision.save!
+        playlist = revision.playlist.as(Model::Playlist)
+
+        # item referenced only as an approved template background
+        background_item = Model::Generator.item(authority: authority).save!
+        template = Model::Generator.signage_template(authority: authority)
+        template.background_item_id = background_item.id
+        template.approved = true
+        template.save!
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.playlists = [playlist.id.as(String)]
+        system.save!
+        system_id = system.id.as(String)
+
+        Model::Generator.system_template(template: template, control_system: system).save!
+
+        headers = Spec::Authentication.headers
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        last_modified = Time::Format::HTTP_DATE.parse(result.headers["Last-Modified"])
+
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers).status_code.should eq 304
+
+        # skip forward a moment (Last-Modified has second granularity)
+        sleep 1.seconds
+
+        # editing playlist media busts the cache (the playlist is touched)
+        client.patch(
+          path: "#{PlaylistMedia.base_route}/#{playlist_item_id}",
+          headers: Spec::Authentication.headers,
+          body: {name: "updated media name"}.to_json,
+        ).status_code.should eq 200
+
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        updated = Time::Format::HTTP_DATE.parse(result.headers["Last-Modified"])
+        updated.should be > last_modified
+        last_modified = updated
+
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers).status_code.should eq 304
+
+        sleep 1.seconds
+
+        # editing a template's background media busts the cache (the template is touched)
+        client.patch(
+          path: "#{PlaylistMedia.base_route}/#{background_item.id}",
+          headers: Spec::Authentication.headers,
+          body: {name: "updated background name"}.to_json,
+        ).status_code.should eq 200
+
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        updated = Time::Format::HTTP_DATE.parse(result.headers["Last-Modified"])
+        updated.should be > last_modified
+        last_modified = updated
+
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers).status_code.should eq 304
+
+        sleep 1.seconds
+
+        # deleting media busts the cache and removes the item from the payload
+        client.delete(
+          path: "#{PlaylistMedia.base_route}/#{playlist_item_id}",
+          headers: Spec::Authentication.headers,
+        ).status_code.should eq 202
+
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        Time::Format::HTTP_DATE.parse(result.headers["Last-Modified"]).should be > last_modified
+        JSON.parse(result.body)["playlist_media"].as_a.map(&.["id"].as_s).should_not contain playlist_item_id
+      end
+
       it "POST /api/engine/v2/signage/:system_id/metrics" do
         revision = Model::Generator.revision
 

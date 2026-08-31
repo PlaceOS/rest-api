@@ -336,7 +336,10 @@ module PlaceOS::Api
       current = current_item
       current.assign_attributes(item)
       current.authority_id = authority.id
-      raise Error::ModelValidation.new(current.errors) unless current.save
+      PgORM::Database.transaction do |_tx|
+        raise Error::ModelValidation.new(current.errors) unless current.save
+        touch_media_references!(current.id.as(String))
+      end
       current
     end
 
@@ -480,9 +483,26 @@ module PlaceOS::Api
       end
     end
 
+    # Editing or deleting a media item changes what displays render, but a
+    # template referencing it as background_item_id never bumps its own
+    # updated_at (deletes clear the column via ON DELETE SET NULL at the DB
+    # level), so signage Last-Modified caches would never bust — touch the
+    # referencing templates here, before deletes so the reference still
+    # resolves. Playlists need no equivalent: Playlist::Item's after_update /
+    # before_destroy hooks already bump referencing playlists (and their
+    # exec_sql runs on a separate connection, so bumping playlists inside
+    # this transaction too would deadlock against them).
+    private def touch_media_references!(item_id : String) : Nil
+      ::PlaceOS::Model::SignageTemplate
+        .where(background_item_id: item_id)
+        .update_all(updated_at: Time.utc)
+    end
+
     # delete the item and any uploads not referenced by other items
     private def destroy_item! : Nil
       PgORM::Database.transaction do |_tx|
+        touch_media_references!(current_item.id.as(String))
+
         {current_item.media, current_item.thumbnail}.each do |upload|
           next unless upload
 
