@@ -51,10 +51,10 @@ module PlaceOS::Api
       getter quality : String = "standard"
       getter candidates : Int32 = 2
       getter references : Array(String) = [] of String
-      getter include_logo : Bool = true
-      getter add_text_with_layer : Bool = true
+      getter? include_logo : Bool = true
+      getter? add_text_with_layer : Bool = true
       # false leaves the organisation's colours, face and tone out of it
-      getter use_branding : Bool = true
+      getter? use_branding : Bool = true
       getter words : String? = nil
       getter provider_id : UUID? = nil
       getter model : String? = nil
@@ -70,10 +70,10 @@ module PlaceOS::Api
       getter quality : String = "standard"
       getter candidates : Int32 = 1
       getter references : Array(String) = [] of String
-      getter include_logo : Bool = true
-      getter add_text_with_layer : Bool = true
+      getter? include_logo : Bool = true
+      getter? add_text_with_layer : Bool = true
       # false leaves the organisation's colours, face and tone out of it
-      getter use_branding : Bool = true
+      getter? use_branding : Bool = true
       getter words : String? = nil
       getter provider_id : UUID? = nil
       getter model : String? = nil
@@ -98,14 +98,14 @@ module PlaceOS::Api
     struct Capabilities
       include JSON::Serializable
 
-      getter enabled : Bool
+      getter? enabled : Bool
       getter reason : String?
       getter providers : Array(ImageGen::ProviderCapabilities)
       getter default_provider_id : String?
       getter aspect_ratios : Array(String)
       getter qualities : Array(String)
       getter max_candidates : Int32
-      getter logo_layer : Bool
+      getter? logo_layer : Bool
       getter quota : NamedTuple(user_remaining_today: Int32?, domain_remaining_month: Int32?)
 
       def initialize(@enabled, @providers, @default_provider_id, @quota,
@@ -199,9 +199,9 @@ module PlaceOS::Api
         quality: params.quality,
         candidates: params.candidates,
         references: params.references,
-        include_logo: params.include_logo,
-        text_layer: params.add_text_with_layer,
-        use_branding: params.use_branding,
+        include_logo: params.include_logo?,
+        text_layer: params.add_text_with_layer?,
+        use_branding: params.use_branding?,
         words: params.words,
         provider_id: params.provider_id,
         model: params.model,
@@ -232,9 +232,9 @@ module PlaceOS::Api
         quality: params.quality,
         candidates: params.candidates,
         references: params.references,
-        include_logo: params.include_logo,
-        text_layer: params.add_text_with_layer,
-        use_branding: params.use_branding,
+        include_logo: params.include_logo?,
+        text_layer: params.add_text_with_layer?,
+        use_branding: params.use_branding?,
         words: params.words,
         provider_id: params.provider_id,
         model: params.model,

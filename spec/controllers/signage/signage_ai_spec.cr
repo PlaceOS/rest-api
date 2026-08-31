@@ -568,7 +568,7 @@ module PlaceOS::Api
         result.status_code.should eq 200
 
         rows = Array(Model::SignageAIJob::UsageRow).from_json(result.body)
-        row = rows.find { |entry| entry.provider == "OPENAI" }.not_nil!
+        row = rows.find! { |entry| entry.provider == "OPENAI" }
         row.model.should eq "gpt-image-2"
         row.jobs.should eq 1
         row.candidates.should eq 2

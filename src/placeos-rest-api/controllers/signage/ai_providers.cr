@@ -104,7 +104,7 @@ module PlaceOS::Api
                end
              end
 
-      rows.map { |row| row.as_json }
+      rows.map(&.as_json)
     end
 
     @[AC::Route::GET("/:id")]

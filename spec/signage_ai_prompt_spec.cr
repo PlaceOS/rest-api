@@ -20,7 +20,7 @@ module PlaceOS::Api
         prompt.should contain "AVOID:"
         prompt.should contain "purple-blue-orange gradients"
         # the style has to land before the brief, not after it
-        prompt.index("Avoid the generic").not_nil!.should be < prompt.index("Brief:").not_nil!
+        prompt.index!("Avoid the generic").should be < prompt.index!("Brief:")
       end
 
       it "holds back the typography lines when the app is setting the type" do

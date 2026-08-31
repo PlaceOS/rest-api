@@ -52,9 +52,9 @@ module PlaceOS::Api::ImageGen
 
     getter id : String
     getter name : String
-    getter generate : Bool
-    getter edit : Bool
-    getter enhance : Bool
+    getter? generate : Bool
+    getter? edit : Bool
+    getter? enhance : Bool
     getter max_references : Int32
     getter max_candidates : Int32
     getter qualities : Array(String)
