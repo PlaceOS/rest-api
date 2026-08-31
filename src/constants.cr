@@ -22,6 +22,38 @@ module PlaceOS::Api
   # https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer
   WEBRTC_DEFAULT_ICE_CONFIG = ENV["WEBRTC_DEFAULT_ICE_CONFIG"]? || {urls: "stun:stun.l.google.com:19302"}.to_json
 
+  # Signage AI image generation
+  ####################################################################################################
+
+  # concurrent vendor image calls per replica; a request that cannot reserve a slot
+  # for every candidate is told the service is busy rather than queued
+  SIGNAGE_AI_MAX_CALLS = (ENV["SIGNAGE_AI_MAX_CALLS"]? || "6").to_i
+
+  # how long to wait on a single vendor call
+  SIGNAGE_AI_READ_TIMEOUT = (ENV["SIGNAGE_AI_READ_TIMEOUT"]? || "180").to_i.seconds
+
+  # unclaimed candidates and references are swept after this long
+  SIGNAGE_AI_RETENTION = (ENV["SIGNAGE_AI_RETENTION_HOURS"]? || "48").to_i.hours
+
+  # a job still running after this is treated as abandoned by a departed replica
+  SIGNAGE_AI_JOB_STALE = (ENV["SIGNAGE_AI_JOB_STALE_MINUTES"]? || "10").to_i.minutes
+
+  # kill switch: capabilities reports disabled and generate returns 503
+  SIGNAGE_AI_DISABLED = ENV["SIGNAGE_AI_DISABLED"]?.try(&.downcase) == "true"
+
+  # default quotas, overridden per provider row
+  # The largest source or reference image we will pull into the process. The
+  # whole object is read into memory and the Vertex adapter base64 encodes it,
+  # so this bounds roughly twice this much per candidate in flight.
+  SIGNAGE_AI_MAX_IMAGE_BYTES = (ENV["SIGNAGE_AI_MAX_IMAGE_MB"]? || "20").to_i64 * 1024 * 1024
+
+  # And what every attachment on one request may come to together: the
+  # per-image ceiling alone still allows eight of them at once.
+  SIGNAGE_AI_MAX_REQUEST_BYTES = (ENV["SIGNAGE_AI_MAX_REQUEST_MB"]? || "48").to_i64 * 1024 * 1024
+
+  SIGNAGE_AI_USER_PER_DAY     = (ENV["SIGNAGE_AI_USER_PER_DAY"]? || "60").to_i
+  SIGNAGE_AI_DOMAIN_PER_MONTH = (ENV["SIGNAGE_AI_DOMAIN_PER_MONTH"]? || "2000").to_i
+
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
 

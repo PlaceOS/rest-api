@@ -108,6 +108,10 @@ Signal::INT.trap &terminate
 # Docker containers use the term signal
 Signal::TERM.trap &terminate
 
+# Housekeeping for generated signage artwork: candidates nobody kept, and jobs
+# left running by a replica that went away.
+PlaceOS::Api::ImageGen::Sweep.start
+
 # Start the server
 server.run do
   PlaceOS::Api::Log.info { "listening on #{server.print_addresses}" }
