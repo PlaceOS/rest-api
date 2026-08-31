@@ -203,7 +203,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.33519209e0fe821dc713afcfab5edd8ce2756a03
+    version: 4.21.0+git.commit.329f50f04eb8e537bb962a75014167f72d5b2e60
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
