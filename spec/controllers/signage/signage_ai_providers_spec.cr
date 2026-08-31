@@ -92,6 +92,67 @@ module PlaceOS::Api
       Model::SignageAIProvider.find?(provider.id.as(UUID)).should_not be_nil
     end
 
+    # The headline of the fix round: a domain administrator could read, change,
+    # delete and spend against another customer's provider by guessing an id.
+    describe "domain scoping" do
+      it "hides another domain's rows from the list and from every route" do
+        authority, _, _ = setup_signage_ai
+        headers = Spec::Authentication.headers(sys_admin: true, support: true)
+
+        other = Model::Generator.authority("other-#{UUID.random}.example.com").save!
+        theirs = Model::Generator.signage_ai_provider(
+          authority: other,
+          name: "theirs-#{random_name}",
+        ).save!
+
+        listed = JSON.parse(client.get(base, headers: headers).body).as_a
+        listed.map(&.["id"].as_s).should_not contain theirs.id.to_s
+
+        path = File.join(base, theirs.id.to_s)
+        client.get(path, headers: headers).status_code.should eq 404
+        client.patch(path, headers: headers, body: {name: "mine now"}.to_json).status_code.should eq 404
+        client.delete(path, headers: headers).status_code.should eq 404
+        client.post(File.join(path, "test"), headers: headers).status_code.should eq 404
+
+        Model::SignageAIProvider.find!(theirs.id.as(UUID)).name.should eq theirs.name
+      end
+
+      it "lets a domain read the shared row but not change it" do
+        setup_signage_ai
+        headers = Spec::Authentication.headers(sys_admin: true, support: true)
+
+        shared = Model::Generator.signage_ai_provider(name: "shared-#{random_name}")
+        shared.authority_id = nil
+        shared.save!
+
+        path = File.join(base, shared.id.to_s)
+        client.get(path, headers: headers).status_code.should eq 200
+        client.patch(path, headers: headers, body: {name: "changed"}.to_json).status_code.should eq 404
+        client.delete(path, headers: headers).status_code.should eq 404
+      end
+
+      it "puts a new row in the caller's domain whatever the body says" do
+        authority, _, _ = setup_signage_ai
+        headers = Spec::Authentication.headers(sys_admin: true, support: true)
+
+        other = Model::Generator.authority("other-#{UUID.random}.example.com").save!
+
+        result = client.post(
+          base,
+          headers: headers,
+          body: {
+            name:         "planted-#{random_name}",
+            provider:     "OPENAI",
+            authority_id: other.id,
+            credentials:  {api_key: "sk-not-a-real-key"},
+          }.to_json,
+        )
+
+        result.status_code.should eq 201
+        JSON.parse(result.body)["authority_id"].as_s.should eq authority.id
+      end
+    end
+
     it "keeps a regular user out entirely" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       provider = Model::Generator.signage_ai_provider(

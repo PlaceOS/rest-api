@@ -548,6 +548,15 @@ module PlaceOS::Api
       # numbers them from 1 and the adapter sends them in this order, so the two
       # have to agree.
       supplied = references.first(8).compact_map { |id| readable_upload(id) }
+
+      # Eight references each under the per-image ceiling is still 160MB pulled
+      # into one request. The per-object check does not bound the request.
+      total = supplied.sum(&.file_size)
+      if total > SIGNAGE_AI_MAX_REQUEST_BYTES
+        raise Error::ImageGen::Permission.new(
+          "those images come to more than #{SIGNAGE_AI_MAX_REQUEST_BYTES // (1024 * 1024)}MB together"
+        )
+      end
       supplied.each do |upload|
         # Only an upload this person just made, for this request: the tag marks
         # it for deletion by the sweep, and the sweep counts from the upload's

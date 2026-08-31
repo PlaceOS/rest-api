@@ -47,6 +47,10 @@ module PlaceOS::Api
   # so this bounds roughly twice this much per candidate in flight.
   SIGNAGE_AI_MAX_IMAGE_BYTES = (ENV["SIGNAGE_AI_MAX_IMAGE_MB"]? || "20").to_i64 * 1024 * 1024
 
+  # And what every attachment on one request may come to together: the
+  # per-image ceiling alone still allows eight of them at once.
+  SIGNAGE_AI_MAX_REQUEST_BYTES = (ENV["SIGNAGE_AI_MAX_REQUEST_MB"]? || "48").to_i64 * 1024 * 1024
+
   SIGNAGE_AI_USER_PER_DAY     = (ENV["SIGNAGE_AI_USER_PER_DAY"]? || "60").to_i
   SIGNAGE_AI_DOMAIN_PER_MONTH = (ENV["SIGNAGE_AI_DOMAIN_PER_MONTH"]? || "2000").to_i
 
