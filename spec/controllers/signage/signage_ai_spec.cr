@@ -221,11 +221,11 @@ module PlaceOS::Api
           File.join(base, "edit"),
           headers: headers,
           body: {
-            prompt:            "make it warmer",
-            candidates:        1,
-            group_id:          group.id,
-            include_logo:      true,
-            source_upload_id:  source.id,
+            prompt:           "make it warmer",
+            candidates:       1,
+            group_id:         group.id,
+            include_logo:     true,
+            source_upload_id: source.id,
           }.to_json,
         )
 
