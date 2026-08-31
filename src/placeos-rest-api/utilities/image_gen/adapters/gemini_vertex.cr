@@ -136,10 +136,34 @@ module PlaceOS::Api::ImageGen::Adapters
       }
     end
 
+    # How long to wait for Google to hand back an access token.
+    TOKEN_TIMEOUT = 20.seconds
+
+    # The token call does not go through `Http.client`: it is made by the google
+    # shard, which builds its own client with no timeout. It runs inside the
+    # candidate fiber, holding a slot, so a hung call held that slot for the
+    # life of the process. Bounding the wait here releases the slot even if the
+    # request behind it never comes back.
     private def token : String
       issuer = credential("client_email")
       key = credential("private_key")
-      Auth.new(issuer: issuer, signing_key: key, scopes: SCOPE).get_token.access_token
+
+      channel = Channel(String | Exception).new(1)
+      spawn(name: "vertex-token") do
+        begin
+          channel.send(Auth.new(issuer: issuer, signing_key: key, scopes: SCOPE).get_token.access_token)
+        rescue ex
+          channel.send(ex)
+        end
+      end
+
+      select
+      when result = channel.receive
+        raise result if result.is_a?(Exception)
+        result
+      when timeout(TOKEN_TIMEOUT)
+        raise Error::ImageGen::Vendor.new("timed out authenticating with Google")
+      end
     rescue ex : Error::ImageGen
       raise ex
     rescue ex

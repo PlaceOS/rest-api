@@ -162,6 +162,78 @@ module PlaceOS::Api
         await_signage_ai_job(base, job_id, headers)
       end
 
+      # The case a real customer is in. Every other non-support spec here proves
+      # a refusal, so nothing ever proved the path a paying user actually takes,
+      # and the browser was not sending group_id at all.
+      it "lets a non-support caller with Create on a signage group generate" do
+        authority, _, _ = setup_signage_ai
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        group = signage_group(authority, user, Model::Permissions::Read | Model::Permissions::Create)
+
+        HttpMocks.signage_ai_vendor
+        HttpMocks.signage_ai_storage
+
+        result = client.post(
+          File.join(base, "generate"),
+          headers: headers,
+          body: {prompt: "a poster", candidates: 1, group_id: group.id}.to_json,
+        )
+
+        result.status_code.should eq 202
+        job_id = JSON.parse(result.body)["id"].as_s
+        Model::SignageAIJob.find!(UUID.new(job_id)).user_id.should eq user.id
+
+        final = await_signage_ai_job(base, job_id, headers)
+        final["state"].as_s.should eq "done"
+        final["images_produced"].as_i.should eq 1
+      end
+
+      # The logo is a domain asset nobody personally owns. Routing it through
+      # the caller-ownership check dropped it from every edit made by a customer
+      # while still advertising the toggle, so this pins the actual policy.
+      it "sends the brand logo on an edit for a caller who does not own it" do
+        authority, storage, _ = setup_signage_ai
+        owner, _ = Spec::Authentication.authentication
+        logo = Model::Generator.upload(uploader: owner, storage_id: storage.id)
+        logo.file_name = "logo.png"
+        logo.save!
+
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        # the org zone the auth helper points every authority at; setting our
+        # own would be undone by the next authentication call
+        zone = Spec::Authentication.org_zone
+        Model::Metadata.where(parent_id: zone.id.as(String), name: "signage_ai").each(&.destroy)
+        Model::Metadata.new(
+          parent_id: zone.id.as(String),
+          name: "signage_ai",
+          details: JSON.parse({logo_upload_id: logo.id}.to_json),
+        ).save!
+        group = signage_group(authority, user, Model::Permissions::Read | Model::Permissions::Create)
+        source = Model::Generator.upload(uploader: user, storage_id: storage.id)
+        source.file_name = "source.png"
+        source.save!
+
+        HttpMocks.signage_ai_vendor
+        HttpMocks.signage_ai_storage
+
+        result = client.post(
+          File.join(base, "edit"),
+          headers: headers,
+          body: {
+            prompt:            "make it warmer",
+            candidates:        1,
+            group_id:          group.id,
+            include_logo:      true,
+            source_upload_id:  source.id,
+          }.to_json,
+        )
+
+        result.status_code.should eq 202
+        job = Model::SignageAIJob.find!(UUID.new(JSON.parse(result.body)["id"].as_s))
+        job.upload_ids.should contain logo.id
+      end
+
       it "refuses a non-support caller who names no group" do
         authority, _, _ = setup_signage_ai
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
@@ -424,13 +496,47 @@ module PlaceOS::Api
         kept.tags.should_not contain ImageGen::Store::CANDIDATE_TAG
       end
 
-      it "refuses an item that does not use the image" do
+      # The app draws the words over the artwork and saves a flattened copy, so
+      # the item's file is a new upload derived from the candidate rather than
+      # the candidate itself. Requiring them to be the same upload meant a claim
+      # never succeeded for a poster with any words on it.
+      it "records the item when it is a flattened copy rather than the candidate" do
         _, storage, provider = setup_signage_ai
         user, headers = Spec::Authentication.authentication
 
+        candidate = Model::Generator.upload(uploader: user, storage_id: storage.id).save!
+        flattened = Model::Generator.upload(uploader: user, storage_id: storage.id).save!
+        item = Model::Generator.item(media_id: flattened.id).save!
+
+        job = Model::Generator.signage_ai_job(user: user, provider: provider, candidates: 1)
+        job.state = Model::SignageAIJob::State::Done
+        job.result = JSON.parse({images: [{state: "done", index: 0, upload_id: candidate.id}]}.to_json)
+        job.images_produced = 1
+        job.save!
+
+        result = client.post(
+          File.join(base, "jobs", job.id.to_s, "claim"),
+          headers: headers,
+          body: {upload_id: candidate.id, item_id: item.id}.to_json,
+        )
+
+        result.status_code.should eq 200
+
+        stored = Model::SignageAIJob.find!(job.id.as(UUID))
+        stored.images.first["item_id"].as_s.should eq item.id
+        # claiming records, it does not produce: counting again inflated usage
+        stored.images_produced.should eq 1
+      end
+
+      it "refuses an item from another domain" do
+        _, storage, provider = setup_signage_ai
+        user, headers = Spec::Authentication.authentication
+
+        other = Model::Generator.authority("other-#{UUID.random}.example.com").save!
         upload = Model::Generator.upload(uploader: user, storage_id: storage.id).save!
-        unrelated = Model::Generator.upload(uploader: user, storage_id: storage.id).save!
-        item = Model::Generator.item(media_id: unrelated.id).save!
+        item = Model::Generator.item(media_id: upload.id)
+        item.authority_id = other.id
+        item.save!
 
         job = Model::Generator.signage_ai_job(user: user, provider: provider, candidates: 1)
         job.state = Model::SignageAIJob::State::Done
@@ -443,7 +549,7 @@ module PlaceOS::Api
           body: {upload_id: upload.id, item_id: item.id}.to_json,
         )
 
-        result.status_code.should eq 422
+        result.status_code.should eq 403
       end
     end
 

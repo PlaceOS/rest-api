@@ -45,8 +45,8 @@ module PlaceOS::Api::ImageGen
 
       job.state = ::PlaceOS::Model::SignageAIJob::State::Running
       job.started_at = started
-      job.version = job.version + 1
       job.save
+      ::PlaceOS::Model::SignageAIJob.bump_version(job.id.as(UUID))
 
       request = hydrate(context)
 
@@ -174,7 +174,6 @@ module PlaceOS::Api::ImageGen
       job.finished_at = Time.utc
       job.latency_ms = (Time.utc - started).total_milliseconds.to_i64
       job.cost_units = cost if cost > 0
-      job.version = job.version + 1
 
       if job.cancel_requested
         job.state = ::PlaceOS::Model::SignageAIJob::State::Cancelled
@@ -196,6 +195,7 @@ module PlaceOS::Api::ImageGen
       end
 
       job.save
+      ::PlaceOS::Model::SignageAIJob.bump_version(job.id.as(UUID))
 
       Log.info { {
         message:  "signage AI job finished",
@@ -214,8 +214,8 @@ module PlaceOS::Api::ImageGen
       job.error_kind = kind_of(error)
       job.error_message = message_of(error)
       job.finished_at = Time.utc
-      job.version = job.version + 1
       job.save
+      ::PlaceOS::Model::SignageAIJob.bump_version(job.id.as(UUID))
     end
 
     private def self.kind_of(error : Exception) : String

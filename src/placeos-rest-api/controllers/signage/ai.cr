@@ -302,8 +302,12 @@ module PlaceOS::Api
 
       unless job.final?
         job.cancel_requested = true
-        job.version = job.version + 1
         job.save
+        # in SQL, not read-modify-write: a candidate fiber may have moved the
+        # version since this row was loaded, and writing a stale value back
+        # leaves a long polling client waiting out its whole timeout
+        ::PlaceOS::Model::SignageAIJob.bump_version(job.id.as(UUID))
+        job = ::PlaceOS::Model::SignageAIJob.find!(job.id.as(UUID))
       end
 
       JobResponse.new(job)
@@ -317,9 +321,19 @@ module PlaceOS::Api
 
       item = ::PlaceOS::Model::Playlist::Item.find!(params.item_id)
       raise Error::Forbidden.new("item belongs to another domain") unless item.authority_id == authority.id
-      raise Error::ModelValidation.new([Error::Field.new(:item_id, "does not use this image")]) unless item.media_id == params.upload_id
 
-      index = job.images.index { |image| image["upload_id"]?.try(&.as_s?) == params.upload_id }
+      # The item's file does not have to BE the candidate. When the app draws
+      # the words and the logo over the artwork it saves a flattened copy, so
+      # the item points at a new upload derived from the candidate. Requiring
+      # the two to match meant a claim never succeeded for any poster with
+      # words on it, which is most of them, and the provenance link was silently
+      # lost. Owning the job and the item is the check that matters.
+
+      # a slot for a candidate that never landed is a JSON null, so `[]?` on it
+      # raises rather than answering nil
+      index = job.images.index do |image|
+        image.as_h?.try(&.["upload_id"]?).try(&.as_s?) == params.upload_id
+      end
       raise Error::NotFound.new("that image is not part of this job") if index.nil?
 
       upload = ::PlaceOS::Model::Upload.find?(params.upload_id)
@@ -332,7 +346,8 @@ module PlaceOS::Api
 
       entry = job.images[index].as_h
       entry["item_id"] = JSON::Any.new(item.id.as(String))
-      ::PlaceOS::Model::SignageAIJob.bump_image(job.id.as(UUID), index, entry)
+      # deliberately not bump_image: the runner already counted this candidate
+      ::PlaceOS::Model::SignageAIJob.attach_item(job.id.as(UUID), index, entry)
 
       JobResponse.new(::PlaceOS::Model::SignageAIJob.find!(job.id.as(UUID)))
     end
@@ -398,9 +413,35 @@ module PlaceOS::Api
     # An upload the caller may use as a source or a reference: one they own, or
     # one behind a media item in this domain they can read. Uploads carry no
     # authority of their own, so an item is how a shared image is proved.
+    # How recently an upload must have been made for us to treat it as a
+    # throwaway attached to this request rather than a file from the library.
+    REFERENCE_TAG_WINDOW = 15.minutes
+
+    # File types the vendors take, and that `Http.mime_of` can identify from the
+    # bytes. Checked on the name because an upload records no content type.
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+
+    # Size and type only, with no view on who owns it. Separate from
+    # `readable_upload` because the brand logo is a domain asset that belongs to
+    # nobody in particular: putting it through the ownership ladder below
+    # dropped it for every caller who was not support, which is every customer.
+    private def vendor_readable?(upload : ::PlaceOS::Model::Upload) : Bool
+      return false if upload.file_size > SIGNAGE_AI_MAX_IMAGE_BYTES
+      IMAGE_EXTENSIONS.includes?(File.extname(upload.file_name).downcase)
+    end
+
     private def readable_upload(upload_id : String, item_id : String? = nil) : ::PlaceOS::Model::Upload
       upload = ::PlaceOS::Model::Upload.find?(upload_id)
       raise Error::NotFound.new("no such upload") if upload.nil?
+
+      # Bound this before anything reads the object: `Store.fetch` pulls the
+      # whole thing into the heap and the Vertex adapter base64 encodes it.
+      if upload.file_size > SIGNAGE_AI_MAX_IMAGE_BYTES
+        raise Error::ImageGen::Permission.new("that image is larger than #{SIGNAGE_AI_MAX_IMAGE_BYTES // (1024 * 1024)}MB")
+      end
+      unless IMAGE_EXTENSIONS.includes?(File.extname(upload.file_name).downcase)
+        raise Error::ImageGen::Permission.new("that file is not a png, jpeg or webp image")
+      end
 
       return upload if upload.uploaded_by == current_user.id
       return upload if user_support?
@@ -508,9 +549,13 @@ module PlaceOS::Api
       # have to agree.
       supplied = references.first(8).compact_map { |id| readable_upload(id) }
       supplied.each do |upload|
-        # a bare upload is one made for this request; tagging it lets the sweep
-        # clear it if the browser never gets the chance to
+        # Only an upload this person just made, for this request: the tag marks
+        # it for deletion by the sweep, and the sweep counts from the upload's
+        # own age. Tagging anything older was marking a file the person had
+        # attached from their library for immediate deletion.
         next unless upload.tags.empty?
+        next unless upload.uploaded_by == current_user.id
+        next unless upload.created_at > REFERENCE_TAG_WINDOW.ago
         upload.tags = [ImageGen::Store::REFERENCE_TAG]
         upload.save
       end
@@ -520,7 +565,20 @@ module PlaceOS::Api
       # composites the real file afterwards, and an attached logo is a logo the
       # model draws as well, leaving two.
       if kind == ImageGen::Kind::Edit && include_logo && (logo = brand_kit.try(&.logo_upload_id).presence)
-        reference_ids << logo unless reference_ids.includes?(logo)
+        # Size and type, not ownership: it is fetched and base64 encoded exactly
+        # like a reference, so it needs the same ceiling, but nobody "owns" it.
+        # An SVG logo is skipped here on purpose: it draws fine in the browser
+        # layer, and no vendor takes one as an input image.
+        logo_upload = ::PlaceOS::Model::Upload.find?(logo)
+        if logo_upload && vendor_readable?(logo_upload)
+          reference_ids << logo unless reference_ids.includes?(logo)
+        else
+          Log.info { {
+            message: "signage AI brand logo not sent to the vendor",
+            upload:  logo,
+            reason:  logo_upload.nil? ? "missing" : "size or file type",
+          } }
+        end
       end
 
       chain = parent ? (parent.chain.compact_map(&.prompt) + [parent.prompt].compact) : [] of String
@@ -595,6 +653,19 @@ module PlaceOS::Api
 
       unless job.save
         ImageGen.slots.release(calls)
+
+        # A concurrent submission of the same key got there first. The check
+        # above is a read followed by an insert with nothing serialising them,
+        # so the partial unique index is what actually enforces this, and
+        # answering with the job that won is the point of the key. Without this
+        # a double submit came back as a validation error rather than a replay.
+        if (key = idempotency_key.presence)
+          existing = on_primary do
+            ::PlaceOS::Model::SignageAIJob.where(user_id: current_user.id.as(String), idempotency_key: key).first?
+          end
+          return JobResponse.new(existing) if existing
+        end
+
         raise Error::ModelValidation.new(job.errors)
       end
 

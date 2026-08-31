@@ -42,6 +42,11 @@ module PlaceOS::Api
   SIGNAGE_AI_DISABLED = ENV["SIGNAGE_AI_DISABLED"]?.try(&.downcase) == "true"
 
   # default quotas, overridden per provider row
+  # The largest source or reference image we will pull into the process. The
+  # whole object is read into memory and the Vertex adapter base64 encodes it,
+  # so this bounds roughly twice this much per candidate in flight.
+  SIGNAGE_AI_MAX_IMAGE_BYTES = (ENV["SIGNAGE_AI_MAX_IMAGE_MB"]? || "20").to_i64 * 1024 * 1024
+
   SIGNAGE_AI_USER_PER_DAY     = (ENV["SIGNAGE_AI_USER_PER_DAY"]? || "60").to_i
   SIGNAGE_AI_DOMAIN_PER_MONTH = (ENV["SIGNAGE_AI_DOMAIN_PER_MONTH"]? || "2000").to_i
 

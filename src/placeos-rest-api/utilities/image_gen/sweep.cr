@@ -1,5 +1,6 @@
 require "placeos-driver/storage"
 require "placeos-models/playlist/item"
+require "placeos-models/metadata"
 require "placeos-models/signage_ai_job"
 require "placeos-models/upload"
 
@@ -60,8 +61,8 @@ module PlaceOS::Api::ImageGen
         job.error_kind = "timeout"
         job.error_message = "the job did not finish"
         job.finished_at = Time.utc
-        job.version = job.version + 1
         job.save
+        ::PlaceOS::Model::SignageAIJob.bump_version(job.id.as(UUID))
         Log.warn { {message: "signage AI job expired", job: job.id.to_s} }
       end
     end
@@ -80,9 +81,12 @@ module PlaceOS::Api::ImageGen
 
       return if uploads.empty?
 
+      # read once, not once per upload: this is every tenant's brand kit
+      logos = brand_logo_ids
+
       uploads.each do |upload|
         id = upload.id.as(String)
-        next if referenced?(id)
+        next if referenced?(id, logos)
 
         begin
           if (storage = upload.storage)
@@ -96,11 +100,43 @@ module PlaceOS::Api::ImageGen
       end
     end
 
-    # kept if a media item points at it, either as the artwork or its thumbnail
-    private def self.referenced?(upload_id : String) : Bool
+    # kept if a media item points at it, either as the artwork or its thumbnail,
+    # or if a brand kit does
+    private def self.referenced?(upload_id : String, logos : Set(String)?) : Bool
+      # nil means the brand kits could not be read, and a read that failed is
+      # not permission to delete
+      return true if logos.nil?
+      return true if logos.includes?(upload_id)
+
       ::PlaceOS::Model::Playlist::Item
         .where("media_id = ? OR thumbnail_id = ?", upload_id, upload_id)
         .count > 0
+    end
+
+    # Every logo any brand kit points at.
+    #
+    # A logo is uploaded through the same untagged path a throwaway reference
+    # uses, and is pointed at only from zone metadata, which nothing else here
+    # looks at. Without this a logo that had been attached to a request as a
+    # reference would be swept and the brand kit left pointing at a dead file.
+    #
+    # nil rather than an empty set when the read fails, so a database fault
+    # cannot read as "no brand kit has any logos".
+    private def self.brand_logo_ids : Set(String)?
+      ids = Set(String).new
+      ::PlaceOS::Model::Metadata.where(name: "signage_ai").each do |metadata|
+        details = metadata.details.as_h?
+        next unless details
+        {"logo_upload_id", "logo_dark_upload_id"}.each do |key|
+          if (id = details[key]?.try(&.as_s?))
+            ids << id
+          end
+        end
+      end
+      ids
+    rescue ex
+      Log.warn(exception: ex) { "could not read brand kits, keeping every upload this pass" }
+      nil
     end
   end
 end

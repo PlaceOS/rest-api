@@ -24,7 +24,22 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
     def find_current_provider(id : UUID)
       Log.context.set(signage_ai_provider: id.to_s)
-      @current_provider = ::PlaceOS::Model::SignageAIProvider.find!(id)
+      row = ::PlaceOS::Model::SignageAIProvider.find!(id)
+
+      # A row belongs to one domain, and the admin flag on a JWT is per domain,
+      # so without this an administrator of one customer could read, change,
+      # delete and spend against another customer's provider by guessing an id.
+      # The shared fallback row (no authority) is readable by everyone and
+      # writable by nobody through this route.
+      unless row.authority_id == current_authority.try(&.id)
+        raise Error::NotFound.new("no such provider") unless row.authority_id.nil? && read_only_action?
+      end
+
+      @current_provider = row
+    end
+
+    private def read_only_action? : Bool
+      request.method.upcase == "GET"
     end
 
     getter! current_provider : ::PlaceOS::Model::SignageAIProvider
@@ -63,22 +78,30 @@ module PlaceOS::Api
       created_at: Int64,
       updated_at: Int64)
 
-    # rows for a domain, or every row when no domain is given
+    # The rows this domain may use: its own, and the shared fallback.
+    #
+    # There is deliberately no way to list another domain's rows. The previous
+    # version returned every row in the deployment when called without a
+    # parameter, which handed one customer's endpoint, model list and quotas to
+    # any administrator of any other.
     @[AC::Route::GET("/")]
     def index(
-      @[AC::Param::Info(description: "return the rows belonging to this authority", example: "authority-1234")]
-      authority_id : String? = nil,
       @[AC::Param::Info(description: "include the shared fallback row", example: "true")]
       include_shared : Bool = true,
     ) : Array(ProviderJSON)
-      rows = if authority_id
-               if include_shared
-                 ::PlaceOS::Model::SignageAIProvider.available_for(authority_id)
-               else
-                 ::PlaceOS::Model::SignageAIProvider.where(authority_id: authority_id).to_a
-               end
+      domain = current_authority.try(&.id)
+      rows = if domain.nil?
+               [] of ::PlaceOS::Model::SignageAIProvider
              else
-               ::PlaceOS::Model::SignageAIProvider.all.to_a
+               # `available_for` is what a generate uses, so it filters to
+               # enabled rows. This is the admin list: a row somebody switched
+               # off still has to be visible, or it can never be switched back on.
+               own = ::PlaceOS::Model::SignageAIProvider.where(authority_id: domain).to_a
+               if include_shared
+                 own + ::PlaceOS::Model::SignageAIProvider.where(authority_id: nil).to_a
+               else
+                 own
+               end
              end
 
       rows.map { |row| row.as_json }
@@ -105,7 +128,9 @@ module PlaceOS::Api
       end
       row.credentials = credentials.to_json
 
-      row.authority_id = params.authority_id
+      # the caller's own domain, whatever the body says: a domain administrator
+      # cannot create a row that belongs to somebody else
+      row.authority_id = current_authority.try(&.id)
       apply_optional(row, params)
 
       raise Error::ModelValidation.new(row.errors) unless row.save
@@ -152,6 +177,13 @@ module PlaceOS::Api
       adapter = ImageGen::Adapter.for(row)
       model = row.default_model || adapter.capabilities.default_model
 
+      # Take a slot like any other vendor call. Without it a run of clicks on
+      # this button could occupy every worker and starve real generations, and
+      # the button is one click with no confirmation.
+      unless ImageGen.slots.try_reserve(1)
+        raise Error::ImageGen::Busy.new("too many images are being generated right now, try again in a moment")
+      end
+
       started = Time.utc
       begin
         raise Error::ImageGen::NotConfigured.new("no model configured") if model.nil?
@@ -173,6 +205,8 @@ module PlaceOS::Api
         TestResult.new(false, (Time.utc - started).total_milliseconds.to_i64, model, ex.message, ex.kind)
       rescue ex
         TestResult.new(false, (Time.utc - started).total_milliseconds.to_i64, model, ex.message, "vendor")
+      ensure
+        ImageGen.slots.release(1)
       end
     end
 
