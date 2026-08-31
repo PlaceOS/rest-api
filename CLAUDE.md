@@ -11,6 +11,12 @@ Make sure to write thorough tests. Reference existing models in the lib folder i
 
 Make sure to create and maintain a new plan file for each task to keep track of progress.
 
+Once all developement work is complete, if there have been changes that effect the API, update the OpenAPI docs by:
+
+* build the app locally: `crystal build ./src/app.cr`
+* update the docs: `./app -d > OPENAPI_DOC.yml`
+* remove the binary: `rm app`
+
 ## 1. Plan Node Default
 - Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
 - If something goes sideways, STOP and re-plan immediately, don’t keep pushing
