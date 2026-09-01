@@ -40,6 +40,19 @@ module PlaceOS::Api
 
     getter! current_asset_type : ::PlaceOS::Model::AssetType
 
+    # 404 unless the asset type belongs to the caller's authority (via its
+    # category). Legacy categories with no authority stay reachable — same
+    # adoption semantics as AssetCategories#update. Admin / support JWTs
+    # remain deployment-wide. Also guards update/destroy: their org-zone
+    # permission check says nothing about which authority owns the record.
+    @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
+    private def confirm_authority
+      return if user_support?
+      owner = current_asset_type.category.try(&.authority_id)
+      return if owner.nil? || owner == current_authority.as(::PlaceOS::Model::Authority).id
+      raise Error::NotFound.new("asset type #{current_asset_type.id} not found")
+    end
+
     ###############################################################################################
 
     # list the asset types
@@ -57,6 +70,14 @@ module PlaceOS::Api
       where_clauses = [] of String
       join_clauses = [] of String
       args = [] of DB::Any
+
+      # Non admin/support callers only see asset types belonging to their own
+      # authority (via the category); legacy NULL-authority categories stay
+      # visible (see `confirm_authority`).
+      unless user_support?
+        args << current_authority.as(::PlaceOS::Model::Authority).id
+        where_clauses << "EXISTS (SELECT 1 FROM asset_category ac WHERE ac.id = at.category_id AND (ac.authority_id IS NULL OR ac.authority_id = $#{args.size}))"
+      end
 
       if brand
         args << brand

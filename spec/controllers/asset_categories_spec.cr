@@ -96,6 +96,21 @@ module PlaceOS::Api
         other_authority.destroy
       end
 
+      it "rejects destroy of a category owned by another authority" do
+        other_authority = Model::Generator.authority(domain: "https://other-asset-cat-destroy.example.com").save!
+        asset_category = Model::Generator.asset_category(other_authority).save!
+
+        result = client.delete(
+          path: "#{AssetCategories.base_route}#{asset_category.id}",
+          headers: Spec::Authentication.headers(sys_admin: true, support: false),
+        )
+        result.status_code.should eq 403
+        Model::AssetCategory.find?(asset_category.id).should_not be_nil
+
+        asset_category.destroy
+        other_authority.destroy
+      end
+
       it "adopts a legacy category with no authority on update" do
         asset_category = Model::Generator.asset_category.save!
         # simulate a legacy record predating the authority_id column
@@ -217,6 +232,26 @@ module PlaceOS::Api
         result = client.delete(path: "#{AssetCategories.base_route}#{asset_category.id}", headers: headers)
         result.status_code.should eq 403
         asset_category.destroy
+      end
+
+      it "rejects DELETE of another authority's category even with Delete on the org zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        other_authority = Model::Generator.authority(domain: "https://other-asset-cat-support.example.com").save!
+        asset_category = Model::Generator.asset_category(other_authority).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Delete).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Delete).save!
+
+        result = client.delete(path: "#{AssetCategories.base_route}#{asset_category.id}", headers: headers)
+        result.status_code.should eq 403
+        Model::AssetCategory.find?(asset_category.id).should_not be_nil
+
+        asset_category.destroy
+        other_authority.destroy
       end
 
       it "allows a support-JWT user to POST regardless of group grants" do

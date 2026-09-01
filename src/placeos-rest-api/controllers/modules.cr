@@ -21,11 +21,15 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
-    before_action :check_admin, except: [:index, :create, :update, :destroy, :state, :show, :ping, :start, :stop]
-    # start/stop are gated by the support-subsystem Operate check in-action;
-    # show is gated by `check_show_permissions` (support-subsystem Read on the
-    # module's zones) — so both are intentionally absent here.
-    before_action :check_support, only: [:state, :ping, :show_error]
+    before_action :check_admin, except: [
+      :index, :create, :update, :destroy, :show, :start, :stop,
+      :state, :state_lookup, :ping, :execute, :load, :settings,
+    ]
+    # Everything absent from the check_admin list above is gated by a
+    # support-subsystem permission on the module's zones instead:
+    # show/state/state_lookup → Read, start/stop/ping/execute/load → Operate,
+    # settings → Update, create/update/destroy → the verb's bit.
+    before_action :check_support, only: [:show_error]
 
     ###############################################################################################
 
@@ -67,9 +71,24 @@ module PlaceOS::Api
     # Reading a single module: admin/support JWT and the legacy org_zone path
     # bypass; otherwise a "support" subsystem user needs Read on the module's
     # zones. A module with no derivable zones stays admin/support only.
-    @[AC::Route::Filter(:before_action, only: [:show])]
+    @[AC::Route::Filter(:before_action, only: [:show, :state, :state_lookup])]
     def check_show_permissions
       ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Read)
+    end
+
+    # Runtime operations (ping the device, execute a driver method, load the
+    # module on core): Operate on the module's zones — same bit as start/stop.
+    @[AC::Route::Filter(:before_action, only: [:ping, :execute, :load])]
+    def check_operate_permissions
+      ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Operate)
+    end
+
+    # Viewing collated settings exposes configuration, so it requires write
+    # level access (Update) rather than Read; encrypted values are still
+    # masked for non-support roles by `decrypt_for!`.
+    @[AC::Route::Filter(:before_action, only: [:settings])]
+    def check_settings_permissions
+      ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Update)
     end
 
     @[AC::Route::Filter(:before_action, only: [:index])]
@@ -100,8 +119,8 @@ module PlaceOS::Api
         return
       end
 
-      # "support" subsystem -> systems whose zones the caller can reach.
-      accessible = support_accessible_zone_ids
+      # "support" subsystem -> systems whose zones the caller can Read.
+      accessible = support_accessible_zone_ids(::PlaceOS::Model::Permissions::Read)
       unless accessible.empty?
         @module_scope_zones = accessible
         return

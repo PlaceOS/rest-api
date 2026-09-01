@@ -24,6 +24,32 @@ module PlaceOS::Api
         result.all? { |i| i.trigger_id == trigger.id }.should be_true
         instances.compact_map(&.id).sort!.should eq result.compact_map(&.id).sort!
       end
+
+      it "is rejected for regular authenticated users" do
+        trigger = Model::Generator.trigger.save!
+        Model::Generator.trigger_instance(trigger).save!
+
+        response = client.get(
+          path: File.join(Triggers.base_route, trigger.id.not_nil!, "instances"),
+          headers: Spec::Authentication.headers(sys_admin: false, support: false),
+        )
+
+        response.status_code.should eq 403
+      end
+
+      it "is permitted for support-JWT users" do
+        trigger = Model::Generator.trigger.save!
+        instances = Array(Model::TriggerInstance).new(size: 2) { Model::Generator.trigger_instance(trigger).save! }
+
+        response = client.get(
+          path: File.join(Triggers.base_route, trigger.id.not_nil!, "instances"),
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+
+        response.status_code.should eq 200
+        result = Array(JSON::Any).from_json(response.body).map { |d| Model::TriggerInstance.from_trusted_json(d.to_json) }
+        instances.compact_map(&.id).sort!.should eq result.compact_map(&.id).sort!
+      end
     end
 
     describe "CRUD operations", tags: "crud" do

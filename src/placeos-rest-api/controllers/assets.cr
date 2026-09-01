@@ -35,12 +35,25 @@ module PlaceOS::Api
       authority = current_authority.as(::PlaceOS::Model::Authority)
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
-        zones = [zone_id, current_asset.zone_id.as(String)]
+        zones = [zone_id, current_asset.zone_id].compact
         access = check_access(current_user.groups, zones)
         return if access.can_manage?
       end
 
       raise Error::Forbidden.new
+    end
+
+    # 404 unless the asset belongs to the caller's authority — resolved via
+    # asset_type → category, the only tenanted link in the asset chain.
+    # Legacy categories with no authority stay reachable (same adoption
+    # semantics as AssetCategories#update). Admin / support JWTs remain
+    # deployment-wide.
+    @[AC::Route::Filter(:before_action, only: [:show])]
+    private def confirm_authority
+      return if user_support?
+      owner = current_asset.asset_type.try(&.category).try(&.authority_id)
+      return if owner.nil? || owner == current_authority.as(::PlaceOS::Model::Authority).id
+      raise Error::NotFound.new("asset #{current_asset.id} not found")
     end
 
     ###############################################################################################
@@ -69,6 +82,17 @@ module PlaceOS::Api
     ) : Array(::PlaceOS::Model::Asset)
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::Asset.all
+
+      # Non admin/support callers only see assets belonging to their own
+      # authority (via asset_type → category); legacy NULL-authority
+      # categories stay visible (see `confirm_authority`).
+      unless user_support?
+        authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+        query = query.where(
+          "EXISTS (SELECT 1 FROM asset_type at JOIN asset_category ac ON ac.id = at.category_id WHERE at.id = asset.asset_type_id AND (ac.authority_id IS NULL OR ac.authority_id = ?))",
+          authority_id
+        )
+      end
 
       if zone_id
         query = query.where(zone_id: zone_id)
@@ -140,6 +164,9 @@ module PlaceOS::Api
     def update(asset : ::PlaceOS::Model::Asset) : ::PlaceOS::Model::Asset
       current = current_asset
       current.assign_attributes(asset)
+      # re-check after assignment so the destination zone(s) of a move are
+      # authorised too, not just the zones the asset started in
+      confirm_access
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -182,6 +209,8 @@ module PlaceOS::Api
           current = find_current_asset(asset_id)
           confirm_access
           current.assign_attributes(asset)
+          # destination zones of a move must be authorised too
+          confirm_access
           raise Error::ModelValidation.new(current.errors) unless current.save
           current
         end

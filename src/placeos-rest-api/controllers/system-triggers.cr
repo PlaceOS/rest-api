@@ -21,12 +21,26 @@ module PlaceOS::Api
     # the legacy org_zone path bypass as usual).
     @[AC::Route::Filter(:before_action, only: [:index, :show])]
     def check_trigger_read_permissions(sys_id : String)
-      ensure_support_access!(::PlaceOS::Model::ControlSystem.find!(sys_id).zones, ::PlaceOS::Model::Permissions::Read)
+      zones = ::PlaceOS::Model::ControlSystem.find!(sys_id).zones
+      ensure_support_access!(zones, ::PlaceOS::Model::Permissions::Read)
+      @secret_visible = secret_visible_on?(zones)
     end
 
     @[AC::Route::Filter(:before_action, only: [:create, :update, :destroy])]
     def check_trigger_write_permissions(sys_id : String)
-      ensure_support_access!(::PlaceOS::Model::ControlSystem.find!(sys_id).zones, verb_permission)
+      zones = ::PlaceOS::Model::ControlSystem.find!(sys_id).zones
+      ensure_support_access!(zones, verb_permission)
+      @secret_visible = secret_visible_on?(zones)
+    end
+
+    # `webhook_secret` is exposed to admin / support JWTs and to "support"
+    # subsystem users holding Read (or Manage) on the system's zones —
+    # everyone else (e.g. legacy org_zone managers, write-only grants) has it
+    # stripped from responses.
+    getter? secret_visible : Bool = false
+
+    private def secret_visible_on?(zones : Array(String)) : Bool
+      user_support? || support_subsystem_grants?(zones, ::PlaceOS::Model::Permissions::Read)
     end
 
     ###############################################################################################
@@ -35,10 +49,17 @@ module PlaceOS::Api
     def find_current_sys_trig(
       @[AC::Param::Info(name: "trig_id", description: "the id of the trigger", example: "trig-1234")]
       id : String,
+      @[AC::Param::Info(description: "the id of the system", example: "sys-1234")]
+      sys_id : String,
     )
       Log.context.set(trigger_instance_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_sys_trig = ::PlaceOS::Model::TriggerInstance.find!(id)
+      trig = ::PlaceOS::Model::TriggerInstance.find!(id)
+      # The permission filters authorise the path's system, so the trigger
+      # instance must actually belong to it — 404 (not 403) so ids from other
+      # systems are indistinguishable from unknown ones.
+      raise Error::NotFound.new("no trigger #{id} in system #{sys_id}") unless trig.control_system_id == sys_id
+      @current_sys_trig = trig
     end
 
     getter! current_sys_trig : ::PlaceOS::Model::TriggerInstance
@@ -151,7 +172,7 @@ module PlaceOS::Api
         end
       end
       raise Error::ModelValidation.new(current.errors) unless current.save
-      current
+      render_system_trigger(current)
     end
 
     # add a trigger to a system
@@ -166,7 +187,7 @@ module PlaceOS::Api
         trig_inst.playlists = ::PlaceOS::Model::Playlist.find_all(playlists).map(&.id.as(String))
       end
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save
-      trig_inst
+      render_system_trigger(trig_inst)
     end
 
     # remove a trigger from a system
@@ -194,14 +215,16 @@ module PlaceOS::Api
     end
 
     # Render a TriggerInstance
-    # - excludes `webhook_secret` if authorized user has a support role (or lower)
+    # - excludes `webhook_secret` unless the caller is admin / support or a
+    #   "support" subsystem user with Read on the system's zones (see
+    #   `secret_visible`, computed by the permission filters)
     # - includes `name`, `id` of parent ControlSystem, and `name` of if `complete = true`
     def render_system_trigger(trigger_instance : ::PlaceOS::Model::TriggerInstance, complete : Bool = false)
       if complete && (cs = trigger_instance.control_system)
         trigger_instance.control_system_details = ControlSystemDetails.new(cs.name.as(String), cs.id.as(String))
       end
       trigger_instance.name = trigger_instance.trigger.try &.name
-      trigger_instance.hide_secret unless user_admin?
+      trigger_instance.hide_secret unless secret_visible?
       trigger_instance
     end
   end

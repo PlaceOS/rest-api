@@ -98,6 +98,13 @@ module PlaceOS::Api
     # remove asset category
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
+      # A category owned by another authority may not be removed (same guard
+      # as update; legacy records with no authority remain removable).
+      authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+      if (existing = current_asset_category.authority_id) && existing != authority_id
+        raise Error::Forbidden.new("asset category belongs to another authority")
+      end
+
       current_asset_category.destroy
     end
   end

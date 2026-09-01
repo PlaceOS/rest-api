@@ -191,6 +191,83 @@ module PlaceOS::Api
         asset_type.destroy
       end
 
+      it "excludes another authority's asset types from a non-admin index" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        other_authority = Model::Generator.authority(domain: "https://other-asset-types.example.com").save!
+        other_category = Model::Generator.asset_category(other_authority).save!
+        other_type = Model::Generator.asset_type(other_category).save!
+        local_type = Model::Generator.asset_type.save!
+
+        result = client.get(AssetTypes.base_route, headers: headers)
+        result.status_code.should eq 200
+        ids = JSON.parse(result.body).as_a.map(&.["id"].as_s)
+        ids.should contain(local_type.id)
+        ids.should_not contain(other_type.id)
+
+        # admin JWTs remain deployment-wide
+        result = client.get(AssetTypes.base_route, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        ids = JSON.parse(result.body).as_a.map(&.["id"].as_s)
+        ids.should contain(local_type.id)
+        ids.should contain(other_type.id)
+
+        local_type.destroy
+        other_type.destroy
+        other_category.destroy
+        other_authority.destroy
+      end
+
+      it "returns 404 for another authority's asset type even with org-zone grants" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        other_authority = Model::Generator.authority(domain: "https://other-asset-types-404.example.com").save!
+        other_category = Model::Generator.asset_category(other_authority).save!
+        other_type = Model::Generator.asset_type(other_category).save!
+        local_type = Model::Generator.asset_type.save!
+
+        # a full grant on the org zone doesn't reveal another authority's types
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Manage).save!
+
+        result = client.get("#{AssetTypes.base_route}#{other_type.id}", headers: headers)
+        result.status_code.should eq 404
+
+        result = client.patch(
+          path: "#{AssetTypes.base_route}#{other_type.id}",
+          body: {name: "renamed-#{random_name}"}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 404
+
+        result = client.delete(path: "#{AssetTypes.base_route}#{other_type.id}", headers: headers)
+        result.status_code.should eq 404
+        Model::AssetType.find?(other_type.id).should_not be_nil
+
+        # the caller's own types remain reachable with the same grants
+        result = client.get("#{AssetTypes.base_route}#{local_type.id}", headers: headers)
+        result.status_code.should eq 200
+
+        result = client.patch(
+          path: "#{AssetTypes.base_route}#{local_type.id}",
+          body: {name: "renamed-#{random_name}"}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+
+        # admin JWTs remain deployment-wide
+        result = client.get("#{AssetTypes.base_route}#{other_type.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+
+        local_type.destroy
+        other_type.destroy
+        other_category.destroy
+        other_authority.destroy
+      end
+
       it "allows a support-JWT user to POST regardless of group grants" do
         body = Model::Generator.asset_type.to_json
         result = client.post(

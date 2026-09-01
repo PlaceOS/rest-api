@@ -732,6 +732,32 @@ module PlaceOS::Api
           )
           result.status_code.should eq 403
         end
+
+        it "should not allow access to merge" do
+          # A support JWT passes the permission checks, isolating the scope gate.
+          _, scoped_headers = Spec::Authentication.authentication(sys_admin: false, support: true, scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :read)])
+
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.as(String)
+          Model::Generator.metadata(name: "scope-meta", parent: zone_id).save!
+
+          meta = Model::Metadata::Interface.new(
+            name: "scope-meta",
+            description: "",
+            details: JSON.parse(%({"hello":"world"})),
+            parent_id: nil,
+            editors: Set(String).new,
+          )
+
+          result = client.patch(
+            path: "#{Metadata.base_route}/#{zone_id}",
+            body: meta.to_json,
+            headers: scoped_headers,
+          )
+          result.status_code.should eq 403
+
+          zone.destroy
+        end
       end
 
       context "write" do
@@ -761,6 +787,35 @@ module PlaceOS::Api
           new_metadata = Model::Metadata::Interface.from_json(result.body)
           found = Model::Metadata.for(parent_id, meta.name).first
           found.name.should eq new_metadata.name
+        end
+
+        it "should allow access to merge" do
+          # A support JWT passes the permission checks, isolating the scope gate.
+          _, scoped_headers = Spec::Authentication.authentication(sys_admin: false, support: true, scope: [PlaceOS::Model::UserJWT::Scope.new(scope_name, :write)])
+
+          zone = Model::Generator.zone.save!
+          zone_id = zone.id.as(String)
+          Model::Generator.metadata(name: "scope-meta", parent: zone_id).save!
+
+          meta = Model::Metadata::Interface.new(
+            name: "scope-meta",
+            description: "",
+            details: JSON.parse(%({"hello":"world"})),
+            parent_id: nil,
+            editors: Set(String).new,
+          )
+
+          result = client.patch(
+            path: "#{Metadata.base_route}/#{zone_id}",
+            body: meta.to_json,
+            headers: scoped_headers,
+          )
+          result.status_code.should eq 200
+
+          found = Model::Metadata.for(zone_id, "scope-meta").first
+          found.details.as_h["hello"].should eq "world"
+
+          zone.destroy
         end
 
         it "should not allow access to show" do

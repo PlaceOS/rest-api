@@ -438,6 +438,132 @@ module PlaceOS::Api
         zone.destroy
       end
 
+      it "rejects moving an asset into a zone the support user has no grant on" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone_a = Model::Generator.zone.save!
+        zone_b = Model::Generator.zone.save!
+        asset = build_asset.call(zone_a).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        # grant is on the asset's current zone only — not the destination
+        Model::Generator.group_zone(group: group, zone: zone_a, permissions: Model::Permissions::Update).save!
+
+        result = client.put(
+          path: "#{Assets.base_route}#{asset.id}",
+          body: {zone_id: zone_b.id}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+        Model::Asset.find!(asset.id).zone_id.should eq zone_a.id
+
+        asset.destroy
+        zone_a.destroy
+        zone_b.destroy
+      end
+
+      it "allows moving an asset when the support user has Update on both zones" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone_a = Model::Generator.zone.save!
+        zone_b = Model::Generator.zone.save!
+        asset = build_asset.call(zone_a).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone_a, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone_b, permissions: Model::Permissions::Update).save!
+
+        result = client.put(
+          path: "#{Assets.base_route}#{asset.id}",
+          body: {zone_id: zone_b.id}.to_json,
+          headers: headers,
+        )
+        result.success?.should be_true
+        Model::Asset.find!(asset.id).zone_id.should eq zone_b.id
+
+        asset.destroy
+        zone_a.destroy
+        zone_b.destroy
+      end
+
+      it "rejects a bulk update moving an asset into an ungranted zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone_a = Model::Generator.zone.save!
+        zone_b = Model::Generator.zone.save!
+        asset = build_asset.call(zone_a).save!
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone_a, permissions: Model::Permissions::Update).save!
+
+        result = client.put(
+          path: "#{Assets.base_route}bulk",
+          body: [{id: asset.id, zone_id: zone_b.id}].to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 403
+        Model::Asset.find!(asset.id).zone_id.should eq zone_a.id
+
+        asset.destroy
+        zone_a.destroy
+        zone_b.destroy
+      end
+
+      it "scopes index to the caller's authority for non-admin users" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        other_authority = Model::Generator.authority(domain: "https://other-assets.example.com").save!
+        other_category = Model::Generator.asset_category(other_authority).save!
+        other_type = Model::Generator.asset_type(other_category).save!
+        other_asset = Model::Generator.asset(asset_type: other_type).save!
+        local_asset = Model::Generator.asset.save!
+
+        base = Assets.base_route.rstrip('/')
+        params = HTTP::Params.encode({"limit" => "1000"})
+
+        ids = asset_index_ids(client.get("#{base}?#{params}", headers: headers))
+        ids.should contain(local_asset.id)
+        ids.should_not contain(other_asset.id)
+
+        # admin JWTs remain deployment-wide
+        ids = asset_index_ids(client.get("#{base}?#{params}", headers: Spec::Authentication.headers))
+        ids.should contain(local_asset.id)
+        ids.should contain(other_asset.id)
+
+        other_asset.destroy
+        local_asset.destroy
+        other_type.destroy
+        other_category.destroy
+        other_authority.destroy
+      end
+
+      it "returns 404 on show for another authority's asset unless admin" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        other_authority = Model::Generator.authority(domain: "https://other-assets-show.example.com").save!
+        other_category = Model::Generator.asset_category(other_authority).save!
+        other_type = Model::Generator.asset_type(other_category).save!
+        other_asset = Model::Generator.asset(asset_type: other_type).save!
+
+        result = client.get("#{Assets.base_route}#{other_asset.id}", headers: headers)
+        result.status_code.should eq 404
+
+        # admin JWTs remain deployment-wide
+        result = client.get("#{Assets.base_route}#{other_asset.id}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+
+        other_asset.destroy
+        other_type.destroy
+        other_category.destroy
+        other_authority.destroy
+      end
+
       it "allows a support-JWT user to POST regardless of group grants" do
         zone = Model::Generator.zone.save!
         asset = build_asset.call(zone)

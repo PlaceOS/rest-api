@@ -539,6 +539,155 @@ module PlaceOS::Api
         result.success?.should be_true
         Model::User.find?(created_id).should be_nil
       end
+
+      it "ignores admin attributes in the body for a support-subsystem creator" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Create).save!
+
+        body = JSON.parse(Model::Generator.user(authority).to_json).as_h
+        body["sys_admin"] = JSON::Any.new(true)
+        body["support"] = JSON::Any.new(true)
+
+        result = client.post(
+          path: Users.base_route,
+          body: body.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 201
+
+        created = Model::User.from_trusted_json(result.body)
+        persisted = Model::User.find?(created.id.as(String)).not_nil!
+        persisted.sys_admin.should be_false
+        persisted.support.should be_false
+        persisted.destroy
+      end
+
+      it "forces a support-subsystem creator's users into their own authority" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Create).save!
+
+        other_authority = Model::Generator.authority("other-#{random_name}.example.com").save!
+
+        body = JSON.parse(Model::Generator.user(authority).to_json).as_h
+        body["authority_id"] = JSON::Any.new(other_authority.id.as(String))
+
+        result = client.post(
+          path: Users.base_route,
+          body: body.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 201
+
+        created = Model::User.from_trusted_json(result.body)
+        persisted = Model::User.find?(created.id.as(String)).not_nil!
+        persisted.authority_id.should eq authority.id
+        persisted.authority_id.should_not eq other_authority.id
+        persisted.destroy
+      end
+
+      it "still allows an admin JWT to set admin attributes on create" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        admin_headers = Spec::Authentication.headers(sys_admin: true)
+
+        body = JSON.parse(Model::Generator.user(authority).to_json).as_h
+        body["sys_admin"] = JSON::Any.new(true)
+        body["support"] = JSON::Any.new(true)
+
+        result = client.post(
+          path: Users.base_route,
+          body: body.to_json,
+          headers: admin_headers,
+        )
+        result.status_code.should eq 201
+
+        created = Model::User.from_trusted_json(result.body)
+        persisted = Model::User.find?(created.id.as(String)).not_nil!
+        persisted.sys_admin.should be_true
+        persisted.support.should be_true
+        persisted.destroy
+      end
+
+      it "returns 404 for another authority's user id even with full support grants" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Manage).save!
+
+        other_authority = Model::Generator.authority("other-#{random_name}.example.com").save!
+        foreign = Model::Generator.user(other_authority).save!
+        foreign_id = foreign.id.as(String)
+
+        result = client.get(
+          path: File.join(Users.base_route, foreign_id),
+          headers: headers,
+        )
+        result.status_code.should eq 404
+
+        result = client.post(
+          path: File.join(Users.base_route, foreign_id, "revive"),
+          headers: headers,
+        )
+        result.status_code.should eq 404
+
+        result = client.delete(
+          path: File.join(Users.base_route, foreign_id),
+          headers: headers,
+        )
+        result.status_code.should eq 404
+
+        result = client.get(
+          path: File.join(Users.base_route, foreign_id, "metadata"),
+          headers: headers,
+        )
+        result.status_code.should eq 404
+
+        # The foreign user must be untouched.
+        Model::User.find?(foreign_id).should_not be_nil
+
+        foreign.destroy
+      end
+
+      it "returns 404 for another authority's user id with a support JWT" do
+        other_authority = Model::Generator.authority("other-#{random_name}.example.com").save!
+        foreign = Model::Generator.user(other_authority).save!
+        foreign_id = foreign.id.as(String)
+
+        result = client.get(
+          path: File.join(Users.base_route, foreign_id),
+          headers: Spec::Authentication.headers(sys_admin: false, support: true),
+        )
+        result.status_code.should eq 404
+
+        foreign.destroy
+      end
+
+      it "allows an admin JWT to resolve another authority's user id" do
+        other_authority = Model::Generator.authority("other-#{random_name}.example.com").save!
+        foreign = Model::Generator.user(other_authority).save!
+        foreign_id = foreign.id.as(String)
+
+        result = client.get(
+          path: File.join(Users.base_route, foreign_id),
+          headers: Spec::Authentication.headers(sys_admin: true),
+        )
+        result.status_code.should eq 200
+        Model::User.from_trusted_json(result.body).id.should eq foreign_id
+
+        foreign.destroy
+      end
     end
 
     describe "GET /metadata/search" do

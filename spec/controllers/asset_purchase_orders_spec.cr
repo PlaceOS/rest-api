@@ -174,8 +174,8 @@ module PlaceOS::Api
         purchase_order.destroy
       end
 
-      # index/show map the verb bit to None, so the support path requires
-      # Manage on the org zone to read.
+      # GET (index/show) requires the Read bit (or Manage) on the org zone;
+      # writes keep the verb's bit.
       it "allows GET index for a support user with Manage on the org zone (both sides)" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
@@ -189,14 +189,32 @@ module PlaceOS::Api
         result.status_code.should eq 200
       end
 
-      it "rejects GET index when the support user only has Read on the org zone" do
+      it "allows GET index and show for a support user with Read on the org zone" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        org_zone = Spec::Authentication.org_zone
+
+        purchase_order = Model::Generator.asset_purchase_order.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Read).save!
+
+        result = client.get(AssetPurchaseOrders.base_route, headers: headers)
+        result.status_code.should eq 200
+
+        result = client.get("#{AssetPurchaseOrders.base_route}#{purchase_order.id}", headers: headers)
+        result.status_code.should eq 200
+        purchase_order.destroy
+      end
+
+      it "rejects GET index when the support user only has Create on the org zone" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
         org_zone = Spec::Authentication.org_zone
 
         group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
-        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
-        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        Model::Generator.group_zone(group: group, zone: org_zone, permissions: Model::Permissions::Create).save!
 
         result = client.get(AssetPurchaseOrders.base_route, headers: headers)
         result.status_code.should eq 403

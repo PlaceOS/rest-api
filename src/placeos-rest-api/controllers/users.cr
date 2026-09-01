@@ -63,6 +63,10 @@ module PlaceOS::Api
         # 404 if the `User` was not found
         raise PgORM::Error::RecordNotFound.new
       }.tap do |found|
+        # The `:id` lookup above is not authority scoped — only admins may
+        # resolve users belonging to other authorities. 404 (not 403) so
+        # foreign ids are indistinguishable from unknown ones.
+        raise PgORM::Error::RecordNotFound.new unless user_admin? || found.authority_id == authority
         Log.context.set(user_id: found.id)
         @user = found
       end
@@ -251,10 +255,18 @@ module PlaceOS::Api
     def create(new_user : JSON::Any) : ::PlaceOS::Model::User
       body = new_user.to_json
       new_user = ::PlaceOS::Model::User.from_json(body)
-      new_user.assign_admin_attributes_from_json(body)
 
-      # allow sys-admins to create users on other domains
-      new_user.authority ||= current_authority.as(::PlaceOS::Model::Authority)
+      if user_admin?
+        # Admin attributes (sys_admin, support, groups, login_name, ...) may
+        # only be set by admins — support-subsystem creators would otherwise
+        # be able to mint sys-admins.
+        new_user.assign_admin_attributes_from_json(body)
+        # allow sys-admins to create users on other domains
+        new_user.authority ||= current_authority.as(::PlaceOS::Model::Authority)
+      else
+        # non-admins always create users in their own authority
+        new_user.authority = current_authority.as(::PlaceOS::Model::Authority)
+      end
 
       raise Error::ModelValidation.new(new_user.errors) unless new_user.save
       new_user

@@ -20,8 +20,11 @@ module PlaceOS::Api
       authority = current_authority.as(::PlaceOS::Model::Authority)
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
-        # "support" subsystem: the verb's bit on the org zone.
-        return if support_subsystem_grants?([zone_id], verb_permission)
+        # "support" subsystem: Read on the org zone for GET (index/show),
+        # otherwise the verb's bit (verb_permission maps GET to None, which
+        # only a Manage grant would satisfy).
+        required = request.method.in?("GET", "HEAD") ? ::PlaceOS::Model::Permissions::Read : verb_permission
+        return if support_subsystem_grants?([zone_id], required)
         access = check_access(current_user.groups, [zone_id])
         return if access.can_manage?
       end

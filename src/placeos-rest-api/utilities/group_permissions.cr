@@ -391,9 +391,15 @@ module PlaceOS::Api
 
     # Zone ids reachable by the current user via the "support" subsystem.
     # Useful for scoping index/list queries. Served from the per-request memo.
-    def support_accessible_zone_ids : Array(String)
+    # With no `required` any non-zero permission qualifies; otherwise the zone
+    # needs the `required` bit (Manage is a superset).
+    def support_accessible_zone_ids(required : ::PlaceOS::Model::Permissions? = nil) : Array(String)
       subsystem_zone_permissions(SUPPORT_SUBSYSTEM).compact_map do |zid, perms|
-        zid if perms != ::PlaceOS::Model::Permissions::None
+        if required
+          zid if perms.manage? || (perms & required) != ::PlaceOS::Model::Permissions::None
+        else
+          zid if perms != ::PlaceOS::Model::Permissions::None
+        end
       end
     end
   end

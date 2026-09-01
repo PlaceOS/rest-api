@@ -7,11 +7,13 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show]
+    before_action :can_read, only: [:index, :show, :instances]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, only: [:create, :update, :destroy]
-    before_action :check_support, only: [:index, :show]
+    # `instances` exposes every system using a trigger (including each
+    # instance's webhook_secret) so it is support/admin only, like show.
+    before_action :check_support, only: [:index, :show, :instances]
 
     ###############################################################################################
 

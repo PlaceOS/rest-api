@@ -363,6 +363,151 @@ module PlaceOS::Api
         sys.destroy
         zone.destroy
       end
+
+      it "404s when the trigger instance belongs to a different system" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        # the caller holds Manage on system A's zone...
+        zone_a = Model::Generator.zone.save!
+        sys_a = Model::Generator.control_system
+        sys_a.zones = [zone_a.id.as(String)]
+        sys_a.save!
+
+        # ...but the trigger instance belongs to system B
+        zone_b = Model::Generator.zone.save!
+        sys_b, other_instance = support_system_setup.call(zone_b)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        Model::Generator.group_zone(group: group, zone: zone_a, permissions: Model::Permissions::Manage).save!
+
+        path = SystemTriggers.base_route.gsub(/:sys_id/, sys_a.id.as(String)) + other_instance.id.as(String)
+
+        client.get(path: path, headers: headers).status_code.should eq 404
+        client.patch(path: path, body: {important: true}.to_json, headers: headers).status_code.should eq 404
+        client.delete(path: path, headers: headers).status_code.should eq 404
+        Model::TriggerInstance.find?(other_instance.id.as(String)).should_not be_nil
+
+        # the mismatch is a 404 for admins too
+        client.get(path: path, headers: Spec::Authentication.headers).status_code.should eq 404
+
+        other_instance.destroy
+        sys_a.destroy
+        sys_b.destroy
+        zone_a.destroy
+        zone_b.destroy
+      end
+
+      it "reveals webhook_secret on show to Read grants and admin/support JWTs" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys, trigger_instance = support_system_setup.call(zone)
+        secret = trigger_instance.webhook_secret
+
+        show_path = SystemTriggers.base_route.gsub(/:sys_id/, sys.id.as(String)) + trigger_instance.id.as(String)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        # subsystem Read grant => secret visible
+        result = client.get(path: show_path, headers: headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["webhook_secret"]?.try(&.as_s?).should eq secret
+
+        # Manage (a Read superset) => secret visible
+        gu.permissions = Model::Permissions::Manage.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Manage.to_i
+        gz.save!
+        result = client.get(path: show_path, headers: headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["webhook_secret"]?.try(&.as_s?).should eq secret
+
+        # support JWT => secret visible (previously admin only)
+        result = client.get(path: show_path, headers: Spec::Authentication.headers(sys_admin: false, support: true))
+        result.status_code.should eq 200
+        JSON.parse(result.body)["webhook_secret"]?.try(&.as_s?).should eq secret
+
+        # admin JWT => secret visible
+        result = client.get(path: show_path, headers: Spec::Authentication.headers(sys_admin: true, support: true))
+        result.status_code.should eq 200
+        JSON.parse(result.body)["webhook_secret"]?.try(&.as_s?).should eq secret
+
+        trigger_instance.destroy
+        sys.destroy
+        zone.destroy
+      end
+
+      it "hides webhook_secret from write-only grants on update responses" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys, trigger_instance = support_system_setup.call(zone)
+        path = SystemTriggers.base_route.gsub(/:sys_id/, sys.id.as(String)) + trigger_instance.id.as(String)
+
+        # Update without Read passes the write gate but does not see the secret
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        result = client.patch(path: path, body: {important: true}.to_json, headers: headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["webhook_secret"]?.try(&.as_s?).should be_nil
+
+        trigger_instance.destroy
+        sys.destroy
+        zone.destroy
+      end
+
+      it "hides webhook_secret on create for Create-only grants, reveals with Create|Read" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        sys = Model::Generator.control_system
+        sys.zones = [zone.id.as(String)]
+        sys.save!
+
+        base = SystemTriggers.base_route.gsub(/:sys_id/, sys.id.as(String))
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Create).save!
+
+        # Create without Read => created, but the secret is stripped from the response
+        trigger_instance = Model::Generator.trigger_instance
+        trigger_instance.control_system = sys
+        result = client.post(path: base, body: trigger_instance.to_json, headers: headers)
+        result.status_code.should eq 201
+        body = JSON.parse(result.body)
+        body["webhook_secret"]?.try(&.as_s?).should be_nil
+        # the persisted instance still holds a secret
+        created = Model::TriggerInstance.find!(body["id"].as_s)
+        created.webhook_secret.should_not be_nil
+        created.destroy
+
+        # Create|Read => created and the secret is returned
+        gu.permissions = (Model::Permissions::Create | Model::Permissions::Read).to_i
+        gu.save!
+        gz.permissions = (Model::Permissions::Create | Model::Permissions::Read).to_i
+        gz.save!
+
+        trigger_instance = Model::Generator.trigger_instance
+        trigger_instance.control_system = sys
+        result = client.post(path: base, body: trigger_instance.to_json, headers: headers)
+        result.status_code.should eq 201
+        body = JSON.parse(result.body)
+        body["webhook_secret"]?.try(&.as_s?).should_not be_nil
+        Model::TriggerInstance.find?(body["id"].as_s).try &.destroy
+
+        sys.destroy
+        zone.destroy
+      end
     end
   end
 end

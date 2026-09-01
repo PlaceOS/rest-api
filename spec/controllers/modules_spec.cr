@@ -816,6 +816,187 @@ module PlaceOS::Api
         cs.destroy
         zone.destroy
       end
+
+      it "requires the Read bit specifically for scoped module listing" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        cs, mod = device_in_zone.call(zone)
+
+        # Create|Update qualifies the zone for writes, but listing needs Read
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Create | Model::Permissions::Update).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Create | Model::Permissions::Update).save!
+
+        client.get(path: Modules.base_route, headers: headers).status_code.should eq 403
+        client.get(path: "#{Modules.base_route}?control_system_id=#{cs.id}", headers: headers).status_code.should eq 403
+
+        mod.destroy
+        cs.destroy
+        zone.destroy
+      end
+
+      # ---- runtime routes (state / ping / exec / load / settings / error) ----
+
+      it "gates GET state and state lookup on the Read bit" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        state_path = File.join(Modules.base_route, mod.id.as(String), "state")
+
+        # seed some status state for the module in redis
+        driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
+        driver_proxy["power"] = 1
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        # Update alone is not enough — state reads require the Read bit
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        client.get(path: state_path, headers: headers).status_code.should eq 403
+        client.get(path: File.join(state_path, "power"), headers: headers).status_code.should eq 403
+
+        # Read on both sides => allowed
+        gu.permissions = Model::Permissions::Read.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Read.to_i
+        gz.save!
+
+        result = client.get(path: state_path, headers: headers)
+        result.status_code.should eq 200
+        Hash(String, String).from_json(result.body)["power"].should eq "1"
+
+        result = client.get(path: File.join(state_path, "power"), headers: headers)
+        result.status_code.should eq 200
+        result.body.should contain "1"
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "gates POST ping on the Operate bit" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+
+        driver = Model::Generator.driver(role: Model::Driver::Role::Device)
+        driver.default_port = 8080
+        driver.save!
+        mod = Model::Generator.module(driver: driver)
+        mod.ip = "127.0.0.1"
+        mod.save!
+
+        cs = Model::Generator.control_system
+        cs.zones = [zone.id.as(String)]
+        cs.modules = [mod.id.as(String)]
+        cs.save!
+
+        path = File.join(Modules.base_route, mod.id.as(String), "ping")
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        # Read alone is not enough — ping requires Operate
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        client.post(path: path, headers: headers).status_code.should eq 403
+
+        # Operate on both sides => allowed
+        gu.permissions = Model::Permissions::Operate.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Operate.to_i
+        gz.save!
+
+        result = client.post(path: path, headers: headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["pingable"].should be_true
+
+        mod.destroy
+        cs.destroy
+        zone.destroy
+      end
+
+      it "gates POST exec and load on the Operate bit" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        exec_path = File.join(Modules.base_route, mod.id.as(String), "exec", "some_method")
+        load_path = File.join(Modules.base_route, mod.id.as(String), "load")
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        # Read alone is not enough — exec / load require Operate
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        client.post(path: exec_path, body: "[]", headers: headers).status_code.should eq 403
+        client.post(path: load_path, headers: headers).status_code.should eq 403
+
+        # Operate on both sides => past the auth gate. Core is not running in
+        # the spec environment so only the auth outcome is asserted.
+        gu.permissions = Model::Permissions::Operate.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Operate.to_i
+        gz.save!
+
+        client.post(path: exec_path, body: "[]", headers: headers).status_code.should_not eq 403
+        client.post(path: load_path, headers: headers).status_code.should_not eq 403
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "gates GET settings on the Update bit" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        settings = Model::Generator.settings(mod: mod, settings_string: %(value: 2\n)).save!
+        path = File.join(Modules.base_route, mod.id.as(String), "settings")
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        # Read alone is not enough — collated settings require Update
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        client.get(path: path, headers: headers).status_code.should eq 403
+
+        # Update on both sides => allowed
+        gu.permissions = Model::Permissions::Update.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Update.to_i
+        gz.save!
+
+        result = client.get(path: path, headers: headers)
+        result.status_code.should eq 200
+        Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].to_s).should contain(settings.id.as(String))
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "keeps GET error support-JWT only, even for Manage grants" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+        Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Manage).save!
+
+        result = client.get(path: File.join(Modules.base_route, mod.id.as(String), "error"), headers: headers)
+        result.status_code.should eq 403
+
+        mod.destroy
+        zone.destroy
+      end
     end
   end
 end

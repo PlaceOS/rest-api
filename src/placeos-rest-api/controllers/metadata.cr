@@ -14,7 +14,7 @@ module PlaceOS::Api
 
     before_action :can_read, only: [:history]
     before_action :can_read_guest, only: [:show, :children_metadata, :bulk_fetch]
-    before_action :can_write, only: [:update, :rename, :destroy]
+    before_action :can_write, only: [:update, :merge, :rename, :destroy]
 
     # Callbacks
     ###############################################################################################
