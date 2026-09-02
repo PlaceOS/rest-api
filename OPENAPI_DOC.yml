@@ -29613,6 +29613,241 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: remove a tag from every media item carrying it, or with
+      description: 'remove a tag from every media item carrying it, or with
+
+        `remove_media=true` remove the tagged media itself. Scoping and
+
+        permissions per `tag_operation_scope`: authority-wide is admin/support
+
+        only, `group_id` requires Read and Update (or Manage) on that group —
+
+        Read and Delete when removing media. Removing media with `group_id`
+
+        behaves like `DELETE /:id?group_id=`: the items are unlinked from that
+
+        group and only deleted once no group links remain.'
+      tags:
+      - PlaylistMedia
+      operationId: PlaceOS::Api::PlaylistMedia_remove_tag
+      parameters:
+      - name: tag
+        in: query
+        description: the tag to be removed
+        required: true
+        schema:
+          type: string
+      - name: remove_media
+        in: query
+        description: if true, removes the tag by removing all the media with this
+          tag
+        schema:
+          type: boolean
+      - name: group_id
+        in: query
+        description: limit to media linked to this group (caller must have Read and
+          Update on the group, Read and Delete when removing media)
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      summary: rename a tag on every media item carrying it. Items that already carry
+      description: 'rename a tag on every media item carrying it. Items that already
+        carry
+
+        `new_tag` end up with it once. Scoping and permissions per
+
+        `tag_operation_scope`: authority-wide is admin/support only, `group_id`
+
+        requires Read and Update (or Manage) on that group.'
+      tags:
+      - PlaylistMedia
+      operationId: PlaceOS::Api::PlaylistMedia_rename_tag
+      parameters:
+      - name: current_tag
+        in: query
+        description: the existing tag to be renamed
+        required: true
+        schema:
+          type: string
+      - name: new_tag
+        in: query
+        description: the replacement tag name
+        required: true
+        schema:
+          type: string
+      - name: group_id
+        in: query
+        description: limit to media linked to this group (caller must have Read and
+          Update on the group)
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/tag_counts:
     get:
       summary: return the number of media items carrying each tag. Scopes the same

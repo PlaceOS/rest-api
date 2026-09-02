@@ -28,11 +28,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :tags, :tag_counts]
-    before_action :can_write, only: [:create, :update, :destroy, :share]
+    before_action :can_write, only: [:create, :update, :destroy, :share, :rename_tag, :remove_tag]
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :tags, :tag_counts, :create, :share])]
+    @[AC::Route::Filter(:before_action, except: [:index, :tags, :tag_counts, :create, :share, :rename_tag, :remove_tag])]
     def current_item(id : String)
       Log.context.set(item_id: id)
       # Find will raise a 404 (not found) if there is an error
@@ -210,6 +210,133 @@ module PlaceOS::Api
           db.query_all(sql, args: [authority.id.as(String)], as: String)
         else
           db.query_all(sql, args: [authority.id.as(String), scope.map(&.to_s)], as: String)
+        end
+      end
+    end
+
+    # Tag maintenance
+    ###############################################################################################
+    #
+    # Renaming or removing a tag rewrites every item that carries it, so
+    # without `group_id` (all media in the authority) the caller must be
+    # admin/support. With `group_id` only media linked to that group is
+    # touched; the group must exist in the caller's authority (404
+    # otherwise) and the caller needs Read plus `required` on it — Manage
+    # covers everything — as effective permissions, so an ancestor grant
+    # counts. Returns the scope for the SQL: `nil` for the whole authority,
+    # else the single group.
+    private def tag_operation_scope(group_id : UUID?, required : ::PlaceOS::Model::Permissions) : Array(UUID)?
+      if group_id
+        ensure_group_access!(group_id, ::PlaceOS::Model::Permissions::Read | required)
+        return [group_id]
+      end
+      raise Error::Forbidden.new("group_id is required unless the caller is admin or support") unless user_support?
+      nil
+    end
+
+    # tags are free text so the only invalid value is a blank one
+    private def require_tag(value : String, param : String) : String
+      raise AC::Route::Param::ValueError.new("must not be blank", param) if value.blank?
+      value
+    end
+
+    # Junction-table scope fragment for the raw tag UPDATEs below; the group
+    # ids are bound as `$n::uuid[]`, never interpolated.
+    private def tag_scope_sql(scope : Array(UUID)?, param : Int32) : String
+      return "" if scope.nil?
+      " AND id IN (SELECT playlist_item_id FROM group_playlist_items WHERE group_id = ANY($#{param}::uuid[]))"
+    end
+
+    # rename a tag on every media item carrying it. Items that already carry
+    # `new_tag` end up with it once. Scoping and permissions per
+    # `tag_operation_scope`: authority-wide is admin/support only, `group_id`
+    # requires Read and Update (or Manage) on that group.
+    @[AC::Route::PATCH("/tags")]
+    def rename_tag(
+      @[AC::Param::Info(description: "the existing tag to be renamed")]
+      current_tag : String,
+      @[AC::Param::Info(description: "the replacement tag name")]
+      new_tag : String,
+      @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read and Update on the group)")]
+      group_id : UUID? = nil,
+    ) : Nil
+      current_tag = require_tag(current_tag, "current_tag")
+      # apply the same sanitisation the model applies to the tags attribute
+      new_tag = require_tag(::ActiveModel::Sanitizer.sanitize(new_tag, :text), "new_tag")
+      scope = tag_operation_scope(group_id, ::PlaceOS::Model::Permissions::Update)
+      return if current_tag == new_tag
+
+      # A single UPDATE in SQL — item ids never enter app memory. After the
+      # replacement, duplicates collapse keeping each tag's first position.
+      sql = String.build do |str|
+        str << "UPDATE playlist_items SET updated_at = CURRENT_TIMESTAMP, tags = ARRAY("
+        str << "SELECT t FROM unnest(array_replace(tags, $2, $3)) WITH ORDINALITY AS u(t, ord) GROUP BY t ORDER BY MIN(ord)"
+        str << ") WHERE authority_id = $1 AND $2 = ANY(tags)"
+        str << tag_scope_sql(scope, 4)
+      end
+
+      PgORM::Database.connection do |db|
+        if scope.nil?
+          db.exec(sql, args: [authority.id.as(String), current_tag, new_tag])
+        else
+          db.exec(sql, args: [authority.id.as(String), current_tag, new_tag, scope.map(&.to_s)])
+        end
+      end
+    end
+
+    # remove a tag from every media item carrying it, or with
+    # `remove_media=true` remove the tagged media itself. Scoping and
+    # permissions per `tag_operation_scope`: authority-wide is admin/support
+    # only, `group_id` requires Read and Update (or Manage) on that group —
+    # Read and Delete when removing media. Removing media with `group_id`
+    # behaves like `DELETE /:id?group_id=`: the items are unlinked from that
+    # group and only deleted once no group links remain.
+    @[AC::Route::DELETE("/tags")]
+    def remove_tag(
+      @[AC::Param::Info(description: "the tag to be removed")]
+      tag : String,
+      @[AC::Param::Info(description: "if true, removes the tag by removing all the media with this tag")]
+      remove_media : Bool = false,
+      @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read and Update on the group, Read and Delete when removing media)")]
+      group_id : UUID? = nil,
+    ) : Nil
+      tag = require_tag(tag, "tag")
+      required = remove_media ? ::PlaceOS::Model::Permissions::Delete : ::PlaceOS::Model::Permissions::Update
+      scope = tag_operation_scope(group_id, required)
+
+      return remove_tagged_media!(tag, scope, group_id) if remove_media
+
+      sql = "UPDATE playlist_items SET updated_at = CURRENT_TIMESTAMP, tags = array_remove(tags, $2) WHERE authority_id = $1 AND $2 = ANY(tags)#{tag_scope_sql(scope, 3)}"
+      PgORM::Database.connection do |db|
+        if scope.nil?
+          db.exec(sql, args: [authority.id.as(String), tag])
+        else
+          db.exec(sql, args: [authority.id.as(String), tag, scope.map(&.to_s)])
+        end
+      end
+    end
+
+    TAG_REMOVAL_BATCH = 100
+
+    # Media removal goes through the ORM one item at a time, inside a single
+    # transaction, so `Playlist::Item`'s destroy hooks run (they strip the
+    # item out of playlist revisions and bump those playlists). Items are
+    # fetched in id-ordered batches with a keyset cursor so a large library
+    # is never held in memory at once and progress is guaranteed even if a
+    # removal leaves the row in place (unlinking a still-shared item).
+    private def remove_tagged_media!(tag : String, scope : Array(UUID)?, group_id : UUID?) : Nil
+      base = ::PlaceOS::Model::Playlist::Item
+        .where(authority_id: authority.id.as(String))
+        .where("? = ANY(tags)", tag)
+      base = base.where(linked_item_subquery(scope), args: scope) unless scope.nil?
+
+      PgORM::Database.transaction do |_tx|
+        last_id = ""
+        loop do
+          batch = base.where("id > ?", last_id).order("id").limit(TAG_REMOVAL_BATCH).to_a
+          break if batch.empty?
+          batch.each { |item| remove_item!(item, group_id) }
+          last_id = batch.last.id.as(String)
         end
       end
     end
@@ -470,16 +597,23 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "remove the item from this group instead of deleting it outright (caller needs Delete or Manage on the group); the item is deleted if no group links remain")]
       group_id : UUID? = nil,
     ) : Nil
-      return destroy_item! unless group_id
+      remove_item!(current_item, group_id)
+    end
 
-      item_id = current_item.id.as(String)
+    # delete `item` outright, or with `group_id` unlink it from that group
+    # and only delete it once no group links remain. Shared by `destroy` and
+    # `remove_tag`.
+    private def remove_item!(item : ::PlaceOS::Model::Playlist::Item, group_id : UUID?) : Nil
+      return destroy_item!(item) unless group_id
+
+      item_id = item.id.as(String)
       link = ::PlaceOS::Model::GroupPlaylistItem.find?({group_id, item_id})
       raise Error::NotFound.new("item is not linked to group #{group_id}") unless link
 
       PgORM::Database.transaction do |_tx|
         link.destroy
         remaining = ::PlaceOS::Model::GroupPlaylistItem.where(playlist_item_id: item_id).count
-        destroy_item! if remaining == 0
+        destroy_item!(item) if remaining == 0
       end
     end
 
@@ -499,11 +633,11 @@ module PlaceOS::Api
     end
 
     # delete the item and any uploads not referenced by other items
-    private def destroy_item! : Nil
+    private def destroy_item!(item : ::PlaceOS::Model::Playlist::Item) : Nil
       PgORM::Database.transaction do |_tx|
-        touch_media_references!(current_item.id.as(String))
+        touch_media_references!(item.id.as(String))
 
-        {current_item.media, current_item.thumbnail}.each do |upload|
+        {item.media, item.thumbnail}.each do |upload|
           next unless upload
 
           # don't remove upload if it's used else where
@@ -517,7 +651,7 @@ module PlaceOS::Api
           signer.delete_file(storage.bucket_name, upload.object_key, upload.resumable_id)
           upload.destroy
         end
-        current_item.destroy
+        item.destroy
       end
     end
   end

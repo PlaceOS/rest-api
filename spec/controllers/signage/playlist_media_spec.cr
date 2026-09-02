@@ -772,5 +772,261 @@ module PlaceOS::Api
         result.status_code.should eq 403
       end
     end
+
+    describe "tag maintenance (PATCH/DELETE /tags)" do
+      authority_of = -> { Model::Authority.find_by_domain("localhost").not_nil! }
+
+      # a saved media item carrying `tags`, optionally linked into `group`
+      tagged = ->(tags : Set(String), group : Model::Group?) do
+        item = Model::Generator.item(authority: authority_of.call)
+        item.tags = tags
+        item.save!
+        Model::Generator.group_playlist_item(group: group, playlist_item: item).save! if group
+        item
+      end
+
+      tags_of = ->(item : Model::Playlist::Item) { Model::Playlist::Item.find!(item.id.as(String)).tags }
+
+      rename = ->(params : Hash(String, String), headers : HTTP::Headers) do
+        client.patch("#{base}/tags?#{HTTP::Params.encode(params)}", headers: headers)
+      end
+
+      remove = ->(params : Hash(String, String), headers : HTTP::Headers) do
+        client.delete("#{base}/tags?#{HTTP::Params.encode(params)}", headers: headers)
+      end
+
+      describe "PATCH /tags (rename)" do
+        it "admin renames a tag on every item in the authority, leaving other tags alone" do
+          promo = tagged.call(Set{"promo", "lobby"}, nil)
+          promo_only = tagged.call(Set{"promo"}, nil)
+          untouched = tagged.call(Set{"lobby"}, nil)
+
+          result = rename.call({"current_tag" => "promo", "new_tag" => "campaign"}, Spec::Authentication.headers)
+          result.success?.should be_true
+
+          tags_of.call(promo).should eq Set{"campaign", "lobby"}
+          tags_of.call(promo_only).should eq Set{"campaign"}
+          tags_of.call(untouched).should eq Set{"lobby"}
+        end
+
+        it "collapses duplicates when the item already carries the new tag" do
+          both = tagged.call(Set{"promo", "lobby"}, nil)
+
+          result = rename.call({"current_tag" => "promo", "new_tag" => "lobby"}, Spec::Authentication.headers)
+          result.success?.should be_true
+          tags_of.call(both).should eq Set{"lobby"}
+        end
+
+        it "sanitises the new tag the same way the model does" do
+          item = tagged.call(Set{"promo"}, nil)
+
+          result = rename.call({"current_tag" => "promo", "new_tag" => "<b>lobby</b>"}, Spec::Authentication.headers)
+          result.success?.should be_true
+          tags_of.call(item).should eq Set{"lobby"}
+        end
+
+        it "is a no-op when the tag is renamed to itself" do
+          item = tagged.call(Set{"promo"}, nil)
+
+          result = rename.call({"current_tag" => "promo", "new_tag" => "promo"}, Spec::Authentication.headers)
+          result.success?.should be_true
+          tags_of.call(item).should eq Set{"promo"}
+        end
+
+        it "rejects blank tags with 400" do
+          item = tagged.call(Set{"promo"}, nil)
+
+          rename.call({"current_tag" => " ", "new_tag" => "lobby"}, Spec::Authentication.headers).status_code.should eq 400
+          rename.call({"current_tag" => "promo", "new_tag" => ""}, Spec::Authentication.headers).status_code.should eq 400
+          # a value that sanitises to nothing is blank too
+          rename.call({"current_tag" => "promo", "new_tag" => "<br>"}, Spec::Authentication.headers).status_code.should eq 400
+          tags_of.call(item).should eq Set{"promo"}
+        end
+
+        it "?group_id= limits the rename to media linked to that group" do
+          group = Model::Generator.group(authority: authority_of.call).save!
+          linked = tagged.call(Set{"promo"}, group)
+          unlinked = tagged.call(Set{"promo"}, nil)
+
+          result = rename.call({"current_tag" => "promo", "new_tag" => "campaign", "group_id" => group.id.to_s}, Spec::Authentication.headers)
+          result.success?.should be_true
+
+          tags_of.call(linked).should eq Set{"campaign"}
+          tags_of.call(unlinked).should eq Set{"promo"}
+        end
+
+        it "is 403 for a regular user without group_id (authority-wide change)" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          group = Model::Generator.group(authority: authority_of.call).save!
+          Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Manage).save!
+          item = tagged.call(Set{"promo"}, group)
+
+          result = rename.call({"current_tag" => "promo", "new_tag" => "campaign"}, headers)
+          result.status_code.should eq 403
+          tags_of.call(item).should eq Set{"promo"}
+        end
+
+        it "a regular user needs Read and Update on the group" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          group = Model::Generator.group(authority: authority_of.call).save!
+          item = tagged.call(Set{"promo"}, group)
+          params = {"current_tag" => "promo", "new_tag" => "campaign", "group_id" => group.id.to_s}
+
+          # no membership at all
+          rename.call(params, headers).status_code.should eq 403
+
+          # Read alone isn't enough
+          membership = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+          rename.call(params, headers).status_code.should eq 403
+
+          # Update alone isn't enough either
+          membership.permissions = Model::Permissions::Update.value
+          membership.save!
+          rename.call(params, headers).status_code.should eq 403
+          tags_of.call(item).should eq Set{"promo"}
+
+          membership.permissions = (Model::Permissions::Read | Model::Permissions::Update).value
+          membership.save!
+          rename.call(params, headers).success?.should be_true
+          tags_of.call(item).should eq Set{"campaign"}
+        end
+
+        it "Manage on the group is sufficient, including when inherited from a parent group" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          authority = authority_of.call
+          parent = Model::Generator.group(authority: authority).save!
+          child = Model::Generator.group(authority: authority, parent: parent).save!
+          Model::Generator.group_user(user: user, group: parent, permissions: Model::Permissions::Manage).save!
+          item = tagged.call(Set{"promo"}, child)
+
+          result = rename.call({"current_tag" => "promo", "new_tag" => "campaign", "group_id" => child.id.to_s}, headers)
+          result.success?.should be_true
+          tags_of.call(item).should eq Set{"campaign"}
+        end
+
+        it "is 404 for an unknown group or a group in another authority" do
+          item = tagged.call(Set{"promo"}, nil)
+
+          rename.call({"current_tag" => "promo", "new_tag" => "campaign", "group_id" => UUID.random.to_s}, Spec::Authentication.headers).status_code.should eq 404
+
+          other_authority = Model::Generator.authority(domain: "http://other-#{Random::Secure.hex(3)}.example").save!
+          foreign = Model::Generator.group(authority: other_authority).save!
+          rename.call({"current_tag" => "promo", "new_tag" => "campaign", "group_id" => foreign.id.to_s}, Spec::Authentication.headers).status_code.should eq 404
+
+          tags_of.call(item).should eq Set{"promo"}
+        end
+      end
+
+      describe "DELETE /tags (remove)" do
+        it "admin strips the tag from every item in the authority, keeping the media" do
+          promo = tagged.call(Set{"promo", "lobby"}, nil)
+          promo_only = tagged.call(Set{"promo"}, nil)
+          untouched = tagged.call(Set{"lobby"}, nil)
+
+          result = remove.call({"tag" => "promo"}, Spec::Authentication.headers)
+          result.success?.should be_true
+
+          tags_of.call(promo).should eq Set{"lobby"}
+          tags_of.call(promo_only).should eq Set(String).new
+          tags_of.call(untouched).should eq Set{"lobby"}
+          Model::Playlist::Item.where(authority_id: authority_of.call.id.as(String)).count.should eq 3
+        end
+
+        it "rejects a blank tag with 400" do
+          remove.call({"tag" => ""}, Spec::Authentication.headers).status_code.should eq 400
+        end
+
+        it "?group_id= limits the removal to media linked to that group" do
+          group = Model::Generator.group(authority: authority_of.call).save!
+          linked = tagged.call(Set{"promo"}, group)
+          unlinked = tagged.call(Set{"promo"}, nil)
+
+          result = remove.call({"tag" => "promo", "group_id" => group.id.to_s}, Spec::Authentication.headers)
+          result.success?.should be_true
+
+          tags_of.call(linked).should eq Set(String).new
+          tags_of.call(unlinked).should eq Set{"promo"}
+        end
+
+        it "is 403 for a regular user without group_id, and needs Read and Update with one" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          group = Model::Generator.group(authority: authority_of.call).save!
+          item = tagged.call(Set{"promo"}, group)
+          membership = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+
+          remove.call({"tag" => "promo"}, headers).status_code.should eq 403
+          remove.call({"tag" => "promo", "group_id" => group.id.to_s}, headers).status_code.should eq 403
+          tags_of.call(item).should eq Set{"promo"}
+
+          membership.permissions = (Model::Permissions::Read | Model::Permissions::Update).value
+          membership.save!
+          remove.call({"tag" => "promo", "group_id" => group.id.to_s}, headers).success?.should be_true
+          tags_of.call(item).should eq Set(String).new
+        end
+
+        it "remove_media=true deletes the tagged media and runs the destroy hooks (playlist revisions cleaned)" do
+          authority = authority_of.call
+          doomed = tagged.call(Set{"promo"}, nil)
+          survivor = tagged.call(Set{"lobby"}, nil)
+
+          playlist = Model::Generator.playlist(authority: authority).save!
+          rev = Model::Generator.revision(playlist: playlist)
+          rev.items = [doomed.id.as(String), survivor.id.as(String)]
+          rev.save!
+
+          result = remove.call({"tag" => "promo", "remove_media" => "true"}, Spec::Authentication.headers)
+          result.success?.should be_true
+
+          Model::Playlist::Item.find?(doomed.id.as(String)).should be_nil
+          Model::Playlist::Item.find?(survivor.id.as(String)).should_not be_nil
+          Model::Playlist::Revision.find!(rev.id.as(String)).items.should eq [survivor.id.as(String)]
+        end
+
+        it "remove_media=true removes more than one batch of items" do
+          total = PlaylistMedia::TAG_REMOVAL_BATCH + 3
+          total.times { tagged.call(Set{"bulk"}, nil) }
+          keeper = tagged.call(Set{"keep"}, nil)
+
+          result = remove.call({"tag" => "bulk", "remove_media" => "true"}, Spec::Authentication.headers)
+          result.success?.should be_true
+
+          Model::Playlist::Item.with_tag("bulk").count.should eq 0
+          Model::Playlist::Item.find?(keeper.id.as(String)).should_not be_nil
+        end
+
+        it "remove_media=true with group_id needs Read and Delete, unlinks from the group and deletes only orphans" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          authority = authority_of.call
+          root = Model::Generator.group(authority: authority).save!
+          group_a = Model::Generator.group(authority: authority, parent: root).save!
+          group_b = Model::Generator.group(authority: authority, parent: root).save!
+
+          only_a = tagged.call(Set{"promo"}, group_a)
+          shared = tagged.call(Set{"promo"}, group_a)
+          Model::Generator.group_playlist_item(group: group_b, playlist_item: shared).save!
+          only_b = tagged.call(Set{"promo"}, group_b)
+
+          params = {"tag" => "promo", "remove_media" => "true", "group_id" => group_a.id.to_s}
+
+          # Read + Update is enough to strip a tag, but not to remove media
+          membership = Model::Generator.group_user(user: user, group: group_a, permissions: Model::Permissions::Read | Model::Permissions::Update).save!
+          remove.call(params, headers).status_code.should eq 403
+          Model::Playlist::Item.find?(only_a.id.as(String)).should_not be_nil
+
+          membership.permissions = (Model::Permissions::Read | Model::Permissions::Delete).value
+          membership.save!
+          remove.call(params, headers).success?.should be_true
+
+          # linked only to group_a => gone; shared with group_b => unlinked but kept; only in group_b => untouched
+          Model::Playlist::Item.find?(only_a.id.as(String)).should be_nil
+          Model::Playlist::Item.find?(shared.id.as(String)).should_not be_nil
+          media_link?(group_a, shared).should be_false
+          media_link?(group_b, shared).should be_true
+          tags_of.call(shared).should eq Set{"promo"}
+          Model::Playlist::Item.find?(only_b.id.as(String)).should_not be_nil
+          media_link?(group_b, only_b).should be_true
+        end
+      end
+    end
   end
 end
