@@ -488,5 +488,87 @@ module PlaceOS::Api
         json["playlist_media"][1]["id"].should eq item2_id
       end
     end
+
+    describe "last seen tracking" do
+      it "does not record a last seen time for preview players (default)" do
+        system = Model::Generator.control_system
+        system.signage = true
+        system.save!
+        system_id = system.id.as(String)
+        # reload so the comparison uses the database (microsecond) precision
+        system.reload!
+        initial_time = system.signage_last_seen
+
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: Spec::Authentication.headers).status_code.should eq 200
+
+        system.reload!
+        system.signage_last_seen.should eq initial_time
+        system.playlist_item_id.should be_nil
+      end
+
+      it "records the last seen time for production players without a current item" do
+        system = Model::Generator.control_system
+        system.signage = true
+        system.save!
+        system_id = system.id.as(String)
+        initial_time = system.signage_last_seen
+
+        client.get(path: "#{Signage.base_route}/#{system_id}?preview=false", headers: Spec::Authentication.headers).status_code.should eq 200
+
+        system.reload!
+        system.signage_last_seen.should_not eq initial_time
+        (Time.utc - system.signage_last_seen).should be < 30.seconds
+        system.playlist_item_id.should be_nil
+      end
+
+      it "records the last seen time and the currently playing item" do
+        item = Model::Generator.item
+        item.save!
+        item_id = item.id.as(String)
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.save!
+        system_id = system.id.as(String)
+        initial_time = system.signage_last_seen
+
+        client.get(path: "#{Signage.base_route}/#{system_id}?preview=false&item_id=#{item_id}", headers: Spec::Authentication.headers).status_code.should eq 200
+
+        system.reload!
+        system.signage_last_seen.should_not eq initial_time
+        system.playlist_item_id.should eq item_id
+
+        # an unknown item clears the currently playing item but still updates last seen
+        seen = system.signage_last_seen
+        client.get(path: "#{Signage.base_route}/#{system_id}?preview=false&item_id=playlist_items-missing", headers: Spec::Authentication.headers).status_code.should eq 200
+        system.reload!
+        system.playlist_item_id.should be_nil
+        system.signage_last_seen.should be >= seen
+
+        # an empty item id is treated as no item
+        client.get(path: "#{Signage.base_route}/#{system_id}?preview=false&item_id=#{item_id}", headers: Spec::Authentication.headers).status_code.should eq 200
+        client.get(path: "#{Signage.base_route}/#{system_id}?preview=false&item_id=", headers: Spec::Authentication.headers).status_code.should eq 200
+        system.reload!
+        system.playlist_item_id.should be_nil
+      end
+
+      it "records the last seen time even when the client content is up to date (304)" do
+        system = Model::Generator.control_system
+        system.signage = true
+        system.save!
+        system_id = system.id.as(String)
+
+        headers = Spec::Authentication.headers
+        result = client.get(path: "#{Signage.base_route}/#{system_id}?preview=false", headers: headers)
+        result.status_code.should eq 200
+        system.reload!
+        seen = system.signage_last_seen
+
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        client.get(path: "#{Signage.base_route}/#{system_id}?preview=false", headers: headers).status_code.should eq 304
+        system.reload!
+        system.signage_last_seen.should be >= seen
+      end
+    end
   end
 end
