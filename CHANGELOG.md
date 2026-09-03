@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: improve caching
 - **signage/playlist_media**: tag management
 - **signage-ai**: image generation runtime and controllers (PPT-2741) ([#447](https://github.com/PlaceOS/rest-api/pull/447))
 - **zones**: allow signage managers to create signage zones
