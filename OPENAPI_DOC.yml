@@ -32847,16 +32847,21 @@ paths:
       summary: list the template mappings in the current authority — what templates
       description: 'list the template mappings in the current authority — what templates
 
-        are applied to which displays and zones. Non-admin callers see only
+        are applied to which displays and zones. Filtering by display also
 
-        mappings of templates linked to groups they hold Read on.'
+        returns the mappings on the zones that display belongs to. Non-admin
+
+        callers see only mappings of templates linked to groups they hold
+
+        Read on, or applied to displays / zones they can view.'
       tags:
       - SignageTemplateMappings
       operationId: PlaceOS::Api::SignageTemplateMappings_index
       parameters:
       - name: control_system_id
         in: query
-        description: filter to mappings applied to this display (control system id)
+        description: filter to mappings applied to this display (control system id),
+          including those applied to the zones it belongs to
         schema:
           type: string
           nullable: true

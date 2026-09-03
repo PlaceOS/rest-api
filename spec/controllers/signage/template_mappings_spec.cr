@@ -202,21 +202,64 @@ module PlaceOS::Api
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         template_a = Model::Generator.signage_template(authority: authority).save!
         template_b = Model::Generator.signage_template(authority: authority).save!
-        sys = Model::Generator.control_system.save!
+        template_c = Model::Generator.signage_template(authority: authority).save!
         zone = Model::Generator.zone.save!
+        sys_zone = Model::Generator.zone.save!
+        sys = Model::Generator.control_system
+        sys.zones = [sys_zone.id.as(String)]
+        sys.save!
+        other_sys = Model::Generator.control_system.save!
 
         on_sys = Model::Generator.system_template(template: template_a, control_system: sys).save!
         on_zone = Model::Generator.system_template(template: template_b, zone: zone).save!
+        on_sys_zone = Model::Generator.system_template(template: template_c, zone: sys_zone).save!
+        on_other_sys = Model::Generator.system_template(template: template_a, control_system: other_sys).save!
 
+        # a display lists its own mappings plus those on the zones it belongs to
         by_sys = client.get("#{base}?control_system_id=#{sys.id}", headers: Spec::Authentication.headers)
         by_sys.status_code.should eq 200
-        Array(Hash(String, JSON::Any)).from_json(by_sys.body).map(&.["id"].as_s).should eq [on_sys.id.to_s]
+        Array(Hash(String, JSON::Any)).from_json(by_sys.body).map(&.["id"].as_s).sort!.should eq [on_sys.id.to_s, on_sys_zone.id.to_s].sort!
+
+        by_other = client.get("#{base}?control_system_id=#{other_sys.id}", headers: Spec::Authentication.headers)
+        Array(Hash(String, JSON::Any)).from_json(by_other.body).map(&.["id"].as_s).should eq [on_other_sys.id.to_s]
+
+        # display + zone filters intersect
+        by_sys_and_zone = client.get("#{base}?control_system_id=#{sys.id}&zone_id=#{sys_zone.id}", headers: Spec::Authentication.headers)
+        Array(Hash(String, JSON::Any)).from_json(by_sys_and_zone.body).map(&.["id"].as_s).should eq [on_sys_zone.id.to_s]
+
+        unknown = client.get("#{base}?control_system_id=sys-unknown", headers: Spec::Authentication.headers)
+        unknown.status_code.should eq 200
+        JSON.parse(unknown.body).as_a.should be_empty
 
         by_zone = client.get("#{base}?zone_id=#{zone.id}", headers: Spec::Authentication.headers)
         Array(Hash(String, JSON::Any)).from_json(by_zone.body).map(&.["id"].as_s).should eq [on_zone.id.to_s]
 
         by_template = client.get("#{base}?template_id=#{template_a.id}", headers: Spec::Authentication.headers)
-        Array(Hash(String, JSON::Any)).from_json(by_template.body).map(&.["id"].as_s).should eq [on_sys.id.to_s]
+        Array(Hash(String, JSON::Any)).from_json(by_template.body).map(&.["id"].as_s).sort!.should eq [on_sys.id.to_s, on_other_sys.id.to_s].sort!
+      end
+
+      it "as a display viewer, lists zone mappings of the display only for viewable zones" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        viewable_zone = Model::Generator.zone.save!
+        hidden_zone = Model::Generator.zone.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: viewable_zone, permissions: Model::Permissions::Read).save!
+
+        sys = Model::Generator.control_system
+        sys.zones = [viewable_zone.id.as(String), hidden_zone.id.as(String)]
+        sys.save!
+
+        template = Model::Generator.signage_template(authority: authority).save!
+        on_sys = Model::Generator.system_template(template: template, control_system: sys).save!
+        on_viewable = Model::Generator.system_template(template: template, zone: viewable_zone).save!
+        Model::Generator.system_template(template: template, zone: hidden_zone).save!
+
+        index = client.get("#{base}?control_system_id=#{sys.id}", headers: headers)
+        index.status_code.should eq 200
+        Array(Hash(String, JSON::Any)).from_json(index.body).map(&.["id"].as_s).sort!.should eq [on_sys.id.to_s, on_viewable.id.to_s].sort!
       end
 
       it "hydrates entries" do

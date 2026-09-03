@@ -193,11 +193,13 @@ module PlaceOS::Api
     ###############################################################################################
 
     # list the template mappings in the current authority — what templates
-    # are applied to which displays and zones. Non-admin callers see only
-    # mappings of templates linked to groups they hold Read on.
+    # are applied to which displays and zones. Filtering by display also
+    # returns the mappings on the zones that display belongs to. Non-admin
+    # callers see only mappings of templates linked to groups they hold
+    # Read on, or applied to displays / zones they can view.
     @[AC::Route::GET("/")]
     def index(
-      @[AC::Param::Info(description: "filter to mappings applied to this display (control system id)")]
+      @[AC::Param::Info(description: "filter to mappings applied to this display (control system id), including those applied to the zones it belongs to")]
       control_system_id : String? = nil,
       @[AC::Param::Info(description: "filter to mappings applied to this zone")]
       zone_id : String? = nil,
@@ -246,7 +248,15 @@ module PlaceOS::Api
 
       # raw-SQL filters: pg-orm can't compile named-arg `where` chained
       # with the raw-SQL conditions above
-      query = query.where("control_system_id = ?", control_system_id) if control_system_id
+      if control_system_id
+        # a display shows the templates applied to it directly and those
+        # applied to any zone it belongs to (mirrors the signage player
+        # route) — the zone list is resolved in SQL, never loaded here
+        query = query.where(
+          "(control_system_id = ? OR zone_id IN (SELECT unnest(zones) FROM sys WHERE id = ?))",
+          control_system_id, control_system_id
+        )
+      end
       query = query.where("zone_id = ?", zone_id) if zone_id
       query = query.where("template_id = ?", template_id) if template_id
 
