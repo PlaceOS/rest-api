@@ -1,3 +1,5 @@
+require "digest/sha1"
+
 require "./signage/*"
 require "./application"
 
@@ -26,17 +28,12 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "is this the preview player", example: "true")]
       preview : Bool = true,
     ) : ::PlaceOS::Model::ControlSystem?
-      # grab all the playlists associated with the display and check if anything has changed
+      # grab all the playlists and templates associated with the display and
+      # fingerprint them to check if anything has changed
       system = ::PlaceOS::Model::ControlSystem.find!(system_id)
       playlist_map = system.all_playlists
-      last_updated = system.playlists_last_updated(playlist_map)
-
-      # the signage templates applied to this display or its zones
       template_mappings = signage_template_mappings(system)
-      # the latest approved template or template schedule time
-      if templates_last_updated = templates_last_updated(template_mappings)
-        last_updated = templates_last_updated if templates_last_updated > last_updated
-      end
+      etag, last_updated = signage_fingerprint(system, playlist_map, template_mappings)
 
       if !preview
         # Save last seen and currently playing item
@@ -55,7 +52,7 @@ module PlaceOS::Api
       end
 
       # continue processing the request if the client has stale data
-      if stale?(last_modified: last_updated)
+      if stale?(etag: etag, last_modified: last_updated)
         playlist_ids = playlist_map.values.flatten.uniq!
 
         # get the playlist configuration (default timeouts etc) and media lists (latest revisions)
@@ -230,18 +227,73 @@ module PlaceOS::Api
       depths
     end
 
-    # the most recent change to an applied template or its schedule
-    private def templates_last_updated(mappings : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)) : Time?
-      return nil if mappings.empty?
+    # (id, updated_at, flag) of every row feeding the display payload, in a
+    # single query, so the fingerprint is computed before any content is
+    # fetched. Plugins are global as the ones in use are only known once the
+    # media and templates have been loaded (the table is tiny)
+    FINGERPRINT_SQL = <<-SQL
+      SELECT 'playlist', id, updated_at, true FROM playlists WHERE id = ANY($1)
+      UNION ALL
+      SELECT 'revision', id, updated_at, approved FROM (
+        SELECT DISTINCT ON (playlist_id) id, updated_at, approved
+        FROM playlist_revisions
+        WHERE playlist_id = ANY($1)
+        ORDER BY playlist_id, created_at DESC
+      ) latest
+      UNION ALL
+      SELECT 'zone', id, updated_at, true FROM zone WHERE id = ANY($2)
+      UNION ALL
+      SELECT 'template', id::text, updated_at, approved FROM signage_template WHERE id = ANY($3::uuid[])
+      UNION ALL
+      SELECT 'plugin', id, updated_at, enabled FROM signage_plugin
+      ORDER BY 1, 2
+      SQL
 
-      times = mappings.compact_map(&.updated_at)
-      template_ids = mappings.map(&.template_id).uniq!
-      template_updated = ::PlaceOS::Model::SignageTemplate
-        .where(id: template_ids)
-        .order(updated_at: :desc)
-        .limit(1).to_a.first?.try(&.updated_at)
-      times << template_updated if template_updated
-      times.max?
+    # Cheap change detection for the display payload. Every record the
+    # response is built from contributes its id and updated_at, so an edit
+    # moves a timestamp and a removal drops a row: either changes the ETag,
+    # which a max(updated_at) check can't see. Media items are covered
+    # indirectly, editing or deleting one bumps the playlists and templates
+    # referencing it. Last-Modified is the newest of the same timestamps.
+    private def signage_fingerprint(
+      system : ::PlaceOS::Model::ControlSystem,
+      playlist_map : Hash(String, Array(String)),
+      template_mappings : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate),
+    ) : Tuple(String, Time)
+      playlist_ids = playlist_map.values.flatten.uniq!
+      template_ids = template_mappings.map(&.template_id.to_s).uniq!
+
+      digest = Digest::SHA1.new
+      # serialisation changes between releases must not be masked by a cached ETag
+      digest << VERSION
+
+      last_updated = system.updated_at
+      digest << system.id.as(String) << last_updated.to_unix_ns.to_s
+
+      # what is assigned where, including the trigger instance sources
+      playlist_map.keys.sort!.each do |source|
+        digest << source << playlist_map[source].join(",")
+      end
+
+      template_mappings.sort_by!(&.id.to_s).each do |mapping|
+        updated = mapping.updated_at
+        last_updated = updated if updated > last_updated
+        digest << mapping.id.to_s << mapping.template_id.to_s << updated.to_unix_ns.to_s
+      end
+
+      ::PgORM::Database.connection do |db|
+        db.query_each(FINGERPRINT_SQL, args: [playlist_ids, system.zones, template_ids]) do |rs|
+          kind = rs.read(String)
+          id = rs.read(String)
+          updated = rs.read(Time)
+          flag = rs.read(Bool)
+          last_updated = updated if updated > last_updated
+          digest << kind << id << updated.to_unix_ns.to_s << (flag ? "1" : "0")
+        end
+      end
+
+      etag = %("#{digest.final.hexstring}")
+      {etag, last_updated}
     end
 
     struct Metrics

@@ -10,6 +10,7 @@ module PlaceOS::Api
       Model::Playlist::Revision.clear
       Model::Playlist::Item.clear
       Model::Playlist.clear
+      Model::TriggerInstance.clear
       Model::ControlSystem.clear
     end
 
@@ -366,6 +367,141 @@ module PlaceOS::Api
         result.status_code.should eq 200
         Time::Format::HTTP_DATE.parse(result.headers["Last-Modified"]).should be > last_modified
         JSON.parse(result.body)["playlist_media"].as_a.map(&.["id"].as_s).should_not contain playlist_item_id
+      end
+
+      it "busts the cache when a zone's playlists change" do
+        revision = Model::Generator.revision
+        item = Model::Generator.item.save!
+        revision.items = [item.id.as(String)]
+        revision.approved = true
+        revision.save!
+        playlist_id = revision.playlist_id.as(String)
+
+        zone = Model::Generator.zone
+        zone.playlists = [playlist_id]
+        zone.save!
+        zone_id = zone.id.as(String)
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.zones = [zone_id]
+        system.save!
+        system_id = system.id.as(String)
+
+        headers = Spec::Authentication.headers
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["playlist_mappings"].should eq({system_id => [] of String, zone_id => [playlist_id]})
+        last_modified = Time::Format::HTTP_DATE.parse(result.headers["Last-Modified"])
+
+        headers["If-Modified-Since"] = result.headers["Last-Modified"]
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers).status_code.should eq 304
+
+        # skip forward a moment (Last-Modified has second granularity)
+        sleep 1.seconds
+
+        # removing the playlist from the zone only moves the zone row
+        zone.playlists = [] of String
+        zone.save!
+
+        result = client.get(path: "#{Signage.base_route}/#{system_id}", headers: headers)
+        result.status_code.should eq 200
+        Time::Format::HTTP_DATE.parse(result.headers["Last-Modified"]).should be > last_modified
+        JSON.parse(result.body)["playlist_mappings"].should eq({system_id => [] of String})
+      end
+
+      it "busts the ETag on removals, plugin edits and back-to-back changes" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+
+        revision = Model::Generator.revision
+        item = Model::Generator.item(authority: authority).save!
+        revision.items = [item.id.as(String)]
+        revision.approved = true
+        revision.save!
+        playlist = revision.playlist.as(Model::Playlist)
+        playlist_id = playlist.id.as(String)
+
+        trigger_playlist = Model::Generator.playlist(authority: authority).save!
+        trigger_playlist_id = trigger_playlist.id.as(String)
+
+        widget = Model::Generator.widget_plugin(authority: authority).save!
+        layout = Model::SignageTemplate::Layout.new(
+          position: Model::SignageTemplate::Layout::Position::Top,
+          plugin_id: widget.id.as(String),
+          y_pos: 0.2_f32,
+        )
+        template = Model::Generator.signage_template(authority: authority, layouts: [layout])
+        template.approved = true
+        template.save!
+
+        system = Model::Generator.control_system
+        system.signage = true
+        system.playlists = [playlist_id]
+        system.save!
+        system_id = system.id.as(String)
+
+        mapping = Model::Generator.system_template(template: template, control_system: system).save!
+
+        trigger_instance = Model::Generator.trigger_instance(control_system: system)
+        trigger_instance.playlists = [trigger_playlist_id]
+        trigger_instance.save!
+        trigger_instance_id = trigger_instance.id.as(String)
+
+        path = "#{Signage.base_route}/#{system_id}"
+        headers = Spec::Authentication.headers
+
+        # fetch the current payload, then assert a conditional request is a 304
+        # (nothing changed) and returns the payload again after `change` runs
+        expect_bust = ->(change : Proc(Nil)) : JSON::Any {
+          result = client.get(path: path, headers: headers)
+          result.status_code.should eq 200
+          etag = result.headers["ETag"]
+          etag.should start_with %(")
+
+          cached = headers.dup
+          cached["If-None-Match"] = etag
+          client.get(path: path, headers: cached).status_code.should eq 304
+
+          change.call
+
+          result = client.get(path: path, headers: cached)
+          result.status_code.should eq 200
+          result.headers["ETag"].should_not eq etag
+          JSON.parse(result.body)
+        }
+
+        # no sleeps: changes land inside the same second as the previous
+        # fetch, which Last-Modified alone cannot distinguish
+
+        # clearing a trigger instance's playlists
+        json = expect_bust.call(-> {
+          trigger_instance.playlists = [] of String
+          trigger_instance.save!
+        })
+        json["playlist_mappings"].as_h.keys.should_not contain trigger_instance_id
+
+        # re-assigning them, then deleting the trigger instance
+        expect_bust.call(-> {
+          trigger_instance.playlists = [trigger_playlist_id]
+          trigger_instance.save!
+        })["playlist_mappings"][trigger_instance_id].should eq [trigger_playlist_id]
+        json = expect_bust.call(-> { trigger_instance.destroy })
+        json["playlist_mappings"].as_h.keys.should_not contain trigger_instance_id
+
+        # editing a plugin used by a template widget
+        json = expect_bust.call(-> {
+          widget.uri = "https://example.com/widget-v2.js"
+          widget.save!
+        })
+        json["signage_plugins"].as_a.find! { |plugin| plugin["id"].as_s == widget.id.as(String) }["uri"].as_s.should eq "https://example.com/widget-v2.js"
+
+        # removing the template mapping
+        json = expect_bust.call(-> { mapping.destroy })
+        json["template_schedules"].as_a.should be_empty
+
+        # deleting a playlist that is still assigned to the display
+        json = expect_bust.call(-> { playlist.destroy })
+        json["playlist_config"].as_h.keys.should_not contain playlist_id
       end
 
       it "POST /api/engine/v2/signage/:system_id/metrics" do
