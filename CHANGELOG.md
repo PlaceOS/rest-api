@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: change param that saves analytics
 - **signage/template_mappings**: to return zone mappings when a display specified
 - **signage**: improve caching
 - **signage/playlist_media**: tag management
