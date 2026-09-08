@@ -26,7 +26,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "currently playing item, if the player is playing content", example: "playlist_items-1234")]
       item_id : String? = nil,
       @[AC::Param::Info(description: "is this the preview player", example: "true")]
-      preview : Bool = true,
+      preview : Bool? = nil,
     ) : ::PlaceOS::Model::ControlSystem?
       # grab all the playlists and templates associated with the display and
       # fingerprint them to check if anything has changed
@@ -35,7 +35,9 @@ module PlaceOS::Api
       template_mappings = signage_template_mappings(system)
       etag, last_updated = signage_fingerprint(system, playlist_map, template_mappings)
 
-      if !preview
+      # on the player, `?debug=` sets preview - considered production if this
+      # is not configured at all.
+      if preview.nil?
         # Save last seen and currently playing item
         item_id = item_id.presence
         if item_id
