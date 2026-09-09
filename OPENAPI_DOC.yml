@@ -34805,7 +34805,6 @@ paths:
         example: "true"
         schema:
           type: boolean
-          nullable: true
       responses:
         200:
           description: OK
