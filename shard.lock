@@ -203,7 +203,7 @@ shards:
 
   placeos-core:
     git: https://github.com/placeos/core.git
-    version: 4.21.0+git.commit.329f50f04eb8e537bb962a75014167f72d5b2e60
+    version: 4.21.0+git.commit.96761e80f6208eb9d5b04f1dc8d5004092690636
 
   placeos-core-client: # Overridden
     git: https://github.com/placeos/core-client.git
@@ -215,7 +215,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.76d3bad23f191e12d146748608f33d81a7c71328
+    version: 2.7.1+git.commit.d5c28096c2692ed4181a40e99f3ab1804a69ef02
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
@@ -223,7 +223,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.109.0
+    version: 9.109.1
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git
