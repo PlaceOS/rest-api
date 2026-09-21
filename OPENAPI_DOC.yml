@@ -45317,6 +45317,10 @@ components:
                         type: integer
                         format: Int64
                         nullable: true
+                      valid_from:
+                        type: integer
+                        format: Int64
+                        nullable: true
                       play_takeover:
                         type: boolean
                       play_period:
@@ -45324,6 +45328,9 @@ components:
                         format: Int32
                       play_cron:
                         type: string
+                      mask:
+                        type: string
+                        nullable: true
                     required:
                     - play_takeover
                     - play_period
@@ -45532,6 +45539,10 @@ components:
                     type: integer
                     format: Int64
                     nullable: true
+                  valid_from:
+                    type: integer
+                    format: Int64
+                    nullable: true
                   play_takeover:
                     type: boolean
                   play_period:
@@ -45539,6 +45550,9 @@ components:
                     format: Int32
                   play_cron:
                     type: string
+                  mask:
+                    type: string
+                    nullable: true
                 required:
                 - play_takeover
                 - play_period
@@ -48711,6 +48725,10 @@ components:
                 type: integer
                 format: Int64
                 nullable: true
+              valid_from:
+                type: integer
+                format: Int64
+                nullable: true
               play_takeover:
                 type: boolean
               play_period:
@@ -48718,6 +48736,9 @@ components:
                 format: Int32
               play_cron:
                 type: string
+              mask:
+                type: string
+                nullable: true
             required:
             - play_takeover
             - play_period
@@ -48809,6 +48830,10 @@ components:
                 type: integer
                 format: Int64
                 nullable: true
+              valid_from:
+                type: integer
+                format: Int64
+                nullable: true
               play_takeover:
                 type: boolean
               play_period:
@@ -48816,6 +48841,9 @@ components:
                 format: Int32
               play_cron:
                 type: string
+              mask:
+                type: string
+                nullable: true
             required:
             - play_takeover
             - play_period
@@ -48932,6 +48960,10 @@ components:
               type: integer
               format: Int64
               nullable: true
+            valid_from:
+              type: integer
+              format: Int64
+              nullable: true
             play_takeover:
               type: boolean
             play_period:
@@ -48939,6 +48971,9 @@ components:
               format: Int32
             play_cron:
               type: string
+            mask:
+              type: string
+              nullable: true
           required:
           - play_takeover
           - play_period
@@ -49010,6 +49045,9 @@ components:
             - plugin_params
           nullable: true
         full_screen_takeover:
+          type: boolean
+          nullable: true
+        merge:
           type: boolean
           nullable: true
         approval_requested:
@@ -50073,6 +50111,10 @@ components:
                         type: integer
                         format: Int64
                         nullable: true
+                      valid_from:
+                        type: integer
+                        format: Int64
+                        nullable: true
                       play_takeover:
                         type: boolean
                       play_period:
@@ -50080,6 +50122,9 @@ components:
                         format: Int32
                       play_cron:
                         type: string
+                      mask:
+                        type: string
+                        nullable: true
                     required:
                     - play_takeover
                     - play_period
@@ -50288,6 +50333,10 @@ components:
                     type: integer
                     format: Int64
                     nullable: true
+                  valid_from:
+                    type: integer
+                    format: Int64
+                    nullable: true
                   play_takeover:
                     type: boolean
                   play_period:
@@ -50295,6 +50344,9 @@ components:
                     format: Int32
                   play_cron:
                     type: string
+                  mask:
+                    type: string
+                    nullable: true
                 required:
                 - play_takeover
                 - play_period
@@ -53074,6 +53126,10 @@ components:
                             type: integer
                             format: Int64
                             nullable: true
+                          valid_from:
+                            type: integer
+                            format: Int64
+                            nullable: true
                           play_takeover:
                             type: boolean
                           play_period:
@@ -53081,6 +53137,9 @@ components:
                             format: Int32
                           play_cron:
                             type: string
+                          mask:
+                            type: string
+                            nullable: true
                         required:
                         - play_takeover
                         - play_period
@@ -53289,6 +53348,10 @@ components:
                         type: integer
                         format: Int64
                         nullable: true
+                      valid_from:
+                        type: integer
+                        format: Int64
+                        nullable: true
                       play_takeover:
                         type: boolean
                       play_period:
@@ -53296,6 +53359,9 @@ components:
                         format: Int32
                       play_cron:
                         type: string
+                      mask:
+                        type: string
+                        nullable: true
                     required:
                     - play_takeover
                     - play_period
