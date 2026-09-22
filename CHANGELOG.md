@@ -132,6 +132,7 @@
 
 ### Fix
 
+- **docker-compose**: pull MinIO images from quay.io
 - **groups**: zone grants no longer flow to child groups
 - **subsystem**: fixes for support subsystem access
 - **signage/playlist_media**: bust signage caches on updates
