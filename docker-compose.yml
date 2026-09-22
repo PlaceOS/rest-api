@@ -128,7 +128,7 @@ services:
       <<: *s3-client-env
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     volumes:
       - s3:/data
     ports:
@@ -141,7 +141,7 @@ services:
     command: server /data --console-address ":9090"
 
   testbucket:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     depends_on:
       - minio
     environment:
