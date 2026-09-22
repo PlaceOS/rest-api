@@ -626,7 +626,7 @@ module PlaceOS::Api
     end
 
     describe "last seen tracking" do
-      it "does not record a last seen time for preview players (default)" do
+      it "does not record a last seen time for preview players" do
         system = Model::Generator.control_system
         system.signage = true
         system.save!
@@ -635,11 +635,25 @@ module PlaceOS::Api
         system.reload!
         initial_time = system.signage_last_seen
 
-        client.get(path: "#{Signage.base_route}/#{system_id}", headers: Spec::Authentication.headers).status_code.should eq 200
+        client.get(path: "#{Signage.base_route}/#{system_id}?preview=true", headers: Spec::Authentication.headers).status_code.should eq 200
 
         system.reload!
         system.signage_last_seen.should eq initial_time
         system.playlist_item_id.should be_nil
+      end
+
+      it "treats players without a preview param as production (default)" do
+        system = Model::Generator.control_system
+        system.signage = true
+        system.save!
+        system_id = system.id.as(String)
+        initial_time = system.signage_last_seen
+
+        client.get(path: "#{Signage.base_route}/#{system_id}", headers: Spec::Authentication.headers).status_code.should eq 200
+
+        system.reload!
+        system.signage_last_seen.should_not eq initial_time
+        (Time.utc - system.signage_last_seen).should be < 30.seconds
       end
 
       it "records the last seen time for production players without a current item" do
