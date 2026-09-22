@@ -14,6 +14,11 @@ module PlaceOS::Api
   # via the group tree's replace semantics (closest explicit ancestor
   # GroupUser entry wins). A Manage grant on a group implicitly covers
   # that group's descendants.
+  #
+  # Zone grants do not flow the same way: a `GroupZone` row only applies to
+  # members of its owning group (or an ancestor of it), so a member of a
+  # child group never inherits the parent group's zones. That resolution
+  # lives in `Group.resolve_subsystem_permissions` (placeos-models).
   module Utils::GroupPermissions
     # Per-request memo caches. Controllers are per-request `ActionController::Base`
     # instances, so these are request-scoped and cannot serve stale authz (gates

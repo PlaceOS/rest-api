@@ -63,5 +63,27 @@ module PlaceOS::Api
       result = client.post(base, body: payload, headers: manager_headers)
       result.status_code.should eq 403
     end
+
+    it "child group manager cannot delegate a zone granted only on the parent group" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+      manager, manager_headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+      parent_group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+      child_group = Model::Generator.group(authority: authority, parent: parent_group, subsystems: ["signage"]).save!
+      grandchild_group = Model::Generator.group(authority: authority, parent: child_group, subsystems: ["signage"]).save!
+      # Manage sits on the child only; the zone is granted on the parent's rows.
+      Model::Generator.group_user(user: manager, group: child_group, permissions: Model::Permissions::Manage).save!
+
+      zone = Model::Generator.zone.save!
+      Model::Generator.group_zone(group: parent_group, zone: zone, permissions: Model::Permissions::All).save!
+
+      payload = {
+        group_id:    grandchild_group.id,
+        zone_id:     zone.id,
+        permissions: Model::Permissions::Read.to_i,
+      }.to_json
+      result = client.post(base, body: payload, headers: manager_headers)
+      result.status_code.should eq 403
+    end
   end
 end

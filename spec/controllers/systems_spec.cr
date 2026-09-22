@@ -1321,6 +1321,63 @@ module PlaceOS::Api
         result.status_code.should eq 403
       end
 
+      describe "grants owned by a parent group" do
+        # region -> building; the signage display sits in `building`. The
+        # parent group grants All on `region`; the child group holds a
+        # zero-mask row on `building` (as seen in production).
+        setup = ->(member_of_parent : Bool) do
+          authority = Model::Authority.find_by_domain("localhost").not_nil!
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+          region = Model::Generator.zone.save!
+          building = Model::Generator.zone
+          building.parent_id = region.id
+          building.save!
+
+          parent_group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+          child_group = Model::Generator.group(authority: authority, parent: parent_group, subsystems: ["signage"]).save!
+          Model::Generator.group_zone(group: parent_group, zone: region, permissions: Model::Permissions::All).save!
+          Model::Generator.group_zone(group: child_group, zone: building, permissions: Model::Permissions::None).save!
+
+          member_group = member_of_parent ? parent_group : child_group
+          Model::Generator.group_user(user: user, group: member_group, permissions: Model::Permissions::All).save!
+
+          cs = Model::Generator.control_system
+          cs.signage = true
+          cs.save!
+          cs.zones = [region.id.as(String), building.id.as(String)]
+          cs.save!
+
+          {cs, headers}
+        end
+
+        it "PATCH rejected for a child group member when only the parent grants the zone" do
+          cs, headers = setup.call(false)
+
+          result = client.patch(
+            path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+            body: {description: "should fail"}.to_json,
+            headers: headers,
+          )
+          result.status_code.should eq 403
+          cs.reload!
+          cs.description.should_not eq "should fail"
+        end
+
+        it "PATCH allowed for a member of the owner group on a system below the granted zone" do
+          cs, headers = setup.call(true)
+
+          result = client.patch(
+            path: "#{Systems.base_route}#{cs.id}?version=#{cs.version}",
+            body: {description: "renamed via parent grant"}.to_json,
+            headers: headers,
+          )
+          result.success?.should be_true
+          cs.reload!
+          cs.description.should eq "renamed via parent grant"
+        end
+      end
+
       it "POST allowed for 'support' subsystem with Create perm on the proposed zone" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

@@ -10,7 +10,9 @@ Signage routes use two different mechanisms. It matters which one applies:
 
 1. **Zone-scoped subsystem grants.** The user's `GroupUser.permissions` are
    AND-ed with a `GroupZone` grant, considering only groups whose `subsystems`
-   includes `"signage"`. `GroupZone` rows cover the zone subtree. `Manage`
+   includes `"signage"`. `GroupZone` rows cover the zone subtree, and only
+   for members of the owning group (or an ancestor group) — a child group
+   does not inherit its parent's zone grants. `Manage`
    satisfies every zone check. Used by `zones.cr`, `systems.cr` and the read
    path of `template_mappings.cr`. Semantics are the same as the `support`
    subsystem (see `support.md`).

@@ -16,6 +16,10 @@ A user's effective permissions on a zone within a subsystem are computed by
 - A `GroupZone` on a zone covers that zone's whole subtree, unless a
   more-specific row (or a `deny` row) for the same group sits below it.
 - Membership of an ancestor group counts (closest explicit `GroupUser` wins).
+- A group only grants the zones on its own `GroupZone` rows. The grant applies
+  to members of the owning group or one of its ancestors (at the owner's
+  effective membership level), at the anchor zone and throughout its subtree.
+  Members of a *descendant* group do not inherit a parent group's grants.
 - `Manage` satisfies every zone-scoped check (`subsystem_grants_on_zones?`).
 
 Common gate behaviour:
