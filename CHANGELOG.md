@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **groups**: add feature flag support
 - **signage**: change param that saves analytics
 - **signage**: change param that saves analytics
 - **signage/template_mappings**: to return zone mappings when a display specified
