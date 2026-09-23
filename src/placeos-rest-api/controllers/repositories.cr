@@ -10,7 +10,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show, :branches, :commits]
+    before_action :can_read, only: [:index, :show, :branches, :commits, :files]
     before_action :can_write, only: [:create, :update, :destroy, :remove] # brances, commits?
 
     before_action :check_admin, except: [:index, :show]
@@ -29,6 +29,13 @@ module PlaceOS::Api
     private def drivers_only
       unless current_repo.repo_type.driver?
         render_error(:bad_request, "not a driver repository")
+      end
+    end
+
+    @[AC::Route::Filter(:before_action, only: [:files])]
+    private def interfaces_only
+      unless current_repo.repo_type.interface?
+        render_error(:bad_request, "not an interface repository")
       end
     end
 
@@ -132,6 +139,42 @@ module PlaceOS::Api
       FrontendLoader::Client.client(request_id: request_id) do |frontends_client|
         password = current_repo.decrypt_password if current_repo.password.presence
         frontends_client.folders(current_repo.uri, current_repo.branch, current_repo.username, password, include_dots)
+      end
+    end
+
+    # lists the files in an interface repository that match a glob pattern.
+    # Paths are returned relative to where they are served, i.e. `/<folder_name>/path/to/file.html`
+    @[AC::Route::GET("/:id/files")]
+    def files(
+      @[AC::Param::Info(description: "glob pattern. Without a `/` it matches file names at any depth, otherwise the full path (use `**` to recurse)", example: "*.html")]
+      pattern : String = "*",
+    ) : Array(String)
+      repo = current_repo
+      password = repo.decrypt_password if repo.password.presence
+      ref = repo.deployed_commit_hash.presence || (repo.commit_hash unless repo.commit_hash == "HEAD")
+      root = repo.root_path.try(&.strip('/')).presence
+
+      file_list = GitRepository.new(repo.uri, repo.username, password).file_list(
+        ref: ref,
+        branch: repo.branch,
+        path: root ? "#{root}/" : nil,
+      )
+      Repositories.match_files(file_list, pattern, repo.folder_name, root)
+    end
+
+    # filters a repository file list by a glob pattern, returning the matches joined to the folder they are served from
+    def self.match_files(files : Array(String), pattern : String, folder_name : String, root_path : String? = nil) : Array(String)
+      pattern = pattern.lstrip('/')
+      match_path = pattern.includes?('/')
+      root = root_path.try(&.strip('/')).presence
+      prefix = "#{root}/" if root
+
+      files.compact_map do |file|
+        if prefix
+          next unless file.starts_with?(prefix)
+          file = file.lchop(prefix)
+        end
+        File.join("/", folder_name, file) if File.match?(pattern, match_path ? file : File.basename(file))
       end
     end
 

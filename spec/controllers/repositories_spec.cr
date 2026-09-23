@@ -110,6 +110,94 @@ module PlaceOS::Api
       end
     end
 
+    describe "files" do
+      describe ".match_files" do
+        files = [
+          "index.html",
+          "README.md",
+          "result/folder/file.html",
+          "result/folder/file.htm",
+          "dist/app.html",
+          "dist/nested/page.html",
+          "dist/app.js",
+        ]
+
+        it "matches file names at any depth when the pattern has no slash" do
+          Repositories.match_files(files, "*.html", "plugins").should eq [
+            "/plugins/index.html",
+            "/plugins/result/folder/file.html",
+            "/plugins/dist/app.html",
+            "/plugins/dist/nested/page.html",
+          ]
+        end
+
+        it "matches the full path when the pattern has a slash" do
+          Repositories.match_files(files, "dist/*.html", "plugins").should eq ["/plugins/dist/app.html"]
+          Repositories.match_files(files, "/dist/**/*.html", "plugins").should eq [
+            "/plugins/dist/app.html",
+            "/plugins/dist/nested/page.html",
+          ]
+        end
+
+        it "only lists files under the root path, relative to it" do
+          Repositories.match_files(files, "*.html", "plugins", "/dist/").should eq [
+            "/plugins/app.html",
+            "/plugins/nested/page.html",
+          ]
+        end
+
+        it "returns an empty array when nothing matches" do
+          Repositories.match_files(files, "*.css", "plugins").should be_empty
+        end
+      end
+
+      it "errors if listing files in a driver repo" do
+        repo = Model::Generator.repository(type: Model::Repository::Type::Driver).save!
+        result = client.get(
+          path: File.join(Repositories.base_route, "#{repo.id}/files?pattern=*.cr"),
+          headers: Spec::Authentication.headers,
+        )
+        result.status.should eq HTTP::Status::BAD_REQUEST
+      end
+
+      it "lists matching files in an interface repo, joined to the folder name" do
+        repo = Model::Generator.repository(type: Model::Repository::Type::Interface)
+        repo.uri = "https://github.com/PlaceOS/drivers"
+        repo.branch = "master"
+        repo.folder_name = "plugins-#{random_id}"
+        repo.save!
+
+        result = client.get(
+          path: File.join(Repositories.base_route, "#{repo.id}/files?pattern=*_readme.md"),
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 200
+
+        files = Array(String).from_json(result.body)
+        files.should contain "/#{repo.folder_name}/drivers/place/auto_release_readme.md"
+        files.all? { |file| file.starts_with?("/#{repo.folder_name}/") && file.ends_with?("_readme.md") }.should be_true
+      end
+
+      it "lists files relative to the root path" do
+        repo = Model::Generator.repository(type: Model::Repository::Type::Interface)
+        repo.uri = "https://github.com/PlaceOS/drivers"
+        repo.branch = "master"
+        repo.folder_name = "plugins-#{random_id}"
+        repo.root_path = "drivers/place"
+        repo.save!
+
+        result = client.get(
+          path: File.join(Repositories.base_route, "#{repo.id}/files?pattern=auto_release*"),
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 200
+
+        files = Array(String).from_json(result.body)
+        files.should contain "/#{repo.folder_name}/auto_release_readme.md"
+        files.should contain "/#{repo.folder_name}/auto_release.cr"
+      end
+    end
+
     describe "scopes" do
       Spec.test_controller_scope(Repositories)
       Spec.test_update_write_scope(Repositories)
