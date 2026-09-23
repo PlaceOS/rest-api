@@ -12,7 +12,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show, :current]
+    before_action :can_read, only: [:index, :show, :current, :features]
     before_action :can_write, only: [:create, :update, :destroy]
 
     # Response helpers
@@ -42,7 +42,7 @@ module PlaceOS::Api
     # Permission gates
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, only: [:show])]
+    @[AC::Route::Filter(:before_action, only: [:show, :features])]
     def check_show_permissions
       return if user_admin?
       ensure_member!(current_user, current_group)
@@ -67,6 +67,14 @@ module PlaceOS::Api
       if new_parent_id && new_parent_id != current_group.parent_id
         new_parent = ::PlaceOS::Model::Group.find!(new_parent_id)
         ensure_manage!(current_user, new_parent)
+      end
+      # Features are granted from above: managing a group isn't enough to
+      # change its own features, or a manager could switch on something the
+      # parent withheld. Needs Manage on the parent (sys_admin for a root).
+      if group_update.features_present? && group_update.features != current_group.features
+        parent_id = current_group.parent_id
+        raise Error::Forbidden.new("only sys_admin may change a root group's features") if parent_id.nil?
+        ensure_manage!(current_user, ::PlaceOS::Model::Group.find!(parent_id))
       end
     end
 
@@ -160,7 +168,21 @@ module PlaceOS::Api
       current_group
     end
 
-    # Update the group (name / description / parent).
+    # Effective feature flags for this group.
+    # The group's own `features` merged over every ancestor's, per subsystem,
+    # with the deepest group winning each key. Shape: `{subsystem => {key => value}}`.
+    @[AC::Route::GET("/:id/features")]
+    def features(
+      @[AC::Param::Info(description: "only return this subsystem's features", example: "signage")]
+      subsystem : String? = nil,
+    ) : Hash(String, Hash(String, JSON::Any))
+      effective = current_group.effective_features
+      return effective unless subsystem
+      {subsystem => effective[subsystem]? || {} of String => JSON::Any}
+    end
+
+    # Update the group (name / description / parent / features).
+    # Changing `features` requires Manage on the parent group.
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
     def update : ::PlaceOS::Model::Group

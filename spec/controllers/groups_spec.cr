@@ -139,5 +139,107 @@ module PlaceOS::Api
       ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
       ids.sort!.should eq [mine.id.to_s, child.id.to_s].sort!
     end
+
+    describe "features" do
+      feature_json = ->(json : String) { Hash(String, Hash(String, JSON::Any)).from_json(json) }
+
+      it "returns the effective features merged down from the root" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        root = Model::Generator.group(authority: authority, subsystems: ["signage", "events"],
+          features: feature_json.call(%({"signage": {"ai": true, "templates": true}, "events": {"catering": true}}))).save!
+        child = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"],
+          features: feature_json.call(%({"signage": {"ai": false}}))).save!
+        Model::Generator.group_user(user: user, group: child, permissions: Model::Permissions::Read).save!
+
+        result = client.get(File.join(base, child.id.to_s, "features"), headers: headers)
+        result.status_code.should eq 200
+        body = Hash(String, Hash(String, JSON::Any)).from_json(result.body)
+        body["signage"]["ai"].as_bool.should be_false
+        body["signage"]["templates"].as_bool.should be_true
+        body["events"]["catering"].as_bool.should be_true
+      end
+
+      it "?subsystem= returns only that subsystem" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        root = Model::Generator.group(authority: authority, subsystems: ["signage", "events"],
+          features: feature_json.call(%({"signage": {"ai": true}, "events": {"catering": true}}))).save!
+
+        result = client.get(File.join(base, root.id.to_s, "features?subsystem=signage"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        body = Hash(String, Hash(String, JSON::Any)).from_json(result.body)
+        body.keys.should eq ["signage"]
+        body["signage"]["ai"].as_bool.should be_true
+
+        unknown = client.get(File.join(base, root.id.to_s, "features?subsystem=parking"), headers: Spec::Authentication.headers)
+        Hash(String, Hash(String, JSON::Any)).from_json(unknown.body).should eq({"parking" => {} of String => JSON::Any})
+      end
+
+      it "is forbidden to non-members" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        root = Model::Generator.group(authority: authority).save!
+
+        result = client.get(File.join(base, root.id.to_s, "features"), headers: headers)
+        result.status_code.should eq 403
+      end
+
+      it "a manager of only the group itself can't change its features, but can edit other fields" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        root = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        child = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"],
+          features: feature_json.call(%({"signage": {"ai": false}}))).save!
+        Model::Generator.group_user(user: user, group: child, permissions: Model::Permissions::Manage).save!
+
+        path = File.join(base, child.id.to_s)
+        forbidden = client.patch(path, body: {features: {signage: {ai: true}}}.to_json, headers: headers)
+        forbidden.status_code.should eq 403
+
+        # Omitting features (or resending them unchanged) is fine and preserves them
+        renamed = client.patch(path, body: {name: "renamed"}.to_json, headers: headers)
+        renamed.status_code.should eq 200
+        unchanged = client.patch(path, body: {features: {signage: {ai: false}}}.to_json, headers: headers)
+        unchanged.status_code.should eq 200
+
+        reloaded = Model::Group.find!(child.id.not_nil!)
+        reloaded.name.should eq "renamed"
+        reloaded.features["signage"]["ai"].as_bool.should be_false
+      end
+
+      it "a manager of the parent can change a child's features" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        root = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        child = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: root, permissions: Model::Permissions::Manage).save!
+
+        result = client.patch(File.join(base, child.id.to_s), body: {features: {signage: {ai: true}}}.to_json, headers: headers)
+        result.status_code.should eq 200
+        Model::Group.find!(child.id.not_nil!).features["signage"]["ai"].as_bool.should be_true
+      end
+
+      it "only sys_admin can change a root group's features" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        root = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: root, permissions: Model::Permissions::Manage).save!
+
+        path = File.join(base, root.id.to_s)
+        payload = {features: {signage: {ai: true}}}.to_json
+        client.patch(path, body: payload, headers: headers).status_code.should eq 403
+        client.patch(path, body: payload, headers: Spec::Authentication.headers).status_code.should eq 200
+        Model::Group.find!(root.id.not_nil!).features["signage"]["ai"].as_bool.should be_true
+      end
+
+      it "rejects features for a subsystem the group doesn't participate in" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        root = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+
+        result = client.patch(File.join(base, root.id.to_s), body: {features: {events: {catering: true}}}.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 422
+      end
+    end
   end
 end

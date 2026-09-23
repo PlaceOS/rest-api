@@ -17642,7 +17642,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     put:
-      summary: Update the group (name / description / parent).
+      summary: Update the group (name / description / parent / features).
+      description: 'Update the group (name / description / parent / features).
+
+        Changing `features` requires Manage on the parent group.'
       tags:
       - Groups
       operationId: PlaceOS::Api::Groups_update
@@ -17838,7 +17841,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     patch:
-      summary: Update the group (name / description / parent).
+      summary: Update the group (name / description / parent / features).
+      description: 'Update the group (name / description / parent / features).
+
+        Changing `features` requires Manage on the parent group.'
       tags:
       - Groups
       operationId: PlaceOS::Api::Groups_update{2}
@@ -17862,6 +17868,116 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Model__Group'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/groups/{id}/features:
+    get:
+      summary: Effective feature flags for this group.
+      description: 'Effective feature flags for this group.
+
+        The group''s own `features` merged over every ancestor''s, per subsystem,
+
+        with the deepest group winning each key. Shape: `{subsystem => {key => value}}`.'
+      tags:
+      - Groups
+      operationId: PlaceOS::Api::Groups_features
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: subsystem
+        in: query
+        description: only return this subsystem's features
+        example: signage
+        schema:
+          type: string
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hash_String__Hash_String__JSON__Any__'
         409:
           description: Conflict
           content:
@@ -46320,6 +46436,13 @@ components:
           items:
             type: string
           nullable: true
+        features:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: object
+          nullable: true
         authority_id:
           type: string
           nullable: true
@@ -46360,6 +46483,13 @@ components:
               type: array
               items:
                 type: string
+              nullable: true
+            features:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: object
               nullable: true
             authority_id:
               type: string
@@ -46568,6 +46698,13 @@ components:
               type: array
               items:
                 type: string
+              nullable: true
+            features:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: object
               nullable: true
             authority_id:
               type: string
@@ -46821,6 +46958,13 @@ components:
               type: array
               items:
                 type: string
+              nullable: true
+            features:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: object
               nullable: true
             authority_id:
               type: string
