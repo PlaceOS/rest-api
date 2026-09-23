@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **repositories**: add file listing helper
 - **groups**: add feature flag support
 - **signage**: change param that saves analytics
 - **signage**: change param that saves analytics
