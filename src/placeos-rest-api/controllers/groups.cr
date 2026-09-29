@@ -13,7 +13,8 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :current, :features]
-    before_action :can_write, only: [:create, :update, :destroy]
+    before_action :can_write, only: [:create, :update, :destroy, :sync_ad_groups]
+    before_action :check_support, only: [:sync_ad_groups]
 
     # Response helpers
     ###############################################################################################
@@ -25,7 +26,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    @[AC::Route::Filter(:before_action, except: [:index, :create, :current])]
+    @[AC::Route::Filter(:before_action, except: [:index, :create, :current, :sync_ad_groups])]
     def find_current_group(id : UUID)
       Log.context.set(group_id: id.to_s)
       @current_group = ::PlaceOS::Model::Group.find!(id)
@@ -212,6 +213,33 @@ module PlaceOS::Api
       group = current_group
       group.acting_user = current_user
       group.destroy
+    end
+
+    struct AdGroupSync
+      include JSON::Serializable
+
+      getter user_id : String
+      getter ad_groups : Array(String)
+    end
+
+    # Sync a user's group memberships with their AD groups.
+    # Uses each group's `ad_group_mappings` to add the user to mapped groups
+    # and remove memberships that were auto-assigned from AD groups the user
+    # has left; manually added memberships are untouched. Returns the user's
+    # group memberships in the current authority. Requires support or sys_admin.
+    @[AC::Route::POST("/ad_groups/sync", body: :sync)]
+    def sync_ad_groups(sync : AdGroupSync) : Array(::PlaceOS::Model::GroupUser)
+      authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+      user = ::PlaceOS::Model::User.find?(sync.user_id)
+      raise Error::NotFound.new("user #{sync.user_id} not found") unless user && user.authority_id == authority_id
+
+      ::PlaceOS::Model::Group.add_remove_ad_groups(authority_id, sync.user_id, sync.ad_groups)
+
+      ::PlaceOS::Model::GroupUser.find_all_by_sql(<<-SQL, args: [sync.user_id.as(::PgORM::Value), authority_id.as(::PgORM::Value)])
+        SELECT gu.* FROM "group_users" gu
+        INNER JOIN "groups" g ON g.id = gu.group_id
+        WHERE gu.user_id = $1 AND g.authority_id = $2
+      SQL
     end
 
     # Groups the current user is a member of (direct or via ancestor),

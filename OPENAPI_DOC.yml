@@ -18056,6 +18056,115 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/groups/ad_groups/sync:
+    post:
+      summary: Sync a user's group memberships with their AD groups.
+      description: 'Sync a user''s group memberships with their AD groups.
+
+        Uses each group''s `ad_group_mappings` to add the user to mapped groups
+
+        and remove memberships that were auto-assigned from AD groups the user
+
+        has left; manually added memberships are untouched. Returns the user''s
+
+        group memberships in the current authority. Requires support or sys_admin.'
+      tags:
+      - Groups
+      operationId: PlaceOS::Api::Groups_sync_ad_groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__Groups__AdGroupSync'
+        required: true
+      parameters: []
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__GroupUser'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/groups/current:
     get:
       tags:
@@ -45538,6 +45647,9 @@ components:
                         type: integer
                         format: Int64
                         nullable: true
+                      play_at_local:
+                        type: string
+                        nullable: true
                       valid_until:
                         type: integer
                         format: Int64
@@ -45759,6 +45871,9 @@ components:
                   play_at:
                     type: integer
                     format: Int64
+                    nullable: true
+                  play_at_local:
+                    type: string
                     nullable: true
                   valid_until:
                     type: integer
@@ -46545,6 +46660,19 @@ components:
           items:
             type: string
           nullable: true
+        default_permissions:
+          type: integer
+          format: Int32
+          nullable: true
+        ad_group_mappings:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+            - type: string
+            - type: integer
+              format: Int32
+          nullable: true
         features:
           type: object
           additionalProperties:
@@ -46564,202 +46692,18 @@ components:
           format: Int32
           nullable: true
       required: []
-    PlaceOS__Api__Groups__CurrentGroup:
+    PlaceOS__Api__Groups__AdGroupSync:
       type: object
       properties:
-        group:
-          type: object
-          properties:
-            created_at:
-              type: string
-              format: date-time
-              nullable: true
-            updated_at:
-              type: string
-              format: date-time
-              nullable: true
-            id:
-              type: string
-              format: uuid
-              nullable: true
-            name:
-              type: string
-              nullable: true
-            description:
-              type: string
-              nullable: true
-            subsystems:
-              type: array
-              items:
-                type: string
-              nullable: true
-            features:
-              type: object
-              additionalProperties:
-                type: object
-                additionalProperties:
-                  type: object
-              nullable: true
-            authority_id:
-              type: string
-              nullable: true
-            parent_id:
-              type: string
-              format: uuid
-              nullable: true
-            children_count:
-              type: integer
-              format: Int32
-              nullable: true
-          required: []
-        permissions:
-          type: integer
-          format: Int32
-      required:
-      - group
-      - permissions
-      description: 'Groups the current user is a member of (direct or via ancestor),
-
-        within the current authority. Lightweight — returns the group
-
-        rows plus the user''s effective permission bitmask per group.'
-    PlaceOS__Model__GroupHistory:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          nullable: true
-        group_id:
-          type: string
-          format: uuid
-          nullable: true
         user_id:
           type: string
-          nullable: true
-        email:
-          type: string
-          nullable: true
-        action:
-          type: string
-          nullable: true
-        resource_type:
-          type: string
-          nullable: true
-        resource_id:
-          type: string
-          nullable: true
-        changed_fields:
+        ad_groups:
           type: array
           items:
             type: string
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-      required: []
-    PlaceOS__Model__GroupInvitation:
-      type: object
-      properties:
-        created_at:
-          type: string
-          format: date-time
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-        id:
-          type: string
-          format: uuid
-          nullable: true
-        email:
-          type: string
-          nullable: true
-        secret_digest:
-          type: string
-          nullable: true
-        permissions:
-          type: integer
-          format: Int32
-          nullable: true
-        expires_at:
-          type: string
-          format: date-time
-          nullable: true
-        group_id:
-          type: string
-          format: uuid
-          nullable: true
-      required: []
-    PlaceOS__Api__Groups__Invitations__InvitationCreatePayload:
-      type: object
-      properties:
-        group_id:
-          type: string
-        email:
-          type: string
-        permissions:
-          type: integer
-          format: Int32
-        expires_at:
-          type: string
-          format: date-time
-          nullable: true
       required:
-      - group_id
-      - email
-      - permissions
-      description: 'Create payload — the plaintext secret is generated server-side
-        and
-
-        returned *once* in the response''s `plaintext_secret` field. It is
-
-        not persisted; callers must capture it immediately.'
-    PlaceOS__Api__Groups__Invitations__InvitationCreatedResponse:
-      type: object
-      properties:
-        invitation:
-          type: object
-          properties:
-            created_at:
-              type: string
-              format: date-time
-              nullable: true
-            updated_at:
-              type: string
-              format: date-time
-              nullable: true
-            id:
-              type: string
-              format: uuid
-              nullable: true
-            email:
-              type: string
-              nullable: true
-            secret_digest:
-              type: string
-              nullable: true
-            permissions:
-              type: integer
-              format: Int32
-              nullable: true
-            expires_at:
-              type: string
-              format: date-time
-              nullable: true
-            group_id:
-              type: string
-              format: uuid
-              nullable: true
-          required: []
-        plaintext_secret:
-          type: string
-      required:
-      - invitation
-      - plaintext_secret
-      description: Response struct that exposes the plaintext secret on creation.
+      - user_id
+      - ad_groups
     PlaceOS__Model__GroupUser:
       type: object
       properties:
@@ -46782,6 +46726,9 @@ components:
           type: integer
           format: Int32
           nullable: true
+        auto_assigned:
+          type: string
+          nullable: true
         group:
           type: object
           properties:
@@ -46807,6 +46754,19 @@ components:
               type: array
               items:
                 type: string
+              nullable: true
+            default_permissions:
+              type: integer
+              format: Int32
+              nullable: true
+            ad_group_mappings:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                - type: string
+                - type: integer
+                  format: Int32
               nullable: true
             features:
               type: object
@@ -47017,6 +46977,215 @@ components:
           required: []
           nullable: true
       required: []
+    PlaceOS__Api__Groups__CurrentGroup:
+      type: object
+      properties:
+        group:
+          type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+            id:
+              type: string
+              format: uuid
+              nullable: true
+            name:
+              type: string
+              nullable: true
+            description:
+              type: string
+              nullable: true
+            subsystems:
+              type: array
+              items:
+                type: string
+              nullable: true
+            default_permissions:
+              type: integer
+              format: Int32
+              nullable: true
+            ad_group_mappings:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                - type: string
+                - type: integer
+                  format: Int32
+              nullable: true
+            features:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: object
+              nullable: true
+            authority_id:
+              type: string
+              nullable: true
+            parent_id:
+              type: string
+              format: uuid
+              nullable: true
+            children_count:
+              type: integer
+              format: Int32
+              nullable: true
+          required: []
+        permissions:
+          type: integer
+          format: Int32
+      required:
+      - group
+      - permissions
+      description: 'Groups the current user is a member of (direct or via ancestor),
+
+        within the current authority. Lightweight — returns the group
+
+        rows plus the user''s effective permission bitmask per group.'
+    PlaceOS__Model__GroupHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        group_id:
+          type: string
+          format: uuid
+          nullable: true
+        user_id:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        action:
+          type: string
+          nullable: true
+        resource_type:
+          type: string
+          nullable: true
+        resource_id:
+          type: string
+          nullable: true
+        changed_fields:
+          type: array
+          items:
+            type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: []
+    PlaceOS__Model__GroupInvitation:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        secret_digest:
+          type: string
+          nullable: true
+        permissions:
+          type: integer
+          format: Int32
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        group_id:
+          type: string
+          format: uuid
+          nullable: true
+      required: []
+    PlaceOS__Api__Groups__Invitations__InvitationCreatePayload:
+      type: object
+      properties:
+        group_id:
+          type: string
+        email:
+          type: string
+        permissions:
+          type: integer
+          format: Int32
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - group_id
+      - email
+      - permissions
+      description: 'Create payload — the plaintext secret is generated server-side
+        and
+
+        returned *once* in the response''s `plaintext_secret` field. It is
+
+        not persisted; callers must capture it immediately.'
+    PlaceOS__Api__Groups__Invitations__InvitationCreatedResponse:
+      type: object
+      properties:
+        invitation:
+          type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+            id:
+              type: string
+              format: uuid
+              nullable: true
+            email:
+              type: string
+              nullable: true
+            secret_digest:
+              type: string
+              nullable: true
+            permissions:
+              type: integer
+              format: Int32
+              nullable: true
+            expires_at:
+              type: string
+              format: date-time
+              nullable: true
+            group_id:
+              type: string
+              format: uuid
+              nullable: true
+          required: []
+        plaintext_secret:
+          type: string
+      required:
+      - invitation
+      - plaintext_secret
+      description: Response struct that exposes the plaintext secret on creation.
     PlaceOS__Model__GroupZone:
       type: object
       properties:
@@ -47067,6 +47236,19 @@ components:
               type: array
               items:
                 type: string
+              nullable: true
+            default_permissions:
+              type: integer
+              format: Int32
+              nullable: true
+            ad_group_mappings:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                - type: string
+                - type: integer
+                  format: Int32
               nullable: true
             features:
               type: object
@@ -48974,6 +49156,9 @@ components:
                 type: integer
                 format: Int64
                 nullable: true
+              play_at_local:
+                type: string
+                nullable: true
               valid_until:
                 type: integer
                 format: Int64
@@ -49078,6 +49263,9 @@ components:
               play_at:
                 type: integer
                 format: Int64
+                nullable: true
+              play_at_local:
+                type: string
                 nullable: true
               valid_until:
                 type: integer
@@ -49208,6 +49396,9 @@ components:
             play_at:
               type: integer
               format: Int64
+              nullable: true
+            play_at_local:
+              type: string
               nullable: true
             valid_until:
               type: integer
@@ -50360,6 +50551,9 @@ components:
                         type: integer
                         format: Int64
                         nullable: true
+                      play_at_local:
+                        type: string
+                        nullable: true
                       valid_until:
                         type: integer
                         format: Int64
@@ -50581,6 +50775,9 @@ components:
                   play_at:
                     type: integer
                     format: Int64
+                    nullable: true
+                  play_at_local:
+                    type: string
                     nullable: true
                   valid_until:
                     type: integer
@@ -53375,6 +53572,9 @@ components:
                             type: integer
                             format: Int64
                             nullable: true
+                          play_at_local:
+                            type: string
+                            nullable: true
                           valid_until:
                             type: integer
                             format: Int64
@@ -53596,6 +53796,9 @@ components:
                       play_at:
                         type: integer
                         format: Int64
+                        nullable: true
+                      play_at_local:
+                        type: string
                         nullable: true
                       valid_until:
                         type: integer

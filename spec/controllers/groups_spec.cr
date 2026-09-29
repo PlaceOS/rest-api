@@ -241,5 +241,92 @@ module PlaceOS::Api
         result.status_code.should eq 422
       end
     end
+
+    describe "POST /ad_groups/sync" do
+      path = File.join(base, "ad_groups/sync")
+      ad_staff = "6a1c9a4e-0000-4000-8000-000000000001"
+      ad_admins = "6a1c9a4e-0000-4000-8000-000000000002"
+
+      mapped_group = ->(authority : Model::Authority, parent : Model::Group?, ad_group : String, permissions : Model::Permissions) {
+        group = Model::Generator.group(authority: authority, parent: parent)
+        group.ad_group_mappings = {ad_group => {"AD #{ad_group}", permissions.to_i}}
+        group.save!
+      }
+
+      it "only support and sys_admin users can sync" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.user(authority).save!
+        mapped_group.call(authority, nil, ad_staff, Model::Permissions::Read)
+        payload = {user_id: target.id, ad_groups: [ad_staff]}.to_json
+
+        _, user_headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        client.post(path, body: payload, headers: user_headers).status_code.should eq 403
+        Model::GroupUser.where(user_id: target.id).to_a.should be_empty
+
+        _, support_headers = Spec::Authentication.authentication(sys_admin: false, support: true)
+        client.post(path, body: payload, headers: support_headers).status_code.should eq 200
+
+        client.post(path, body: payload, headers: Spec::Authentication.headers).status_code.should eq 200
+      end
+
+      it "adds the user to mapped groups and returns their memberships" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.user(authority).save!
+        root = mapped_group.call(authority, nil, ad_staff, Model::Permissions::Read)
+        admins = mapped_group.call(authority, root, ad_admins, Model::Permissions::Manage)
+
+        result = client.post(path, body: {user_id: target.id, ad_groups: [ad_staff, ad_admins]}.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+
+        memberships = Array(JSON::Any).from_json(result.body)
+        memberships.map(&.["group_id"].as_s).sort!.should eq [root.id.to_s, admins.id.to_s].sort!
+        memberships.map(&.["auto_assigned"].as_s).sort!.should eq [ad_staff, ad_admins].sort!
+
+        admin_membership = Model::GroupUser.find!({target.id.not_nil!, admins.id.not_nil!})
+        admin_membership.permission_flags.should eq Model::Permissions::Manage
+      end
+
+      it "removes auto-assigned memberships but keeps manual ones" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.user(authority).save!
+        root = mapped_group.call(authority, nil, ad_staff, Model::Permissions::Read)
+        admins = mapped_group.call(authority, root, ad_admins, Model::Permissions::Manage)
+        manual = Model::Generator.group(authority: authority, parent: root).save!
+        Model::Generator.group_user(user: target, group: manual, permissions: Model::Permissions::Update).save!
+
+        client.post(path, body: {user_id: target.id, ad_groups: [ad_staff, ad_admins]}.to_json, headers: Spec::Authentication.headers)
+        result = client.post(path, body: {user_id: target.id, ad_groups: [ad_staff]}.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+
+        group_ids = Array(JSON::Any).from_json(result.body).map(&.["group_id"].as_s)
+        group_ids.sort!.should eq [root.id.to_s, manual.id.to_s].sort!
+        Model::GroupUser.find?({target.id.not_nil!, admins.id.not_nil!}).should be_nil
+        Model::GroupUser.find!({target.id.not_nil!, manual.id.not_nil!}).auto_assigned.should be_nil
+      end
+
+      it "returns 404 for an unknown user" do
+        result = client.post(path, body: {user_id: "user-does-not-exist", ad_groups: [ad_staff]}.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+      end
+
+      it "returns 404 for a user in another authority" do
+        other_authority = Model::Generator.authority(domain: "http://ad-sync-#{Random::Secure.hex(4)}.example").save!
+        target = Model::Generator.user(other_authority).save!
+        mapped_group.call(other_authority, nil, ad_staff, Model::Permissions::Read)
+
+        result = client.post(path, body: {user_id: target.id, ad_groups: [ad_staff]}.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+        Model::GroupUser.where(user_id: target.id).to_a.should be_empty
+      end
+
+      it "rejects a request without ad_groups" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        target = Model::Generator.user(authority).save!
+
+        result = client.post(path, body: {user_id: target.id}.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should be >= 400
+        result.status_code.should be < 500
+      end
+    end
   end
 end
