@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **groups**: add ad group mapping support
 - **repositories**: add file listing helper
 - **groups**: add feature flag support
 - **signage**: change param that saves analytics
