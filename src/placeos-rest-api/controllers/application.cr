@@ -274,6 +274,13 @@ module PlaceOS::Api
       ImageGenError.new(error.message || "image generation failed", error.kind)
     end
 
+    @[AC::Route::Exception(Error::BadGateway, status_code: HTTP::Status::BAD_GATEWAY)]
+    @[AC::Route::Exception(Error::GatewayTimeout, status_code: HTTP::Status::GATEWAY_TIMEOUT)]
+    def upstream_failed(error) : CommonError
+      Log.warn(exception: error) { error.message }
+      CommonError.new(error, false)
+    end
+
     # 406 when a request cannot be satisfied (e.g. no approvers available)
     @[AC::Route::Exception(Error::NotAcceptable, status_code: HTTP::Status::NOT_ACCEPTABLE)]
     def resource_not_acceptable(error) : CommonError

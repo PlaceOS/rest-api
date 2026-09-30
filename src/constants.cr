@@ -65,6 +65,11 @@ module PlaceOS::Api
   OPENAI_API_MODEL  = ENV["OPENAI_API_MODEL"]? || "gpt-5-mini"
   OPENAI_MAX_TOKENS = ENV["OPENAI_MAX_TOKENS"]?.try(&.to_i) || 400_000
 
+  # Headless browser (browserless) used by `POST /uploads/screenshot`
+  BROWSER_URI        = URI.parse(ENV["BROWSER_URI"]? || "http://browser:3000")
+  BROWSER_TOKEN      = ENV["BROWSER_TOKEN"]?.presence
+  SCREENSHOT_TIMEOUT = (ENV["SCREENSHOT_TIMEOUT"]? || "45").to_i.seconds
+
   # Upload temporary links
   TEMP_LINK_MAX_MINUTES     = ENV["TEMP_LINK_MAX_MINUTES"]?.try(&.to_i) || 1440
   TEMP_LINK_DEFAULT_MINUTES = ENV["TEMP_LINK_DEFAULT_MINUTES"]?.try(&.to_i) || TEMP_LINK_MAX_MINUTES

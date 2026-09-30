@@ -43,6 +43,7 @@ services:
       - redis
       - postgres
       - migrator
+      - browser
     security_opt:
       - seccomp:unconfined
     environment:
@@ -54,6 +55,8 @@ services:
         *redis-client-env,
         *postgresdb-client-env,
       ]
+      BROWSER_URI: ${BROWSER_URI:-http://browser:3000}
+      BROWSER_TOKEN: ${BROWSER_TOKEN:-browser-token}
 
   redis:
     image: eqalpha/keydb
@@ -63,6 +66,16 @@ services:
       test: redis-cli ping
     ports:
       - 6379:6379
+
+  browser: # headless chrome for URL screenshots
+    image: ghcr.io/browserless/chromium:latest
+    restart: always
+    hostname: browser
+    environment:
+      TOKEN: ${BROWSER_TOKEN:-browser-token}
+      CONCURRENT: ${BROWSER_CONCURRENT:-5}
+      QUEUED: ${BROWSER_QUEUED:-10}
+      TIMEOUT: ${BROWSER_TIMEOUT:-60000}
 
   postgres:
     hostname: postgres
@@ -128,7 +141,9 @@ services:
       <<: *s3-client-env
 
   minio:
-    image: quay.io/minio/minio:latest
+    # upstream stopped publishing images (quay.io/docker.io minio/* now 401);
+    # pgsty maintains drop-in builds (amd64 + arm64)
+    image: pgsty/minio:latest
     volumes:
       - s3:/data
     ports:
@@ -141,7 +156,7 @@ services:
     command: server /data --console-address ":9090"
 
   testbucket:
-    image: quay.io/minio/mc:latest
+    image: pgsty/mc:latest
     depends_on:
       - minio
     environment:
@@ -149,7 +164,7 @@ services:
     entrypoint: >
       sh -c '
       sleep 3 &&
-      mc config host add s3 $AWS_S3_ENDPOINT $AWS_KEY $AWS_SECRET &&
+      mc alias set s3 $AWS_S3_ENDPOINT $AWS_KEY $AWS_SECRET &&
       mc mb -p s3/$AWS_S3_BUCKET &&
       exit 0
       '
