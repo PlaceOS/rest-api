@@ -249,6 +249,61 @@ module PlaceOS::Api
       end
     end
 
+    SCREENSHOT_TAG = "screenshot"
+
+    record ScreenshotInfo, url : String, width : Int32 = 1920, height : Int32 = 1080, scale : Float64 = 1.0,
+      format : Screenshot::Format = Screenshot::Format::Png, full_page : Bool = false,
+      settle : Int32 = Screenshot::DEFAULT_SETTLE_MS, file_name : String? = nil, public : Bool = false,
+      tags : Array(String) = [] of String do
+      include JSON::Serializable
+    end
+
+    # render a web page in a headless browser and store the image as an upload.
+    #
+    # waits for the network to go (almost) idle, web fonts to load and a frame
+    # to paint, then a further `settle` milliseconds for animations.
+    # Only `https` pages are rendered and any plain `http` load they attempt is
+    # blocked, which keeps the browser away from internal services.
+    @[AC::Route::POST("/screenshot", body: :info, status_code: HTTP::Status::CREATED)]
+    def screenshot(info : ScreenshotInfo) : ::PlaceOS::Model::Upload
+      uri = URI.parse(info.url)
+      unless uri.scheme.try(&.downcase) == "https" && uri.host.presence
+        raise AC::Route::Param::ValueError.new("must be an absolute https URL", "url")
+      end
+      {
+        {"width", info.width, 1, Screenshot::MAX_WIDTH},
+        {"height", info.height, 1, Screenshot::MAX_HEIGHT},
+        {"settle", info.settle, 0, Screenshot::MAX_SETTLE_MS},
+      }.each do |(name, value, min, max)|
+        raise AC::Route::Param::ValueError.new("must be between #{min} and #{max}", name) unless min <= value <= max
+      end
+      unless Screenshot::MIN_SCALE <= info.scale <= Screenshot::MAX_SCALE
+        raise AC::Route::Param::ValueError.new("must be between #{Screenshot::MIN_SCALE} and #{Screenshot::MAX_SCALE}", "scale")
+      end
+      info.tags.each do |tag|
+        unless tag.match(TAG_ALLOW_REGEX)
+          raise AC::Route::Param::ValueError.new("Invalid tag (only letters, digits and .!#$%&'*+-/=?^_`{|}~@ allowed): #{tag}", "tags")
+        end
+      end
+
+      format = info.format
+      file_name = sanitize_filename(info.file_name.presence || "screenshot-#{uri.host}-#{info.width}x#{info.height}.#{format.extension}")
+      allowed?(file_name, format.mime)
+
+      image = Screenshot.capture(uri, info.width, info.height, info.scale, format, info.full_page, info.settle)
+
+      ObjectStore.put(
+        image,
+        format.mime,
+        storage,
+        current_user,
+        file_name: file_name,
+        object_key: get_object_key(file_name),
+        public: info.public,
+        tags: (info.tags + [SCREENSHOT_TAG]).uniq,
+      )
+    end
+
     protected def generate_temp_url(expiry : Int32 = TEMP_LINK_DEFAULT_MINUTES)
       max_expiry = TEMP_LINK_MAX_MINUTES
       expiry = expiry > max_expiry ? max_expiry : expiry

@@ -21,6 +21,14 @@ module PlaceOS::Api
     class NotAcceptable < Error
     end
 
+    # an upstream service (browser, object storage) failed or returned junk
+    class BadGateway < Error
+    end
+
+    # an upstream service did not answer in time
+    class GatewayTimeout < Error
+    end
+
     record Field, field : Symbol, message : String
 
     class RecaptchaFailed < Error
