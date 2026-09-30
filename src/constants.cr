@@ -66,8 +66,9 @@ module PlaceOS::Api
   OPENAI_MAX_TOKENS = ENV["OPENAI_MAX_TOKENS"]?.try(&.to_i) || 400_000
 
   # Headless browser (browserless) used by `POST /uploads/screenshot`
-  BROWSER_URI        = URI.parse(ENV["BROWSER_URI"]? || "http://browser:3000")
-  BROWSER_TOKEN      = ENV["BROWSER_TOKEN"]?.presence
+  BROWSER_URI = URI.parse(ENV["BROWSER_URI"]? || "http://browser:3000")
+  # defaults to the shared service secret, as dispatch uses
+  BROWSER_TOKEN      = ENV["BROWSER_TOKEN"]?.presence || ENV["PLACE_SERVER_SECRET"]?.presence || ENV["SERVER_SECRET"]?.presence
   SCREENSHOT_TIMEOUT = (ENV["SCREENSHOT_TIMEOUT"]? || "45").to_i.seconds
 
   # Upload temporary links

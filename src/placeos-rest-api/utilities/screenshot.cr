@@ -67,13 +67,17 @@ module PlaceOS::Api
 
     def self.capture(url : URI, width : Int32, height : Int32, scale : Float64, format : Format, full_page : Bool, settle : Int32) : Bytes
       params = URI::Params.new({"timeout" => [SCREENSHOT_TIMEOUT.total_milliseconds.to_i.to_s]})
-      params["token"] = BROWSER_TOKEN.as(String) if BROWSER_TOKEN
       headers = HTTP::Headers{
         "Content-Type" => "application/json",
         # browserless echoes Accept as the response type and only accepts
         # png/jpeg/text; the stored mime comes from `format` regardless
         "Accept" => "*/*",
       }
+      # a header rather than `?token=`: the shared secret is long base64 and
+      # shouldn't end up in access logs
+      if token = BROWSER_TOKEN
+        headers["Authorization"] = "Bearer #{token}"
+      end
 
       client = HTTP::Client.new(BROWSER_URI)
       client.connect_timeout = 5.seconds

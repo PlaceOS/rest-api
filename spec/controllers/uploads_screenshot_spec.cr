@@ -73,7 +73,8 @@ module PlaceOS::Api
       body["upload_complete"].as_bool.should be_true
 
       requests.size.should eq 1
-      requests.first.query_params["token"].should eq "browser-token"
+      requests.first.headers["Authorization"].should eq "Bearer browser-token"
+      requests.first.query_params["token"]?.should be_nil
       requests.first.query_params["timeout"].should eq SCREENSHOT_TIMEOUT.total_milliseconds.to_i.to_s
       JSON.parse(bodies.first)["url"].as_s.should eq "https://www.example.com/dashboard?x=1"
     end
