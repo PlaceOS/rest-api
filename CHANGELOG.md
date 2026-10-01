@@ -136,6 +136,7 @@
 
 ### Fix
 
+- **ms-token-exchange**: improve security
 - **docker-compose**: pull MinIO images from quay.io
 - **groups**: zone grants no longer flow to child groups
 - **subsystem**: fixes for support subsystem access
