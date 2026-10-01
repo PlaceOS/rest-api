@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: static media routes for e-ink displays
 - **uploads**: add web page screenshot capabilities ([#448](https://github.com/PlaceOS/rest-api/pull/448))
 - **groups**: add ad group mapping support
 - **repositories**: add file listing helper
