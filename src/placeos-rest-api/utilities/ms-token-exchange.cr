@@ -16,6 +16,30 @@ module PlaceOS::Api
       V2
     end
 
+    # Entra token issuer hosts (public and sovereign clouds)
+    MS_ISSUER_HOSTS = {
+      "sts.windows.net",
+      "login.microsoftonline.com",
+      "login.windows.net",
+      "login-us.microsoftonline.com",     # GCC/DoD
+      "login.microsoftonline.us",         # GCC High
+      "login.chinacloudapi.cn",           # China cloud
+      "sts.chinacloudapi.cn",             # China cloud (v1)
+      "login.partner.microsoftonline.cn", # 21V
+      "login.microsoftonline.de",         # Germany
+    }
+
+    # Entra sign-in hosts an `oauth_strat` may be configured against
+    MS_LOGIN_HOSTS = {
+      "login.microsoftonline.com",
+      "login.windows.net",
+      "login-us.microsoftonline.com",
+      "login.microsoftonline.us",
+      "login.chinacloudapi.cn",
+      "login.partner.microsoftonline.cn",
+      "login.microsoftonline.de",
+    }
+
     record PeekInfo,
       aud_raw : String,
       aud_host : String,
@@ -25,18 +49,15 @@ module PlaceOS::Api
       iss_host : String?,
       version : TokenVersion,
       kid : String? do
-      # Basic heuristic to detect Microsoft Entra / Azure AD issuers
+      # Detects Microsoft Entra / Azure AD issuers. This only routes the token
+      # to the MS path; trust is established in `obtain_place_user`.
+      #
+      # Hosts are matched exactly: a suffix match also accepted look-alike
+      # domains such as `evilmicrosoftonline.com`.
       def ms_token? : Bool
         iss_val = iss_host
         return false unless iss_val
-        iss_val = iss_val.downcase
-        iss_val.ends_with?("microsoftonline.com") ||
-          iss_val.ends_with?("sts.windows.net") ||
-          iss_val.ends_with?("login.windows.net") ||
-          iss_val.ends_with?("login.chinacloudapi.cn") ||           # China cloud
-          iss_val.ends_with?("login.microsoftonline.de") ||         # Germany
-          iss_val.ends_with?("login.partner.microsoftonline.cn") || # 21V
-          iss_val.ends_with?("login-us.microsoftonline.com")        # GCC/DoD
+        MS_ISSUER_HOSTS.includes?(iss_val.downcase)
       end
 
       def token_endpoint : URI?
@@ -88,8 +109,21 @@ module PlaceOS::Api
       # ensure Tenant ID matches our authentication source
       return unless oauth.token_url.includes?(tenant)
 
+      # The issuer (and so the signing keys) must come from the tenant this
+      # strat is configured for, never from the token itself. Otherwise anyone
+      # hosting a discovery document could sign tokens for any user.
+      expected_issuer = configured_issuer(oauth, info)
+      unless expected_issuer && info.iss == expected_issuer
+        Log.warn { {message: "MS token issuer does not match the configured tenant", issuer: info.iss, expected: expected_issuer} }
+        return
+      end
+
       # validate the MS token
-      payload = validate_token_with_jwks(token, token_info: info)
+      payload = validate_token_with_jwks(token, token_info: info, issuer: expected_issuer)
+
+      # the verified claims must agree with what we looked the strat up by
+      return unless payload["tid"]?.try(&.as_s?) == tenant
+      return unless payload["upn"]?.try(&.as_s?) == email
 
       # find the place user or create a new one
       user = Model::User.find_by?(authority_id: oauth.authority_id, email: email.downcase) || create_place_user(oauth, payload)
@@ -182,18 +216,60 @@ module PlaceOS::Api
 
     class_getter jwks : JWT::JWKS { JWT::JWKS.new }
 
+    # `issuer` is required and must come from configuration: when it is
+    # omitted the JWKS helper fetches signing keys from the token's own `iss`.
     def validate_token_with_jwks(
       token : String,
       token_info : PeekInfo? = nil,
+      *,
+      issuer : String,
     ) : JSON::Any
       info = token_info || peek_token_info(token)
+      # checked before `validate` so we never fetch metadata from an
+      # issuer we don't trust
+      raise "token issuer mismatch" unless info.iss == issuer
+
       jwks = MSTokenExchange.jwks
       payload = jwks.validate(
         token,
+        issuer: issuer,
         validate_claims: true
       ) || raise "token validation failed"
 
       payload
+    end
+
+    # ---------- Configured tenant ----------
+
+    # The issuer published by the tenant `oauth` is configured against, for
+    # the token's version (v1 and v2 tokens have different issuers).
+    # `nil` if the strat is not a tenant-specific Entra strat.
+    def configured_issuer(oauth : Model::OAuthAuthentication, token_info : PeekInfo) : String?
+      login_host, tenant = configured_tenant(oauth) || return
+      base = "https://#{login_host}/#{tenant}"
+      base = "#{base}/v2.0" if token_info.version.v2?
+      MSTokenExchange.jwks.fetch_oidc_metadata(base).issuer
+    rescue error
+      Log.warn(exception: error) { "failed to load MS discovery for #{oauth.token_url}" }
+      nil
+    end
+
+    # `{login host, tenant}` from the strat's token URL, which may be
+    # absolute or relative to `site`.
+    def configured_tenant(oauth : Model::OAuthAuthentication) : Tuple(String, String)?
+      uri = URI.parse(oauth.token_url)
+      uri = URI.parse(oauth.site).resolve(uri) unless uri.absolute?
+      return unless uri.scheme == "https"
+
+      host = uri.host.try(&.downcase)
+      return unless host && MS_LOGIN_HOSTS.includes?(host)
+
+      tenant = uri.path.split('/', remove_empty: true).first?
+      return unless tenant
+      return if {"common", "organizations", "consumers"}.includes?(tenant.downcase)
+      {host, tenant}
+    rescue URI::Error
+      nil
     end
   end
 end

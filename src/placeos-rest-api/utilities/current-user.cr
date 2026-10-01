@@ -46,8 +46,15 @@ module PlaceOS::Api
         # peek the token to determine type
         token_info = Utils::MSTokenExchange.peek_token_info(token)
         if token_info.ms_token?
-          user = Utils::MSTokenExchange.obtain_place_user(token, token_info)
-          raise "MS token could not be exchanged" unless user
+          # A token that fails verification is a bad credential (401), not a
+          # server error
+          user = begin
+            Utils::MSTokenExchange.obtain_place_user(token, token_info)
+          rescue e
+            Log.warn(exception: e) { {message: "MS token verification failed", action: "authorize!"} }
+            nil
+          end
+          raise Error::Unauthorized.new("MS token could not be exchanged") unless user
           @current_user = user
           @user_token = user_token = Model::UserJWT.new(
             iss: Model::UserJWT::ISSUER,
