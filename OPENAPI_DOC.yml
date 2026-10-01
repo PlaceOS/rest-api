@@ -35323,6 +35323,242 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/{system_id}/static/{item_id}:
+    get:
+      summary: Obtains the temporary link to the media item or a screenshot of the
+        live
+      description: 'Obtains the temporary link to the media item or a screenshot of
+        the live
+
+        item if a web page, then redirects to that URL'
+      tags:
+      - Signage
+      operationId: PlaceOS::Api::Signage_fetch_static_media
+      parameters:
+      - name: system_id
+        in: path
+        description: the display showing the media, sizes web page captures
+        example: sys-1234
+        required: true
+        schema:
+          type: string
+      - name: item_id
+        in: path
+        description: the link to the media item for display on an e-ink or other static
+          device
+        example: playlist_items-1234
+        required: true
+        schema:
+          type: string
+      - name: expires_after
+        in: query
+        description: how many minutes the media can be cached before taking a new
+          screenshot
+        example: "60"
+        schema:
+          type: integer
+          format: UInt32
+      responses:
+        200:
+          description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/signage/{system_id}/samsung/eink/{item_id}/{expires_after}:
+    get:
+      summary: Returns the samsung EMDX e-ink display manifest for the provided media
+        item
+      description: 'Returns the samsung EMDX e-ink display manifest for the provided
+        media item
+
+        keeping URL short as samsung only supports ~250 chars for the manifest URL'
+      tags:
+      - Signage
+      operationId: PlaceOS::Api::Signage_samsung_eink_manifest
+      parameters:
+      - name: system_id
+        in: path
+        description: the display showing the media, sizes web page captures
+        example: sys-1234
+        required: true
+        schema:
+          type: string
+      - name: item_id
+        in: path
+        description: the link to the media item for display on an e-ink or other static
+          device
+        example: playlist_items-1234
+        required: true
+        schema:
+          type: string
+      - name: expires_after
+        in: path
+        description: how many minutes the media can be cached before taking a new
+          screenshot
+        example: "60"
+        schema:
+          type: integer
+          format: UInt32
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Signage__SamsungEinkManifest'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/storages:
     get:
       summary: returns the list of available storages for provided authority
@@ -44848,6 +45084,14 @@ components:
           - portrait
           - square
           nullable: true
+        sign_height:
+          type: integer
+          format: Int32
+          nullable: true
+        sign_width:
+          type: integer
+          format: Int32
+          nullable: true
         playlists:
           type: array
           items:
@@ -49752,6 +49996,14 @@ components:
           - portrait
           - square
           nullable: true
+        sign_height:
+          type: integer
+          format: Int32
+          nullable: true
+        sign_width:
+          type: integer
+          format: Int32
+          nullable: true
         playlists:
           type: array
           items:
@@ -50943,6 +51195,75 @@ components:
       - play_through_counts
       - playlist_counts
       - media_counts
+    PlaceOS__Api__Signage__SamsungEinkManifest:
+      type: object
+      properties:
+        schedule:
+          type: array
+          items:
+            type: object
+            properties:
+              start_date:
+                type: string
+              stop_date:
+                type: string
+              start_time:
+                type: string
+              contents:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    image_url:
+                      type: string
+                    file_id:
+                      type: string
+                    file_path:
+                      type: string
+                    duration:
+                      type: integer
+                      format: Int64
+                    file_size:
+                      type: string
+                    file_name:
+                      type: string
+                  required:
+                  - image_url
+                  - file_id
+                  - file_path
+                  - duration
+                  - file_size
+                  - file_name
+            required:
+            - start_date
+            - stop_date
+            - start_time
+            - contents
+        name:
+          type: string
+        version:
+          type: integer
+          format: Int32
+        create_time:
+          type: string
+        id:
+          type: string
+        program_id:
+          type: string
+        content_type:
+          type: string
+        deploy_type:
+          type: string
+      required:
+      - schedule
+      - name
+      - version
+      - create_time
+      - id
+      - program_id
+      - content_type
+      - deploy_type
+      description: a Samsung EMDX e-ink display manifest showing a single image
     PlaceOS__Model__Storage:
       type: object
       properties:
@@ -52816,6 +53137,14 @@ components:
               - landscape
               - portrait
               - square
+              nullable: true
+            sign_height:
+              type: integer
+              format: Int32
+              nullable: true
+            sign_width:
+              type: integer
+              format: Int32
               nullable: true
             playlists:
               type: array

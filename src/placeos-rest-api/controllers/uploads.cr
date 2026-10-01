@@ -505,7 +505,7 @@ module PlaceOS::Api
     end
 
     private def get_object_key(filename)
-      "/#{request.hostname}/#{Time.utc.to_unix_f.to_s.sub(".", "")}#{rand(1000)}#{File.extname(filename)}"
+      ObjectStore.object_key(request.hostname, filename)
     end
 
     private def default_object_options(file_mime, public)

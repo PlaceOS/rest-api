@@ -19,6 +19,11 @@ module PlaceOS::Api
       )
     end
 
+    # a unique key for a new object, namespaced by the domain
+    def self.object_key(hostname : String?, file_name : String) : String
+      "/#{hostname}/#{Time.utc.to_unix_f.to_s.sub(".", "")}#{rand(1000)}#{File.extname(file_name)}"
+    end
+
     def self.put(
       bytes : Bytes,
       mime : String,
@@ -29,12 +34,26 @@ module PlaceOS::Api
       public : Bool = false,
       tags : Array(String) = [] of String,
     ) : ::PlaceOS::Model::Upload
+      put(bytes, mime, storage, user.id.as(String), user.email.to_s, file_name, object_key, public, tags)
+    end
+
+    def self.put(
+      bytes : Bytes,
+      mime : String,
+      storage : ::PlaceOS::Model::Storage,
+      uploaded_by : String,
+      uploaded_email : String,
+      file_name : String,
+      object_key : String,
+      public : Bool = false,
+      tags : Array(String) = [] of String,
+    ) : ::PlaceOS::Model::Upload
       md5 = Digest::MD5.base64digest(bytes)
       visibility = public ? "public" : "private"
 
       upload = ::PlaceOS::Model::Upload.new(
-        uploaded_by: user.id.as(String),
-        uploaded_email: user.email,
+        uploaded_by: uploaded_by,
+        uploaded_email: ::PlaceOS::Model::Email.new(uploaded_email),
         file_name: file_name,
         file_size: bytes.size.to_i64,
         file_md5: md5,

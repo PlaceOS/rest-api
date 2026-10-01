@@ -314,5 +314,293 @@ module PlaceOS::Api
       ::PlaceOS::Model::Playlist.update_counts(metrics.playlist_counts)
       ::PlaceOS::Model::Playlist.update_through_counts(metrics.play_through_counts)
     end
+
+    # Static media (e-ink and other devices that can only display an image)
+    ###############################################################################################
+
+    # web page captures are cache artifacts rather than anyone's content, so
+    # they're recorded against this identity (only support / admin can manage them)
+    STATIC_UPLOADER = "signage-static"
+    STATIC_TAG      = "signage-static"
+
+    # bounds how often a caller can force a new capture, the samsung route is anonymous
+    STATIC_MIN_EXPIRY_MINUTES = 5_u32
+
+    # how long a request waits for another to finish refreshing the same capture
+    STATIC_LOCK_TIMEOUT = SCREENSHOT_TIMEOUT + 30.seconds
+    STATIC_LOCK_POLL    = 250.milliseconds
+
+    # the image a static device should display
+    record StaticMedia, url : String, file_name : String, file_size : Int64, version : String, created : Time
+
+    # Obtains the temporary link to the media item or a screenshot of the live
+    # item if a web page, then redirects to that URL
+    @[AC::Route::GET("/:system_id/static/:item_id")]
+    def fetch_static_media(
+      @[AC::Param::Info(description: "the display showing the media, sizes web page captures", example: "sys-1234")]
+      system_id : String,
+      @[AC::Param::Info(description: "the link to the media item for display on an e-ink or other static device", example: "playlist_items-1234")]
+      item_id : String,
+      @[AC::Param::Info(description: "how many minutes the media can be cached before taking a new screenshot", example: "60")]
+      expires_after : UInt32 = 60_u32,
+    )
+      media = static_media(system_id, item_id, expires_after, anonymous: false)
+      redirect_to media.url, status: :see_other
+    end
+
+    # a Samsung EMDX e-ink display manifest showing a single image
+    struct SamsungEinkManifest
+      include JSON::Serializable
+
+      FILE_PATH = "/home/owner/content/Downloads/vxtplayer/epaper/mobile/contents"
+
+      struct Content
+        include JSON::Serializable
+
+        getter image_url : String
+        getter file_id : String
+        getter file_path : String
+        # seconds
+        getter duration : Int64
+        getter file_size : String
+        getter file_name : String
+
+        def initialize(@image_url, @file_id, @file_path, @duration, @file_size, @file_name)
+        end
+      end
+
+      struct Schedule
+        include JSON::Serializable
+
+        getter start_date : String = "1970-01-01"
+        getter stop_date : String = "2999-12-31"
+        getter start_time : String = "00:00:00"
+        getter contents : Array(Content)
+
+        def initialize(@contents)
+        end
+      end
+
+      getter schedule : Array(Schedule)
+      getter name : String
+      getter version : Int32 = 1
+      getter create_time : String
+      getter id : String
+      getter program_id : String = "com.samsung.ios.ePaper"
+      getter content_type : String = "ImageContent"
+      getter deploy_type : String = "MOBILE"
+
+      def initialize(@name, @id, @create_time, @schedule)
+      end
+
+      def self.new(name : String, media : StaticMedia, duration : Time::Span)
+        # the device caches by file id, so it changes whenever the image does
+        file_id = UUID.v5_url(media.version).to_s.upcase
+        extension = File.extname(media.file_name).presence || ".jpg"
+        file_name = "#{file_id}#{extension}"
+        content = Content.new(
+          image_url: media.url,
+          file_id: file_id,
+          file_path: "#{FILE_PATH}/#{file_id}/#{file_name}",
+          duration: duration.total_seconds.to_i64,
+          file_size: media.file_size.to_s,
+          file_name: file_name,
+        )
+        new(name, file_id, media.created.to_utc.to_s("%Y-%m-%d %H:%M:%S"), [Schedule.new([content])])
+      end
+    end
+
+    # e-ink displays can't authenticate, the item id is the capability
+    skip_action :authorize!, only: :samsung_eink_manifest
+    skip_action :set_user_id, only: :samsung_eink_manifest
+
+    # Returns the samsung EMDX e-ink display manifest for the provided media item
+    # keeping URL short as samsung only supports ~250 chars for the manifest URL
+    @[AC::Route::GET("/:system_id/samsung/eink/:item_id/?:expires_after")]
+    def samsung_eink_manifest(
+      @[AC::Param::Info(description: "the display showing the media, sizes web page captures", example: "sys-1234")]
+      system_id : String,
+      @[AC::Param::Info(description: "the link to the media item for display on an e-ink or other static device", example: "playlist_items-1234")]
+      item_id : String,
+      @[AC::Param::Info(description: "how many minutes the media can be cached before taking a new screenshot", example: "60")]
+      expires_after : UInt32 = 60_u32,
+    ) : SamsungEinkManifest
+      media = static_media(system_id, item_id, expires_after, anonymous: true)
+      response.headers["Cache-Control"] = "no-cache"
+      SamsungEinkManifest.new(item_id, media, expires_after.minutes)
+    end
+
+    # resolves the image to display for a media item, capturing web pages as required
+    private def static_media(system_id : String, item_id : String, expires_after : UInt32, anonymous : Bool) : StaticMedia
+      if expires_after < STATIC_MIN_EXPIRY_MINUTES
+        raise AC::Route::Param::ValueError.new("must be at least #{STATIC_MIN_EXPIRY_MINUTES} minutes", "expires_after")
+      end
+
+      # items from other domains are indistinguishable from missing ones
+      authority = current_authority
+      item = ::PlaceOS::Model::Playlist::Item.find?(item_id)
+      unless authority && item && item.authority_id == authority.id
+        raise Error::NotFound.new("media item not found: #{item_id}")
+      end
+      system = ::PlaceOS::Model::ControlSystem.find?(system_id) || raise Error::NotFound.new("system not found: #{system_id}")
+
+      case item.media_type
+      in .image?
+        upload = item.media || raise Error::NotFound.new("media item #{item_id} is missing its upload")
+        static_upload(upload, anonymous)
+      in .external_image?
+        uri = item.media_uri.presence || raise Error::NotFound.new("media item #{item_id} is missing its URI")
+        file_name = File.basename(URI.parse(uri).path)
+        StaticMedia.new(uri, file_name, 0_i64, uri, item.updated_at)
+      in .webpage?
+        static_upload(webpage_capture(item, capture_viewport(system, item), authority, expires_after.minutes), anonymous)
+      in .video?, .plugin?
+        raise Error::NotAcceptable.new("#{item.media_type.to_s.downcase} media can't be displayed on a static device")
+      end
+    end
+
+    # a temporary link to the upload, respecting its access restrictions
+    private def static_upload(upload : ::PlaceOS::Model::Upload, anonymous : Bool) : StaticMedia
+      unless upload.public || upload.permissions.none?
+        raise Error::Forbidden.new("media is restricted") if anonymous
+        upload.permissions.admin? ? check_admin : check_support
+      end
+
+      storage = upload.storage || raise Error::NotFound.new("upload missing associated storage")
+      expiry = Math.min(TEMP_LINK_DEFAULT_MINUTES, TEMP_LINK_MAX_MINUTES)
+      url = ObjectStore.signer_for(storage).get_object(storage.bucket_name, upload.object_key, expiry * 60)
+      StaticMedia.new(url, upload.file_name, upload.file_size, upload.id.as(String), upload.created_at)
+    end
+
+    # the sign's pixel dimensions when configured, otherwise a default for its
+    # orientation, falling back to the item's orientation when the sign's isn't set
+    private def capture_viewport(system : ::PlaceOS::Model::ControlSystem, item : ::PlaceOS::Model::Playlist::Item) : Tuple(Int32, Int32)
+      width = system.sign_width
+      height = system.sign_height
+      return {width.clamp(1, Screenshot::MAX_WIDTH), height.clamp(1, Screenshot::MAX_HEIGHT)} if width && height
+
+      orientation = system.orientation.unspecified? ? item.orientation : system.orientation
+      case orientation
+      when .portrait? then {1080, 1920}
+      when .square?   then {1080, 1080}
+      else                 {1920, 1080}
+      end
+    end
+
+    # the current capture of the web page at this size, refreshing it once it's
+    # older than max_age. Captures are kept per item and size (signs showing the
+    # same item can differ) and found by name, the item itself is never modified
+    private def webpage_capture(item : ::PlaceOS::Model::Playlist::Item, viewport : Tuple(Int32, Int32), authority : ::PlaceOS::Model::Authority, max_age : Time::Span) : ::PlaceOS::Model::Upload
+      width, height = viewport
+      file_name = "signage-#{item.id}-#{width}x#{height}.#{Screenshot::Format::Png.extension}"
+      previous = latest_capture(file_name)
+      return previous if previous && fresh?(previous, max_age)
+
+      uri = URI.parse(item.media_uri.to_s)
+      unless uri.scheme.try(&.downcase) == "https" && uri.host.presence
+        raise Error::NotAcceptable.new("only https web pages can be captured")
+      end
+
+      with_capture_lock(file_name) do
+        # another request may have refreshed the capture while we waited
+        previous = latest_capture(file_name)
+        next previous if previous && fresh?(previous, max_age)
+
+        begin
+          upload = capture_webpage(uri, width, height, file_name, authority)
+        rescue error : Error::BadGateway | Error::GatewayTimeout
+          raise error unless previous
+          # an out of date image beats a blank display
+          Log.warn(exception: error) { {message: "failed to refresh capture, serving the previous one", item_id: item.id, file_name: file_name} }
+          next previous
+        end
+
+        discard_captures(file_name, except: upload)
+        upload
+      end
+    end
+
+    private def latest_capture(file_name : String) : ::PlaceOS::Model::Upload?
+      # `uploaded_by` is indexed and only ever matches captures
+      ::PlaceOS::Model::Upload
+        .where(uploaded_by: STATIC_UPLOADER, file_name: file_name, upload_complete: true)
+        .order(created_at: :desc)
+        .limit(1)
+        .to_a
+        .first?
+    end
+
+    private def fresh?(upload : ::PlaceOS::Model::Upload, max_age : Time::Span) : Bool
+      upload.created_at >= max_age.ago
+    end
+
+    private def capture_webpage(uri : URI, width : Int32, height : Int32, file_name : String, authority : ::PlaceOS::Model::Authority) : ::PlaceOS::Model::Upload
+      storage = begin
+        ::PlaceOS::Model::Storage.storage_or_default(authority.id)
+      rescue error
+        raise Error::NotFound.new(error.message || "Authority storage configuration not found")
+      end
+
+      format = Screenshot::Format::Png
+      begin
+        storage.check_file_ext(File.extname(file_name))
+        storage.check_file_mime(format.mime)
+      rescue error : ::PlaceOS::Model::Error
+        raise Error::NotAcceptable.new("storage does not accept captures: #{error.message}")
+      end
+
+      image = Screenshot.capture(uri, width, height, 1.0, format, false, Screenshot::DEFAULT_SETTLE_MS)
+
+      ObjectStore.put(
+        image,
+        format.mime,
+        storage,
+        uploaded_by: STATIC_UPLOADER,
+        uploaded_email: "#{STATIC_UPLOADER}@#{authority.domain}",
+        file_name: file_name,
+        object_key: ObjectStore.object_key(request.hostname, file_name),
+        tags: [Uploads::SCREENSHOT_TAG, STATIC_TAG],
+      )
+    end
+
+    # removes the captures superseded by `except`
+    private def discard_captures(file_name : String, except : ::PlaceOS::Model::Upload) : Nil
+      ::PlaceOS::Model::Upload
+        .where(uploaded_by: STATIC_UPLOADER, file_name: file_name)
+        .where("id <> ?", except.id)
+        .to_a
+        .each do |upload|
+          upload.destroy
+        rescue error
+          Log.warn(exception: error) { {message: "failed to remove superseded capture", upload_id: upload.id} }
+        end
+    end
+
+    # only one request refreshes a capture at a time, across all API instances
+    private def with_capture_lock(file_name : String, &)
+      key = "signage-static:#{file_name}"
+      # the session lock belongs to this connection, so it's held for the duration
+      db = acquire_capture_lock(key)
+      begin
+        yield
+      ensure
+        db.exec("SELECT pg_advisory_unlock(hashtext($1))", args: [key]) rescue nil
+        db.release
+      end
+    end
+
+    # waiters poll, returning the connection between attempts, so they don't
+    # each hold one while another request is capturing
+    private def acquire_capture_lock(key : String) : DB::Connection
+      deadline = Time.instant + STATIC_LOCK_TIMEOUT
+      loop do
+        db = ::PgORM::Database.pool.checkout
+        locked = db.scalar("SELECT pg_try_advisory_lock(hashtext($1))", args: [key]).as(Bool) rescue false
+        return db if locked
+        db.release
+        raise Error::GatewayTimeout.new("timed out waiting for the media capture") if Time.instant >= deadline
+        sleep STATIC_LOCK_POLL
+      end
+    end
   end
 end
