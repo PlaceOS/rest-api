@@ -160,10 +160,9 @@ module PlaceOS::Api
       group_id : UUID? = nil,
       @[AC::Param::Info(description: "include children_count for each zone (useful for tree views)", example: "true")]
       include_children_count : Bool = false,
+      @[AC::Param::Info(description: "with group_id, include anchor zones and their descendants, excluding denied subtrees", example: "true")]
+      descendants : Bool = false,
     ) : Array(::PlaceOS::Model::Zone)
-      # Group-anchor filter: resolve the GroupZone anchors first so we
-      # can short-circuit on an empty list (and so the ES query never
-      # ends up unconstrained).
       group_zone_ids = nil
       if group_id
         unless user_support?
@@ -190,7 +189,9 @@ module PlaceOS::Api
 
       query = ::PlaceOS::Model::Zone.all
 
-      if group_zone_ids
+      if group_id && descendants
+        query = query.where("id IN (#{group_descendants_sql})", group_id.to_s)
+      elsif group_zone_ids
         query = query.where(id: group_zone_ids)
       end
 
@@ -215,8 +216,10 @@ module PlaceOS::Api
       # Limit results to zones containing ALL of the passed tags
       if (filter_tags = tags) && !filter_tags.empty?
         query = query.where("tags @> #{sql_array(filter_tags)}", filter_tags)
-      elsif group_zone_ids.nil?
-        raise Error::Forbidden.new unless parent_id || user_support?
+      elsif group_zone_ids.nil? && parent_id.nil? && !user_support?
+        scope = accessible_zones_scope_sql([SIGNAGE_SUBSYSTEM, SUPPORT_SUBSYSTEM], ::PlaceOS::Model::Permissions::Read)
+        raise Error::Forbidden.new unless scope
+        query = query.where("id IN (SELECT zone_id FROM #{scope} AS v(zone_id))", [] of ::PgORM::Value)
       end
 
       results = paginate_search(query, ::PlaceOS::Model::Zone.table_name)
@@ -227,6 +230,23 @@ module PlaceOS::Api
       end
 
       results
+    end
+
+    private def group_descendants_sql : String
+      <<-SQL
+        WITH RECURSIVE anchors AS (
+          SELECT zone_id, deny FROM group_zones WHERE group_id = ?::uuid
+        ), denied(zone_id) AS (
+          SELECT zone_id FROM anchors WHERE deny
+          UNION
+          SELECT z.id FROM "zone" z INNER JOIN denied d ON z.parent_id = d.zone_id
+        ), reachable(zone_id) AS (
+          SELECT zone_id FROM anchors WHERE NOT deny
+          UNION
+          SELECT z.id FROM "zone" z INNER JOIN reachable r ON z.parent_id = r.zone_id
+        )
+        SELECT zone_id FROM reachable EXCEPT SELECT zone_id FROM denied
+        SQL
     end
 
     # Helper to add children counts to zones (GROUP BY over parent_id,
