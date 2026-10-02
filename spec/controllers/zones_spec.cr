@@ -268,6 +268,187 @@ module PlaceOS::Api
         result = client.get("#{Zones.base_route}?#{params}", headers: headers)
         result.status_code.should eq 403
       end
+      it "lists and searches only the user's signage group reach" do
+        clear_group_tables
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        anchor = Model::Generator.zone.save!
+        child = Model::Generator.zone
+        child.name = "ReachSearchMatch"
+        child.parent_id = anchor.id
+        child.save!
+        grandchild = Model::Generator.zone
+        grandchild.parent_id = child.id
+        grandchild.save!
+        unrelated = Model::Generator.zone
+        unrelated.name = "ReachSearchMatch Outside"
+        unrelated.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
+
+        params = HTTP::Params.encode({"limit" => "1000", "include_children_count" => "true"})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        zones.map(&.["id"].as_s).sort!.should eq [anchor.id, child.id, grandchild.id].compact.sort!
+        zones.find! { |z| z["id"].as_s == anchor.id }["children_count"].as_i.should eq 1
+
+        params = HTTP::Params.encode({"q" => "ReachSearchMatch", "limit" => "1000"})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s).should eq [child.id]
+      ensure
+        grandchild.try(&.destroy)
+        child.try(&.destroy)
+        anchor.try(&.destroy)
+        unrelated.try(&.destroy)
+      end
+
+      it "lists and searches only the user's support group reach" do
+        clear_group_tables
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        anchor = Model::Generator.zone.save!
+        child = Model::Generator.zone
+        child.name = "ReachSearchMatch"
+        child.parent_id = anchor.id
+        child.save!
+        grandchild = Model::Generator.zone
+        grandchild.parent_id = child.id
+        grandchild.save!
+        unrelated = Model::Generator.zone
+        unrelated.name = "ReachSearchMatch Outside"
+        unrelated.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
+
+        params = HTTP::Params.encode({"limit" => "1000", "include_children_count" => "true"})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        zones.map(&.["id"].as_s).sort!.should eq [anchor.id, child.id, grandchild.id].compact.sort!
+        zones.find! { |z| z["id"].as_s == anchor.id }["children_count"].as_i.should eq 1
+
+        params = HTTP::Params.encode({"q" => "ReachSearchMatch", "limit" => "1000"})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s).should eq [child.id]
+      ensure
+        grandchild.try(&.destroy)
+        child.try(&.destroy)
+        anchor.try(&.destroy)
+        unrelated.try(&.destroy)
+      end
+
+      it "removes denied subtrees from unfiltered group reach" do
+        clear_group_tables
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        anchor = Model::Generator.zone.save!
+        denied = Model::Generator.zone
+        denied.parent_id = anchor.id
+        denied.save!
+        descendant = Model::Generator.zone
+        descendant.parent_id = denied.id
+        descendant.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["signage"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
+        deny_row = Model::Generator.group_zone(group: group, zone: denied, permissions: Model::Permissions::Read)
+        deny_row.deny = true
+        deny_row.save!
+
+        result = client.get(Zones.base_route, headers: headers)
+        result.status_code.should eq 200
+        Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s).should eq [anchor.id]
+      ensure
+        descendant.try(&.destroy)
+        denied.try(&.destroy)
+        anchor.try(&.destroy)
+      end
+
+      it "rejects unfiltered callers with no group reach, including unrelated subsystems" do
+        clear_group_tables
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        client.get(Zones.base_route, headers: headers).status_code.should eq 403
+        client.get("#{Zones.base_route}?descendants=true", headers: headers).status_code.should eq 403
+
+        anchor = Model::Generator.zone.save!
+        group = Model::Generator.group(authority: authority, subsystems: ["bookings"]).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
+        client.get(Zones.base_route, headers: headers).status_code.should eq 403
+      ensure
+        anchor.try(&.destroy)
+      end
+
+      it "keeps support listings unscoped and ignores descendants without a group" do
+        clear_group_tables
+        first = Model::Generator.zone.save!
+        unrelated = Model::Generator.zone.save!
+        params = HTTP::Params.encode({"limit" => "1000", "descendants" => "true"})
+        result = client.get("#{Zones.base_route}?#{params}", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+        ids.should contain(first.id)
+        ids.should contain(unrelated.id)
+      ensure
+        first.try(&.destroy)
+        unrelated.try(&.destroy)
+      end
+
+      it "expands group anchors in SQL and excludes denied subtrees" do
+        clear_group_tables
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        anchor = Model::Generator.zone.save!
+        child = Model::Generator.zone
+        child.parent_id = anchor.id
+        child.save!
+        grandchild = Model::Generator.zone
+        grandchild.parent_id = child.id
+        grandchild.save!
+        denied = Model::Generator.zone
+        denied.parent_id = anchor.id
+        denied.save!
+        denied_child = Model::Generator.zone
+        denied_child.parent_id = denied.id
+        denied_child.save!
+        unrelated = Model::Generator.zone.save!
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_zone(group: group, zone: anchor, permissions: Model::Permissions::Read).save!
+        deny_row = Model::Generator.group_zone(group: group, zone: denied, permissions: Model::Permissions::Read)
+        deny_row.deny = true
+        deny_row.save!
+
+        params = HTTP::Params.encode({"group_id" => group.id.to_s, "descendants" => "true", "limit" => "1000"})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        zones = Array(Hash(String, JSON::Any)).from_json(result.body)
+        zones.map(&.["id"].as_s).sort!.should eq [anchor.id, child.id, grandchild.id].compact.sort!
+        zones.all? { |z| z["children_count"]?.try(&.as_i?) }.should be_true
+
+        params = HTTP::Params.encode({"group_id" => group.id.to_s})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s).sort!.should eq [anchor.id, denied.id].compact.sort!
+
+        params = HTTP::Params.encode({"parent_id" => anchor.id.as(String), "descendants" => "true"})
+        result = client.get("#{Zones.base_route}?#{params}", headers: headers)
+        result.status_code.should eq 200
+        Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s).sort!.should eq [child.id, denied.id].compact.sort!
+      ensure
+        grandchild.try(&.destroy)
+        child.try(&.destroy)
+        denied_child.try(&.destroy)
+        denied.try(&.destroy)
+        anchor.try(&.destroy)
+        unrelated.try(&.destroy)
+      end
     end
 
     describe "tags", tags: "search" do

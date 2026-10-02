@@ -41982,6 +41982,13 @@ paths:
         example: "true"
         schema:
           type: boolean
+      - name: descendants
+        in: query
+        description: with group_id, include anchor zones and their descendants, excluding
+          denied subtrees
+        example: "true"
+        schema:
+          type: boolean
       - name: q
         in: query
         description: filters results by the given text; words match as prefixes against
