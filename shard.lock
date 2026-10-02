@@ -7,7 +7,7 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 8.3.1
+    version: 8.3.2
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
@@ -215,7 +215,7 @@ shards:
 
   placeos-frontend-loader:
     git: https://github.com/placeos/frontend-loader.git
-    version: 2.7.1+git.commit.f5c5f321f3e7eb85e219d67032ea76df5e1e0ea1
+    version: 2.7.1+git.commit.1b8adc3748a2dd162711ded28438430bc0372194
 
   placeos-log-backend:
     git: https://github.com/place-labs/log-backend.git
