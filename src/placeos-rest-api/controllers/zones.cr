@@ -3,6 +3,7 @@ require "promise"
 require "./application"
 
 module PlaceOS::Api
+  # Zones, the hierarchy of places (organisation, region, building, level, area) that systems belong to
   class Zones < Application
     include Utils::CoreHelper
     include Utils::Permissions

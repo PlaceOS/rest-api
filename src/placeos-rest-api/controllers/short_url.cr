@@ -3,6 +3,7 @@ require "qr-code"
 require "qr-code/export/png"
 
 module PlaceOS::Api
+  # Short URLs and QR codes that redirect to longer links
   class ShortURL < Application
     include Utils::Permissions
 
@@ -109,6 +110,7 @@ module PlaceOS::Api
     skip_action :set_user_id, only: :redirect
 
     # redirects to the URI specified by the provided short URL id
+    @[AC::MCP(hide: true)]
     @[AC::Route::GET("/:id/redirect", status_code: HTTP::Status::SEE_OTHER)]
     def redirect : Nil
       current_url.increment_redirect_count

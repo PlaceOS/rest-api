@@ -3,6 +3,7 @@ require "./application"
 require "./webrtc/*"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class WebRTC < Application
     base "/api/engine/v2/webrtc/"
 

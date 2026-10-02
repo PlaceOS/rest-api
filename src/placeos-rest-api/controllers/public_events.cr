@@ -7,6 +7,7 @@ require "placeos-driver/proxy/remote_driver"
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class PublicEvents < Application
     include Utils::CoreHelper
 

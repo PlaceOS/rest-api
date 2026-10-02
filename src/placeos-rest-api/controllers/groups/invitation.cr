@@ -7,6 +7,7 @@ require "placeos-models/group/invitation"
 require "../application"
 
 module PlaceOS::Api
+  # Invitations for users to join groups
   class Groups::Invitations < Application
     include Utils::GroupPermissions
 

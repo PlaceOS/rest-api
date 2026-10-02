@@ -13,6 +13,7 @@ module PlaceOS::Api
     property shared_with : Array(::PlaceOS::Model::Group)? = nil
   end
 
+  # Digital signage templates, layouts for content on displays
   class SignageTemplates < Application
     include Utils::GroupPermissions
 

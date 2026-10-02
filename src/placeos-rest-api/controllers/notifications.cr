@@ -2,6 +2,7 @@ require "./application"
 require "./notifications/*"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class PushNotifications < Application
     base "/api/engine/v2/notifications"
 

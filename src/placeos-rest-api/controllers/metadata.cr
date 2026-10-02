@@ -3,6 +3,7 @@ require "promise"
 require "./application"
 
 module PlaceOS::Api
+  # Metadata, named JSON documents attached to zones, systems and users (e.g. floor maps, booking rules)
   class Metadata < Application
     include Utils::Permissions
     include Utils::GroupPermissions

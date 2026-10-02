@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class UrlProxy < Application
     base "/api/engine/v2/proxy"
 

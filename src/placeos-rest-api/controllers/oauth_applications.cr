@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # OAuth applications, the clients permitted to sign users in to PlaceOS
   class OAuthApplications < Application
     base "/api/engine/v2/oauth_apps/"
 

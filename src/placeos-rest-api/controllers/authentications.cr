@@ -3,6 +3,7 @@ require "./application"
 module PlaceOS::Api
   AUTH_TYPES = {"Ldap", "Saml", "OAuth"}
   {% for auth_type in AUTH_TYPES %}
+    # {{auth_type.id}} single sign-on strategies, how users of a domain authenticate
     class {{auth_type.id}}Authentications < Application
       base "/api/engine/v2/{{auth_type.downcase.id}}_auths/"
 

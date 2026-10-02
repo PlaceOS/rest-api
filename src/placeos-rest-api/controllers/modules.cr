@@ -8,6 +8,7 @@ require "./drivers"
 require "./settings"
 
 module PlaceOS::Api
+  # Modules, running instances of drivers that control individual devices and services
   class Modules < Application
     include Utils::CoreHelper
     include Utils::Permissions

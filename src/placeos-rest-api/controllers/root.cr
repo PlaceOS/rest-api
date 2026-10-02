@@ -8,6 +8,7 @@ require "path"
 require "uri"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class Root < Application
     base "/api/engine/v2/"
 

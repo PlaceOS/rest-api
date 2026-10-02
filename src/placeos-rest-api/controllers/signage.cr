@@ -4,6 +4,7 @@ require "./signage/*"
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class Signage < Application
     include Utils::Permissions
 

@@ -2,6 +2,7 @@ require "placeos-models/storage"
 require "./application"
 
 module PlaceOS::Api
+  # File storage providers (e.g. S3) used for uploads
   class Storages < Application
     base "/api/engine/v2/storages"
 

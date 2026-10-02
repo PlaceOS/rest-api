@@ -42,6 +42,9 @@ RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_VERSION=$PLACE_VERSION \
     shards build --production --error-trace --static
 
+# Generate the MCP tool descriptions, they're extracted from the source code comments
+RUN ./bin/rest-api --mcp=/app/mcp.yml
+
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Extract binary dependencies
@@ -100,6 +103,7 @@ COPY --from=build /usr/libexec/git-core/ /usr/libexec/git-core/
 # Copy the app into place
 COPY --from=build /app/deps /
 COPY --from=build /app/bin /
+COPY --from=build /app/mcp.yml /mcp.yml
 # Use an unprivileged user.
 USER appuser:appuser
 

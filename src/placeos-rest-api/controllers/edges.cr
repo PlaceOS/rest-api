@@ -6,6 +6,7 @@ require "./application"
 require "./systems"
 
 module PlaceOS::Api
+  # Edge nodes, on-premises servers that run modules close to the devices they control
   class Edges < Application
     base "/api/engine/v2/edges/"
 

@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Domains (authorities), the tenants of this PlaceOS instance and their configuration
   class Domains < Application
     base "/api/engine/v2/domains/"
 
@@ -38,6 +39,7 @@ module PlaceOS::Api
     skip_action :set_user_id, only: :lookup
 
     # Find the domain name by looking into domain registerd email domains.
+    @[AC::MCP(hide: true)]
     @[AC::Route::GET("/lookup/:email")]
     def lookup(
       @[AC::Param::Info(name: "email", description: "User email to lookup domain for", example: "user@domain.com")]

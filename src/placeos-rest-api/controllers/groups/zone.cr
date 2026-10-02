@@ -4,6 +4,7 @@ require "placeos-models/group/zone"
 require "../application"
 
 module PlaceOS::Api
+  # The zones a group has access to, and the permissions it has there
   class Groups::Zones < Application
     include Utils::GroupPermissions
 

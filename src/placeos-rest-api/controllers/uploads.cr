@@ -6,6 +6,7 @@ require "xml"
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class Uploads < Application
     include Utils::Permissions
     include Utils::GroupPermissions

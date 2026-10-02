@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Physical assets, the individual items tracked within buildings
   class Assets < Application
     include Utils::Permissions
     include Utils::GroupPermissions

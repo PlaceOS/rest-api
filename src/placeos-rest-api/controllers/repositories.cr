@@ -4,6 +4,7 @@ require "git-repository"
 require "./application"
 
 module PlaceOS::Api
+  # Git repositories containing drivers and frontend interfaces
   class Repositories < Application
     base "/api/engine/v2/repositories/"
 

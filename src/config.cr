@@ -12,6 +12,7 @@ require "./logging"
 
 # Server required after application controllers
 require "action-controller/server"
+require "./placeos-rest-api/mcp"
 
 module PlaceOS::Api
   filters = ["bearer_token", "secret", "password", "api-key"]

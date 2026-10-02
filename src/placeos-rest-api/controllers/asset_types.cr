@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Asset types, the makes and models of physical assets (furniture, equipment, devices)
   class AssetTypes < Application
     include Utils::Permissions
     include Utils::GroupPermissions

@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Purchase orders for assets, recording how and when assets were acquired
   class AssetPurchaseOrders < Application
     include Utils::Permissions
     include Utils::GroupPermissions

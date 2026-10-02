@@ -55,6 +55,11 @@ OptionParser.parse(ARGV.dup) do |parser|
     exit 0
   end
 
+  parser.on("--mcp=FILE", "Writes the MCP tool descriptions (mcp.yml) for this service") do |file|
+    ActionController::MCPServer.write_description(file)
+    exit 0
+  end
+
   parser.on("-h", "--help", "Show this help") do
     puts parser
     exit 0
@@ -93,6 +98,9 @@ PgORM::Settings.to_uri
 PlaceOS::Api::Log.info { "launching #{PlaceOS::Api::APP_NAME} v#{PlaceOS::Api::VERSION} (#{PlaceOS::Api::BUILD_COMMIT} @ #{PlaceOS::Api::BUILD_TIME.strip})" }
 
 server = ActionController::Server.new(port, host)
+
+# MCP (Model Context Protocol) endpoint for LLM clients
+PlaceOS::Api::MCP.mount(server)
 
 # Start clustering
 server.cluster(process_count, "-w", "--workers") if cluster

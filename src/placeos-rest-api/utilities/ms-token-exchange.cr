@@ -75,8 +75,9 @@ module PlaceOS::Api
     def peek_token_info(token : String) : PeekInfo
       payload, header = JWT.decode(token, verify: false, validate: false)
 
-      aud_raw = payload["aud"]?.try(&.as_s) || raise "missing aud"
-      iss = payload["iss"]?.try(&.as_s) || raise "missing iss"
+      # JWT::DecodeError so callers treat a malformed token as unauthorized (401), not a 500
+      aud_raw = payload["aud"]?.try(&.as_s?) || raise JWT::DecodeError.new("missing aud")
+      iss = payload["iss"]?.try(&.as_s?) || raise JWT::DecodeError.new("missing iss")
       email = payload["upn"]?.try(&.as_s)
       tid = payload["tid"]?.try(&.as_s)
       kid = header["kid"]?.try(&.as_s)

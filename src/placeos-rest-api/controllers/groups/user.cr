@@ -4,6 +4,7 @@ require "placeos-models/group/user"
 require "../application"
 
 module PlaceOS::Api
+  # Group memberships, the users in each group and their permissions
   class Groups::Users < Application
     include Utils::GroupPermissions
 

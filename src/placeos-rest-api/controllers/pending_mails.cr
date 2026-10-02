@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Emails awaiting review or delivery
   class PendingMails < Application
     include Utils::Permissions
     include Utils::GroupPermissions

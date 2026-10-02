@@ -1,6 +1,7 @@
 require "../application"
 
 module PlaceOS::Api
+  # Digital signage plugins, interactive web content that can be added to playlists
   class SignagePlugins < Application
     include Utils::Permissions
 

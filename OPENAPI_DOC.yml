@@ -6,6 +6,7 @@ info:
   version: v2
 paths:
   /api/engine/v2/alert_dashboards:
+    summary: Alert dashboards, which group alerts for monitoring a set of systems
     get:
       summary: list the alert dashboards
       tags:
@@ -237,6 +238,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/alert_dashboards/{id}:
+    summary: Alert dashboards, which group alerts for monitoring a set of systems
     get:
       summary: returns the details of an alert dashboard
       tags:
@@ -630,6 +632,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/alert_dashboards/{id}/alerts:
+    summary: Alert dashboards, which group alerts for monitoring a set of systems
     get:
       summary: Get all alerts for a dashboard
       tags:
@@ -729,6 +732,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/alerts:
+    summary: 'Alert rules: conditions on system and device state that raise notifications
+      on an alert dashboard'
     get:
       summary: list the alerts
       tags:
@@ -981,6 +986,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/alerts/{id}:
+    summary: 'Alert rules: conditions on system and device state that raise notifications
+      on an alert dashboard'
     get:
       summary: returns the details of an alert
       tags:
@@ -1381,6 +1388,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/api_keys:
+    summary: API keys, long lived credentials that act as a user with a limited set
+      of scopes
     get:
       summary: returns a list of the API keys associated with the provided domain,
         otherwise all domains
@@ -1613,6 +1622,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/api_keys/{id}:
+    summary: API keys, long lived credentials that act as a user with a limited set
+      of scopes
     get:
       summary: returns the requested API key details
       tags:
@@ -2006,6 +2017,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/api_keys/inspect:
+    summary: API keys, long lived credentials that act as a user with a limited set
+      of scopes
     get:
       summary: obtain the a JSON JWT representation of the API key permissions
       tags:
@@ -2098,6 +2111,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/asset_categories:
+    summary: Asset categories, a hierarchy for organising asset types
     get:
       summary: list the asset categories
       tags:
@@ -2331,6 +2345,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/asset_categories/{id}:
+    summary: Asset categories, a hierarchy for organising asset types
     get:
       summary: show the selected asset category
       tags:
@@ -2724,6 +2739,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/asset_purchase_orders:
+    summary: Purchase orders for assets, recording how and when assets were acquired
     get:
       summary: list the asset purchase_orders
       tags:
@@ -2948,6 +2964,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/asset_purchase_orders/{id}:
+    summary: Purchase orders for assets, recording how and when assets were acquired
     get:
       summary: show the selected asset purchase_order
       tags:
@@ -3341,6 +3358,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/asset_types:
+    summary: Asset types, the makes and models of physical assets (furniture, equipment,
+      devices)
     get:
       summary: list the asset types
       tags:
@@ -3593,6 +3612,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/asset_types/{id}:
+    summary: Asset types, the makes and models of physical assets (furniture, equipment,
+      devices)
     get:
       summary: show the selected asset type
       tags:
@@ -3986,6 +4007,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/assets:
+    summary: Physical assets, the individual items tracked within buildings
     get:
       summary: list the assets
       tags:
@@ -4277,6 +4299,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/assets/{id}:
+    summary: Physical assets, the individual items tracked within buildings
     get:
       summary: show the selected asset
       tags:
@@ -4670,6 +4693,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/assets/bulk:
+    summary: Physical assets, the individual items tracked within buildings
     put:
       summary: udpate asset details
       tags:
@@ -5061,6 +5085,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/ldap_auths:
+    summary: Ldap single sign-on strategies, how users of a domain authenticate
     get:
       summary: returns a list of authentications
       tags:
@@ -5292,6 +5317,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/ldap_auths/{id}:
+    summary: Ldap single sign-on strategies, how users of a domain authenticate
     get:
       summary: returns the details of a particular authentication
       tags:
@@ -5685,6 +5711,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/saml_auths:
+    summary: Saml single sign-on strategies, how users of a domain authenticate
     get:
       summary: returns a list of authentications
       tags:
@@ -5916,6 +5943,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/saml_auths/{id}:
+    summary: Saml single sign-on strategies, how users of a domain authenticate
     get:
       summary: returns the details of a particular authentication
       tags:
@@ -6309,6 +6337,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/oauth_auths:
+    summary: OAuth single sign-on strategies, how users of a domain authenticate
     get:
       summary: returns a list of authentications
       tags:
@@ -6540,6 +6569,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/oauth_auths/{id}:
+    summary: OAuth single sign-on strategies, how users of a domain authenticate
     get:
       summary: returns the details of a particular authentication
       tags:
@@ -6933,6 +6963,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/brokers:
+    summary: MQTT brokers that receive system and device state
     get:
       summary: returns the list of MQTT brokers receiving state information
       tags:
@@ -7124,6 +7155,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/brokers/{id}:
+    summary: MQTT brokers that receive system and device state
     get:
       summary: returns the details of the selected broker
       tags:
@@ -8467,6 +8499,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/cluster:
+    summary: 'The PlaceOS core cluster: nodes, driver processes and their resource
+      usage'
     get:
       summary: returns the list of core nodes running in the cluster
       tags:
@@ -8568,6 +8602,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/cluster/{id}:
+    summary: 'The PlaceOS core cluster: nodes, driver processes and their resource
+      usage'
     get:
       summary: return the details of a particular core node
       tags:
@@ -8773,6 +8809,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/cluster/rebalance:
+    summary: 'The PlaceOS core cluster: nodes, driver processes and their resource
+      usage'
     post:
       summary: forces the core nodes to perform a cluster rebalance
       description: 'forces the core nodes to perform a cluster rebalance
@@ -8868,6 +8906,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/domains:
+    summary: Domains (authorities), the tenants of this PlaceOS instance and their
+      configuration
     get:
       summary: list the domains
       tags:
@@ -9092,6 +9132,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/domains/lookup/{email}:
+    summary: Domains (authorities), the tenants of this PlaceOS instance and their
+      configuration
     get:
       summary: Find the domain name by looking into domain registerd email domains.
       tags:
@@ -9191,6 +9233,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/domains/{id}:
+    summary: Domains (authorities), the tenants of this PlaceOS instance and their
+      configuration
     get:
       summary: show the selected domain
       tags:
@@ -9584,6 +9628,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/drivers:
+    summary: Drivers, the code that integrates a type of device or service, compiled
+      from repositories
     get:
       summary: list the drivers available on a cluster
       tags:
@@ -9828,6 +9874,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/drivers/{id}:
+    summary: Drivers, the code that integrates a type of device or service, compiled
+      from repositories
     get:
       summary: view the details of a driver
       tags:
@@ -10227,6 +10275,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/drivers/{id}/readme:
+    summary: Drivers, the code that integrates a type of device or service, compiled
+      from repositories
     get:
       summary: get the readme for a driver
       tags:
@@ -10324,6 +10374,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/drivers/{id}/recompile:
+    summary: Drivers, the code that integrates a type of device or service, compiled
+      from repositories
     post:
       summary: force recompile a driver, useful if libraries and supporting files
         have been updated
@@ -10422,6 +10474,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/drivers/{id}/reload:
+    summary: Drivers, the code that integrates a type of device or service, compiled
+      from repositories
     post:
       summary: download and reload driver on core cluster, useful when reloading a
         re-compiled driver
@@ -10520,6 +10574,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/drivers/{id}/compiled:
+    summary: Drivers, the code that integrates a type of device or service, compiled
+      from repositories
     get:
       summary: Check if the driver is available on the cluster
       tags:
@@ -10613,6 +10669,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/settings:
+    summary: Settings, configuration (optionally encrypted) applied to drivers, modules,
+      systems and zones
     get:
       summary: list the settings associated with the provided parent object
       tags:
@@ -10844,6 +10902,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/settings/{id}:
+    summary: Settings, configuration (optionally encrypted) applied to drivers, modules,
+      systems and zones
     get:
       summary: return the requested setting details
       tags:
@@ -11237,6 +11297,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/settings/{id}/history:
+    summary: Settings, configuration (optionally encrypted) applied to drivers, modules,
+      systems and zones
     get:
       summary: Returns the version history for a Settings model
       tags:
@@ -11349,6 +11411,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     get:
       summary: return a list of modules configured on the cluster
       tags:
@@ -11609,6 +11673,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     get:
       summary: return the details of a module
       tags:
@@ -12008,6 +12074,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/error:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     get:
       summary: return runtime error log of a module (if any) or 404
       tags:
@@ -12107,6 +12175,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/settings:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     get:
       summary: Receive the collated settings for a module
       tags:
@@ -12206,6 +12276,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/start:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     post:
       summary: Starts a module
       tags:
@@ -12299,6 +12371,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/stop:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     post:
       summary: Stops a module
       tags:
@@ -12392,6 +12466,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/exec/{method}:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     post:
       summary: Executes a command on a module
       description: 'Executes a command on a module
@@ -12501,6 +12577,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/state:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     get:
       summary: Dumps the complete status state of the module, key values are serialised
         JSON
@@ -12599,6 +12677,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/state/{key}:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     get:
       summary: Returns the value of the requested status variable
       tags:
@@ -12702,6 +12782,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/ping:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     post:
       summary: pings the ip or hostname specified in the modules configuration
       tags:
@@ -12799,6 +12881,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/modules/{id}/load:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
     post:
       summary: Loads the module if not already loaded
       description: 'Loads the module if not already loaded
@@ -12899,6 +12983,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: list the systems in a cluster
       tags:
@@ -13210,6 +13296,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/with_emails:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Finds all the systems with the specified email address
       tags:
@@ -13313,6 +13401,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Renders a control system
       tags:
@@ -13732,6 +13822,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/zones:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Return all zones for this system
       tags:
@@ -13831,6 +13923,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/metadata:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Return metadata for the system
       tags:
@@ -13933,6 +14027,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/settings:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Receive the collated settings for a system
       tags:
@@ -14032,6 +14128,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/module/{module_id}:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     put:
       summary: Adds the module to the system if it doesn't already exist
       tags:
@@ -14235,6 +14333,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/start:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     post:
       summary: Start modules
       tags:
@@ -14334,6 +14434,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/stop:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     post:
       summary: Stop modules
       tags:
@@ -14433,6 +14535,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/{module_slug}/{method}:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     post:
       summary: Runs a function in a system module
       tags:
@@ -14547,6 +14651,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/types:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Look-up a module types in a system, returning a count of each type
       tags:
@@ -14644,6 +14750,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/{module_slug}:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Returns the state of an associated module
       tags:
@@ -14749,6 +14857,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/{module_slug}/{key}:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Returns the state lookup for a given key on a module
       tags:
@@ -14861,6 +14971,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/functions/{module_slug}:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: Lists functions available on the driver
       description: 'Lists functions available on the driver
@@ -14969,6 +15081,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/control:
+    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
+      placed in zones'
     get:
       summary: the websocket API endpoint
       description: 'the websocket API endpoint
@@ -15064,6 +15178,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/control:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: the websocket endpoint that edge devices use to connect to the cluster
       tags:
@@ -15152,6 +15268,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/{id}/token:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: admins can obtain the token edge nodes will use to connect to the cluster
       tags:
@@ -15249,6 +15367,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: list the edges in the system.
       description: 'list the edges in the system.
@@ -15477,6 +15597,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/{id}:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: return the details of an edge location
       tags:
@@ -15870,6 +15992,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/{id}/errors:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get errors for a specific edge
       tags:
@@ -15981,6 +16105,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/{id}/modules/status:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get module status for a specific edge
       tags:
@@ -16078,6 +16204,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/{id}/health:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get health status for a specific edge
       tags:
@@ -16175,6 +16303,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/{id}/connections:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get connection metrics for a specific edge
       tags:
@@ -16272,6 +16402,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/health:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get health status for all edges
       tags:
@@ -16364,6 +16496,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/errors:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get errors from all edges
       tags:
@@ -16468,6 +16602,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/connections:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get connection metrics for all edges
       tags:
@@ -16560,6 +16696,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/modules/failures:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get module failures from all edges
       tags:
@@ -16652,6 +16790,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/statistics:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Get overall edge statistics
       tags:
@@ -16744,6 +16884,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/{id}/errors/stream:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Real-time error streaming for a specific edge
       tags:
@@ -16837,6 +16979,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/errors/stream:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Real-time error streaming for all edges
       tags:
@@ -16925,6 +17069,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/modules/stream:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Real-time module status streaming for all edges
       tags:
@@ -17013,6 +17159,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/monitoring/cleanup:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     post:
       summary: Manual error cleanup trigger
       tags:
@@ -17111,6 +17259,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/edges/monitoring/summary:
+    summary: Edge nodes, on-premises servers that run modules close to the devices
+      they control
     get:
       summary: Real-time error summary
       tags:
@@ -17298,6 +17448,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/groups:
+    summary: Groups of users, used to grant permissions to zones and features
     get:
       summary: List groups. sys_admin sees all within the current authority; other
       description: 'List groups. sys_admin sees all within the current authority;
@@ -17544,6 +17695,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/groups/{id}:
+    summary: Groups of users, used to grant permissions to zones and features
     get:
       summary: Show group details. Visible if sys_admin or a member.
       tags:
@@ -17947,6 +18099,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/groups/{id}/features:
+    summary: Groups of users, used to grant permissions to zones and features
     get:
       summary: Effective feature flags for this group.
       description: 'Effective feature flags for this group.
@@ -18057,6 +18210,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/groups/ad_groups/sync:
+    summary: Groups of users, used to grant permissions to zones and features
     post:
       summary: Sync a user's group memberships with their AD groups.
       description: 'Sync a user''s group memberships with their AD groups.
@@ -18166,6 +18320,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/groups/current:
+    summary: Groups of users, used to grant permissions to zones and features
     get:
       tags:
       - Groups
@@ -18266,6 +18421,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_history:
+    summary: Audit history of changes to groups and their memberships
     get:
       summary: List audit entries. sys_admin sees everything; other callers must
       description: 'List audit entries. sys_admin sees everything; other callers must
@@ -18399,6 +18555,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_history/{id}:
+    summary: Audit history of changes to groups and their memberships
     get:
       tags:
       - History
@@ -18496,6 +18653,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_invitations:
+    summary: Invitations for users to join groups
     get:
       summary: List invitations. Optionally filter by `group_id`. Non-admin
       description: 'List invitations. Optionally filter by `group_id`. Non-admin
@@ -18731,6 +18889,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_invitations/{id}:
+    summary: Invitations for users to join groups
     get:
       tags:
       - Invitations
@@ -18920,6 +19079,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_invitations/{id}/accept:
+    summary: Invitations for users to join groups
     post:
       summary: Accept the invitation, materialising it into a GroupUser for the
       description: 'Accept the invitation, materialising it into a GroupUser for the
@@ -19021,6 +19181,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_users:
+    summary: Group memberships, the users in each group and their permissions
     get:
       summary: GroupUser rows. Optional `group_id` scopes to one group;
       description: 'GroupUser rows. Optional `group_id` scopes to one group;
@@ -19257,6 +19418,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_users/{user_id}/{group_id}:
+    summary: Group memberships, the users in each group and their permissions
     get:
       tags:
       - Users
@@ -19670,6 +19832,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_zones:
+    summary: The zones a group has access to, and the permissions it has there
     get:
       summary: List GroupZone rows. Filterable by group_id / zone_id.
       tags:
@@ -19901,6 +20064,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/group_zones/{group_id}/{zone_id}:
+    summary: The zones a group has access to, and the permissions it has there
     get:
       tags:
       - Zones
@@ -20314,6 +20478,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/metadata/{name}/bulk:
+    summary: Metadata, named JSON documents attached to zones, systems and users (e.g.
+      floor maps, booking rules)
     get:
       summary: Fetch metadata with a specific name for multiple resources
       description: 'Fetch metadata with a specific name for multiple resources
@@ -20426,6 +20592,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/metadata/{id}:
+    summary: Metadata, named JSON documents attached to zones, systems and users (e.g.
+      floor maps, booking rules)
     get:
       summary: Fetch metadata for a model
       description: 'Fetch metadata for a model
@@ -20847,6 +21015,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/metadata/{id}/children:
+    summary: Metadata, named JSON documents attached to zones, systems and users (e.g.
+      floor maps, booking rules)
     get:
       summary: Fetch metadata for Zone children
       description: 'Fetch metadata for Zone children
@@ -20966,6 +21136,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/metadata/{id}/name:
+    summary: Metadata, named JSON documents attached to zones, systems and users (e.g.
+      floor maps, booking rules)
     patch:
       summary: rename a metadata field
       description: 'rename a metadata field
@@ -21073,6 +21245,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/metadata/{id}/history:
+    summary: Metadata, named JSON documents attached to zones, systems and users (e.g.
+      floor maps, booking rules)
     get:
       summary: Returns the version history for a Settings model
       tags:
@@ -21578,6 +21752,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/oauth_apps:
+    summary: OAuth applications, the clients permitted to sign users in to PlaceOS
     get:
       summary: lists the frontend applications enabled on the domains
       tags:
@@ -21810,6 +21985,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/oauth_apps/{id}:
+    summary: OAuth applications, the clients permitted to sign users in to PlaceOS
     get:
       summary: show the details of the applications
       tags:
@@ -22203,6 +22379,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/emails:
+    summary: Emails awaiting review or delivery
     get:
       summary: list queued/processed mail
       tags:
@@ -22418,6 +22595,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/emails/{id}:
+    summary: Emails awaiting review or delivery
     get:
       summary: show the selected mail
       tags:
@@ -22607,6 +22785,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/emails/{id}/reject:
+    summary: Emails awaiting review or delivery
     post:
       summary: mark a mail as rejected (it will not be sent)
       tags:
@@ -22711,6 +22890,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/emails/{id}/sent:
+    summary: Emails awaiting review or delivery
     post:
       summary: mark a mail as sent
       tags:
@@ -22815,6 +22995,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/emails/cleanup:
+    summary: Emails awaiting review or delivery
     delete:
       summary: delete all sent, rejected and expired mail for an authority (admin/support)
       tags:
@@ -23281,6 +23462,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: lists the repositories added to the system
       tags:
@@ -23505,6 +23687,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: returns the details of a saved repository
       tags:
@@ -23898,6 +24081,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/pull:
+    summary: Git repositories containing drivers and frontend interfaces
     post:
       summary: checks the remote for any new commits and pulls them locally
       tags:
@@ -23995,6 +24179,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/interfaces:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: Determine loaded interfaces and their current commit
       description: 'Determine loaded interfaces and their current commit
@@ -24091,6 +24276,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/drivers:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: lists the drivers in a repository
       tags:
@@ -24190,6 +24376,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/folders:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: lists the folders tree in a repository
       tags:
@@ -24295,6 +24482,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/files:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: lists the files in an interface repository that match a glob pattern.
       description: 'lists the files in an interface repository that match a glob pattern.
@@ -24404,6 +24592,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/commits:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: Returns the commits for a repository or file
       tags:
@@ -24525,6 +24714,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/details:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: Returns the metadata of the driver
       description: 'Returns the metadata of the driver
@@ -24635,6 +24825,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/branches:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: returns the list of branches in the repository
       tags:
@@ -24734,6 +24925,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/releases:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: returns the list of releases in the repository, i.e. github releases
       tags:
@@ -24833,6 +25025,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/tags:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: Returns an array of tags for the repository
       tags:
@@ -24932,6 +25125,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/{id}/default_branch:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: returns the default branch of the specified repository
       tags:
@@ -25029,6 +25223,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/remote_default_branch:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: returns the default branch of the specified repository
       tags:
@@ -25142,6 +25337,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/remote_branches:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: lists the branches of the specified repository
       tags:
@@ -25257,6 +25453,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/remote_commits:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: lists the commits of the specified repository
       tags:
@@ -25386,6 +25583,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/repositories/remote_tags:
+    summary: Git repositories containing drivers and frontend interfaces
     get:
       summary: Returns an array of tags for the specified repository
       tags:
@@ -26257,6 +26455,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/schema:
+    summary: JSON schemas used to validate metadata and settings
     get:
       summary: return the list of schemas
       description: 'return the list of schemas
@@ -26484,6 +26683,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/schema/{id}:
+    summary: JSON schemas used to validate metadata and settings
     get:
       summary: return the details of a schema
       tags:
@@ -26877,6 +27077,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/short_url:
+    summary: Short URLs and QR codes that redirect to longer links
     get:
       summary: list the short URLs for this domain
       tags:
@@ -27101,6 +27302,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/short_url/{id}:
+    summary: Short URLs and QR codes that redirect to longer links
     get:
       summary: return the details of the requested shortened URL
       tags:
@@ -27494,6 +27696,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/short_url/{id}/redirect:
+    summary: Short URLs and QR codes that redirect to longer links
     get:
       summary: redirects to the URI specified by the provided short URL id
       tags:
@@ -27587,6 +27790,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/short_url/{id}/qr_code.svg:
+    summary: Short URLs and QR codes that redirect to longer links
     get:
       summary: obtains an SVG QR code for the specified short URL
       tags:
@@ -27680,6 +27884,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/short_url/{id}/qr_code.png:
+    summary: Short URLs and QR codes that redirect to longer links
     get:
       summary: obtains an PNG QR code for the specified short URL with optional resolution
       tags:
@@ -27779,6 +27984,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/short_url/qr_code:
+    summary: Short URLs and QR codes that redirect to longer links
     get:
       summary: helper for generating QR codes with user defined content
       tags:
@@ -29570,6 +29776,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media:
+    summary: 'Digital signage media: images, videos, web pages and plugins that can
+      be played'
     get:
       summary: list media items for the current authority.
       description: 'list media items for the current authority.
@@ -29836,6 +30044,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/tags:
+    summary: 'Digital signage media: images, videos, web pages and plugins that can
+      be played'
     get:
       summary: return the distinct tags in use by media. Scopes the same way as
       description: 'return the distinct tags in use by media. Scopes the same way
@@ -30183,6 +30393,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/tag_counts:
+    summary: 'Digital signage media: images, videos, web pages and plugins that can
+      be played'
     get:
       summary: return the number of media items carrying each tag. Scopes the same
       description: 'return the number of media items carrying each tag. Scopes the
@@ -30295,6 +30507,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/{id}:
+    summary: 'Digital signage media: images, videos, web pages and plugins that can
+      be played'
     get:
       summary: return the details of the requested media item, including the groups
       description: 'return the details of the requested media item, including the
@@ -30709,6 +30923,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/{id}/thumbnail:
+    summary: 'Digital signage media: images, videos, web pages and plugins that can
+      be played'
     get:
       summary: redirects to the thumbnail image URL
       tags:
@@ -30802,6 +31018,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/media/share:
+    summary: 'Digital signage media: images, videos, web pages and plugins that can
+      be played'
     post:
       summary: Share one or more media items into another signage group via
       description: "Share one or more media items into another signage group via\n`GroupPlaylistItem`
@@ -30916,6 +31134,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     get:
       summary: list media playlists in the current authority.
       description: 'list media playlists in the current authority.
@@ -31177,6 +31396,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     get:
       summary: return the details of the requested media playlist, including the
       description: 'return the details of the requested media playlist, including
@@ -31593,6 +31813,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/share:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     post:
       summary: Share one or more playlists into another signage group via
       description: "Share one or more playlists into another signage group via\n`GroupPlaylist`
@@ -31707,6 +31928,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     get:
       summary: get the current list of media for the playlist
       tags:
@@ -31906,6 +32128,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media/revisions:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     get:
       summary: returns the previous versions of a playlist
       tags:
@@ -32010,6 +32233,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media/schedule:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     post:
       summary: add scheduled media to a distribution playlist
       tags:
@@ -32113,6 +32337,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media/schedule/{item_id}:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     patch:
       tags:
       - Playlist
@@ -32220,6 +32445,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media/approve:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     post:
       summary: approve a playlist for publication on displays
       tags:
@@ -32317,6 +32543,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/approvers:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     get:
       summary: list the users who can approve playlists for a group (those with the
       description: 'list the users who can approve playlists for a group (those with
@@ -32424,6 +32651,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/playlists/{id}/media/request_approval:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
     post:
       summary: request approval for the current playlist's media. Notifies the group's
       description: 'request approval for the current playlist''s media. Notifies the
@@ -32543,6 +32771,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/plugins:
+    summary: Digital signage plugins, interactive web content that can be added to
+      playlists
     get:
       summary: list signage plugins for this domain and shared plugins (no authority)
       tags:
@@ -32784,6 +33014,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/plugins/{id}:
+    summary: Digital signage plugins, interactive web content that can be added to
+      playlists
     get:
       summary: return the details of the requested signage plugin
       tags:
@@ -33177,6 +33409,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/template_mappings:
+    summary: Assigns digital signage templates to systems (displays)
     get:
       summary: list the template mappings in the current authority — what templates
       description: 'list the template mappings in the current authority — what templates
@@ -33436,6 +33669,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/template_mappings/{id}:
+    summary: Assigns digital signage templates to systems (displays)
     get:
       summary: return the details of a template mapping, including the applied
       description: 'return the details of a template mapping, including the applied
@@ -33852,6 +34086,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates:
+    summary: Digital signage templates, layouts for content on displays
     get:
       summary: list signage templates in the current authority. Like the default
       description: 'list signage templates in the current authority. Like the default
@@ -34125,6 +34360,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates/{id}:
+    summary: Digital signage templates, layouts for content on displays
     get:
       summary: return the details of the requested template, including the groups
         it
@@ -34577,6 +34813,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates/{id}/draft:
+    summary: Digital signage templates, layouts for content on displays
     delete:
       summary: discard the pending draft, reverting to the approved version
       tags:
@@ -34671,6 +34908,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates/share:
+    summary: Digital signage templates, layouts for content on displays
     post:
       summary: Share one or more templates into another signage group via
       description: "Share one or more templates into another signage group via\n`GroupSignageTemplate`
@@ -34785,6 +35023,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates/{id}/approve:
+    summary: Digital signage templates, layouts for content on displays
     post:
       summary: approve the pending changes for a template. Promotes the pending
       description: 'approve the pending changes for a template. Promotes the pending
@@ -34888,6 +35127,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates/approvers:
+    summary: Digital signage templates, layouts for content on displays
     get:
       summary: list the users who can approve templates for a group (those with the
       description: 'list the users who can approve templates for a group (those with
@@ -34995,6 +35235,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/signage/templates/{id}/request_approval:
+    summary: Digital signage templates, layouts for content on displays
     post:
       summary: request approval for a template's pending changes. Notifies the group's
       description: 'request approval for a template''s pending changes. Notifies the
@@ -35560,6 +35801,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/storages:
+    summary: File storage providers (e.g. S3) used for uploads
     get:
       summary: returns the list of available storages for provided authority
       tags:
@@ -35791,6 +36033,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/storages/{id}:
+    summary: File storage providers (e.g. S3) used for uploads
     get:
       summary: returns the details of a Storage
       tags:
@@ -36184,6 +36427,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/triggers:
+    summary: The triggers applied to a system, and their state
     get:
       summary: return the list of triggers associated with the system specified
       tags:
@@ -36455,6 +36699,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/triggers/{trig_id}:
+    summary: The triggers applied to a system, and their state
     get:
       summary: return a particular trigger instance
       tags:
@@ -37237,6 +37482,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/triggers:
+    summary: Triggers, automation rules that run actions when conditions on system
+      state are met
     get:
       summary: returns the list of available triggers
       tags:
@@ -37461,6 +37708,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/triggers/{id}:
+    summary: Triggers, automation rules that run actions when conditions on system
+      state are met
     get:
       summary: returns the details of a trigger
       tags:
@@ -37861,6 +38110,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/triggers/{id}/instances:
+    summary: Triggers, automation rules that run actions when conditions on system
+      state are met
     get:
       summary: Get instances of a trigger, how many systems are using a trigger
       tags:
@@ -39276,6 +39527,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/current:
+    summary: Users of the platform, their profiles and permissions
     get:
       summary: Render the current user
       tags:
@@ -39368,6 +39620,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/resource_token:
+    summary: Users of the platform, their profiles and permissions
     post:
       summary: Obtain a token to the current users SSO resources
       description: 'Obtain a token to the current users SSO resources
@@ -39467,6 +39720,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/{id}/resource_token:
+    summary: Users of the platform, their profiles and permissions
     post:
       summary: Obtain a token to the specified users SSO resources
       description: 'Obtain a token to the specified users SSO resources
@@ -39666,6 +39920,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users:
+    summary: Users of the platform, their profiles and permissions
     get:
       summary: returns a list of users
       tags:
@@ -39909,6 +40164,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/{id}:
+    summary: Users of the platform, their profiles and permissions
     get:
       summary: returns the profile of the selected user
       tags:
@@ -40320,6 +40576,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/{id}/revive:
+    summary: Users of the platform, their profiles and permissions
     post:
       summary: undelete a user
       tags:
@@ -40415,6 +40672,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/{id}/metadata:
+    summary: Users of the platform, their profiles and permissions
     get:
       summary: return a users metadata
       tags:
@@ -40521,6 +40779,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/groups:
+    summary: Users of the platform, their profiles and permissions
     get:
       summary: Returns the groups these users are in
       tags:
@@ -40624,6 +40883,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/users/metadata/search:
+    summary: Users of the platform, their profiles and permissions
     get:
       summary: Search User metadata with provided JSON Path query.
       description: 'Search User metadata with provided JSON Path query.
@@ -41680,6 +41940,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/zones:
+    summary: Zones, the hierarchy of places (organisation, region, building, level,
+      area) that systems belong to
     get:
       summary: list the configured zones
       tags:
@@ -41938,6 +42200,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/zones/tags:
+    summary: Zones, the hierarchy of places (organisation, region, building, level,
+      area) that systems belong to
     get:
       summary: returns unique zone tags
       tags:
@@ -42032,6 +42296,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/zones/{id}:
+    summary: Zones, the hierarchy of places (organisation, region, building, level,
+      area) that systems belong to
     get:
       summary: return the details of the zone
       tags:
@@ -42431,6 +42697,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/zones/{id}/metadata:
+    summary: Zones, the hierarchy of places (organisation, region, building, level,
+      area) that systems belong to
     get:
       summary: return metadata associcated with the selected zone
       tags:
@@ -42535,6 +42803,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/zones/{id}/triggers:
+    summary: Zones, the hierarchy of places (organisation, region, building, level,
+      area) that systems belong to
     get:
       summary: Return triggers attached to current zone
       tags:
@@ -42634,6 +42904,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/zones/{id}/exec/{module_slug}/{method}:
+    summary: Zones, the hierarchy of places (organisation, region, building, level,
+      area) that systems belong to
     post:
       summary: Execute a method on a module across all systems in a Zone
       tags:

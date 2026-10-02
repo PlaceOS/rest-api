@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class MQTT < Application
     base "/api/engine/v2/mqtt/"
 

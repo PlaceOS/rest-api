@@ -19,6 +19,7 @@ module PlaceOS::Api
     property playlists : Array(::PlaceOS::Model::Playlist)? = nil
   end
 
+  # Digital signage media: images, videos, web pages and plugins that can be played
   class PlaylistMedia < Application
     include Utils::GroupPermissions
 

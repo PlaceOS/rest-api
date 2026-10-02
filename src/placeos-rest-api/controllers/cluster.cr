@@ -4,6 +4,7 @@ require "promise"
 require "./application"
 
 module PlaceOS::Api
+  # The PlaceOS core cluster: nodes, driver processes and their resource usage
   class Cluster < Application
     base "/api/engine/v2/cluster/"
 

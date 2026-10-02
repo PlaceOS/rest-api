@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # API keys, long lived credentials that act as a user with a limited set of scopes
   class ApiKeys < Application
     base "/api/engine/v2/api_keys/"
 

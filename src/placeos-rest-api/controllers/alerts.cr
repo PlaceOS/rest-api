@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Alert rules: conditions on system and device state that raise notifications on an alert dashboard
   class Alerts < Application
     include Utils::Permissions
 

@@ -4,6 +4,7 @@ require "placeos-models/permissions"
 require "./application"
 
 module PlaceOS::Api
+  # Groups of users, used to grant permissions to zones and features
   class Groups < Application
     include Utils::GroupPermissions
 

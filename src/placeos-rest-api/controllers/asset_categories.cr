@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Asset categories, a hierarchy for organising asset types
   class AssetCategories < Application
     include Utils::Permissions
     include Utils::GroupPermissions

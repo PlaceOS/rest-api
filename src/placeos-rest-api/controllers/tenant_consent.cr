@@ -3,6 +3,7 @@ require "office365"
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class TenantConsent < Application
     base "/api/engine/v2/admin_consent"
 

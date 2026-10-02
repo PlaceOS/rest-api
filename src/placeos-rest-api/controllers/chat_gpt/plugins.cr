@@ -3,6 +3,7 @@ require "../chat_gpt"
 require "./chat_manager"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class ChatGPT::Plugin < Application
     include Utils::CoreHelper
 

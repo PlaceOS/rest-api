@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # The triggers applied to a system, and their state
   class SystemTriggers < Application
     include Utils::Permissions
     include Utils::GroupPermissions

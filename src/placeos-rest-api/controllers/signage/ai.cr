@@ -15,6 +15,7 @@ module PlaceOS::Api
   # `jobs/:id`, which holds the connection until something changes or the wait
   # runs out, so a finished candidate reaches the browser within about half a
   # second of landing without a socket.
+  @[AC::MCP(hide: true)]
   class SignageAI < Application
     include Utils::GroupPermissions
 

@@ -4,6 +4,7 @@ require "placeos-models/group/history"
 require "../application"
 
 module PlaceOS::Api
+  # Audit history of changes to groups and their memberships
   class Groups::History < Application
     include Utils::GroupPermissions
 

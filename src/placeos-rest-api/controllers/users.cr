@@ -5,6 +5,7 @@ require "./application"
 require "./metadata"
 
 module PlaceOS::Api
+  # Users of the platform, their profiles and permissions
   class Users < Application
     include Utils::Permissions
     include Utils::GroupPermissions

@@ -2,6 +2,7 @@ require "base64"
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class Webhook < Application
     base "/api/engine/v2/webhook/"
 

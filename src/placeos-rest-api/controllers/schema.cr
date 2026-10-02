@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # JSON schemas used to validate metadata and settings
   class Schema < Application
     base "/api/engine/v2/schema/"
 

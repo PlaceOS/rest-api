@@ -7,6 +7,7 @@ require "./settings"
 require "../websocket"
 
 module PlaceOS::Api
+  # Systems, typically rooms or spaces: a collection of modules (devices) placed in zones
   class Systems < Application
     include Utils::CoreHelper
     include Utils::Permissions

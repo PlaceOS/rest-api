@@ -3,6 +3,7 @@ require "placeos-models/broker"
 require "./application"
 
 module PlaceOS::Api
+  # MQTT brokers that receive system and device state
   class Brokers < Application
     base "/api/engine/v2/brokers/"
 

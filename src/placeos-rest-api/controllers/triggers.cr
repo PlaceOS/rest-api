@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Triggers, automation rules that run actions when conditions on system state are met
   class Triggers < Application
     base "/api/engine/v2/triggers/"
 

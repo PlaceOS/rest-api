@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Alert dashboards, which group alerts for monitoring a set of systems
   class AlertDashboards < Application
     include Utils::Permissions
 

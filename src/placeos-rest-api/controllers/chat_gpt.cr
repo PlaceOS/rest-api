@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class ChatGPT < Application
     include Utils::CoreHelper
     alias RemoteDriver = ::PlaceOS::Driver::Proxy::RemoteDriver

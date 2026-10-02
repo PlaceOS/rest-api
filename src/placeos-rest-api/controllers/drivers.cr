@@ -2,6 +2,7 @@ require "./application"
 require "git-repository"
 
 module PlaceOS::Api
+  # Drivers, the code that integrates a type of device or service, compiled from repositories
   class Drivers < Application
     base "/api/engine/v2/drivers/"
 

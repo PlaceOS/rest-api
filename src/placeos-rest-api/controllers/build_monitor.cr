@@ -4,6 +4,7 @@ require "placeos-driver/proxy/system"
 require "./application"
 
 module PlaceOS::Api
+  @[AC::MCP(hide: true)]
   class BuildMonitor < Application
     base "/api/engine/v2/build/"
 

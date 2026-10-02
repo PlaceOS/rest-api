@@ -1,6 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
+  # Settings, configuration (optionally encrypted) applied to drivers, modules, systems and zones
   class Settings < Application
     include Utils::Permissions
     include Utils::GroupPermissions

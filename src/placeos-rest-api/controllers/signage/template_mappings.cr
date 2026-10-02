@@ -16,6 +16,7 @@ module PlaceOS::Api
     property template_details : ::PlaceOS::Model::SignageTemplate? = nil
   end
 
+  # Assigns digital signage templates to systems (displays)
   class SignageTemplateMappings < Application
     include Utils::Permissions
     include Utils::GroupPermissions

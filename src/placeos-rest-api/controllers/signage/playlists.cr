@@ -13,6 +13,7 @@ module PlaceOS::Api
     property shared_with : Array(::PlaceOS::Model::Group)? = nil
   end
 
+  # Digital signage playlists, ordered media and the schedule it plays on
   class Playlist < Application
     include Utils::GroupPermissions
 
