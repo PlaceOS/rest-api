@@ -84,7 +84,7 @@ module PlaceOS::Api
       call_tool.call(headers, "open_toolbox", {"name" => JSON::Any.new("zones")})["isError"].should be_false
       result = call_tool.call(headers, "zones_show", {"id" => JSON::Any.new(zone.id.as(String))})
       result["isError"].should be_false
-      result["structuredContent"]["name"].should eq zone.name
+      result["structuredContent"]["body"]["name"].should eq zone.name
     ensure
       zone.try &.destroy
     end
