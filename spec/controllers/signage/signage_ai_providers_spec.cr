@@ -190,6 +190,22 @@ module PlaceOS::Api
         body["model"].as_s.should eq "gpt-image-2"
       end
 
+      it "falls back to gpt-image-2.5-sunburst when the row names no model" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        provider = Model::Generator.signage_ai_provider(
+          authority: authority,
+          name: "openai-#{random_name}",
+        )
+        provider.default_model = nil
+        provider.save!
+
+        HttpMocks.signage_ai_vendor(candidates: 1)
+
+        result = client.post(File.join(base, provider.id.to_s, "test"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["model"].as_s.should eq "gpt-image-2.5-sunburst"
+      end
+
       it "reports a refusal as a moderation failure rather than an error" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         provider = Model::Generator.signage_ai_provider(

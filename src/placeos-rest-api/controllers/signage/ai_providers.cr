@@ -161,7 +161,7 @@ module PlaceOS::Api
       current_provider.destroy
     end
 
-    # 1024x1024 is the smallest gpt-image-2 accepts (it wants at least 655,360
+    # 1024x1024 is the smallest the gpt-image models accept (they want at least 655,360
     # total pixels, and both edges a multiple of 16)
     PROBE_SIZE = "1024x1024"
 
