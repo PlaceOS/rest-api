@@ -3,11 +3,21 @@ require "../chat_gpt"
 require "./chat_manager"
 
 module PlaceOS::Api
-  @[AC::MCP(hide: true)]
+  # Gives you the capabilities of a PlaceOS system, such as a meeting room or building.
+  # Call capabilities first: it describes what the system can do and who the user is,
+  # including their name, email and local time. Then call function_schema for a
+  # capability to see its functions, and call_function to run one. Calls are made as the
+  # signed in user, with their permissions.
+  @[AC::MCP(endpoint: true)]
   class ChatGPT::Plugin < Application
     include Utils::CoreHelper
 
     base "/api/engine/v2/chatgpt/plugin/:system_id"
+
+    generate_scope_check("control")
+
+    before_action :can_read_control, only: [:capabilities, :function_schema]
+    before_action :can_write_control, only: [:call_function]
 
     @[AC::Route::Filter(:before_action)]
     def check_authority
@@ -17,7 +27,14 @@ module PlaceOS::Api
       end
     end
 
+    # the system must exist, unknown ids are a 404
+    @[AC::Route::Filter(:before_action)]
+    def find_control_system
+      @control_system = ::PlaceOS::Model::ControlSystem.find!(system_id)
+    end
+
     getter! authority : ::PlaceOS::Model::Authority?
+    getter! control_system : ::PlaceOS::Model::ControlSystem?
     getter system_id : String { route_params["system_id"] }
 
     class Details
@@ -39,13 +56,13 @@ module PlaceOS::Api
       end
     end
 
-    # obtain the list of capabilities that this API can provide, must be called if the user requests some related functionality, to abtain details of the current user such as their name and email address and the current local time of the user.
+    # obtain the list of capabilities that this API can provide, must be called if the user requests some related functionality, to obtain details of the current user such as their name and email address and the current local time of the user.
     @[AC::Route::GET("/capabilities")]
     def capabilities : Details
       user_id = current_user.id.as(String)
       user = ::PlaceOS::Model::User.find!(user_id)
 
-      if timezone = ::PlaceOS::Model::ControlSystem.find!(system_id).timezone
+      if timezone = control_system.timezone
         now = Time.local(timezone)
       end
 
@@ -101,16 +118,19 @@ module PlaceOS::Api
       capability_id : String,
       @[AC::Param::Info(description: "The name of the function to call")]
       function_name : String,
-      @[AC::Param::Info(description: "a JSON string representing the named arguments of the function, as per the JSON schema provided")]
-      payload : NamedTuple(function_params: String),
+      @[AC::Param::Info(description: "the named arguments of the function, as per the JSON schema provided, as an object or a JSON string")]
+      payload : NamedTuple(function_params: String | Hash(String, JSON::Any)),
     ) : NamedTuple(response: String) | RequestError
       user_id = current_user.id
+      function_params = payload[:function_params]
+      args = function_params.is_a?(String) ? JSON.parse(function_params) : JSON::Any.new(function_params)
 
       begin
+        module_name, index = RemoteDriver.get_parts(capability_id)
         remote_driver = RemoteDriver.new(
           sys_id: system_id,
-          module_name: capability_id,
-          index: 1,
+          module_name: module_name,
+          index: index,
           user_id: user_id,
         ) { |module_id|
           ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
@@ -119,12 +139,12 @@ module PlaceOS::Api
         resp, _code = remote_driver.exec(
           security: driver_clearance(user_token),
           function: function_name,
-          args: JSON.parse(payload[:function_params])
+          args: args
         )
 
         {response: resp}
       rescue error
-        Log.error(exception: error) { {id: capability_id, function: function_name, args: payload[:function_params]} }
+        Log.error(exception: error) { {id: capability_id, function: function_name, args: args.to_json} }
         {error: "Encountered error: #{error.message}"}
       end
     end
