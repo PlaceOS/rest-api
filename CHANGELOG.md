@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **mcp**: call_read_only proxy, mark driver details as not read only
 - **mcp**: call_tool proxy for Claude and ChatGPT
 - **mcp**: expose the API as an MCP server
 - **signage**: static media routes for e-ink displays
