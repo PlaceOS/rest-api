@@ -93,7 +93,11 @@ module PlaceOS::Api
         providers = body["providers"].as_a
         providers.size.should eq 1
         providers.first["provider"].as_s.should eq "OPENAI"
-        providers.first["models"].as_a.map(&.["id"].as_s).should contain "gpt-image-2"
+        models = providers.first["models"].as_a.map(&.["id"].as_s)
+        models.first.should eq "gpt-image-2.5-sunburst"
+        models.should contain "gpt-image-2.5-flare"
+        models.should contain "gpt-image-2"
+        providers.first["default_model"].as_s.should eq "gpt-image-2"
       end
     end
 

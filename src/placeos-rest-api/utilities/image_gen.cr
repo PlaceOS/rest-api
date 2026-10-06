@@ -22,7 +22,7 @@ module PlaceOS::Api
   module ImageGen
     Log = ::Log.for(self)
 
-    # sizes we ask a vendor for, by aspect. gpt-image-2 needs both edges to be a
+    # sizes we ask a vendor for, by aspect. The gpt-image models need both edges to be a
     # multiple of 16, which is why the landscape size is 2048x1152 and not
     # 1920x1080. Players scale to the panel.
     SIZES = {
@@ -46,7 +46,7 @@ module PlaceOS::Api
       SIZES[aspect]? || SIZES["16:9"]
     end
 
-    # gpt-image-2 accepts any size with both edges a multiple of 16, a long edge
+    # The gpt-image models accept any size with both edges a multiple of 16, a long edge
     # no greater than 3840, a ratio within 3:1, and between 655,360 and
     # 8,294,400 total pixels.
     MIN_PIXELS =   655_360

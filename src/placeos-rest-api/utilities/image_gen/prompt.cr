@@ -159,7 +159,7 @@ module PlaceOS::Api::ImageGen
 
     # What an edit is told, in place of the art direction and the layout brief.
     #
-    # gpt-image-2 regenerates the whole frame rather than painting into a
+    # The gpt-image models regenerate the whole frame rather than painting into a
     # region, so an edit drifts unless it is held down hard. The generation
     # style block makes that worse: it asks the model to establish a visual
     # idea and let it "determine the typography, image treatment, composition

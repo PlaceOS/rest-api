@@ -5,15 +5,28 @@ module PlaceOS::Api::ImageGen::Adapters
   # OpenAI's image API, and Azure OpenAI, which speaks the same request and
   # response shape at a different base URL with a different auth header.
   #
-  # gpt-image-2 wants both edges to be a multiple of 16, returns base64 in
-  # `data[].b64_json`, and can return every candidate from one call, so a
+  # The gpt-image models want both edges to be a multiple of 16, return base64
+  # in `data[].b64_json`, and can return every candidate from one call, so a
   # request of n candidates costs one vendor call.
   class OpenAIImages < Adapter
-    DEFAULT_MODEL   = "gpt-image-2"
+    DEFAULT_MODEL   = "gpt-image-2.5-sunburst"
     DEFAULT_BASE    = "https://api.openai.com/v1"
     DEFAULT_VERSION = "2026-04-01-preview"
 
+    # Sunburst is tuned for edit precision, Flare for speed; both cost the same.
+    # A provider row's `default_model` must appear here or every request fails
+    # the model check.
     MODELS = [
+      ModelCapabilities.new(
+        id: "gpt-image-2.5-sunburst",
+        name: "GPT Image 2.5 Sunburst",
+        max_references: 16,
+      ),
+      ModelCapabilities.new(
+        id: "gpt-image-2.5-flare",
+        name: "GPT Image 2.5 Flare",
+        max_references: 16,
+      ),
       ModelCapabilities.new(
         id: "gpt-image-2",
         name: "GPT Image 2",

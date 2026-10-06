@@ -62,7 +62,7 @@ module PlaceOS::Api
           instruction: "move the tree left",
         ))
 
-        # gpt-image-2 accepts far more than this, but a runaway prompt would be
+        # the gpt-image models accept far more than this, but a runaway prompt would be
         # a cost and a latency problem rather than an error
         prompt.size.should be < 6000
       end
