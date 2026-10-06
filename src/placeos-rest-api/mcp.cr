@@ -17,10 +17,9 @@ module PlaceOS::Api::MCP
     PlaceOS REST API: systems (rooms and spaces), zones (buildings, levels, areas),
     modules (device drivers), users, groups, assets, signage and more.
 
-    Tools are grouped into toolboxes, one per API resource. Call list_toolboxes to see
-    what is available, open_toolbox to load the tools for a resource and close_toolbox
-    once you no longer need them. Every call is made as the signed in user, with their
-    permissions.
+    There is one toolbox per API resource. Every call is made as the signed in user,
+    with their permissions. List results are paginated: follow the `Link` header (or use
+    `X-Total-Count`) to fetch more.
     TEXT
 
   # tokens are issued by auth.cr on the same host, its issuer is scheme + host
@@ -33,7 +32,7 @@ module PlaceOS::Api::MCP
     ActionController::MCPServer.tap do |mcp|
       mcp.server_name = "placeos"
       mcp.server_version = VERSION
-      mcp.instructions = INSTRUCTIONS
+      mcp.instructions = "#{INSTRUCTIONS}\n\n#{mcp.toolbox_instructions}"
       mcp.description_path = ENV["MCP_DESCRIPTION_PATH"]? || "mcp.yml"
       mcp.auth_probe = AUTH_PROBE
       mcp.resource_metadata = ->(request : HTTP::Request) do
