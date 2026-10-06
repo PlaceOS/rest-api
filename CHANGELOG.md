@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **mcp**: call_tool proxy for Claude and ChatGPT
 - **mcp**: expose the API as an MCP server
 - **signage**: static media routes for e-ink displays
 - **uploads**: add web page screenshot capabilities ([#448](https://github.com/PlaceOS/rest-api/pull/448))
