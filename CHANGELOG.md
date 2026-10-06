@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **chatgpt**: serve each system's plugin as an MCP endpoint
 - **zones**: PPT-2649 search every zone the user can reach ([#449](https://github.com/PlaceOS/rest-api/pull/449))
 - **mcp**: call_read_only proxy, mark driver details as not read only
 - **mcp**: call_tool proxy for Claude and ChatGPT
