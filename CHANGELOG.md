@@ -144,6 +144,7 @@
 
 ### Fix
 
+- **signage**: samsung eink content duration
 - **ms-token-exchange**: improve security
 - **docker-compose**: pull MinIO images from quay.io
 - **groups**: zone grants no longer flow to child groups
