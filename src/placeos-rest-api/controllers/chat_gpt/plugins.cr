@@ -109,6 +109,7 @@ module PlaceOS::Api
     alias RequestError = NamedTuple(error: String)
 
     # Executes functionality offered by a capability, you'll need to obtain the function schema to perform requests. Then to use this operation you'll need to provide the capability id and the function name params
+    @[AC::MCP(read_only: true)]
     @[AC::Route::POST("/call_function/:capability_id/:function_name", body: :payload, status: {
       JSON::Any                 => HTTP::Status::OK,
       NamedTuple(error: String) => HTTP::Status::BAD_REQUEST,

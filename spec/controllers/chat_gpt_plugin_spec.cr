@@ -83,6 +83,8 @@ module PlaceOS::Api
       tools = JSON.parse(response.body)["result"]["tools"].as_a
       tools.map(&.["name"].as_s).sort!.should eq ["call_function", "capabilities", "function_schema"]
       tools.each { |tool| tool["inputSchema"]["properties"].as_h.has_key?("system_id").should be_false }
+      # every tool is hinted read only, so clients don't ask for confirmation
+      tools.all?(&.["annotations"]["readOnlyHint"].as_bool).should be_true
 
       seed_lookups.call
       capabilities = call_tool.call(sys_id, headers, "capabilities", {} of String => JSON::Any)
