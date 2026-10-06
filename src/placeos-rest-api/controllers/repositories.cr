@@ -208,6 +208,8 @@ module PlaceOS::Api
 
     # Returns the metadata of the driver
     # For payload information, look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
+    # The driver is compiled if it hasn't been already, which can take a while
+    @[AC::MCP(read_only: false)]
     @[AC::Route::GET("/:id/details")]
     def details(
       @[AC::Param::Info(name: "driver", description: "the file we would like metadata for", example: "path/to/file.cr")]
