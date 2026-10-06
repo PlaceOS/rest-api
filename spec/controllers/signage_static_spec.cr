@@ -353,7 +353,7 @@ module PlaceOS::Api
         content["file_name"].as_s.should eq "#{file_id}.png"
         content["file_path"].as_s.should eq "#{Signage::SamsungEinkManifest::FILE_PATH}/#{file_id}/#{file_id}.png"
         content["file_size"].as_s.should eq upload.file_size.to_s
-        content["duration"].as_i.should eq 60 * 60
+        content["duration"].as_i.should eq 91326
       end
 
       it "takes the cache period from the path and changes the file id with the capture" do
@@ -372,7 +372,7 @@ module PlaceOS::Api
         result.status_code.should eq 200
         bodies.size.should eq 0
         first = JSON.parse(result.body)
-        first["schedule"][0]["contents"][0]["duration"].as_i.should eq 30 * 60
+        first["schedule"][0]["contents"][0]["duration"].as_i.should eq 91326
 
         # beyond a 15 minute cache period
         result = client.get("#{eink_path.call(sign, item.id)}/15", headers: anonymous)

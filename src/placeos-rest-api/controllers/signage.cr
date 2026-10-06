@@ -361,7 +361,6 @@ module PlaceOS::Api
         getter image_url : String
         getter file_id : String
         getter file_path : String
-        # seconds
         getter duration : Int64
         getter file_size : String
         getter file_name : String
@@ -394,16 +393,17 @@ module PlaceOS::Api
       def initialize(@name, @id, @create_time, @schedule)
       end
 
-      def self.new(name : String, media : StaticMedia, duration : Time::Span)
+      def self.new(name : String, media : StaticMedia)
         # the device caches by file id, so it changes whenever the image does
         file_id = UUID.v5_url(media.version).to_s.upcase
-        extension = File.extname(media.file_name).presence || ".jpg"
+        extension = File.extname(media.file_name).presence || ".png"
         file_name = "#{file_id}#{extension}"
         content = Content.new(
           image_url: media.url,
           file_id: file_id,
           file_path: "#{FILE_PATH}/#{file_id}/#{file_name}",
-          duration: duration.total_seconds.to_i64,
+          # the duration value iOS sends. We assume this is ignored for a single item manifest
+          duration: 91326_i64,
           file_size: media.file_size.to_s,
           file_name: file_name,
         )
@@ -428,7 +428,7 @@ module PlaceOS::Api
     ) : SamsungEinkManifest
       media = static_media(system_id, item_id, expires_after, anonymous: true)
       response.headers["Cache-Control"] = "no-cache"
-      SamsungEinkManifest.new(item_id, media, expires_after.minutes)
+      SamsungEinkManifest.new(item_id, media)
     end
 
     # resolves the image to display for a media item, capturing web pages as required
