@@ -16,7 +16,7 @@ module PlaceOS::Api
 
     generate_scope_check("control")
 
-    before_action :can_read_control, only: [:capabilities, :function_schema]
+    before_action :can_read_control, only: [:capabilities, :function_schema, :instructions]
     before_action :can_write_control, only: [:call_function]
 
     @[AC::Route::Filter(:before_action)]
@@ -36,6 +36,42 @@ module PlaceOS::Api
     getter! authority : ::PlaceOS::Model::Authority?
     getter! control_system : ::PlaceOS::Model::ControlSystem?
     getter system_id : String { route_params["system_id"] }
+
+    GUIDANCE = <<-TEXT
+      You have the capabilities of a PlaceOS system, such as a meeting room or building.
+      Call capabilities first: it describes what the system can do and who the user is,
+      including their name, email and local time. Then call function_schema for a
+      capability to see its functions, and call_function to run one. Calls are made as the
+      signed in user, with their permissions.
+      TEXT
+
+    # the MCP instructions for the system: the guidance above, then the system's LLM prompt
+    # and capabilities when it has an LLM module
+    def instructions : String
+      sections = [GUIDANCE]
+      if prompt = llm_status(ChatGPT::ChatManager::LLM_DRIVER_PROMPT)
+        details = Details.from_json(prompt)
+        sections << details.prompt
+        unless details.capabilities.empty?
+          sections << "Capabilities of this system:\n#{details.capabilities.join('\n') { |capability| "- #{capability.id}: #{capability.capability}" }}"
+        end
+      end
+      if hint = llm_status("user_hint").try { |value| JSON.parse(value).as_s? }.presence
+        sections << hint
+      end
+      sections.join("\n\n")
+    end
+
+    # a status value of the system's LLM module, `nil` if it doesn't have one
+    private def llm_status(key : String) : String?
+      module_name, index = RemoteDriver.get_parts(ChatGPT::ChatManager::LLM_DRIVER)
+      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
+        system_id: system_id,
+        module_name: module_name,
+        index: index
+      )
+      Driver::RedisStorage.new(module_id)[key]? if module_id
+    end
 
     class Details
       include JSON::Serializable
@@ -66,18 +102,9 @@ module PlaceOS::Api
         now = Time.local(timezone)
       end
 
-      module_name, index = RemoteDriver.get_parts(ChatGPT::ChatManager::LLM_DRIVER)
-
-      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
-        system_id: system_id,
-        module_name: module_name,
-        index: index
-      )
-
-      raise "error obtaining capabilities on system #{system_id}" unless module_id
-
-      storage = Driver::RedisStorage.new(module_id)
-      details = Details.from_json storage[ChatGPT::ChatManager::LLM_DRIVER_PROMPT]
+      prompt = llm_status(ChatGPT::ChatManager::LLM_DRIVER_PROMPT)
+      raise "error obtaining capabilities on system #{system_id}" unless prompt
+      details = Details.from_json prompt
       details.user_information = Details::UserInformation.new(user_id, user.name.as(String), user.email.to_s, user.phone.presence, user.card_number.presence)
       details.current_time = now
       details.day_of_week = now.try(&.day_of_week.to_s)

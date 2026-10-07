@@ -74,9 +74,15 @@ module PlaceOS::Api
       ].to_json
 
       _, credentials = Spec::Authentication.authentication
+      seed_lookups.call
       headers, result = open_session.call(sys_id, credentials)
-      # the instructions are the class doc comment, which is only available once mcp.yml is generated
       result["serverInfo"]["name"].should eq "chat_gpt_plugin"
+
+      # the instructions describe this system
+      instructions = result["instructions"].as_s
+      instructions.should start_with ChatGPT::Plugin::GUIDANCE
+      instructions.should contain "You help people use the boardroom"
+      instructions.should contain "- Meet_2: controls the room's displays"
 
       # the routes are the tools, the system id comes from the URL
       response = rpc.call(mcp_path.call(sys_id), headers, "tools/list", {} of String => JSON::Any)
@@ -129,16 +135,24 @@ module PlaceOS::Api
     end
 
     it "rejects unknown systems and tokens without control access" do
+      # unknown systems can't be connected to
       _, credentials = Spec::Authentication.authentication
-      headers, _ = open_session.call("sys-unknown", credentials)
-      call_tool.call("sys-unknown", headers, "capabilities", {} of String => JSON::Any)["structuredContent"]["status"].should eq 404
+      headers = credentials.dup
+      headers["Content-Type"] = "application/json"
+      headers["Accept"] = "application/json"
+      headers["Host"] = "localhost"
+      response = rpc.call(mcp_path.call("sys-unknown"), headers, "initialize", {"protocolVersion" => JSON::Any.new("2025-11-25")})
+      response.headers["Mcp-Session-Id"]?.should be_nil
+      JSON.parse(response.body)["error"]["message"].as_s.should start_with "404"
 
       # read only tokens can't run functions
       system = Model::Generator.control_system.save!
       sys_id = system.id.as(String)
       read_only = PlaceOS::Model::UserJWT::Scope.new("public", PlaceOS::Model::UserJWT::Scope::Access::Read)
       _, reader = Spec::Authentication.authentication(sys_admin: false, support: false, scope: [read_only])
-      headers, _ = open_session.call(sys_id, reader)
+      headers, result = open_session.call(sys_id, reader)
+      # a system without an LLM module just has the guidance
+      result["instructions"].should eq ChatGPT::Plugin::GUIDANCE
       called = call_tool.call(sys_id, headers, "call_function", {
         "capability_id" => JSON::Any.new("Meet"),
         "function_name" => JSON::Any.new("set_power"),
