@@ -311,10 +311,25 @@ module PlaceOS::Api
         user.deleted = true
         raise Error::ModelValidation.new(user.errors) unless user.save
       else
+        ensure_organisation_admin_remains!(user)
         user_id = user.id
         user.destroy
         spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: user_id}) }
       end
+    end
+
+    # An organisation admin cannot remove their organisation's last admin.
+    # Cluster admins may, which is how a whole domain gets torn down.
+    protected def ensure_organisation_admin_remains!(target : ::PlaceOS::Model::User) : Nil
+      return unless target.sys_admin
+      return if tenancy.cluster?
+      organisation_id = ::PlaceOS::Model::Authority.find?(target.authority_id.as(String)).try(&.organisation_id)
+      return unless organisation_id
+      remaining = ::PlaceOS::Model::User
+        .where(sys_admin: true, deleted: false)
+        .where("authority_id IN (SELECT id FROM authority WHERE organisation_id = ?::uuid)", organisation_id.to_s)
+        .count
+      raise Error::Forbidden.new("at least one organisation admin must remain") if remaining <= 1
     end
 
     # undelete a user

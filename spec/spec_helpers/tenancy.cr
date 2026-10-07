@@ -89,6 +89,33 @@ module PlaceOS::Api::Spec::Tenancy
     )
   end
 
+  # Removes everything a fixture and its example created. The suite only
+  # clears tables once, so each example must leave the database as it found
+  # it: other specs list zones and users without a page size.
+  def self.teardown(f : Fixture)
+    none = [] of ::PgORM::Value
+    Model::Module.where("organisation_id IS NOT NULL", none).to_a.each { |row| row.destroy rescue nil }
+    Model::ControlSystem.where("organisation_id IS NOT NULL", none).to_a.each { |row| row.destroy rescue nil }
+    Model::Trigger.where("organisation_id IS NOT NULL OR name LIKE 'Template %'", none).to_a.each { |row| row.destroy rescue nil }
+    Model::Edge.where("organisation_id IS NOT NULL", none).to_a.each { |row| row.destroy rescue nil }
+    Model::Zone.where("organisation_id IS NOT NULL", none).to_a
+      .sort_by { |zone| zone.parent_id.presence ? 0 : 1 }
+      .each { |row| row.destroy rescue nil }
+    [f.unowned_system, f.unowned_zone].each { |row| row.destroy rescue nil }
+
+    Model::Grant.clear
+    # fixture domains and anything an example created under them; localhost stays
+    Model::Authority.where("domain LIKE '%.test'", none).to_a.each { |row| row.destroy rescue nil }
+    [f.placeos.user, f.placeos.support, f.placeos.admin].each { |row| row.destroy rescue nil }
+    localhost = Model::Authority.find?(f.placeos.authority.id.as(String))
+    if localhost
+      localhost.organisation_id = nil
+      localhost.save!
+    end
+    Model::Organisation.clear
+    Model::Partner.clear
+  end
+
   # Bearer + Host headers for a user on their own domain
   def self.headers(user : Model::User) : HTTP::Headers
     authority = user.authority.as(Model::Authority)

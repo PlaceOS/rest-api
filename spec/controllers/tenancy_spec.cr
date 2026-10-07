@@ -11,12 +11,21 @@ end
 module PlaceOS::Api
   # PPT-526: who can see and touch what across organisations on a shared cluster
   describe "tenancy" do
+    fixture = nil.as(Spec::Tenancy::Fixture?)
+    build = -> { fixture = Spec::Tenancy.build }
+
     before_each { Utils::Tenancy.enforce = true }
-    after_each { Utils::Tenancy.enforce = false }
+    after_each do
+      Utils::Tenancy.enforce = false
+      if f = fixture
+        Spec::Tenancy.teardown(f)
+        fixture = nil
+      end
+    end
 
     describe "reach" do
       it "resolves cluster, partner and organisation reach" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         cluster = JSON.parse(tenancy_get("#{Organisations.base_route}current", f.placeos.admin).body)
         cluster["reach"].should eq "cluster"
@@ -38,7 +47,7 @@ module PlaceOS::Api
 
     describe "estate lists" do
       it "scopes zones, systems and modules to the caller's organisations" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.acadian.admin).body)
         zones.should contain(f.acadian.org_zone.id)
@@ -64,7 +73,7 @@ module PlaceOS::Api
       end
 
       it "answers 404 for another organisation's rows and 200 for its own" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         tenancy_get("#{Zones.base_route}#{f.ucla.org_zone.id}", f.acadian.admin).status_code.should eq 404
         tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.acadian.admin).status_code.should eq 200
@@ -82,7 +91,7 @@ module PlaceOS::Api
       end
 
       it "narrows a list to one organisation on request" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         narrowed = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?organisation_id=#{f.ucla.organisation.id}&limit=500", f.placeos.admin).body)
         narrowed.should contain(f.ucla.org_zone.id)
@@ -100,7 +109,7 @@ module PlaceOS::Api
       end
 
       it "only logs when enforcement is off" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
         Utils::Tenancy.enforce = false
         tenancy_get("#{Zones.base_route}#{f.ucla.org_zone.id}", f.acadian.admin).status_code.should eq 200
       end
@@ -108,7 +117,7 @@ module PlaceOS::Api
 
     describe "estate writes" do
       it "owns new zones through the caller or the parent" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         root = tenancy_post(Zones.base_route, f.acadian.admin, {name: "Acadian root #{random_name}", tags: ["building"]})
         root.status_code.should eq 201
@@ -129,7 +138,7 @@ module PlaceOS::Api
       end
 
       it "owns new systems through their zones and refuses mixed zones" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         own = tenancy_post(Systems.base_route, f.acadian.admin, {name: "Room #{random_name}", zones: [f.acadian.building.id]})
         own.status_code.should eq 201
@@ -142,7 +151,7 @@ module PlaceOS::Api
       end
 
       it "keeps modules inside the system's organisation" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         attach = client.put("#{Systems.base_route}#{f.acadian.system.id}/module/#{f.ucla.mod.id}", headers: Spec::Tenancy.headers(f.acadian.admin))
         attach.status_code.should eq 404
@@ -154,7 +163,7 @@ module PlaceOS::Api
 
     describe "domains and users" do
       it "lists and creates domains within reach" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         domains = Spec::Tenancy.ids(tenancy_get("#{Domains.base_route}?limit=500", f.acadian.admin).body)
         domains.should eq [f.acadian.authority.id]
@@ -173,7 +182,7 @@ module PlaceOS::Api
       end
 
       it "lists users within reach only" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         users = Spec::Tenancy.ids(tenancy_get("#{Users.base_route}?limit=500", f.acadian.admin).body)
         users.should contain(f.acadian.user.id)
@@ -188,9 +197,22 @@ module PlaceOS::Api
       end
     end
 
+    describe "last organisation admin" do
+      it "refuses an organisation admin removing their last admin, allows cluster staff" do
+        f = build.call.not_nil!
+
+        client.delete("#{Users.base_route}#{f.acadian.admin.id}", headers: Spec::Tenancy.headers(f.acadian.admin)).status_code.should eq 403
+
+        second = Model::Generator.user(f.acadian.authority, admin: true).save!
+        client.delete("#{Users.base_route}#{second.id}", headers: Spec::Tenancy.headers(f.acadian.admin)).status_code.should eq 202
+
+        client.delete("#{Users.base_route}#{f.acadian.admin.id}", headers: Spec::Tenancy.headers(f.placeos.admin)).status_code.should eq 202
+      end
+    end
+
     describe "cluster-only resources" do
       it "hides brokers and trigger templates' writes from organisation admins" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         tenancy_get(Brokers.base_route, f.acadian.admin).status_code.should eq 403
         tenancy_get(Brokers.base_route, f.placeos.admin).status_code.should eq 200
@@ -213,7 +235,7 @@ module PlaceOS::Api
 
     describe "organisations, partners and grants" do
       it "lets cluster admins manage the hierarchy and others read their own" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         partner = tenancy_post(Partners.base_route, f.placeos.admin, {name: "Integrator #{random_name}"})
         partner.status_code.should eq 201
@@ -233,7 +255,7 @@ module PlaceOS::Api
       end
 
       it "widens reach through live grants" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin).status_code.should eq 404
 
@@ -254,7 +276,7 @@ module PlaceOS::Api
       end
 
       it "claims an unowned zone tree for an organisation" do
-        f = Spec::Tenancy.build
+        f = build.call.not_nil!
 
         claimed = tenancy_post("#{Organisations.base_route}#{f.ucla.organisation.id}/claim", f.placeos.admin, {zone_ids: [f.unowned_zone.id]})
         claimed.status_code.should eq 200
