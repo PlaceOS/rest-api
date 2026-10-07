@@ -7,11 +7,15 @@ shards:
 
   action-controller:
     git: https://github.com/spider-gazelle/action-controller.git
-    version: 8.7.0
+    version: 8.10.0
 
   active-model:
     git: https://github.com/spider-gazelle/active-model.git
     version: 4.5.0
+
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.7.0
 
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
@@ -131,7 +135,7 @@ shards:
 
   json-schema:
     git: https://github.com/spider-gazelle/json-schema.git
-    version: 1.3.3
+    version: 2.1.1
 
   jwt:
     git: https://github.com/crystal-community/jwt.git
@@ -191,7 +195,7 @@ shards:
 
   place_calendar:
     git: https://github.com/placeos/calendar.git
-    version: 4.30.0
+    version: 4.30.1
 
   placeos-compiler:
     git: https://github.com/placeos/compiler.git
