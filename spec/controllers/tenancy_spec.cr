@@ -21,7 +21,7 @@ module PlaceOS::Api
         cluster = JSON.parse(tenancy_get("#{Organisations.base_route}current", f.placeos.admin).body)
         cluster["reach"].should eq "cluster"
         cluster["enforcing"].as_bool.should be_true
-        cluster["organisations"].raw.should be_nil
+        cluster["organisations"]?.should be_nil
 
         partner = JSON.parse(tenancy_get("#{Organisations.base_route}current", f.ntt_staff.admin).body)
         partner["reach"].should eq "partner"
@@ -231,7 +231,7 @@ module PlaceOS::Api
         tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin).status_code.should eq 404
 
         # an organisation admin may grant into their own organisation but not a stranger's
-        tenancy_post(Grants.base_route, f.acadian.admin, {user_id: f.ucla.admin.id, scope_type: "organisation", scope_id: f.acadian.organisation.id.to_s}).status_code.should eq 201
+        tenancy_post(Grants.base_route, f.acadian.admin, {user_id: f.ucla.support.id, scope_type: "organisation", scope_id: f.acadian.organisation.id.to_s}).status_code.should eq 201
         tenancy_post(Grants.base_route, f.acadian.admin, {user_id: f.acadian.admin.id, scope_type: "organisation", scope_id: f.ucla.organisation.id.to_s}).status_code.should eq 403
       end
 

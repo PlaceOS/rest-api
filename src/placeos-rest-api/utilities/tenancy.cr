@@ -60,7 +60,7 @@ module PlaceOS::Api
     end
 
     getter current_organisation : ::PlaceOS::Model::Organisation? { current_authority.try(&.organisation) }
-    getter current_partner : ::PlaceOS::Model::Partner? { current_organisation.try(&.partner) }
+    getter current_partner : ::PlaceOS::Model::Partner? { current_organisation.try(&.partner_id).try { |id| ::PlaceOS::Model::Partner.find?(id) } }
 
     # The caller's reach as it will be once enforcement is on. Controllers
     # never read this directly for gating; see `tenancy`.
