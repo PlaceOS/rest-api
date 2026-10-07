@@ -34,8 +34,13 @@ module PlaceOS::Api
     def find_current_edge(id : String)
       Log.context.set(edge_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_edge = ::PlaceOS::Model::Edge.find!(id)
+      edge = ::PlaceOS::Model::Edge.find!(id)
+      ensure_reach!(edge)
+      @current_edge = edge
     end
+
+    # Fleet-wide monitoring spans every organisation
+    before_action :check_cluster_admin, only: [:edges_health, :edges_errors, :edges_connections, :edges_module_failures, :edges_statistics, :edges_error_stream, :edges_module_stream, :cleanup_errors, :monitoring_summary]
 
     getter! current_edge : ::PlaceOS::Model::Edge
 
@@ -70,7 +75,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Edge)
       # PG full-text search (PPT-2644)
-      paginate_search(::PlaceOS::Model::Edge.all, ::PlaceOS::Model::Edge.table_name)
+      paginate_search(scope_organisations(::PlaceOS::Model::Edge.all), ::PlaceOS::Model::Edge.table_name)
     end
 
     # return the details of an edge location
@@ -93,11 +98,13 @@ module PlaceOS::Api
     @[AC::Route::POST("/", body: :create_body, status_code: HTTP::Status::CREATED)]
     def create(create_body : ::PlaceOS::Model::Edge::CreateBody) : ::PlaceOS::Model::Edge::KeyResponse
       user = ::PlaceOS::Model::User.find!(create_body.user_id || current_user.id.as(String))
+      ensure_authority_reach!(user.authority_id, "user")
       new_edge = ::PlaceOS::Model::Edge.for_user(
         user: user,
         name: create_body.name,
         description: create_body.description
       )
+      new_edge.organisation_id = ::PlaceOS::Model::Authority.find?(user.authority_id.as(String)).try(&.organisation_id)
 
       # Ensure instance variable initialised
       new_edge.x_api_key

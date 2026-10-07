@@ -26,8 +26,18 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be destroyed")]
       parent_id : String,
     )
+      ensure_parent_reach!(parent_id) unless parent_id == user_token.id
       return if user_support? || parent_id == user_token.id
       check_access_level(parent_id, admin_required: true)
+    end
+
+    # Every parent-addressed read and write stays inside the caller's reach
+    @[AC::Route::Filter(:before_action, only: [:show, :children_metadata, :update, :merge, :rename, :history])]
+    def check_parent_reach(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata")]
+      parent_id : String,
+    )
+      ensure_parent_reach!(parent_id) unless parent_id == user_token.id
     end
 
     ###############################################################################################
@@ -53,6 +63,8 @@ module PlaceOS::Api
 
       # Build result hash with parent_id as key and metadata as value
       result = {} of String => ::PlaceOS::Model::Metadata::Interface?
+
+      parent_ids = parent_ids.select { |id| id == user_token.id || parent_in_reach?(id) }
 
       parent_ids.each do |parent_id|
         metadata = ::PlaceOS::Model::Metadata.for(parent_id, metadata_name).first?

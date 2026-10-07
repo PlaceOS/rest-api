@@ -22,14 +22,18 @@ module PlaceOS::Api
     # the legacy org_zone path bypass as usual).
     @[AC::Route::Filter(:before_action, only: [:index, :show])]
     def check_trigger_read_permissions(sys_id : String)
-      zones = ::PlaceOS::Model::ControlSystem.find!(sys_id).zones
+      system = ::PlaceOS::Model::ControlSystem.find!(sys_id)
+      ensure_reach!(system)
+      zones = system.zones
       ensure_support_access!(zones, ::PlaceOS::Model::Permissions::Read)
       @secret_visible = secret_visible_on?(zones)
     end
 
     @[AC::Route::Filter(:before_action, only: [:create, :update, :destroy])]
     def check_trigger_write_permissions(sys_id : String)
-      zones = ::PlaceOS::Model::ControlSystem.find!(sys_id).zones
+      system = ::PlaceOS::Model::ControlSystem.find!(sys_id)
+      ensure_reach!(system)
+      zones = system.zones
       ensure_support_access!(zones, verb_permission)
       @secret_visible = secret_visible_on?(zones)
     end

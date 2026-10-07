@@ -16,6 +16,8 @@ module PlaceOS::Api
 
     before_action :check_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
+    # repositories are shared by every organisation; only cluster admins change them
+    before_action :check_cluster_admin, only: [:create, :update, :destroy, :remove, :pull]
 
     ###############################################################################################
 

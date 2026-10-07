@@ -9,6 +9,9 @@ module PlaceOS::Api
   BUILD_TIME   = {{ system("date -u").stringify }}
   BUILD_COMMIT = {{ env("PLACE_COMMIT") || "DEV" }}
 
+  # PPT-526: refuse cross-organisation access (true) or only log what would be refused (false)
+  PLACE_TENANCY_ENFORCE = ENV["PLACE_TENANCY_ENFORCE"]?.try(&.downcase).in?("true", "1", "yes") || false
+
   PLACE_DISPATCH_HOST = ENV["PLACE_DISPATCH_HOST"]? || "dispatch"
   PLACE_DISPATCH_PORT = (ENV["PLACE_DISPATCH_PORT"]? || "3000").to_i
 
