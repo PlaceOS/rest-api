@@ -271,6 +271,43 @@ module PlaceOS::Api
       end
     end
 
+    describe "POST /users/resource_token" do
+      it "returns the current user's SSO resource token" do
+        user = Model::User.find!(Spec::Authentication.user.id.as(String))
+        user.access_token = "stored-access"
+        user.expires = false
+        user.save!
+
+        begin
+          result = client.post(
+            path: File.join(Users.base_route, "/resource_token"),
+            headers: Spec::Authentication.headers,
+          )
+
+          result.status_code.should eq 200
+          token = Users::AccessToken.from_json(result.body)
+          token.token.should eq "stored-access"
+          token.expires.should be_nil
+        ensure
+          user.access_token = nil
+          user.save!
+        end
+      end
+
+      it "returns 404 when no resource token is available" do
+        user = Model::User.find!(Spec::Authentication.user.id.as(String))
+        user.access_token = nil
+        user.refresh_token = nil
+        user.save!
+
+        result = client.post(
+          path: File.join(Users.base_route, "/resource_token"),
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 404
+      end
+    end
+
     describe "GET /users/:id/metadata" do
       it "shows user metadata" do
         user = Model::Generator.user.save!

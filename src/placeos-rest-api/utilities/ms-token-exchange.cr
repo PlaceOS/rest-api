@@ -149,7 +149,7 @@ module PlaceOS::Api
 
     def ensure_valid_token(oauth : Model::OAuthAuthentication, user : Model::User, token : String, token_info : PeekInfo)
       # return if there is an existing token and valid
-      existing = Api::Users.get_user_token(user, oauth.authority.as(Model::Authority)) rescue nil
+      existing = user.resource_token(oauth.authority.as(Model::Authority)) rescue nil
       return if existing
 
       # if not existing or refresh failed, get a token using this token and on behalf of

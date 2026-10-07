@@ -19,6 +19,6 @@ dependencies:
     branch: master
 
   # uncomment to test different model branches
-  # placeos-models:
-  #  github: placeos/models
-  #  branch: add-signage-groups
+  placeos-models:
+    github: placeos/models
+    branch: feat/user-resource-token
