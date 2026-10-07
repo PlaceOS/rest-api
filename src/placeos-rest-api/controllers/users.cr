@@ -65,9 +65,11 @@ module PlaceOS::Api
         raise PgORM::Error::RecordNotFound.new
       }.tap do |found|
         # The `:id` lookup above is not authority scoped — only admins may
-        # resolve users belonging to other authorities. 404 (not 403) so
-        # foreign ids are indistinguishable from unknown ones.
+        # resolve users belonging to other authorities, and only within their
+        # reach. 404 (not 403) so foreign ids are indistinguishable from
+        # unknown ones.
         raise PgORM::Error::RecordNotFound.new unless user_admin? || found.authority_id == authority
+        ensure_authority_reach!(found.authority_id, "user") unless found.authority_id == authority
         Log.context.set(user_id: found.id)
         @user = found
       end
@@ -203,6 +205,8 @@ module PlaceOS::Api
       include_metadata : Bool = false,
       @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
       authority_id : String? = nil,
+      @[AC::Param::Info(description: "admin users can list the users of every domain owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(UserDetails)
       # PG full-text search (PPT-2644)
       # NOTE: email-shaped queries used to be quote-wrapped for an
@@ -217,7 +221,11 @@ module PlaceOS::Api
         # regular users can only see their own domain
         query = query.where(authority_id: current_user.authority_id.as(String))
       elsif authority = authority_id
+        ensure_authority_reach!(authority, "domain")
         query = query.where(authority_id: authority)
+      else
+        # admins see every domain within reach, narrowed to one organisation on request
+        query = narrow_authorities(scope_authorities(query), organisation_id)
       end
 
       results = paginate_search(query, ::PlaceOS::Model::User.table_name)
@@ -262,8 +270,9 @@ module PlaceOS::Api
         # only be set by admins — support-subsystem creators would otherwise
         # be able to mint sys-admins.
         new_user.assign_admin_attributes_from_json(body)
-        # allow sys-admins to create users on other domains
+        # allow sys-admins to create users on other domains within reach
         new_user.authority ||= current_authority.as(::PlaceOS::Model::Authority)
+        ensure_authority_reach!(new_user.authority_id, "domain")
       else
         # non-admins always create users in their own authority
         new_user.authority = current_authority.as(::PlaceOS::Model::Authority)
@@ -302,10 +311,25 @@ module PlaceOS::Api
         user.deleted = true
         raise Error::ModelValidation.new(user.errors) unless user.save
       else
+        ensure_organisation_admin_remains!(user)
         user_id = user.id
         user.destroy
         spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: user_id}) }
       end
+    end
+
+    # An organisation admin cannot remove their organisation's last admin.
+    # Cluster admins may, which is how a whole domain gets torn down.
+    protected def ensure_organisation_admin_remains!(target : ::PlaceOS::Model::User) : Nil
+      return unless target.sys_admin
+      return if tenancy.cluster?
+      organisation_id = ::PlaceOS::Model::Authority.find?(target.authority_id.as(String)).try(&.organisation_id)
+      return unless organisation_id
+      remaining = ::PlaceOS::Model::User
+        .where(sys_admin: true, deleted: false)
+        .where("authority_id IN (SELECT id FROM authority WHERE organisation_id = ?::uuid)", organisation_id.to_s)
+        .count
+      raise Error::Forbidden.new("at least one organisation admin must remain") if remaining <= 1
     end
 
     # undelete a user

@@ -20,7 +20,9 @@ module PlaceOS::Api
     def find_current_domain(id : String)
       Log.context.set(authority_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_domain = ::PlaceOS::Model::Authority.find!(id)
+      domain = ::PlaceOS::Model::Authority.find!(id)
+      ensure_reach!(domain)
+      @current_domain = domain
     end
 
     getter! current_domain : ::PlaceOS::Model::Authority
@@ -29,9 +31,13 @@ module PlaceOS::Api
 
     # list the domains
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::Authority)
+    def index(
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : Array(::PlaceOS::Model::Authority)
       # PG full-text search (PPT-2644)
-      paginate_search(::PlaceOS::Model::Authority.all, ::PlaceOS::Model::Authority.table_name)
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Authority.all), organisation_id)
+      paginate_search(query, ::PlaceOS::Model::Authority.table_name)
     end
 
     # skip authentication for the lookup
@@ -59,16 +65,30 @@ module PlaceOS::Api
     # udpate a domains details
     @[AC::Route::PATCH("/:id", body: :domain)]
     @[AC::Route::PUT("/:id", body: :domain)]
-    def update(domain : ::PlaceOS::Model::Authority) : ::PlaceOS::Model::Authority
+    def update(
+      domain : ::PlaceOS::Model::Authority,
+      @[AC::Param::Info(description: "move the domain to this organisation (cluster admins only)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : ::PlaceOS::Model::Authority
       current = current_domain
       current.assign_attributes(domain)
+      if organisation_id
+        check_cluster_admin
+        current.organisation_id = organisation_id
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
 
-    # add a new domain
+    # add a new domain. Organisation admins create domains in their own
+    # organisation; cluster admins name the organisation.
     @[AC::Route::POST("/", body: :domain, status_code: HTTP::Status::CREATED)]
-    def create(domain : ::PlaceOS::Model::Authority) : ::PlaceOS::Model::Authority
+    def create(
+      domain : ::PlaceOS::Model::Authority,
+      @[AC::Param::Info(description: "the organisation that owns the new domain", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : ::PlaceOS::Model::Authority
+      domain.organisation_id = organisation_for_new_row(organisation_id)
       raise Error::ModelValidation.new(domain.errors) unless domain.save
       domain
     end

@@ -19,7 +19,9 @@ module PlaceOS::Api
     def find_current_api_key(id : String)
       Log.context.set(api_key: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_api_key = ::PlaceOS::Model::ApiKey.find!(id)
+      api_key = ::PlaceOS::Model::ApiKey.find!(id)
+      ensure_authority_reach!(api_key.authority_id, "api key")
+      @current_api_key = api_key
     end
 
     getter! current_api_key : ::PlaceOS::Model::ApiKey
@@ -33,9 +35,10 @@ module PlaceOS::Api
       authority_id : String? = nil,
     ) : Array(::PlaceOS::Model::ApiKey::PublicResponse)
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::ApiKey.all
+      query = scope_authorities(::PlaceOS::Model::ApiKey.all)
 
       if authority = authority_id
+        ensure_authority_reach!(authority, "domain")
         query = query.where(authority_id: authority)
       end
 
@@ -61,6 +64,9 @@ module PlaceOS::Api
     # create a new API key
     @[AC::Route::POST("/", body: :api_key, status_code: HTTP::Status::CREATED)]
     def create(api_key : ::PlaceOS::Model::ApiKey) : ::PlaceOS::Model::ApiKey::PublicResponse
+      if user_id = api_key.user_id
+        ensure_authority_reach!(::PlaceOS::Model::User.find!(user_id).authority_id, "user")
+      end
       raise Error::ModelValidation.new(api_key.errors) unless api_key.save
       api_key.to_public_struct
     end

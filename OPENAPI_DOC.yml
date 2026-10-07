@@ -8174,9 +8174,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/chatgpt/plugin/{system_id}/capabilities:
+    summary: Gives you the capabilities of a PlaceOS system, such as a meeting room
+      or building.
+    description: 'Gives you the capabilities of a PlaceOS system, such as a meeting
+      room or building.
+
+      Call capabilities first: it describes what the system can do and who the user
+      is,
+
+      including their name, email and local time. Then call function_schema for a
+
+      capability to see its functions, and call_function to run one. Calls are made
+      as the
+
+      signed in user, with their permissions.'
     get:
       summary: obtain the list of capabilities that this API can provide, must be
-        called if the user requests some related functionality, to abtain details
+        called if the user requests some related functionality, to obtain details
         of the current user such as their name and email address and the current local
         time of the user.
       tags:
@@ -8274,6 +8288,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/chatgpt/plugin/{system_id}/function_schema/{capability_id}:
+    summary: Gives you the capabilities of a PlaceOS system, such as a meeting room
+      or building.
+    description: 'Gives you the capabilities of a PlaceOS system, such as a meeting
+      room or building.
+
+      Call capabilities first: it describes what the system can do and who the user
+      is,
+
+      including their name, email and local time. Then call function_schema for a
+
+      capability to see its functions, and call_function to run one. Calls are made
+      as the
+
+      signed in user, with their permissions.'
     get:
       summary: if a request could benefit from a capability, obtain the list of function
         schemas by providing the id string
@@ -8381,6 +8409,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/chatgpt/plugin/{system_id}/call_function/{capability_id}/{function_name}:
+    summary: Gives you the capabilities of a PlaceOS system, such as a meeting room
+      or building.
+    description: 'Gives you the capabilities of a PlaceOS system, such as a meeting
+      room or building.
+
+      Call capabilities first: it describes what the system can do and who the user
+      is,
+
+      including their name, email and local time. Then call function_schema for a
+
+      capability to see its functions, and call_function to run one. Calls are made
+      as the
+
+      signed in user, with their permissions.'
     post:
       summary: Executes functionality offered by a capability, you'll need to obtain
         the function schema to perform requests. Then to use this operation you'll
@@ -8392,7 +8434,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NamedTuple_function_params__String_'
+              $ref: '#/components/schemas/NamedTuple_function_params__Hash_String__JSON__Any____String_'
         required: true
       parameters:
       - name: system_id
@@ -9035,7 +9077,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     post:
-      summary: add a new domain
+      summary: add a new domain. Organisation admins create domains in their own
+      description: 'add a new domain. Organisation admins create domains in their
+        own
+
+        organisation; cluster admins name the organisation.'
       tags:
       - Domains
       operationId: PlaceOS::Api::Domains_create
@@ -9045,7 +9091,15 @@ paths:
             schema:
               $ref: '#/components/schemas/PlaceOS__Model__Authority'
         required: true
-      parameters: []
+      parameters:
+      - name: organisation_id
+        in: query
+        description: the organisation that owns the new domain
+        example: 0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         201:
           description: Created
@@ -9348,6 +9402,14 @@ paths:
         required: true
         schema:
           type: string
+      - name: organisation_id
+        in: query
+        description: move the domain to this organisation (cluster admins only)
+        example: 0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         200:
           description: OK
@@ -9542,6 +9604,14 @@ paths:
         required: true
         schema:
           type: string
+      - name: organisation_id
+        in: query
+        description: move the domain to this organisation (cluster admins only)
+        example: 0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         200:
           description: OK
@@ -11586,7 +11656,16 @@ paths:
             schema:
               $ref: '#/components/schemas/PlaceOS__Model__Module'
         required: true
-      parameters: []
+      parameters:
+      - name: organisation_id
+        in: query
+        description: the organisation that owns a module not bound to a system (cluster
+          admins only)
+        example: 0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         201:
           description: Created
@@ -12983,8 +13062,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: list the systems in a cluster
       tags:
@@ -13199,7 +13278,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     post:
-      summary: adds a new system
+      summary: adds a new system. The system belongs to its zones' organisation, or
+      description: 'adds a new system. The system belongs to its zones'' organisation,
+        or
+
+        the caller''s when the zones are unowned.'
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems_create
@@ -13296,8 +13379,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/with_emails:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Finds all the systems with the specified email address
       tags:
@@ -13401,8 +13484,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Renders a control system
       tags:
@@ -13822,8 +13905,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/zones:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Return all zones for this system
       tags:
@@ -13923,8 +14006,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/metadata:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Return metadata for the system
       tags:
@@ -14027,8 +14110,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/settings:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Receive the collated settings for a system
       tags:
@@ -14128,8 +14211,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/module/{module_id}:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     put:
       summary: Adds the module to the system if it doesn't already exist
       tags:
@@ -14333,8 +14416,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/start:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     post:
       summary: Start modules
       tags:
@@ -14434,8 +14517,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/stop:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     post:
       summary: Stop modules
       tags:
@@ -14535,8 +14618,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/{module_slug}/{method}:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     post:
       summary: Runs a function in a system module
       tags:
@@ -14651,8 +14734,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/types:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Look-up a module types in a system, returning a count of each type
       tags:
@@ -14750,8 +14833,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/{module_slug}:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Returns the state of an associated module
       tags:
@@ -14857,8 +14940,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/{module_slug}/{key}:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Returns the state lookup for a given key on a module
       tags:
@@ -14971,8 +15054,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/{sys_id}/functions/{module_slug}:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: Lists functions available on the driver
       description: 'Lists functions available on the driver
@@ -15081,8 +15164,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/systems/control:
-    summary: 'Systems, typically rooms or spaces: a collection of modules (devices)
-      placed in zones'
+    summary: Systems are typically rooms or spaces, they can represent digital signage
+      endpoints and are a collection of modules (devices) placed in zones
     get:
       summary: the websocket API endpoint
       description: 'the websocket API endpoint
@@ -17369,6 +17452,451 @@ paths:
       responses:
         200:
           description: OK
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/grants:
+    summary: 'Grants: explicit, revocable, optionally time-boxed reach for a user
+      into a'
+    description: 'Grants: explicit, revocable, optionally time-boxed reach for a user
+      into a
+
+      partner, organisation or domain they do not belong to (PPT-526)'
+    get:
+      summary: grants on a scope, or held by a user
+      tags:
+      - Grants
+      operationId: PlaceOS::Api::Grants_index
+      parameters:
+      - name: scope_type
+        in: query
+        description: partner, organisation or authority
+        example: organisation
+        schema:
+          type: string
+          nullable: true
+      - name: scope_id
+        in: query
+        description: the id of the partner, organisation or domain
+        example: 0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f
+        schema:
+          type: string
+          nullable: true
+      - name: user_id
+        in: query
+        description: grants held by this user
+        example: user-1234
+        schema:
+          type: string
+          nullable: true
+      - name: q
+        in: query
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: the starting offset of the result set, used to implement pagination
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
+        schema:
+          type: string
+          nullable: true
+      - name: fields
+        in: query
+        description: deprecated, ignored — search covers the resource's indexed fields
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Grant'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      tags:
+      - Grants
+      operationId: PlaceOS::Api::Grants_create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__Grants__GrantBody'
+        required: true
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Grant'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/grants/{id}:
+    summary: 'Grants: explicit, revocable, optionally time-boxed reach for a user
+      into a'
+    description: 'Grants: explicit, revocable, optionally time-boxed reach for a user
+      into a
+
+      partner, organisation or domain they do not belong to (PPT-526)'
+    get:
+      tags:
+      - Grants
+      operationId: PlaceOS::Api::Grants_show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Grant'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      tags:
+      - Grants
+      operationId: PlaceOS::Api::Grants_destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        202:
+          description: Accepted
         409:
           description: Conflict
           content:
@@ -22378,6 +22906,1511 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/organisations/current:
+    summary: 'Organisations: the customers that own domains and estate (PPT-526)'
+    get:
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_current
+      parameters: []
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Organisations__CurrentReach'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/organisations:
+    summary: 'Organisations: the customers that own domains and estate (PPT-526)'
+    get:
+      summary: list the organisations in reach
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_index
+      parameters:
+      - name: partner_id
+        in: query
+        description: only organisations under this partner
+        example: 0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f
+        schema:
+          type: string
+          format: uuid
+          nullable: true
+      - name: q
+        in: query
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: the starting offset of the result set, used to implement pagination
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
+        schema:
+          type: string
+          nullable: true
+      - name: fields
+        in: query
+        description: deprecated, ignored — search covers the resource's indexed fields
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      summary: '`payer` and `partner_staff` are not mass-assignable, so they travel
+        as'
+      description: '`payer` and `partner_staff` are not mass-assignable, so they travel
+        as
+
+        parameters'
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        required: true
+      parameters:
+      - name: payer
+        in: query
+        description: 'who is invoiced: partner or organisation'
+        example: partner
+        schema:
+          type: string
+          nullable: true
+      - name: partner_staff
+        in: query
+        description: true for the partner's own staff organisation
+        example: "false"
+        schema:
+          type: boolean
+          nullable: true
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/organisations/{id}:
+    summary: 'Organisations: the customers that own domains and estate (PPT-526)'
+    get:
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    put:
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: payer
+        in: query
+        description: 'who is invoiced: partner or organisation'
+        example: partner
+        schema:
+          type: string
+          nullable: true
+      - name: partner_staff
+        in: query
+        description: true for the partner's own staff organisation
+        example: "false"
+        schema:
+          type: boolean
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: Deletes are RESTRICTed by the database while anything is owned
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: payer
+        in: query
+        description: 'who is invoiced: partner or organisation'
+        example: partner
+        schema:
+          type: string
+          nullable: true
+      - name: partner_staff
+        in: query
+        description: true for the partner's own staff organisation
+        example: "false"
+        schema:
+          type: boolean
+          nullable: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Organisation'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/organisations/{id}/claim:
+    summary: 'Organisations: the customers that own domains and estate (PPT-526)'
+    post:
+      summary: 'Assigns unowned zone trees to the organisation: the zones named, their'
+      description: 'Assigns unowned zone trees to the organisation: the zones named,
+        their
+
+        descendants, the systems in those zones and the modules of those
+
+        systems. Rows already owned by another organisation are left alone.'
+      tags:
+      - Organisations
+      operationId: PlaceOS::Api::Organisations_claim
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Api__Organisations__ClaimBody'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Organisations__ClaimResult'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/partners:
+    summary: 'Partners: integrators that bring in and manage organisations, and the'
+    description: 'Partners: integrators that bring in and manage organisations, and
+      the
+
+      management partner that is PlaceOS itself (PPT-526)'
+    get:
+      summary: cluster admins list every partner; everyone else sees their own
+      tags:
+      - Partners
+      operationId: PlaceOS::Api::Partners_index
+      parameters:
+      - name: q
+        in: query
+        description: filters results by the given text; words match as prefixes against
+          the resource's searchable fields and all words must match
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: "10000"
+        schema:
+          type: integer
+          format: UInt32
+      - name: offset
+        in: query
+        description: the starting offset of the result set, used to implement pagination
+        schema:
+          type: integer
+          format: UInt32
+      - name: ref
+        in: query
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
+        schema:
+          type: string
+          nullable: true
+      - name: fields
+        in: query
+        description: deprecated, ignored — search covers the resource's indexed fields
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    post:
+      tags:
+      - Partners
+      operationId: PlaceOS::Api::Partners_create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        required: true
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+  /api/engine/v2/partners/{id}:
+    summary: 'Partners: integrators that bring in and manage organisations, and the'
+    description: 'Partners: integrators that bring in and manage organisations, and
+      the
+
+      management partner that is PlaceOS itself (PPT-526)'
+    get:
+      tags:
+      - Partners
+      operationId: PlaceOS::Api::Partners_show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    put:
+      tags:
+      - Partners
+      operationId: PlaceOS::Api::Partners_update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    delete:
+      summary: Deletes are RESTRICTed by the database while organisations remain
+      tags:
+      - Partners
+      operationId: PlaceOS::Api::Partners_destroy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        202:
+          description: Accepted
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+    patch:
+      tags:
+      - Partners
+      operationId: PlaceOS::Api::Partners_update{2}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Model__Partner'
+        409:
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        503:
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        429:
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ImageGenError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        502:
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        504:
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        406:
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
+        408:
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__CommonError'
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ParameterError'
+        415:
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
   /api/engine/v2/emails:
     summary: Emails awaiting review or delivery
     get:
@@ -24719,7 +26752,9 @@ paths:
       summary: Returns the metadata of the driver
       description: 'Returns the metadata of the driver
 
-        For payload information, look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults'
+        For payload information, look at https://github.com/placeos/driver/blob/master/docs/command_line_options.md#discovery-and-defaults
+
+        The driver is compiled if it hasn''t been already, which can take a while'
       tags:
       - Repositories
       operationId: PlaceOS::Api::Repositories_details
@@ -42110,7 +44145,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS__Api__Application__ContentError'
     post:
-      summary: add a new zone
+      summary: add a new zone. A child zone belongs to its parent's organisation;
+        a
+      description: 'add a new zone. A child zone belongs to its parent''s organisation;
+        a
+
+        root zone belongs to the caller''s, or to the organisation a cluster
+
+        admin names.'
       tags:
       - Zones
       operationId: PlaceOS::Api::Zones_create
@@ -42120,7 +44162,15 @@ paths:
             schema:
               $ref: '#/components/schemas/PlaceOS__Model__Zone'
         required: true
-      parameters: []
+      parameters:
+      - name: organisation_id
+        in: query
+        description: the organisation that owns a new root zone (cluster admins only)
+        example: 0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f
+        schema:
+          type: string
+          format: uuid
+          nullable: true
       responses:
         201:
           description: Created
@@ -43486,6 +45536,10 @@ components:
               items:
                 type: string
               nullable: true
+            organisation_id:
+              type: string
+              format: uuid
+              nullable: true
             id:
               type: string
               nullable: true
@@ -44139,6 +46193,10 @@ components:
           items:
             type: string
           nullable: true
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         id:
           type: string
           nullable: true
@@ -44295,11 +46353,15 @@ components:
       - function
       - description
       - parameters
-    NamedTuple_function_params__String_:
+    NamedTuple_function_params__Hash_String__JSON__Any____String_:
       type: object
       properties:
         function_params:
-          type: string
+          anyOf:
+          - type: object
+            additionalProperties:
+              type: object
+          - type: string
       required:
       - function_params
     JSON__Any:
@@ -44625,6 +46687,10 @@ components:
           items:
             type: string
           nullable: true
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         id:
           type: string
           nullable: true
@@ -44847,6 +46913,10 @@ components:
         ignore_startstop:
           type: boolean
           nullable: true
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         has_runtime_error:
           type: boolean
           nullable: true
@@ -44949,6 +47019,10 @@ components:
                     type: array
                     items:
                       type: string
+                    nullable: true
+                  organisation_id:
+                    type: string
+                    format: uuid
                     nullable: true
                   place_id:
                     type: string
@@ -45135,6 +47209,10 @@ components:
                           items:
                             type: string
                           nullable: true
+                        organisation_id:
+                          type: string
+                          format: uuid
+                          nullable: true
                         control_system_id:
                           type: string
                           nullable: true
@@ -45317,6 +47395,10 @@ components:
           items:
             type: string
           nullable: true
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         timezone:
           type: object
           nullable: true
@@ -45465,6 +47547,10 @@ components:
                 type: array
                 items:
                   type: string
+                nullable: true
+              organisation_id:
+                type: string
+                format: uuid
                 nullable: true
               place_id:
                 type: string
@@ -45651,6 +47737,10 @@ components:
                       items:
                         type: string
                       nullable: true
+                    organisation_id:
+                      type: string
+                      format: uuid
+                      nullable: true
                     control_system_id:
                       type: string
                       nullable: true
@@ -45807,6 +47897,10 @@ components:
               ignore_startstop:
                 type: boolean
                 nullable: true
+              organisation_id:
+                type: string
+                format: uuid
+                nullable: true
               has_runtime_error:
                 type: boolean
                 nullable: true
@@ -45909,6 +48003,10 @@ components:
                           type: array
                           items:
                             type: string
+                          nullable: true
+                        organisation_id:
+                          type: string
+                          format: uuid
                           nullable: true
                         place_id:
                           type: string
@@ -46094,6 +48192,10 @@ components:
                                 type: array
                                 items:
                                   type: string
+                                nullable: true
+                              organisation_id:
+                                type: string
+                                format: uuid
                                 nullable: true
                               control_system_id:
                                 type: string
@@ -46602,6 +48704,10 @@ components:
           items:
             type: string
           nullable: true
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         place_id:
           type: string
           nullable: true
@@ -46787,6 +48893,10 @@ components:
                 items:
                   type: string
                 nullable: true
+              organisation_id:
+                type: string
+                format: uuid
+                nullable: true
               control_system_id:
                 type: string
                 nullable: true
@@ -46970,6 +49080,10 @@ components:
         online:
           type: boolean
           nullable: true
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         id:
           type: string
           nullable: true
@@ -47008,6 +49122,10 @@ components:
           nullable: true
         online:
           type: boolean
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         x_api_key:
           type: string
       required:
@@ -47266,6 +49384,63 @@ components:
         type: object
         additionalProperties:
           type: object
+    PlaceOS__Model__Grant:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        user_id:
+          type: string
+          nullable: true
+        scope_type:
+          type: string
+          nullable: true
+        scope_id:
+          type: string
+          nullable: true
+        permissions:
+          type: integer
+          format: Int32
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        granted_by:
+          type: string
+          nullable: true
+      required: []
+    PlaceOS__Api__Grants__GrantBody:
+      type: object
+      properties:
+        user_id:
+          type: string
+        scope_type:
+          type: string
+        scope_id:
+          type: string
+        permissions:
+          type: integer
+          format: Int32
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - user_id
+      - scope_type
+      - scope_id
+      - permissions
     PlaceOS__Model__Group:
       type: object
       properties:
@@ -47965,6 +50140,10 @@ components:
               items:
                 type: string
               nullable: true
+            organisation_id:
+              type: string
+              format: uuid
+              nullable: true
             place_id:
               type: string
               nullable: true
@@ -48149,6 +50328,10 @@ components:
                     type: array
                     items:
                       type: string
+                    nullable: true
+                  organisation_id:
+                    type: string
+                    format: uuid
                     nullable: true
                   control_system_id:
                     type: string
@@ -48340,6 +50523,10 @@ components:
               items:
                 type: string
               nullable: true
+            organisation_id:
+              type: string
+              format: uuid
+              nullable: true
             place_id:
               type: string
               nullable: true
@@ -48524,6 +50711,10 @@ components:
                     type: array
                     items:
                       type: string
+                    nullable: true
+                  organisation_id:
+                    type: string
+                    format: uuid
                     nullable: true
                   control_system_id:
                     type: string
@@ -48854,6 +51045,233 @@ components:
         updated_at:
           type: integer
           format: Int64
+          nullable: true
+      required: []
+    PlaceOS__Api__Organisations__CurrentReach:
+      type: object
+      properties:
+        reach:
+          type: string
+        enforcing:
+          type: boolean
+        organisation:
+          type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+            id:
+              type: string
+              format: uuid
+              nullable: true
+            name:
+              type: string
+              nullable: true
+            description:
+              type: string
+              nullable: true
+            payer:
+              type: string
+              nullable: true
+            config:
+              type: object
+              additionalProperties:
+                type: object
+              nullable: true
+            partner_staff:
+              type: boolean
+              nullable: true
+            partner_id:
+              type: string
+              format: uuid
+              nullable: true
+          required: []
+          nullable: true
+        partner:
+          type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+              nullable: true
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+            id:
+              type: string
+              format: uuid
+              nullable: true
+            name:
+              type: string
+              nullable: true
+            description:
+              type: string
+              nullable: true
+            management:
+              type: boolean
+              nullable: true
+            config:
+              type: object
+              additionalProperties:
+                type: object
+              nullable: true
+            parent_id:
+              type: string
+              format: uuid
+              nullable: true
+          required: []
+          nullable: true
+        organisations:
+          type: array
+          items:
+            type: object
+            properties:
+              created_at:
+                type: string
+                format: date-time
+                nullable: true
+              updated_at:
+                type: string
+                format: date-time
+                nullable: true
+              id:
+                type: string
+                format: uuid
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              description:
+                type: string
+                nullable: true
+              payer:
+                type: string
+                nullable: true
+              config:
+                type: object
+                additionalProperties:
+                  type: object
+                nullable: true
+              partner_staff:
+                type: boolean
+                nullable: true
+              partner_id:
+                type: string
+                format: uuid
+                nullable: true
+            required: []
+          nullable: true
+      required:
+      - reach
+      - enforcing
+      description: 'What the caller can reach: the level, their own organisation and
+        partner,
+
+        and the organisations in reach. Backoffice reads this once at login.'
+    PlaceOS__Model__Organisation:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        payer:
+          type: string
+          nullable: true
+        config:
+          type: object
+          additionalProperties:
+            type: object
+          nullable: true
+        partner_staff:
+          type: boolean
+          nullable: true
+        partner_id:
+          type: string
+          format: uuid
+          nullable: true
+      required: []
+    PlaceOS__Api__Organisations__ClaimBody:
+      type: object
+      properties:
+        zone_ids:
+          type: array
+          items:
+            type: string
+      required:
+      - zone_ids
+    PlaceOS__Api__Organisations__ClaimResult:
+      type: object
+      properties:
+        zones:
+          type: integer
+          format: Int64
+        systems:
+          type: integer
+          format: Int64
+        modules:
+          type: integer
+          format: Int64
+        triggers:
+          type: integer
+          format: Int64
+      required:
+      - zones
+      - systems
+      - modules
+      - triggers
+    PlaceOS__Model__Partner:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        management:
+          type: boolean
+          nullable: true
+        config:
+          type: object
+          additionalProperties:
+            type: object
+          nullable: true
+        parent_id:
+          type: string
+          format: uuid
           nullable: true
       required: []
     PlaceOS__Model__PendingMail:
@@ -50229,6 +52647,10 @@ components:
           items:
             type: string
           nullable: true
+        organisation_id:
+          type: string
+          format: uuid
+          nullable: true
         timezone:
           type: object
           nullable: true
@@ -50377,6 +52799,10 @@ components:
                 type: array
                 items:
                   type: string
+                nullable: true
+              organisation_id:
+                type: string
+                format: uuid
                 nullable: true
               place_id:
                 type: string
@@ -50563,6 +52989,10 @@ components:
                       items:
                         type: string
                       nullable: true
+                    organisation_id:
+                      type: string
+                      format: uuid
+                      nullable: true
                     control_system_id:
                       type: string
                       nullable: true
@@ -50719,6 +53149,10 @@ components:
               ignore_startstop:
                 type: boolean
                 nullable: true
+              organisation_id:
+                type: string
+                format: uuid
+                nullable: true
               has_runtime_error:
                 type: boolean
                 nullable: true
@@ -50821,6 +53255,10 @@ components:
                           type: array
                           items:
                             type: string
+                          nullable: true
+                        organisation_id:
+                          type: string
+                          format: uuid
                           nullable: true
                         place_id:
                           type: string
@@ -51006,6 +53444,10 @@ components:
                                 type: array
                                 items:
                                   type: string
+                                nullable: true
+                              organisation_id:
+                                type: string
+                                format: uuid
                                 nullable: true
                               control_system_id:
                                 type: string
@@ -51899,6 +54341,10 @@ components:
           type: array
           items:
             type: string
+          nullable: true
+        organisation_id:
+          type: string
+          format: uuid
           nullable: true
         control_system_id:
           type: string
@@ -53371,6 +55817,10 @@ components:
               items:
                 type: string
               nullable: true
+            organisation_id:
+              type: string
+              format: uuid
+              nullable: true
             timezone:
               type: object
               nullable: true
@@ -53519,6 +55969,10 @@ components:
                     type: array
                     items:
                       type: string
+                    nullable: true
+                  organisation_id:
+                    type: string
+                    format: uuid
                     nullable: true
                   place_id:
                     type: string
@@ -53705,6 +56159,10 @@ components:
                           items:
                             type: string
                           nullable: true
+                        organisation_id:
+                          type: string
+                          format: uuid
+                          nullable: true
                         control_system_id:
                           type: string
                           nullable: true
@@ -53861,6 +56319,10 @@ components:
                   ignore_startstop:
                     type: boolean
                     nullable: true
+                  organisation_id:
+                    type: string
+                    format: uuid
+                    nullable: true
                   has_runtime_error:
                     type: boolean
                     nullable: true
@@ -53963,6 +56425,10 @@ components:
                               type: array
                               items:
                                 type: string
+                              nullable: true
+                            organisation_id:
+                              type: string
+                              format: uuid
                               nullable: true
                             place_id:
                               type: string
@@ -54148,6 +56614,10 @@ components:
                                     type: array
                                     items:
                                       type: string
+                                    nullable: true
+                                  organisation_id:
+                                    type: string
+                                    format: uuid
                                     nullable: true
                                   control_system_id:
                                     type: string

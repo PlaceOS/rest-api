@@ -32,6 +32,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     def can_view?(parent_id)
+      ensure_parent_reach!(parent_id)
       return if user_support?
       # "support" subsystem: Read on the parent's zones.
       return if support_subsystem_grants?(support_zones_for_parent(parent_id), ::PlaceOS::Model::Permissions::Read)
@@ -39,9 +40,12 @@ module PlaceOS::Api
     end
 
     def can_modify?(setting)
+      parent_id = setting.parent_id.as(String)
+      ensure_parent_reach!(parent_id)
+      # driver settings are shared by every organisation
+      check_cluster_admin if parent_id.starts_with?(::PlaceOS::Model::Driver.table_name)
       return if user_admin?
       raise Error::Forbidden.new("can only modify unencrypted settings") unless setting.encryption_level.none?
-      parent_id = setting.parent_id.as(String)
       # "support" subsystem: the verb's bit on the parent's zones. A
       # parent with no derivable zones (e.g. a driver) stays admin-only.
       return if support_subsystem_grants?(support_zones_for_parent(parent_id), verb_permission)
@@ -102,6 +106,8 @@ module PlaceOS::Api
         parent_settings
       else
         raise Error::Forbidden.new unless user_support?
+        # the unscoped list spans every organisation
+        check_cluster_admin
 
         # PG full-text search (PPT-2644): `q` matches the settings keys (and
         # id) — the settings body itself is deliberately not searchable.

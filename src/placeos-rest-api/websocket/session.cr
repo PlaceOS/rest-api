@@ -35,11 +35,15 @@ module PlaceOS::Api::WebSocket
 
     private getter user : ::PlaceOS::Model::UserJWT
 
+    # Organisations the session may touch; nil for cluster reach (PPT-526)
+    private getter organisation_ids : Set(UUID)?
+
     def initialize(
       @ws : HTTP::WebSocket,
       @request_id : String,
       @user : ::PlaceOS::Model::UserJWT,
       @discovery : Clustering::Discovery = RemoteDriver.default_discovery,
+      @organisation_ids : Set(UUID)? = nil,
     )
       # Register event handlers
       ws.on_message do |message|
@@ -71,6 +75,18 @@ module PlaceOS::Api::WebSocket
 
     # WebSocket API Handlers
     ##############################################################################
+
+    # True when the system is inside the session's reach. Unknown systems are
+    # left to the existing lookups, which answer with the module-not-found
+    # error the clients already handle.
+    protected def system_in_reach?(system_id : String) : Bool
+      ids = organisation_ids
+      return true if ids.nil?
+      system = ::PlaceOS::Model::ControlSystem.find?(system_id)
+      return true if system.nil?
+      owner = system.organisation_id
+      !owner.nil? && ids.includes?(owner)
+    end
 
     protected def elevate_security(system_id : String, default : Driver::Proxy::RemoteDriver::Clearance) : Driver::Proxy::RemoteDriver::Clearance
       return default if default.admin?
@@ -537,6 +553,12 @@ module PlaceOS::Api::WebSocket
         name:        request.name,
       }
       Log.context.set(**arguments.merge({ws_request_id: @request_id}))
+
+      unless system_in_reach?(request.system_id)
+        Log.warn { {message: "tenancy refused", reason: "system outside reach", system_id: request.system_id, user: @user.id} }
+        respond error_response(request.id, :module_not_found, "could not find module: sys=#{request.system_id} mod=#{request.module_name}")
+        return
+      end
 
       case request.command
       in .bind?   then bind(**arguments)

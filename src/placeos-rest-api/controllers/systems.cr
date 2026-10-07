@@ -38,15 +38,24 @@ module PlaceOS::Api
     )
       Log.context.set(control_system_id: sys_id)
       # Find will raise a 404 (not found) if there is an error
-      if sys_id.includes?('@')
-        systems = find_by_email([sys_id])
-        if systems.size > 0
-          @current_control_system = systems.first
-        else
-          raise Error::NotFound.new("no system with email: #{sys_id}")
-        end
-      else
-        @current_control_system = ::PlaceOS::Model::ControlSystem.find!(sys_id)
+      system = if sys_id.includes?('@')
+                 systems = find_by_email([sys_id])
+                 raise Error::NotFound.new("no system with email: #{sys_id}") if systems.empty?
+                 systems.first
+               else
+                 ::PlaceOS::Model::ControlSystem.find!(sys_id)
+               end
+      ensure_reach!(system)
+      @current_control_system = system
+    end
+
+    # The lazily gated routes (execute, functions, state, state_lookup, types)
+    # take the system id without loading the row; a system that exists must
+    # be in reach.
+    @[AC::Route::Filter(:before_action, only: [:execute, :functions, :state, :state_lookup, :types, :metadata])]
+    def check_lazy_reach(sys_id : String)
+      if system = ::PlaceOS::Model::ControlSystem.find?(sys_id)
+        ensure_reach!(system)
       end
     end
 
@@ -237,9 +246,11 @@ module PlaceOS::Api
       public : Bool? = nil,
       @[AC::Param::Info(description: "return systems which are signage", example: "true")]
       signage : Bool? = nil,
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(::PlaceOS::Model::ControlSystem)
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::ControlSystem.all
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::ControlSystem.all), organisation_id)
 
       # `zone_id` keeps its original AND semantics — a system must
       # contain *every* listed zone. The intended use is intersection
@@ -344,7 +355,7 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "in", description: "comma seperated list of emails", example: "room1@org.com,room2@org.com")]
       emails : Array(String),
     ) : Array(::PlaceOS::Model::ControlSystem)
-      systems = ::PlaceOS::Model::ControlSystem.where(email: emails.map(&.strip.downcase)).to_a
+      systems = scope_organisations(::PlaceOS::Model::ControlSystem.where(email: emails.map(&.strip.downcase))).to_a
       set_collection_headers(systems.size, ::PlaceOS::Model::ControlSystem.table_name)
       systems
     end
@@ -405,14 +416,23 @@ module PlaceOS::Api
       current = current_control_system
       current.assign_attributes(updated)
       current.version = version + 1
+      if updated.zones_assigned?
+        owner = organisation_for_zones(current.zones)
+        if owner && current.organisation_id && owner != current.organisation_id
+          raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:zones, "zones belong to another organisation")], "zones belong to another organisation")
+        end
+        current.organisation_id ||= owner
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
 
-    # adds a new system
+    # adds a new system. The system belongs to its zones' organisation, or
+    # the caller's when the zones are unowned.
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
     def create : ::PlaceOS::Model::ControlSystem
       sys = control_system_update
+      sys.organisation_id = organisation_for_zones(sys.zones)
       raise Error::ModelValidation.new(sys.errors) unless sys.save
       sys
     end
@@ -465,7 +485,14 @@ module PlaceOS::Api
     def add_module(
       module_id : String,
     ) : ::PlaceOS::Model::ControlSystem
-      raise Error::NotFound.new unless ::PlaceOS::Model::Module.exists?(module_id)
+      mod = ::PlaceOS::Model::Module.find?(module_id)
+      raise Error::NotFound.new unless mod
+      ensure_reach!(mod)
+      # a cluster admin attaching an unowned module adopts it into the system's organisation
+      if mod.organisation_id.nil? && (owner = current_control_system.organisation_id)
+        mod.organisation_id = owner
+        mod.save!
+      end
 
       module_present = current_control_system.modules.includes?(module_id) || ::PlaceOS::Model::ControlSystem.add_module(current_control_system.id.as(String), module_id)
       raise "Failed to add ControlSystem Module" unless module_present
@@ -661,6 +688,7 @@ module PlaceOS::Api
         ws: ws,
         request_id: request_id,
         user: user_token,
+        organisation_ids: tenancy.organisation_ids,
       )
     end
 
