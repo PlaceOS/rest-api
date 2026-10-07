@@ -81,6 +81,24 @@ module PlaceOS::Api
         tenancy_get("#{Zones.base_route}#{f.unowned_zone.id}", f.placeos.admin).status_code.should eq 200
       end
 
+      it "narrows a list to one organisation on request" do
+        f = Spec::Tenancy.build
+
+        narrowed = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?organisation_id=#{f.ucla.organisation.id}", f.placeos.admin).body)
+        narrowed.should contain(f.ucla.org_zone.id)
+        narrowed.should_not contain(f.acadian.org_zone.id)
+        narrowed.should_not contain(f.unowned_zone.id)
+
+        partner_narrowed = Spec::Tenancy.ids(tenancy_get("#{Systems.base_route}?organisation_id=#{f.acadian.organisation.id}", f.ntt_staff.admin).body)
+        partner_narrowed.should eq [f.acadian.system.id]
+
+        tenancy_get("#{Zones.base_route}?organisation_id=#{f.ucla.organisation.id}", f.acadian.admin).status_code.should eq 404
+
+        users = Spec::Tenancy.ids(tenancy_get("#{Users.base_route}?organisation_id=#{f.acadian.organisation.id}", f.placeos.admin).body)
+        users.should contain(f.acadian.user.id)
+        users.should_not contain(f.ucla.user.id)
+      end
+
       it "only logs when enforcement is off" do
         f = Spec::Tenancy.build
         Utils::Tenancy.enforce = false

@@ -41,9 +41,16 @@ module PlaceOS::Api
 
     # returns the list of available triggers
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::Trigger)
+    def index(
+      @[AC::Param::Info(description: "only triggers bound to systems owned by this organisation; templates are always included", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : Array(::PlaceOS::Model::Trigger)
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::Trigger.all
+      if organisation_id
+        ensure_reach!(organisation_id, "organisation")
+        query = query.where("(control_system_id IS NULL OR organisation_id = ?::uuid)", organisation_id.to_s)
+      end
       if ids = tenancy.organisation_ids
         list = ids.to_a.map(&.to_s)
         query = if list.empty?

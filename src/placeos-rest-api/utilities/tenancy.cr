@@ -181,6 +181,20 @@ module PlaceOS::Api
       end
     end
 
+    # Narrows a reach-scoped relation to one organisation the caller asked for.
+    def narrow_organisation(query, organisation_id : UUID?, column : String = "organisation_id")
+      return query if organisation_id.nil?
+      ensure_reach!(organisation_id, "organisation")
+      query.where("#{column} = ?::uuid", organisation_id.to_s)
+    end
+
+    # As above for a domain-owned table.
+    def narrow_authorities(query, organisation_id : UUID?, column : String = "authority_id")
+      return query if organisation_id.nil?
+      ensure_reach!(organisation_id, "organisation")
+      query.where("#{column} IN (SELECT id FROM authority WHERE organisation_id = ?::uuid)", organisation_id.to_s)
+    end
+
     # As above for tables owned through their domain (`authority_id`).
     def scope_authorities(query, column : String = "authority_id")
       ids = tenancy.organisation_ids

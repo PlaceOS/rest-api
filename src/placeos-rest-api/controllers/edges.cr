@@ -73,9 +73,13 @@ module PlaceOS::Api
     # list the edges in the system.
     # an edge can be thought of as a location and each edge location can have multiple nodes servicing it
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::Edge)
+    def index(
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : Array(::PlaceOS::Model::Edge)
       # PG full-text search (PPT-2644)
-      paginate_search(scope_organisations(::PlaceOS::Model::Edge.all), ::PlaceOS::Model::Edge.table_name)
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Edge.all), organisation_id)
+      paginate_search(query, ::PlaceOS::Model::Edge.table_name)
     end
 
     # return the details of an edge location
