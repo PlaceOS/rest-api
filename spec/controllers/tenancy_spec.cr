@@ -40,24 +40,24 @@ module PlaceOS::Api
       it "scopes zones, systems and modules to the caller's organisations" do
         f = Spec::Tenancy.build
 
-        zones = Spec::Tenancy.ids(tenancy_get(Zones.base_route, f.acadian.admin).body)
+        zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.acadian.admin).body)
         zones.should contain(f.acadian.org_zone.id)
         zones.should_not contain(f.ucla.org_zone.id)
         zones.should_not contain(f.unowned_zone.id)
 
-        partner_zones = Spec::Tenancy.ids(tenancy_get(Zones.base_route, f.ntt_staff.support).body)
+        partner_zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.ntt_staff.support).body)
         partner_zones.should contain(f.acadian.org_zone.id)
         partner_zones.should contain(f.ntt_staff.org_zone.id)
         partner_zones.should_not contain(f.ucla.org_zone.id)
 
-        cluster_zones = Spec::Tenancy.ids(tenancy_get(Zones.base_route, f.placeos.admin).body)
+        cluster_zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.placeos.admin).body)
         cluster_zones.should contain(f.ucla.org_zone.id)
         cluster_zones.should contain(f.unowned_zone.id)
 
-        systems = Spec::Tenancy.ids(tenancy_get(Systems.base_route, f.ucla.admin).body)
+        systems = Spec::Tenancy.ids(tenancy_get("#{Systems.base_route}?limit=500", f.ucla.admin).body)
         systems.should eq [f.ucla.system.id]
 
-        modules = Spec::Tenancy.ids(tenancy_get(Modules.base_route, f.ucla.admin).body)
+        modules = Spec::Tenancy.ids(tenancy_get("#{Modules.base_route}?limit=500", f.ucla.admin).body)
         modules.should eq [f.ucla.mod.id]
 
         tenancy_get("#{Zones.base_route}tags", f.acadian.admin).status_code.should eq 200
@@ -84,7 +84,7 @@ module PlaceOS::Api
       it "narrows a list to one organisation on request" do
         f = Spec::Tenancy.build
 
-        narrowed = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?organisation_id=#{f.ucla.organisation.id}", f.placeos.admin).body)
+        narrowed = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?organisation_id=#{f.ucla.organisation.id}&limit=500", f.placeos.admin).body)
         narrowed.should contain(f.ucla.org_zone.id)
         narrowed.should_not contain(f.acadian.org_zone.id)
         narrowed.should_not contain(f.unowned_zone.id)
@@ -156,7 +156,7 @@ module PlaceOS::Api
       it "lists and creates domains within reach" do
         f = Spec::Tenancy.build
 
-        domains = Spec::Tenancy.ids(tenancy_get(Domains.base_route, f.acadian.admin).body)
+        domains = Spec::Tenancy.ids(tenancy_get("#{Domains.base_route}?limit=500", f.acadian.admin).body)
         domains.should eq [f.acadian.authority.id]
         tenancy_get("#{Domains.base_route}#{f.ucla.authority.id}", f.acadian.admin).status_code.should eq 404
 
@@ -175,14 +175,14 @@ module PlaceOS::Api
       it "lists users within reach only" do
         f = Spec::Tenancy.build
 
-        users = Spec::Tenancy.ids(tenancy_get(Users.base_route, f.acadian.admin).body)
+        users = Spec::Tenancy.ids(tenancy_get("#{Users.base_route}?limit=500", f.acadian.admin).body)
         users.should contain(f.acadian.user.id)
         users.should_not contain(f.ucla.user.id)
 
         tenancy_get("#{Users.base_route}?authority_id=#{f.ucla.authority.id}", f.acadian.admin).status_code.should eq 404
         tenancy_get("#{Users.base_route}#{f.ucla.user.id}", f.acadian.admin).status_code.should eq 404
 
-        partner_users = Spec::Tenancy.ids(tenancy_get(Users.base_route, f.ntt_staff.admin).body)
+        partner_users = Spec::Tenancy.ids(tenancy_get("#{Users.base_route}?limit=500", f.ntt_staff.admin).body)
         partner_users.should contain(f.acadian.user.id)
         partner_users.should_not contain(f.ucla.user.id)
       end
@@ -201,13 +201,13 @@ module PlaceOS::Api
         template.status_code.should eq 201
 
         # templates are readable by every organisation
-        templates = Spec::Tenancy.ids(tenancy_get(Triggers.base_route, f.acadian.admin).body)
+        templates = Spec::Tenancy.ids(tenancy_get("#{Triggers.base_route}?limit=500", f.acadian.admin).body)
         templates.should contain(JSON.parse(template.body)["id"].to_s)
 
         bound = tenancy_post(Triggers.base_route, f.acadian.admin, {name: "Bound #{random_name}", control_system_id: f.acadian.system.id})
         bound.status_code.should eq 201
         JSON.parse(bound.body)["organisation_id"].to_s.should eq f.acadian.organisation.id.to_s
-        Spec::Tenancy.ids(tenancy_get(Triggers.base_route, f.ucla.admin).body).should_not contain(JSON.parse(bound.body)["id"].to_s)
+        Spec::Tenancy.ids(tenancy_get("#{Triggers.base_route}?limit=500", f.ucla.admin).body).should_not contain(JSON.parse(bound.body)["id"].to_s)
       end
     end
 
@@ -225,8 +225,8 @@ module PlaceOS::Api
 
         tenancy_post(Partners.base_route, f.acadian.admin, {name: "Nope #{random_name}"}).status_code.should eq 403
 
-        Spec::Tenancy.ids(tenancy_get(Organisations.base_route, f.acadian.admin).body).should eq [f.acadian.organisation.id.to_s]
-        Spec::Tenancy.ids(tenancy_get(Partners.base_route, f.acadian.admin).body).should eq [f.ntt.id.to_s]
+        Spec::Tenancy.ids(tenancy_get("#{Organisations.base_route}?limit=500", f.acadian.admin).body).should eq [f.acadian.organisation.id.to_s]
+        Spec::Tenancy.ids(tenancy_get("#{Partners.base_route}?limit=500", f.acadian.admin).body).should eq [f.ntt.id.to_s]
         tenancy_get("#{Partners.base_route}#{f.management.id}", f.acadian.admin).status_code.should eq 404
 
         client.patch("#{Organisations.base_route}#{f.acadian.organisation.id}", headers: Spec::Tenancy.headers(f.acadian.admin), body: {name: "renamed"}.to_json).status_code.should eq 403
