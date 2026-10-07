@@ -31,9 +31,13 @@ module PlaceOS::Api
 
     # list the domains
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::Authority)
+    def index(
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : Array(::PlaceOS::Model::Authority)
       # PG full-text search (PPT-2644)
-      paginate_search(scope_organisations(::PlaceOS::Model::Authority.all), ::PlaceOS::Model::Authority.table_name)
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Authority.all), organisation_id)
+      paginate_search(query, ::PlaceOS::Model::Authority.table_name)
     end
 
     # skip authentication for the lookup

@@ -205,6 +205,8 @@ module PlaceOS::Api
       include_metadata : Bool = false,
       @[AC::Param::Info(description: "admin users can view other domains, ignored for other users", example: "auth-12345")]
       authority_id : String? = nil,
+      @[AC::Param::Info(description: "admin users can list the users of every domain owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(UserDetails)
       # PG full-text search (PPT-2644)
       # NOTE: email-shaped queries used to be quote-wrapped for an
@@ -222,8 +224,8 @@ module PlaceOS::Api
         ensure_authority_reach!(authority, "domain")
         query = query.where(authority_id: authority)
       else
-        # admins see every domain within reach
-        query = scope_authorities(query)
+        # admins see every domain within reach, narrowed to one organisation on request
+        query = narrow_authorities(scope_authorities(query), organisation_id)
       end
 
       results = paginate_search(query, ::PlaceOS::Model::User.table_name)

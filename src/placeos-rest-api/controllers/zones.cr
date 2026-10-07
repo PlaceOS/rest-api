@@ -164,6 +164,8 @@ module PlaceOS::Api
       include_children_count : Bool = false,
       @[AC::Param::Info(description: "with group_id, include anchor zones and their descendants, excluding denied subtrees", example: "true")]
       descendants : Bool = false,
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(::PlaceOS::Model::Zone)
       group_zone_ids = nil
       if group_id
@@ -189,7 +191,7 @@ module PlaceOS::Api
       # the same for `?parent_id=` as for no param at all
       parent_id = nil if parent_id.try(&.empty?)
 
-      query = scope_organisations(::PlaceOS::Model::Zone.all)
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Zone.all), organisation_id)
 
       if group_id && descendants
         query = query.where("id IN (#{group_descendants_sql})", group_id.to_s)

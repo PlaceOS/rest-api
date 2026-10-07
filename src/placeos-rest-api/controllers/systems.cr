@@ -246,9 +246,11 @@ module PlaceOS::Api
       public : Bool? = nil,
       @[AC::Param::Info(description: "return systems which are signage", example: "true")]
       signage : Bool? = nil,
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(::PlaceOS::Model::ControlSystem)
       # PG full-text search (PPT-2644)
-      query = scope_organisations(::PlaceOS::Model::ControlSystem.all)
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::ControlSystem.all), organisation_id)
 
       # `zone_id` keeps its original AND semantics — a system must
       # contain *every* listed zone. The intended use is intersection

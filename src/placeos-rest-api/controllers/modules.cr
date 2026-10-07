@@ -174,6 +174,8 @@ module PlaceOS::Api
       no_logic : Bool = false,
       @[AC::Param::Info(description: "return only running modules", example: "true")]
       running : Bool? = nil,
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(::PlaceOS::Model::Module)
       # if a system id is present we query the database directly
       if control_system_id
@@ -194,7 +196,7 @@ module PlaceOS::Api
       end
 
       # PG full-text search (PPT-2644)
-      query = scope_organisations(::PlaceOS::Model::Module.all)
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Module.all), organisation_id)
 
       if scope_zones = module_scope_zones
         # we only want to show modules in use by systems within these zones
