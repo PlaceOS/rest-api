@@ -65,9 +65,11 @@ module PlaceOS::Api
         raise PgORM::Error::RecordNotFound.new
       }.tap do |found|
         # The `:id` lookup above is not authority scoped — only admins may
-        # resolve users belonging to other authorities. 404 (not 403) so
-        # foreign ids are indistinguishable from unknown ones.
+        # resolve users belonging to other authorities, and only within their
+        # reach. 404 (not 403) so foreign ids are indistinguishable from
+        # unknown ones.
         raise PgORM::Error::RecordNotFound.new unless user_admin? || found.authority_id == authority
+        ensure_authority_reach!(found.authority_id, "user") unless found.authority_id == authority
         Log.context.set(user_id: found.id)
         @user = found
       end
@@ -217,7 +219,11 @@ module PlaceOS::Api
         # regular users can only see their own domain
         query = query.where(authority_id: current_user.authority_id.as(String))
       elsif authority = authority_id
+        ensure_authority_reach!(authority, "domain")
         query = query.where(authority_id: authority)
+      else
+        # admins see every domain within reach
+        query = scope_authorities(query)
       end
 
       results = paginate_search(query, ::PlaceOS::Model::User.table_name)
@@ -262,8 +268,9 @@ module PlaceOS::Api
         # only be set by admins — support-subsystem creators would otherwise
         # be able to mint sys-admins.
         new_user.assign_admin_attributes_from_json(body)
-        # allow sys-admins to create users on other domains
+        # allow sys-admins to create users on other domains within reach
         new_user.authority ||= current_authority.as(::PlaceOS::Model::Authority)
+        ensure_authority_reach!(new_user.authority_id, "domain")
       else
         # non-admins always create users in their own authority
         new_user.authority = current_authority.as(::PlaceOS::Model::Authority)

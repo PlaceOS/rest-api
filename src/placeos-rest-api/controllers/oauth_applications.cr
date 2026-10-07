@@ -20,7 +20,9 @@ module PlaceOS::Api
     def find_current_app(id : String)
       Log.context.set(application_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_app = ::PlaceOS::Model::DoorkeeperApplication.find!(id.to_i)
+      app = ::PlaceOS::Model::DoorkeeperApplication.find!(id.to_i)
+      ensure_authority_reach!(app.owner_id, "application")
+      @current_app = app
     end
 
     getter! current_app : ::PlaceOS::Model::DoorkeeperApplication
@@ -38,7 +40,9 @@ module PlaceOS::Api
 
       if user_support?
         # admin/support: optional authority_id filter, no subsystem gating.
+        query = scope_authorities(query, "owner_id")
         if authority = authority_id
+          ensure_authority_reach!(authority, "domain")
           query = query.where(owner_id: authority)
         end
       else
@@ -87,6 +91,7 @@ module PlaceOS::Api
     # add a new user interface application
     @[AC::Route::POST("/", body: :app, status_code: HTTP::Status::CREATED)]
     def create(app : ::PlaceOS::Model::DoorkeeperApplication) : ::PlaceOS::Model::DoorkeeperApplication
+      ensure_authority_reach!(app.owner_id, "domain")
       raise Error::ModelValidation.new(app.errors) unless app.save
       app
     end

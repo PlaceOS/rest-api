@@ -38,6 +38,9 @@ module PlaceOS::Api
     # Helpers for defining scope checks on controller actions
     include Utils::Scopes
 
+    # Helpers for organisation reach (PPT-526 multi-tenancy)
+    include Utils::Tenancy
+
     # for converting comma seperated lists
     # i.e. `"id-1,id-2,id-3"`
     struct ConvertStringArray

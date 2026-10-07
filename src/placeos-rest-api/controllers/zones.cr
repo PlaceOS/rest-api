@@ -37,7 +37,9 @@ module PlaceOS::Api
     def current_zone(id : String)
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_zone = ::PlaceOS::Model::Zone.find!(id)
+      zone = ::PlaceOS::Model::Zone.find!(id)
+      ensure_reach!(zone)
+      @current_zone = zone
     end
 
     getter! current_zone : ::PlaceOS::Model::Zone
@@ -187,7 +189,7 @@ module PlaceOS::Api
       # the same for `?parent_id=` as for no param at all
       parent_id = nil if parent_id.try(&.empty?)
 
-      query = ::PlaceOS::Model::Zone.all
+      query = scope_organisations(::PlaceOS::Model::Zone.all)
 
       if group_id && descendants
         query = query.where("id IN (#{group_descendants_sql})", group_id.to_s)
@@ -277,8 +279,14 @@ module PlaceOS::Api
     # returns unique zone tags
     @[AC::Route::GET("/tags")]
     def tags : Array(String)
+      ids = tenancy.organisation_ids
+      return [] of String if ids && ids.empty?
       unique_tags = PgORM::Database.connection do |db|
-        db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone ) as unnested", &.read(String)
+        if ids
+          db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone where organisation_id = ANY($1::uuid[]) ) as unnested", args: [ids.to_a.map(&.to_s)], &.read(String)
+        else
+          db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone ) as unnested", &.read(String)
+        end
       end
       unique_tags.split(',')
     rescue DB::ColumnTypeMismatchError
@@ -304,14 +312,31 @@ module PlaceOS::Api
       zone = zone_update
       current = current_zone
       current.assign_attributes(zone)
+      if (parent_id = current.parent_id.presence) && current.parent_id_changed?
+        parent = ::PlaceOS::Model::Zone.find!(parent_id)
+        ensure_reach!(parent)
+        raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:parent_id, "parent belongs to another organisation")], "parent belongs to another organisation") unless parent.organisation_id == current.organisation_id
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
 
-    # add a new zone
+    # add a new zone. A child zone belongs to its parent's organisation; a
+    # root zone belongs to the caller's, or to the organisation a cluster
+    # admin names.
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : ::PlaceOS::Model::Zone
+    def create(
+      @[AC::Param::Info(description: "the organisation that owns a new root zone (cluster admins only)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : ::PlaceOS::Model::Zone
       zone = zone_update
+      zone.organisation_id = if parent_id = zone.parent_id.presence
+                               parent = ::PlaceOS::Model::Zone.find!(parent_id)
+                               ensure_reach!(parent)
+                               parent.organisation_id
+                             else
+                               organisation_for_new_row(organisation_id)
+                             end
       raise Error::ModelValidation.new(zone.errors) unless zone.save
       zone
     end
@@ -331,6 +356,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "only return the metadata key we are interested in", example: "workplace-config")]
       name : String? = nil,
     ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
+      ensure_reach!(::PlaceOS::Model::Zone.find!(id))
       ::PlaceOS::Model::Metadata.build_metadata(id, name)
     end
 

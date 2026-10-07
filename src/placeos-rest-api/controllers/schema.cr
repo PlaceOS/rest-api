@@ -11,6 +11,7 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
 
     before_action :check_admin, except: [:index, :show]
+    before_action :check_cluster_admin, except: [:index, :show]
     before_action :check_support, only: [:index, :show]
 
     ###############################################################################################

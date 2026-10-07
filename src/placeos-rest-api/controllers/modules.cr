@@ -38,7 +38,9 @@ module PlaceOS::Api
     def find_current_module(id : String)
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_module = ::PlaceOS::Model::Module.find!(id)
+      mod = ::PlaceOS::Model::Module.find!(id)
+      ensure_reach!(mod)
+      @current_module = mod
     end
 
     getter! current_module : ::PlaceOS::Model::Module
@@ -103,7 +105,9 @@ module PlaceOS::Api
       org_zone = support_org_zone_id
 
       if control_system_id
-        zones = ::PlaceOS::Model::ControlSystem.find!(control_system_id).zones
+        system = ::PlaceOS::Model::ControlSystem.find!(control_system_id)
+        ensure_reach!(system)
+        zones = system.zones
         # "support" subsystem: Read on the system's zones.
         return if support_subsystem_grants?(zones, ::PlaceOS::Model::Permissions::Read)
         # legacy org_zone path: the system must include the org_zone and the
@@ -174,6 +178,7 @@ module PlaceOS::Api
       # if a system id is present we query the database directly
       if control_system_id
         cs = ::PlaceOS::Model::ControlSystem.find!(control_system_id)
+        ensure_reach!(cs)
         # Include subset of association data with results
         results = ::PlaceOS::Model::Module.find_all(cs.modules).compact_map do |mod|
           next if (driver = mod.driver).nil?
@@ -189,10 +194,8 @@ module PlaceOS::Api
       end
 
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::Module.all
+      query = scope_organisations(::PlaceOS::Model::Module.all)
 
-      # TODO:: we can remove this once there is a tenant_id field on modules
-      # which will make this much simpler to filter
       if scope_zones = module_scope_zones
         # we only want to show modules in use by systems within these zones
         no_logic = true
@@ -368,8 +371,19 @@ module PlaceOS::Api
 
     # add a new module / instance of a driver
     @[AC::Route::POST("/", body: :mod, status_code: HTTP::Status::CREATED)]
-    def create(mod : ::PlaceOS::Model::Module) : ::PlaceOS::Model::Module
+    def create(
+      mod : ::PlaceOS::Model::Module,
+      @[AC::Param::Info(description: "the organisation that owns a module not bound to a system (cluster admins only)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : ::PlaceOS::Model::Module
       can_modify?(mod)
+      mod.organisation_id = if cs_id = mod.control_system_id
+                              system = ::PlaceOS::Model::ControlSystem.find!(cs_id)
+                              ensure_reach!(system)
+                              system.organisation_id
+                            else
+                              organisation_for_new_row(organisation_id)
+                            end
       raise Error::ModelValidation.new(mod.errors) unless mod.save
       mod
     end

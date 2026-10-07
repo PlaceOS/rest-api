@@ -18,7 +18,7 @@ dependencies:
     github: place-labs/ulid
     branch: master
 
-  # uncomment to test different model branches
-  # placeos-models:
-  #  github: placeos/models
-  #  branch: add-signage-groups
+  # PPT-526: build against the multi-tenancy data layer until models #332 merges
+  placeos-models:
+    github: placeos/models
+    branch: PPT-526-partner-client

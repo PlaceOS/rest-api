@@ -15,6 +15,8 @@ module PlaceOS::Api
 
     before_action :check_admin, except: [:collection, :show]
     before_action :check_support, only: [:collection, :show]
+    # brokers are cluster infrastructure
+    before_action :check_cluster_admin
 
     ###############################################################################################
 
