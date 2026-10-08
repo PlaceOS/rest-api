@@ -24,7 +24,7 @@ module PlaceOS::Api
   describe PlaylistMedia do
     base = PlaylistMedia.base_route
 
-    ::Spec.before_each do
+    before_each do
       Model::Playlist::Item.clear
       Model::Playlist.clear
       clear_group_tables

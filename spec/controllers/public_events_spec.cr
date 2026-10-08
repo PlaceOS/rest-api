@@ -10,7 +10,7 @@ module PlaceOS::Api
   end
 
   describe PublicEvents, tags: "public_events" do
-    ::Spec.before_each do
+    before_each do
       Model::ControlSystem.clear
       Model::Driver.clear
       Model::Module.clear
@@ -255,24 +255,26 @@ module PlaceOS::Api
       end
 
       it "delegates to the driver and returns its result when the module is present" do
-        system = PlaceOS::Api.public_control_system
-
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
         driver.module_name = "PublicEvents"
         driver.save!
 
+        # no custom name, so core maps the module as "PublicEvents/1"
         mod = Model::Generator.module(driver: driver)
+        mod.custom_name = nil
         mod.running = true
         mod.save!
-        system.modules = [mod.id.as(String)]
-        system.save!
-
         module_id = mod.id.as(String)
+
+        # saved once with its module, so core maps the system from a single event
+        system = Model::Generator.control_system
+        system.public = true
+        system.modules = [module_id]
+        system.save!
         sys_id = system.id.as(String)
 
-        # Seed the system-to-module lookup so Proxy::System.module_id? resolves.
-        system_storage = ::PlaceOS::Driver::RedisStorage.new(sys_id, "system")
-        system_storage["PublicEvents/1"] = module_id
+        # Proxy::System.module_id? resolves through the lookup core maintains
+        wait_for_module_lookups(sys_id, {"PublicEvents/1" => module_id})
 
         # Seed the driver interface metadata so RemoteDriver.metadata? resolves
         # and function_present?("register_attendee") returns true.
@@ -304,7 +306,6 @@ module PlaceOS::Api
         result.status_code.should eq 200
         result.body.should eq "true"
 
-        system_storage.delete("PublicEvents/1")
         ::PlaceOS::Driver::RedisStorage.with_redis(&.del("interface/#{module_id}"))
       end
     end

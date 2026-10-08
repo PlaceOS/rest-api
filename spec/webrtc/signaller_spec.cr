@@ -6,7 +6,10 @@ module PlaceOS::Api
       updates = [] of SessionSignal
 
       on_message = ->(message : String) {
-        updates << SessionSignal.from_json message
+        signal = SessionSignal.from_json message
+        # keep-alive pings are sent to every socket on a 30s timer, so one can
+        # land at any point during the example
+        updates << signal unless signal.type.ping?
       }
 
       session_id = UUID.random.to_s
@@ -23,8 +26,7 @@ module PlaceOS::Api
           to_user: "server",
           value: nil
         ).to_json)
-        sleep 500.milliseconds
-        updates.size.should eq 2
+        wait_for_signals(updates, 2)
 
         sessions = CallDetails::SESSIONS
         sessions.user_list(session_id).should eq [user_id]
@@ -37,8 +39,7 @@ module PlaceOS::Api
           body: transfer,
           headers: Spec::Authentication.headers,
         )
-        sleep 500.milliseconds
-        updates.size.should eq 3
+        wait_for_signals(updates, 3)
         updates[-1].value.should eq transfer
 
         # test kick user
@@ -48,11 +49,30 @@ module PlaceOS::Api
           body: {reason: "bad user"}.to_json,
           headers: Spec::Authentication.headers,
         )
-        sleep 500.milliseconds
-        updates.size.should eq 4
-        ws.closed?.should be_true
+        wait_for_signals(updates, 4)
+        wait_until_closed(ws)
       end
     end
+  end
+end
+
+# Waits until the expected number of signals arrive, then checks no more did
+def wait_for_signals(updates : Array, count : Int32, timeout : Time::Span = 5.seconds) : Nil
+  deadline = Time.instant + timeout
+  until updates.size >= count
+    raise "timed out waiting for #{count} signals, got #{updates.size}" if Time.instant > deadline
+    sleep 10.milliseconds
+  end
+  # give an unexpected extra signal the chance to arrive before asserting the count
+  sleep 100.milliseconds
+  updates.size.should eq count
+end
+
+def wait_until_closed(ws : HTTP::WebSocket, timeout : Time::Span = 5.seconds) : Nil
+  deadline = Time.instant + timeout
+  until ws.closed?
+    raise "timed out waiting for the websocket to close" if Time.instant > deadline
+    sleep 10.milliseconds
   end
 end
 

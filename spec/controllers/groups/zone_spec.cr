@@ -4,8 +4,6 @@ module PlaceOS::Api
   describe Groups::Zones do
     base = Groups::Zones.base_route
 
-    ::Spec.before_each { clear_group_tables }
-
     it "manager can delegate a zone they already have coverage on" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       manager, manager_headers = Spec::Authentication.authentication(sys_admin: false, support: false)

@@ -74,8 +74,6 @@ module PlaceOS::Api
     end
 
     describe "support-subsystem permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       it "allows POST for a support user with Create on the org zone (both sides)" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

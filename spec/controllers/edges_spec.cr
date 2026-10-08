@@ -42,7 +42,7 @@ module PlaceOS::Api
     end
 
     describe "CRUD operations", tags: "crud" do
-      ::Spec.before_each do
+      before_each do
         PlaceOS::Model::Edge.clear
       end
       Spec.test_crd(Model::Edge, Edges)
@@ -68,7 +68,7 @@ module PlaceOS::Api
     end
 
     describe "monitoring endpoints" do
-      ::Spec.before_each do
+      before_each do
         PlaceOS::Model::Edge.clear
       end
 

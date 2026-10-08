@@ -4,8 +4,6 @@ module PlaceOS::Api
   describe Groups::Users do
     base = Groups::Users.base_route
 
-    ::Spec.before_each { clear_group_tables }
-
     it "manager can add and remove a user on their group" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       manager, manager_headers = Spec::Authentication.authentication(sys_admin: false, support: false)

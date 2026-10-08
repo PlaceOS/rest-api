@@ -96,7 +96,7 @@ module PlaceOS::Api
       raise Error::Unauthorized.new("user not found")
     end
 
-    record AccessToken, token : String, expires : Int64? { include JSON::Serializable }
+    alias AccessToken = ::PlaceOS::Model::User::ResourceToken
 
     # Obtain a token to the current users SSO resources
     # this token is used for delegated access to things like MS Graph API or Google API in the context of the user
@@ -125,68 +125,13 @@ module PlaceOS::Api
       user.save!
     end
 
-    protected def get_user_token(current_user) : AccessToken
+    protected def get_user_token(user : Model::User) : AccessToken
       authority = current_authority
       raise Error::NotFound.new("no valid authority") unless authority
 
-      self.class.get_user_token(current_user, authority)
-    end
-
-    def self.get_user_token(current_user : Model::User, authority : Model::Authority) : AccessToken
-      expired = true
-
-      if access_token = current_user.access_token.presence
-        if current_user.expires
-          expires_at = Time.unix(current_user.expires_at.not_nil!)
-          if 5.minutes.from_now < expires_at
-            return AccessToken.new(access_token.as(String), expires_at.to_unix)
-          end
-
-          # Allow for clock drift
-          expired = 15.seconds.from_now > expires_at
-        else
-          return AccessToken.new(access_token.as(String), nil)
-        end
-      end
-
-      raise Error::NotFound.new("no refresh token available") unless current_user.refresh_token.presence
-
-      begin
-        internals = authority.internals
-        sso_strat = if sso_strat_id = internals["oauth-strategy"]?.try(&.as_s?) # (i.e. oauth_strat-FNsaSj6bp-M)
-                      ::PlaceOS::Model::OAuthAuthentication.find(sso_strat_id)
-                    else
-                      ::PlaceOS::Model::OAuthAuthentication.where(authority_id: authority.id).first?
-                      # ::PlaceOS::Model::OAuthAuthentication.collection_query do |table|
-                      #   table.get_all(authority.id, index: :authority_id)
-                      # end.first?
-                    end
-
-        raise Error::NotFound.new("no oauth configuration found") unless sso_strat
-
-        client_id = sso_strat.client_id
-        client_secret = sso_strat.client_secret
-        token_uri = URI.parse(sso_strat.token_url)
-        token_host = token_uri.hostname.not_nil!
-        token_path = token_uri.request_target
-
-        oauth2_client = OAuth2::Client.new(token_host, client_id, client_secret, token_uri: token_path)
-        token = oauth2_client.get_access_token_using_refresh_token(current_user.refresh_token, sso_strat.scope)
-
-        current_user.access_token = token.access_token
-        current_user.refresh_token = token.refresh_token if token.refresh_token
-        current_user.expires_at = Time.utc.to_unix + token.expires_in.not_nil!
-        current_user.save!
-
-        AccessToken.new(current_user.access_token.as(String), current_user.expires_at)
-      rescue error
-        Log.warn(exception: error) { "failed refresh access token" }
-        if !expired
-          AccessToken.new(current_user.access_token.as(String), current_user.expires_at)
-        else
-          raise error
-        end
-      end
+      user.resource_token(authority)
+    rescue error : Model::Error::NoResourceToken
+      raise Error::NotFound.new(error.message || "no resource token available")
     end
 
     # CRUD

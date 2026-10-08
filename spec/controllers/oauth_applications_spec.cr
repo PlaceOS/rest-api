@@ -12,7 +12,7 @@ module PlaceOS::Api
   describe OAuthApplications do
     base = OAuthApplications.base_route
 
-    ::Spec.before_each do
+    before_each do
       clear_group_tables
       Model::DoorkeeperApplication.clear
     end

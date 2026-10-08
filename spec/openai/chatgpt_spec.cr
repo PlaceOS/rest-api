@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe ChatGPT do
-    ::Spec.before_each do
+    before_each do
       Model::ChatMessage.clear
       Model::Chat.clear
     end

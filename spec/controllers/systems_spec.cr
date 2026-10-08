@@ -3,10 +3,22 @@ require "http/web_socket"
 require "../helper"
 
 module PlaceOS::Api
-  ::Spec.before_each do
-    PlaceOS::Model::Module.clear
-    PlaceOS::Model::Driver.clear
-    PlaceOS::Model::ControlSystem.clear
+  # A system holding one module, named `custom_name`, once core has mapped it
+  # as `<custom_name>/1`. The system is saved once with its module so core
+  # sees a single event, then core's lookup is awaited rather than seeded,
+  # which core would overwrite (see `wait_for_module_lookups`).
+  def self.mapped_module_system(custom_name : String) : {Model::ControlSystem, Model::Module}
+    mod = Model::Generator.module
+    mod.custom_name = custom_name
+    mod.save!
+    module_id = mod.id.as(String)
+
+    system = Model::Generator.control_system
+    system.modules = [module_id]
+    system.save!
+    wait_for_module_lookups(system.id.as(String), {"#{custom_name}/1" => module_id})
+
+    {system, mod}
   end
 
   def self.spec_add_module(system, mod, headers)
@@ -93,6 +105,12 @@ module PlaceOS::Api
   end
 
   describe Systems do
+    before_each do
+      PlaceOS::Model::Module.clear
+      PlaceOS::Model::Driver.clear
+      PlaceOS::Model::ControlSystem.clear
+    end
+
     Spec.test_404(Systems.base_route, model_name: Model::ControlSystem.table_name, headers: Spec::Authentication.headers)
 
     describe "index", tags: "search" do
@@ -891,13 +909,9 @@ module PlaceOS::Api
     end
 
     it "GET /systems/:sys_id/functions/:module_slug" do
-      cs = PlaceOS::Model::Generator.control_system.save!
-      mod = PlaceOS::Model::Generator.module(control_system: cs).save!
-      module_slug = mod.id.as(String)
-
-      sys_lookup = PlaceOS::Driver::RedisStorage.new(cs.id.as(String), "system")
-      lookup_key = "#{module_slug}/1"
-      sys_lookup[lookup_key] = module_slug
+      cs, mod = PlaceOS::Api.mapped_module_system("Functoids")
+      module_id = mod.id.as(String)
+      module_slug = "Functoids_1"
 
       PlaceOS::Driver::RedisStorage.with_redis do |redis|
         meta = PlaceOS::Driver::DriverModel::Metadata.new({
@@ -906,7 +920,7 @@ module PlaceOS::Api
           "function3" => {"arg1" => JSON.parse(%({"type":"integer"})), "arg2" => JSON.parse(%({"type":"integer","default":200}))},
         }, ["Functoids"])
 
-        redis.set("interface/#{module_slug}", meta.to_json)
+        redis.set("interface/#{module_id}", meta.to_json)
       end
 
       path = Systems.base_route + "#{cs.id}/functions/#{module_slug}"
@@ -958,21 +972,16 @@ module PlaceOS::Api
     end
 
     context "with core" do
-      mod, cs = get_sys
-
       # "fetches the state for `key` in module defined by `module_slug`
       it "GET /systems/:sys_id/:module_slug/:key" do
-        module_slug = cs.modules.first
+        cs, mod = PlaceOS::Api.mapped_module_system("Display")
+        module_slug = "Display_1"
 
         # Create a storage proxy
         driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
 
         status_name = "orange"
         driver_proxy[status_name] = 1
-
-        sys_lookup = PlaceOS::Driver::RedisStorage.new(cs.id.as(String), "system")
-        lookup_key = "#{module_slug}/1"
-        sys_lookup[lookup_key] = mod.id.as(String)
 
         path = Systems.base_route + "#{cs.id}/#{module_slug}/orange"
 
@@ -985,17 +994,14 @@ module PlaceOS::Api
       end
 
       it "GET /systems/:sys_id/:module_slug" do
-        module_slug = cs.modules.first
+        cs, mod = PlaceOS::Api.mapped_module_system("Display")
+        module_slug = "Display_1"
 
         # Create a storage proxy
         driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
 
         status_name = "nugget"
         driver_proxy[status_name] = 1
-
-        sys_lookup = PlaceOS::Driver::RedisStorage.new(cs.id.as(String), "system")
-        lookup_key = "#{module_slug}/1"
-        sys_lookup[lookup_key] = mod.id.as(String)
 
         path = Systems.base_route + "#{cs.id}/#{module_slug}"
 
@@ -1258,8 +1264,6 @@ module PlaceOS::Api
     end
 
     describe "subsystem-based permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       it "PATCH allowed for 'signage' subsystem with Update perm on a signage system" do
         cs, _zone, _group, headers = setup_subsystem_cs("signage", Model::Permissions::Update, signage: true)
 

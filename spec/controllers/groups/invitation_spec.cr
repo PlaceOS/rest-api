@@ -4,8 +4,6 @@ module PlaceOS::Api
   describe Groups::Invitations do
     base = Groups::Invitations.base_route
 
-    ::Spec.before_each { clear_group_tables }
-
     it "manager can create and destroy invitations; response includes plaintext_secret once" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       manager, manager_headers = Spec::Authentication.authentication(sys_admin: false, support: false)

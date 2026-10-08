@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Uploads do
-    ::Spec.before_each do
+    before_each do
       Model::Storage.clear
     end
 
@@ -332,11 +332,11 @@ module PlaceOS::Api
       authority = Model::Authority.find_by_domain("localhost").not_nil!
 
       # Create two storages for the same authority
-      storage1 = Model::Generator.storage(authority_id: authority.id)
+      storage1 = Model::Generator.storage(bucket: "bucket-#{random_name}", authority_id: authority.id)
       storage1.is_default = true
       storage1.save!
 
-      storage2 = Model::Generator.storage(authority_id: authority.id)
+      storage2 = Model::Generator.storage(bucket: "bucket-#{random_name}", authority_id: authority.id)
       storage2.is_default = false
       storage2.save!
 
@@ -364,11 +364,11 @@ module PlaceOS::Api
       authority = Model::Authority.find_by_domain("localhost").not_nil!
 
       # Create two storages
-      storage1 = Model::Generator.storage(authority_id: authority.id)
+      storage1 = Model::Generator.storage(bucket: "bucket-#{random_name}", authority_id: authority.id)
       storage1.is_default = true
       storage1.save!
 
-      storage2 = Model::Generator.storage(authority_id: authority.id)
+      storage2 = Model::Generator.storage(bucket: "bucket-#{random_name}", authority_id: authority.id)
       storage2.is_default = false
       storage2.save!
 
@@ -429,7 +429,7 @@ module PlaceOS::Api
       # only for DENY cases, where the gate raises before any storage call,
       # so these tests never touch S3/minio. Cleanup is a table truncate
       # (no per-row `destroy`, hence no S3) via `.clear`.
-      ::Spec.before_each do
+      before_each do
         clear_group_tables
         Model::Upload.clear
         Model::Storage.clear
