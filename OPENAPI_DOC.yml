@@ -39972,7 +39972,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Api.Users.AccessToken'
+                $ref: '#/components/schemas/PlaceOS.Model.User.ResourceToken'
         "409":
           description: Conflict
           content:
@@ -40075,7 +40075,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Api.Users.AccessToken'
+                $ref: '#/components/schemas/PlaceOS.Model.User.ResourceToken'
         "409":
           description: Conflict
           content:
@@ -47532,7 +47532,7 @@ components:
       - work_preferences
       - work_overrides
       - subsystem_access
-    PlaceOS.Api.Users.AccessToken:
+    PlaceOS.Model.User.ResourceToken:
       type: object
       properties:
         token:
