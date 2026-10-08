@@ -891,13 +891,17 @@ module PlaceOS::Api
     end
 
     it "GET /systems/:sys_id/functions/:module_slug" do
-      cs = PlaceOS::Model::Generator.control_system.save!
-      mod = PlaceOS::Model::Generator.module(control_system: cs).save!
-      module_slug = mod.id.as(String)
+      mod = PlaceOS::Model::Generator.module
+      mod.custom_name = "Functoids"
+      mod.save!
+      module_id = mod.id.as(String)
 
-      sys_lookup = PlaceOS::Driver::RedisStorage.new(cs.id.as(String), "system")
-      lookup_key = "#{module_slug}/1"
-      sys_lookup[lookup_key] = module_slug
+      # saved once with its module, then the lookup core maps for it is awaited
+      cs = PlaceOS::Model::Generator.control_system
+      cs.modules = [module_id]
+      cs.save!
+      wait_for_module_lookups(cs.id.as(String), {"Functoids/1" => module_id})
+      module_slug = "Functoids_1"
 
       PlaceOS::Driver::RedisStorage.with_redis do |redis|
         meta = PlaceOS::Driver::DriverModel::Metadata.new({
@@ -906,7 +910,7 @@ module PlaceOS::Api
           "function3" => {"arg1" => JSON.parse(%({"type":"integer"})), "arg2" => JSON.parse(%({"type":"integer","default":200}))},
         }, ["Functoids"])
 
-        redis.set("interface/#{module_slug}", meta.to_json)
+        redis.set("interface/#{module_id}", meta.to_json)
       end
 
       path = Systems.base_route + "#{cs.id}/functions/#{module_slug}"

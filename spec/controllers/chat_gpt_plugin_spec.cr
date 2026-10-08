@@ -33,7 +33,9 @@ module PlaceOS::Api
       driver = Model::Generator.driver(role: Model::Driver::Role::Logic)
       driver.module_name = module_name
       driver.save!
+      # no custom name, so core maps the module by its driver's module_name
       mod = Model::Generator.module(driver: driver)
+      mod.custom_name = nil
       mod.running = true
       mod.save!
 
@@ -55,14 +57,8 @@ module PlaceOS::Api
       system.save!
       sys_id = system.id.as(String)
 
-      # the lookups core maintains. Core rebuilds them asynchronously when systems change,
-      # which can replace seeded entries, so they're seeded before each call
-      seed_lookups = -> {
-        lookup = ::PlaceOS::Driver::RedisStorage.new(sys_id, "system")
-        lookup["LLM/1"] = llm_id
-        lookup["Meet/1"] = meet_ids[0]
-        lookup["Meet/2"] = meet_ids[1]
-      }
+      # the module lookups the plugin resolves capabilities through, as core maps them
+      wait_for_module_lookups(sys_id, {"LLM/1" => llm_id, "Meet/1" => meet_ids[0], "Meet/2" => meet_ids[1]})
 
       ::PlaceOS::Driver::RedisStorage.new(llm_id)["prompt"] = {
         prompt:       "You help people use the boardroom",
@@ -74,7 +70,6 @@ module PlaceOS::Api
       ].to_json
 
       _, credentials = Spec::Authentication.authentication
-      seed_lookups.call
       headers, result = open_session.call(sys_id, credentials)
       result["serverInfo"]["name"].should eq "chat_gpt_plugin"
 
@@ -92,13 +87,11 @@ module PlaceOS::Api
       # every tool is hinted read only, so clients don't ask for confirmation
       tools.all?(&.["annotations"]["readOnlyHint"].as_bool).should be_true
 
-      seed_lookups.call
       capabilities = call_tool.call(sys_id, headers, "capabilities", {} of String => JSON::Any)
       capabilities["isError"].should be_false
       capabilities["structuredContent"]["body"]["prompt"].should eq "You help people use the boardroom"
       capabilities["structuredContent"]["body"]["system_id"].should eq sys_id
 
-      seed_lookups.call
       schema = call_tool.call(sys_id, headers, "function_schema", {"capability_id" => JSON::Any.new("Meet_2")})
       schema["structuredContent"]["body"][0]["function"].should eq "set_power"
 
@@ -108,7 +101,6 @@ module PlaceOS::Api
         body: "true",
       )
       [JSON.parse(%({"state": true})), JSON::Any.new(%({"state": true}))].each do |function_params|
-        seed_lookups.call
         called = call_tool.call(sys_id, headers, "call_function", {
           "capability_id" => JSON::Any.new("Meet_2"),
           "function_name" => JSON::Any.new("set_power"),

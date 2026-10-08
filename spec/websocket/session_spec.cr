@@ -122,10 +122,11 @@ module PlaceOS::Api::WebSocket
 
         id = rand(10).to_i64
         updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod, ws_updates|
+          # debug sessions are addressed by module id, not name (see Session#debug)
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
-            module_name: mod.resolved_name,
+            module_name: mod.id.as(String),
             name:        status_name,
             command:     Session::Request::Command::Debug,
           }
@@ -144,10 +145,11 @@ module PlaceOS::Api::WebSocket
 
         id = rand(10).to_i64
         updates, _, _ = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod, ws_updates|
+          # debug sessions are addressed by module id, not name (see Session#debug)
           request = {
             id:          id,
             system_id:   control_system.id.as(String),
-            module_name: mod.resolved_name,
+            module_name: mod.id.as(String),
             name:        status_name,
             command:     Session::Request::Command::Ignore,
           }
@@ -214,25 +216,34 @@ def bind(base, auth, on_message : Proc(String, _) = ->(_msg : String) { }, &)
   socket.close
 end
 
+# A ControlSystem containing a single Module, mapped as `<custom_name>/1`.
+#
+# The system is saved once with its module and the spec waits for core's
+# lookup, which bindings resolve the module through. A lookup seeded by hand
+# races core's asynchronous rebuild: core wipes it (publishing `lookup-change`,
+# which remaps the binding onto nothing) and updates stop arriving.
+def websocket_spec_system : {PlaceOS::Model::ControlSystem, PlaceOS::Model::Module}
+  mod = PlaceOS::Model::Generator.module.save!
+  module_id = mod.id.as(String)
+
+  control_system = PlaceOS::Model::Generator.control_system
+  control_system.modules = [module_id]
+  control_system.save!
+
+  wait_for_module_lookups(control_system.id.as(String), {"#{mod.resolved_name}/1" => module_id})
+  {control_system, mod}
+end
+
 # Binds to the websocket API
 # Yields API websocket, and a control system + module
 # Cleans up the websocket and models
 def test_websocket_api(base, headers, &)
-  # Create a System
-  control_system = PlaceOS::Model::Generator.control_system.save!
-
-  # Create a Module
-  mod = PlaceOS::Model::Generator.module(control_system: control_system).save!
+  control_system, mod = websocket_spec_system
   updates = [] of PlaceOS::Api::WebSocket::Session::Response
 
   on_message = ->(message : String) {
     updates << PlaceOS::Api::WebSocket::Session::Response.from_json message
   }
-
-  # Set metadata in redis to allow binding to module
-  sys_lookup = PlaceOS::Driver::RedisStorage.new(control_system.id.as(String), "system")
-  lookup_key = "#{mod.custom_name}/1"
-  sys_lookup[lookup_key] = mod.id.as(String)
 
   bind(base, headers, on_message) do |ws|
     # `updates` is exposed so tests can gate on messages arriving (vs fixed sleeps).
@@ -248,14 +259,8 @@ def test_websocket_api(base, headers, &)
 end
 
 def test_websocket_exec(base, headers, &)
-  control_system = PlaceOS::Model::Generator.control_system.save!
-  mod = PlaceOS::Model::Generator.module(control_system: control_system).save!
-
+  control_system, mod = websocket_spec_system
   module_slug = mod.id.as(String)
-
-  sys_lookup = PlaceOS::Driver::RedisStorage.new(control_system.id.as(String), "system")
-  lookup_key = "#{mod.custom_name}/1"
-  sys_lookup[lookup_key] = module_slug
 
   PlaceOS::Driver::RedisStorage.with_redis do |redis|
     meta = PlaceOS::Driver::DriverModel::Metadata.new({
@@ -280,8 +285,6 @@ def test_websocket_exec(base, headers, &)
   # Clean up.
   control_system.destroy
   mod.destroy
-
-  sys_lookup.clear
 
   {updates, control_system, mod}
 end
