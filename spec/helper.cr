@@ -1,7 +1,6 @@
 require "action-controller/spec_helper"
 require "http"
 require "mutex"
-require "promise"
 require "random"
 require "pg-orm"
 require "spec"
@@ -72,33 +71,29 @@ def clear_tables
     PlaceOS::Model::Group,
   ].each(&.clear)
 
-  {% begin %}
-    Promise.all(
-      {% for t in {
-                    PlaceOS::Model::ApiKey,
-                    PlaceOS::Model::AssetCategory,
-                    PlaceOS::Model::AssetType,
-                    PlaceOS::Model::Asset,
-                    PlaceOS::Model::AssetPurchaseOrder,
-                    PlaceOS::Model::Authority,
-                    PlaceOS::Model::ControlSystem,
-                    PlaceOS::Model::Driver,
-                    PlaceOS::Model::Module,
-                    PlaceOS::Model::Repository,
-                    PlaceOS::Model::Settings,
-                    PlaceOS::Model::Trigger,
-                    PlaceOS::Model::TriggerInstance,
-                    PlaceOS::Model::User,
-                    PlaceOS::Model::Zone,
-                    PlaceOS::Model::Metadata,
-                    PlaceOS::Model::Upload,
-                    PlaceOS::Model::Storage,
-                    PlaceOS::Model::DoorkeeperApplication,
-                  } %}
-        Promise.defer { {{t.id}}.clear },
-      {% end %}
-    ).get
-  {% end %}
+  # Sequentially: these tables cascade into one another, so deleting them
+  # concurrently can deadlock (seen in CI after every example had passed).
+  [
+    PlaceOS::Model::ApiKey,
+    PlaceOS::Model::AssetCategory,
+    PlaceOS::Model::AssetType,
+    PlaceOS::Model::Asset,
+    PlaceOS::Model::AssetPurchaseOrder,
+    PlaceOS::Model::Authority,
+    PlaceOS::Model::ControlSystem,
+    PlaceOS::Model::Driver,
+    PlaceOS::Model::Module,
+    PlaceOS::Model::Repository,
+    PlaceOS::Model::Settings,
+    PlaceOS::Model::Trigger,
+    PlaceOS::Model::TriggerInstance,
+    PlaceOS::Model::User,
+    PlaceOS::Model::Zone,
+    PlaceOS::Model::Metadata,
+    PlaceOS::Model::Upload,
+    PlaceOS::Model::Storage,
+    PlaceOS::Model::DoorkeeperApplication,
+  ].each(&.clear)
 end
 
 def random_name
