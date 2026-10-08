@@ -244,6 +244,7 @@
 
 ### Refactor
 
+- **users**: obtain resource tokens via User#resource_token from models ([#452](https://github.com/PlaceOS/rest-api/pull/452))
 - [PPT-2293] Allow support users to start/stop modules ([#421](https://github.com/PlaceOS/rest-api/pull/421))
 - **Cluster**: Get endpoint to return load only when include_status is false ([#410](https://github.com/PlaceOS/rest-api/pull/410))
 - migrate to postgres ([#328](https://github.com/PlaceOS/rest-api/pull/328))
