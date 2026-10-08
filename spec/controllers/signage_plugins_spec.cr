@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe SignagePlugins do
-    ::Spec.before_each do
+    before_each do
       Model::SignagePlugin.clear
     end
 

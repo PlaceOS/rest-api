@@ -561,8 +561,6 @@ module PlaceOS::Api
     end
 
     describe "subsystem-based permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       it "allows update (PATCH playlists) for a user with Update in a 'signage' group" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

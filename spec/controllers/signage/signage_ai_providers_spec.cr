@@ -10,6 +10,11 @@ module PlaceOS::Api
     before_each do
       Model::SignageAIJob.clear
       Model::SignageAIProvider.clear
+      # `setup_signage_ai` creates the domain's storage, which has to be the
+      # only one (a leftover can collide with it, or be picked as the default)
+      Model::Playlist::Item.clear
+      Model::Upload.clear
+      Model::Storage.clear
       WebMock.allow_net_connect = false
     end
 

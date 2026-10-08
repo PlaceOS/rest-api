@@ -334,8 +334,6 @@ module PlaceOS::Api
     end
 
     describe "support subsystem permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       it "allows a support-subsystem user with Create grant to POST /users" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

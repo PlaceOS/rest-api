@@ -213,8 +213,6 @@ module PlaceOS::Api
     end
 
     describe "support-subsystem permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       # A control system scoped to `zone`, plus a persisted trigger instance
       # attached to it. The instance inherits the system's zones, so granting
       # on `zone` (via a "support" GroupZone) gates index/show/mutations.

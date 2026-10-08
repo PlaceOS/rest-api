@@ -247,8 +247,6 @@ module PlaceOS::Api
     end
 
     describe "support-subsystem permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       # Build an Asset (unsaved) whose `zone_id` is the supplied zone.
       build_asset = ->(zone : Model::Zone) {
         asset_type = Model::Generator.asset_type.save!

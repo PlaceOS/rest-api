@@ -24,7 +24,7 @@ module PlaceOS::Api
   describe Playlist do
     base = Playlist.base_route
 
-    ::Spec.before_each do
+    before_each do
       Model::Playlist::ItemSchedule.clear
       Model::Playlist::Revision.clear
       Model::Playlist::Item.clear
@@ -772,7 +772,7 @@ module PlaceOS::Api
     end
 
     describe "approval requests" do
-      ::Spec.before_each { Model::PendingMail.clear }
+      before_each { Model::PendingMail.clear }
 
       describe "GET /approvers" do
         it "returns approve and manage users (not read-only members)" do

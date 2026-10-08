@@ -223,8 +223,6 @@ module PlaceOS::Api
     end
 
     describe "support subsystem permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       # ----------------------------------------------------------------
       # 1. show / index(?parent_id=zone-…) gated on Read
       # ----------------------------------------------------------------

@@ -4,8 +4,6 @@ module PlaceOS::Api
   describe Groups do
     base = Groups.base_route
 
-    ::Spec.before_each { clear_group_tables }
-
     it "sys_admin can create a root group; non-admin cannot" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       payload = Model::Generator.group(authority: authority).to_json

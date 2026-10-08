@@ -478,8 +478,6 @@ module PlaceOS::Api
     end
 
     describe "support subsystem permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       # ----------------------------------------------------------------
       # 1. zone parent: PATCH needs Update on both sides
       # ----------------------------------------------------------------

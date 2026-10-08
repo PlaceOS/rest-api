@@ -3,7 +3,7 @@ require "timecop"
 
 module PlaceOS::Api
   describe Signage do
-    ::Spec.before_each do
+    before_each do
       Model::SignageTemplate::SystemTemplate.clear
       Model::SignageTemplate.clear
       Model::Playlist::ItemSchedule.clear

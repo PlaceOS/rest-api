@@ -4,8 +4,6 @@ module PlaceOS::Api
   describe Groups::History do
     base = Groups::History.base_route
 
-    ::Spec.before_each { clear_group_tables }
-
     it "sys_admin can list all history; non-admin must scope to a managed group" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       admin = Spec::Authentication.user(sys_admin: true)

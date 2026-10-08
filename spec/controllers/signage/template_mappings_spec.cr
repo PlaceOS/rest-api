@@ -7,7 +7,7 @@ module PlaceOS::Api
     # NOTE: don't clear Zone here — the shared auth helper's org zone
     # ("zone-perm-org") must survive between examples (clearing it orphans
     # its permissions Metadata and later re-creation collides).
-    ::Spec.before_each do
+    before_each do
       Model::SignageTemplate::SystemTemplate.clear
       Model::SignageTemplate.clear
       Model::Playlist::Item.clear

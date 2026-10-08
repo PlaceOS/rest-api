@@ -10,7 +10,7 @@ module PlaceOS::Api
   end
 
   describe PublicEvents, tags: "public_events" do
-    ::Spec.before_each do
+    before_each do
       Model::ControlSystem.clear
       Model::Driver.clear
       Model::Module.clear

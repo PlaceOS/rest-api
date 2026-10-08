@@ -3,7 +3,7 @@ require "timecop"
 
 module PlaceOS::Api
   describe Modules do
-    ::Spec.before_each do
+    before_each do
       Model::Module.clear
       Model::ControlSystem.clear
     end
@@ -467,8 +467,6 @@ module PlaceOS::Api
     end
 
     describe "support-subsystem permissions" do
-      ::Spec.before_each { clear_group_tables }
-
       # Build a logic module attached to a control system whose only zone is
       # `zone`. The module derives its zones from that system, so granting on
       # `zone` (via a "support" GroupZone) gates access to the module.

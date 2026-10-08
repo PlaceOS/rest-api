@@ -36,6 +36,11 @@ Spec.after_suite { clear_tables }
 
 Spec.before_each do
   PlaceOS::Api::HttpMocks.reset
+
+  # Group grants apply to the shared, cached spec users, so one left over by an
+  # earlier example would hand a "regular" user permissions it shouldn't have
+  # (and break the one-root-per-authority rule). Clear them before every example.
+  clear_group_tables
 end
 
 # Application config
