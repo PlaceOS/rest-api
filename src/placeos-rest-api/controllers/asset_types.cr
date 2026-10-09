@@ -1,7 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
-  # Asset types, the makes and models of physical assets (furniture, equipment, devices)
+  # Asset types, the makes and models of physical assets (grouped into asset categories; assets are instances of a type)
   class AssetTypes < Application
     include Utils::Permissions
     include Utils::GroupPermissions
@@ -43,12 +43,11 @@ module PlaceOS::Api
 
     # 404 unless the asset type belongs to the caller's authority (via its
     # category). Legacy categories with no authority stay reachable — same
-    # adoption semantics as AssetCategories#update. Admin / support JWTs
-    # remain deployment-wide. Also guards update/destroy: their org-zone
+    # adoption semantics as AssetCategories#update. Applies to admin and
+    # support users too. Also guards update/destroy: their org-zone
     # permission check says nothing about which authority owns the record.
     @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
     private def confirm_authority
-      return if user_support?
       owner = current_asset_type.category.try(&.authority_id)
       return if owner.nil? || owner == current_authority.as(::PlaceOS::Model::Authority).id
       raise Error::NotFound.new("asset type #{current_asset_type.id} not found")
@@ -56,29 +55,27 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    # list the asset types
+    # List asset types, each with a count of its assets.
     @[AC::Route::GET("/", response_type: Array(::PlaceOS::Model::AssetType))]
     def index(
-      @[AC::Param::Info(description: "return assets with the provided brand name", example: "Ford")]
+      @[AC::Param::Info(description: "only return asset types with exactly this brand", example: "Steelcase")]
       brand : String? = nil,
-      @[AC::Param::Info(description: "return assets with the provided model number", example: "Model 2")]
+      @[AC::Param::Info(description: "only return asset types with exactly this model number", example: "Series 2")]
       model_number : String? = nil,
-      @[AC::Param::Info(description: "return asset types in the category provided", example: "category_id-1234")]
+      @[AC::Param::Info(description: "only return asset types in this asset category id", example: "asset_category-1234")]
       category_id : String? = nil,
-      @[AC::Param::Info(description: "filters the asset count to the zone provided", example: "zone-1234")]
+      @[AC::Param::Info(description: "limits asset_count to assets whose zone_id is this zone id; does not filter the asset types returned", example: "zone-1234")]
       zone_id : String? = nil,
     ) : String
       where_clauses = [] of String
       join_clauses = [] of String
       args = [] of DB::Any
 
-      # Non admin/support callers only see asset types belonging to their own
-      # authority (via the category); legacy NULL-authority categories stay
-      # visible (see `confirm_authority`).
-      unless user_support?
-        args << current_authority.as(::PlaceOS::Model::Authority).id
-        where_clauses << "EXISTS (SELECT 1 FROM asset_category ac WHERE ac.id = at.category_id AND (ac.authority_id IS NULL OR ac.authority_id = $#{args.size}))"
-      end
+      # Callers only see asset types belonging to their own authority (via the
+      # category); legacy NULL-authority categories stay visible (see
+      # `confirm_authority`).
+      args << current_authority.as(::PlaceOS::Model::Authority).id
+      where_clauses << "EXISTS (SELECT 1 FROM asset_category ac WHERE ac.id = at.category_id AND (ac.authority_id IS NULL OR ac.authority_id = $#{args.size}))"
 
       if brand
         args << brand
@@ -152,13 +149,13 @@ module PlaceOS::Api
       render json: result || "[]"
     end
 
-    # show the selected asset type
+    # Get a single asset type.
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::AssetType
       current_asset_type
     end
 
-    # udpate asset type details
+    # Update an asset type with the fields in the request body and return the saved asset type.
     @[AC::Route::PATCH("/:id", body: :asset_type)]
     @[AC::Route::PUT("/:id", body: :asset_type)]
     def update(asset_type : ::PlaceOS::Model::AssetType) : ::PlaceOS::Model::AssetType
@@ -168,14 +165,14 @@ module PlaceOS::Api
       current
     end
 
-    # add new asset type
+    # Create an asset type.
     @[AC::Route::POST("/", body: :asset_type, status_code: HTTP::Status::CREATED)]
     def create(asset_type : ::PlaceOS::Model::AssetType) : ::PlaceOS::Model::AssetType
       raise Error::ModelValidation.new(asset_type.errors) unless asset_type.save
       asset_type
     end
 
-    # remove asset type
+    # Delete an asset type.
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_asset_type.destroy

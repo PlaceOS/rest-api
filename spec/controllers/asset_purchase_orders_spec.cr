@@ -69,6 +69,75 @@ module PlaceOS::Api
       end
     end
 
+    describe "authority scoping" do
+      # concierge has manage on the org zone, so these requests pass the zone permission checks
+      concierge = -> { Spec::Authentication.headers(sys_admin: false, support: false, groups: ["concierge"]) }
+      other_authority = ->(name : String) { PlaceOS::Model::Generator.authority(domain: "https://#{name}-#{random_name}.example.com").save! }
+
+      it "sets the authority from the caller's domain on create" do
+        other = other_authority.call("po-create")
+        body = JSON.parse(PlaceOS::Model::Generator.asset_purchase_order(other).to_json).as_h
+
+        result = client.post(AssetPurchaseOrders.base_route, body: body.to_json, headers: concierge.call)
+        result.status_code.should eq 201
+        created = PlaceOS::Model::AssetPurchaseOrder.from_trusted_json(result.body)
+        created.authority_id.should eq PlaceOS::Model::Authority.find_by_domain("localhost").not_nil!.id
+
+        created.destroy
+        other.destroy
+      end
+
+      it "only lists the caller authority's purchase orders, admins included" do
+        other = other_authority.call("po-index")
+        mine = PlaceOS::Model::Generator.asset_purchase_order.save!
+        theirs = PlaceOS::Model::Generator.asset_purchase_order(other).save!
+        path = "#{AssetPurchaseOrders.base_route.rstrip('/')}?limit=10000"
+
+        ids = JSON.parse(client.get(path, headers: concierge.call).body).as_a.map(&.["id"].as_s)
+        ids.should contain(mine.id)
+        ids.should_not contain(theirs.id)
+
+        # admin and support users are held to their own authority too
+        ids = JSON.parse(client.get(path, headers: Spec::Authentication.headers).body).as_a.map(&.["id"].as_s)
+        ids.should_not contain(theirs.id)
+
+        mine.destroy
+        other.destroy
+      end
+
+      it "returns 404 to show, update or delete another authority's purchase order, admins included" do
+        other = other_authority.call("po-show")
+        theirs = PlaceOS::Model::Generator.asset_purchase_order(other).save!
+        path = File.join(AssetPurchaseOrders.base_route, theirs.id.to_s)
+
+        client.get(path, headers: concierge.call).status_code.should eq 404
+        client.patch(path, body: {invoice_number: "INV-1"}.to_json, headers: concierge.call).status_code.should eq 404
+        client.delete(path, headers: concierge.call).status_code.should eq 404
+        PlaceOS::Model::AssetPurchaseOrder.find?(theirs.id).should_not be_nil
+
+        client.get(path, headers: Spec::Authentication.headers).status_code.should eq 404
+
+        other.destroy
+      end
+
+      it "keeps the purchase order's authority on update" do
+        other = other_authority.call("po-update")
+        mine = PlaceOS::Model::Generator.asset_purchase_order.save!
+        authority_id = mine.authority_id
+
+        result = client.patch(
+          File.join(AssetPurchaseOrders.base_route, mine.id.to_s),
+          body: {invoice_number: "INV-2", authority_id: other.id}.to_json,
+          headers: concierge.call,
+        )
+        result.status_code.should eq 200
+        PlaceOS::Model::AssetPurchaseOrder.find!(mine.id).authority_id.should eq authority_id
+
+        mine.destroy
+        other.destroy
+      end
+    end
+
     describe "scopes" do
       Spec.test_controller_scope(AssetPurchaseOrders)
     end

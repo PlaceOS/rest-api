@@ -1,7 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
-  # Purchase orders for assets, recording how and when assets were acquired
+  # Asset purchase orders, recording how and when assets were acquired (order and invoice numbers, supplier, price)
   class AssetPurchaseOrders < Application
     include Utils::Permissions
     include Utils::GroupPermissions
@@ -44,45 +44,57 @@ module PlaceOS::Api
 
     getter! current_asset_purchase_order : ::PlaceOS::Model::AssetPurchaseOrder
 
+    # 404 unless the purchase order belongs to the caller's authority, for admin and support users too.
+    @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
+    private def confirm_authority
+      return if current_asset_purchase_order.authority_id == current_authority.as(::PlaceOS::Model::Authority).id
+      raise Error::NotFound.new("asset purchase order #{current_asset_purchase_order.id} not found")
+    end
+
     ###############################################################################################
 
-    # list the asset purchase_orders
+    # List asset purchase orders.
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::AssetPurchaseOrder)
       # PG full-text search (PPT-2644): q matches purchase_order_number and
       # invoice_number. The table has no name column so order by PO number
       # for a deterministic listing (Elasticsearch had no explicit sort here).
+      query = ::PlaceOS::Model::AssetPurchaseOrder.all
+      query = query.where(authority_id: current_authority.as(::PlaceOS::Model::Authority).id)
       paginate_search(
-        ::PlaceOS::Model::AssetPurchaseOrder.all,
+        query,
         ::PlaceOS::Model::AssetPurchaseOrder.table_name,
         order: "purchase_order_number, id",
       )
     end
 
-    # show the selected asset purchase_order
+    # Get a single asset purchase order.
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::AssetPurchaseOrder
       current_asset_purchase_order
     end
 
-    # udpate asset purchase_order details
+    # Update an asset purchase order with the fields in the request body and return the saved purchase order.
     @[AC::Route::PATCH("/:id", body: :asset_purchase_order)]
     @[AC::Route::PUT("/:id", body: :asset_purchase_order)]
     def update(asset_purchase_order : ::PlaceOS::Model::AssetPurchaseOrder) : ::PlaceOS::Model::AssetPurchaseOrder
       current = current_asset_purchase_order
+      authority_id = current.authority_id
       current.assign_attributes(asset_purchase_order)
+      current.authority_id = authority_id
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
 
-    # add new asset purchase_order
+    # Create an asset purchase order.
     @[AC::Route::POST("/", body: :asset_purchase_order, status_code: HTTP::Status::CREATED)]
     def create(asset_purchase_order : ::PlaceOS::Model::AssetPurchaseOrder) : ::PlaceOS::Model::AssetPurchaseOrder
+      asset_purchase_order.authority_id = current_authority.as(::PlaceOS::Model::Authority).id
       raise Error::ModelValidation.new(asset_purchase_order.errors) unless asset_purchase_order.save
       asset_purchase_order
     end
 
-    # remove asset purchase_order
+    # Delete an asset purchase order.
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_asset_purchase_order.destroy

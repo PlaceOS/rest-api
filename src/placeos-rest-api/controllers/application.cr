@@ -138,7 +138,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:index], converters: {fields: ConvertStringArray})]
     def build_search_params(
-      @[AC::Param::Info(name: "q", description: "filters results by the given text; words match as prefixes against the resource's searchable fields and all words must match")]
+      @[AC::Param::Info(name: "q", description: "filters results by the given text: a record matches when any word matches its searchable fields as a whole word, and the last word also matches as a prefix (search as you type)")]
       query : String = "*",
       @[AC::Param::Info(description: "the maximum number of results to return", example: "10000")]
       limit : UInt32 = 100_u32,

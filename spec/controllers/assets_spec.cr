@@ -242,6 +242,58 @@ module PlaceOS::Api
       end
     end
 
+    describe "authority ownership" do
+      # concierge has manage on the org zone, so these requests pass the zone permission checks
+      concierge = -> { Spec::Authentication.headers(sys_admin: false, support: false, groups: ["concierge"]) }
+      # an asset type, with its category, owned by a new authority
+      other_type = ->(name : String) {
+        other = PlaceOS::Model::Generator.authority(domain: "https://#{name}-#{random_name}.example.com").save!
+        category = PlaceOS::Model::Generator.asset_category(other).save!
+        {other, PlaceOS::Model::Generator.asset_type(category).save!}
+      }
+
+      it "returns 404 to update or delete another authority's asset, even with zone permissions" do
+        other, asset_type = other_type.call("asset-update")
+        theirs = PlaceOS::Model::Generator.asset(asset_type: asset_type).save!
+        path = File.join(Assets.base_route, theirs.id.to_s)
+
+        client.patch(path, body: {name: "taken"}.to_json, headers: concierge.call).status_code.should eq 404
+        client.delete(path, headers: concierge.call).status_code.should eq 404
+        PlaceOS::Model::Asset.find?(theirs.id).should_not be_nil
+
+        other.destroy
+      end
+
+      it "returns 404 to bulk update or bulk delete another authority's asset" do
+        other, asset_type = other_type.call("asset-bulk")
+        theirs = PlaceOS::Model::Generator.asset(asset_type: asset_type).save!
+        path = File.join(Assets.base_route, "bulk")
+
+        client.put(path, body: [{id: theirs.id, name: "taken"}].to_json, headers: concierge.call).status_code.should eq 404
+        client.delete(path, body: [theirs.id].to_json, headers: concierge.call).status_code.should eq 404
+        PlaceOS::Model::Asset.find?(theirs.id).should_not be_nil
+
+        other.destroy
+      end
+
+      it "rejects creating assets, or changing an asset, to another authority's asset type" do
+        other, asset_type = other_type.call("asset-type")
+        body = PlaceOS::Model::Generator.asset(asset_type: asset_type).to_json
+
+        client.post(Assets.base_route, body: body, headers: concierge.call).status_code.should eq 403
+        client.post(File.join(Assets.base_route, "bulk"), body: "[#{body}]", headers: concierge.call).status_code.should eq 403
+
+        mine = PlaceOS::Model::Generator.asset.save!
+        original_type = mine.asset_type_id
+        result = client.patch(File.join(Assets.base_route, mine.id.to_s), body: {asset_type_id: asset_type.id}.to_json, headers: concierge.call)
+        result.status_code.should eq 403
+        PlaceOS::Model::Asset.find!(mine.id).asset_type_id.should eq original_type
+
+        mine.destroy
+        other.destroy
+      end
+    end
+
     describe "scopes" do
       Spec.test_controller_scope(Assets)
     end
@@ -529,10 +581,10 @@ module PlaceOS::Api
         ids.should contain(local_asset.id)
         ids.should_not contain(other_asset.id)
 
-        # admin JWTs remain deployment-wide
+        # admin and support users are held to their own authority too
         ids = asset_index_ids(client.get("#{base}?#{params}", headers: Spec::Authentication.headers))
         ids.should contain(local_asset.id)
-        ids.should contain(other_asset.id)
+        ids.should_not contain(other_asset.id)
 
         other_asset.destroy
         local_asset.destroy
@@ -541,7 +593,7 @@ module PlaceOS::Api
         other_authority.destroy
       end
 
-      it "returns 404 on show for another authority's asset unless admin" do
+      it "returns 404 on show for another authority's asset, admins included" do
         _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
         other_authority = Model::Generator.authority(domain: "https://other-assets-show.example.com").save!
@@ -552,9 +604,9 @@ module PlaceOS::Api
         result = client.get("#{Assets.base_route}#{other_asset.id}", headers: headers)
         result.status_code.should eq 404
 
-        # admin JWTs remain deployment-wide
+        # admin and support users are held to their own authority too
         result = client.get("#{Assets.base_route}#{other_asset.id}", headers: Spec::Authentication.headers)
-        result.status_code.should eq 200
+        result.status_code.should eq 404
 
         other_asset.destroy
         other_type.destroy

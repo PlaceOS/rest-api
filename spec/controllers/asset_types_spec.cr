@@ -203,12 +203,12 @@ module PlaceOS::Api
         ids.should contain(local_type.id)
         ids.should_not contain(other_type.id)
 
-        # admin JWTs remain deployment-wide
+        # admin and support users are held to their own authority too
         result = client.get(AssetTypes.base_route, headers: Spec::Authentication.headers)
         result.status_code.should eq 200
         ids = JSON.parse(result.body).as_a.map(&.["id"].as_s)
         ids.should contain(local_type.id)
-        ids.should contain(other_type.id)
+        ids.should_not contain(other_type.id)
 
         local_type.destroy
         other_type.destroy
@@ -256,9 +256,9 @@ module PlaceOS::Api
         )
         result.success?.should be_true
 
-        # admin JWTs remain deployment-wide
+        # admin and support users are held to their own authority too
         result = client.get("#{AssetTypes.base_route}#{other_type.id}", headers: Spec::Authentication.headers)
-        result.status_code.should eq 200
+        result.status_code.should eq 404
 
         local_type.destroy
         other_type.destroy

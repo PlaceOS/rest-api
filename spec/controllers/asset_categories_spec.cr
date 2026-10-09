@@ -129,6 +129,36 @@ module PlaceOS::Api
       end
     end
 
+    describe "authority scoping" do
+      it "only lists and shows the caller authority's categories, and legacy ones,, admins included" do
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        other = PlaceOS::Model::Generator.authority(domain: "https://category-scope-#{random_name}.example.com").save!
+        mine = PlaceOS::Model::Generator.asset_category.save!
+        theirs = PlaceOS::Model::Generator.asset_category(other).save!
+        legacy = PlaceOS::Model::Generator.asset_category.save!
+        PlaceOS::Model::AssetCategory.where(id: legacy.id).update_all(authority_id: nil)
+        path = "#{AssetCategories.base_route.rstrip('/')}?limit=10000"
+
+        ids = JSON.parse(client.get(path, headers: headers).body).as_a.map(&.["id"].as_s)
+        ids.should contain(mine.id)
+        ids.should contain(legacy.id)
+        ids.should_not contain(theirs.id)
+
+        client.get(File.join(AssetCategories.base_route, theirs.id.to_s), headers: headers).status_code.should eq 404
+        client.get(File.join(AssetCategories.base_route, legacy.id.to_s), headers: headers).status_code.should eq 200
+
+        # admin and support users are held to their own authority too
+        ids = JSON.parse(client.get(path, headers: Spec::Authentication.headers).body).as_a.map(&.["id"].as_s)
+        ids.should_not contain(theirs.id)
+        client.get(File.join(AssetCategories.base_route, theirs.id.to_s), headers: Spec::Authentication.headers).status_code.should eq 404
+
+        mine.destroy
+        legacy.destroy
+        theirs.destroy
+        other.destroy
+      end
+    end
+
     describe "scopes" do
       Spec.test_controller_scope(AssetCategories)
     end

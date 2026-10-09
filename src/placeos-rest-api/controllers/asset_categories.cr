@@ -1,7 +1,7 @@
 require "./application"
 
 module PlaceOS::Api
-  # Asset categories, a hierarchy for organising asset types
+  # Asset categories, a hierarchy (via `parent_category_id`) at the top of categories > asset types > assets
   class AssetCategories < Application
     include Utils::Permissions
     include Utils::GroupPermissions
@@ -41,17 +41,27 @@ module PlaceOS::Api
 
     getter! current_asset_category : ::PlaceOS::Model::AssetCategory
 
+    # 404 unless the category belongs to the caller's authority. Legacy categories with no authority
+    # stay reachable (they're adopted on update). Applies to admin and support users too.
+    @[AC::Route::Filter(:before_action, only: [:show])]
+    private def confirm_authority
+      owner = current_asset_category.authority_id
+      return if owner.nil? || owner == current_authority.as(::PlaceOS::Model::Authority).id
+      raise Error::NotFound.new("asset category #{current_asset_category.id} not found")
+    end
+
     ###############################################################################################
 
-    # list the asset categories
+    # List asset categories.
     @[AC::Route::GET("/")]
     def index(
-      @[AC::Param::Info(description: "Filter categories by hidden status. `true` returns only hidden categories, `false` returns only non-hidden categories, and `nil` returns all categories.",
+      @[AC::Param::Info(description: "true returns only hidden categories, false only non-hidden categories; omit to return all categories",
         example: "true")]
       hidden : Bool? = nil,
     ) : Array(::PlaceOS::Model::AssetCategory)
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::AssetCategory.all
+      query = query.where("authority_id IS NULL OR authority_id = ?", current_authority.as(::PlaceOS::Model::Authority).id)
 
       # NOTE:: the Elasticsearch implementation silently skipped this filter
       # when `hidden=false` (Crystal falsy), contradicting the documented
@@ -63,13 +73,13 @@ module PlaceOS::Api
       paginate_search(query, ::PlaceOS::Model::AssetCategory.table_name)
     end
 
-    # show the selected asset category
+    # Get a single asset category.
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::AssetCategory
       current_asset_category
     end
 
-    # udpate asset category details
+    # Update an asset category with the fields in the request body and return the saved category.
     @[AC::Route::PATCH("/:id", body: :asset_category)]
     @[AC::Route::PUT("/:id", body: :asset_category)]
     def update(asset_category : ::PlaceOS::Model::AssetCategory) : ::PlaceOS::Model::AssetCategory
@@ -88,7 +98,7 @@ module PlaceOS::Api
       current
     end
 
-    # add new asset category
+    # Create an asset category.
     @[AC::Route::POST("/", body: :asset_category, status_code: HTTP::Status::CREATED)]
     def create(asset_category : ::PlaceOS::Model::AssetCategory) : ::PlaceOS::Model::AssetCategory
       asset_category.authority_id = current_authority.as(::PlaceOS::Model::Authority).id
@@ -96,7 +106,7 @@ module PlaceOS::Api
       asset_category
     end
 
-    # remove asset category
+    # Delete an asset category.
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       # A category owned by another authority may not be removed (same guard
