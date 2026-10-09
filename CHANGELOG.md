@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **assets**: scope asset records to the caller's authority
 - **chatgpt**: describe each system in its MCP instructions
 - **signage**: default signage AI image generation to gpt-image-2.5 ([#450](https://github.com/PlaceOS/rest-api/pull/450))
 - **chatgpt**: hint call_function as read only
