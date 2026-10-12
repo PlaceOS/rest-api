@@ -93,6 +93,8 @@ module PlaceOS::Api
       end
     end
 
+    # A job as the editor sees it. `ops` are the model's operations exactly as
+    # returned; `server_issues` names the ones the server could not accept.
     struct JobResponse
       include JSON::Serializable
 
@@ -109,6 +111,8 @@ module PlaceOS::Api
       getter schema_version : Int64?
       getter summary : String?
       getter ops : Array(JSON::Any)
+      # keyed by op id: `op-N`, N the op's 1-based position in `ops`
+      getter server_issues : Hash(String, String)
       getter questions : Array(JSON::Any)
       getter usage : JSON::Any?
       getter resolution : JSON::Any?
@@ -135,6 +139,10 @@ module PlaceOS::Api
         @schema_version = result["schema_version"]?.try(&.as_i64?)
         @summary = result["summary"]?.try(&.as_s?)
         @ops = result["ops"]?.try(&.as_a?) || [] of JSON::Any
+        @server_issues = {} of String => String
+        if (issues = result["server_issues"]?.try(&.as_h?))
+          issues.each { |id, reason| @server_issues[id] = reason.as_s? || reason.to_s }
+        end
         @questions = result["questions"]?.try(&.as_a?) || [] of JSON::Any
         @usage = result["usage"]?
         @resolution = result["resolution"]?
@@ -201,13 +209,9 @@ module PlaceOS::Api
         raise Error::ModelValidation.new([Error::Field.new(:context, "is larger than #{MAP_AI_MAX_CONTEXT_BYTES // 1024}KB")])
       end
 
-      # a repeat of a submission already accepted returns the same job rather
-      # than spending again
-      if (key = params.idempotency_key.presence)
-        existing = on_primary do
-          ::PlaceOS::Model::SignageAIJob.where(user_id: current_user.id.as(String), idempotency_key: key).first?
-        end
-        return JobResponse.new(existing) if existing
+      # a repeat of a submission already accepted returns the same job
+      if (key = params.idempotency_key.presence) && (existing = job_for_key(key))
+        return JobResponse.new(existing)
       end
 
       row = if (provider_id = params.provider_id)
@@ -233,8 +237,6 @@ module PlaceOS::Api
       used_month = ::PlaceOS::Model::SignageAIJob.sum_candidates_for_authority(authority.id.as(String), 30.days.ago, ::PlaceOS::Model::SignageAIJob::Kind::MapEdit)
       raise Error::ImageGen::Quota.new("this domain has used its map editing allowance for the month") if used_month + 1 > domain_limit
 
-      markup = params.markup_upload_id.presence.try { |upload_id| markup_upload(upload_id) }
-
       parent = if (parent_id = params.parent_job_id)
                  found = ::PlaceOS::Model::SignageAIJob.find?(parent_id)
                  if found.nil? || found.authority_id != authority.id || !found.kind.map_edit?
@@ -242,9 +244,12 @@ module PlaceOS::Api
                  end
                  found
                end
+      history = history_for(parent)
 
-      # the slot is taken before anything is written, so a busy replica never
-      # leaves a job nobody is working on
+      markup = params.markup_upload_id.presence.try { |upload_id| markup_upload(upload_id) }
+
+      # the slot is taken after every check that can raise and before anything
+      # is written, so a busy replica never leaves a job nobody is working on
       unless Llm.slots.try_reserve(1)
         raise Error::ImageGen::Busy.new("too many map edits are running right now, try again in a moment")
       end
@@ -280,11 +285,8 @@ module PlaceOS::Api
 
         # a concurrent submission of the same key got there first: the partial
         # unique index is what enforces the key, so answer with the job that won
-        if (key = params.idempotency_key.presence)
-          existing = on_primary do
-            ::PlaceOS::Model::SignageAIJob.where(user_id: current_user.id.as(String), idempotency_key: key).first?
-          end
-          return JobResponse.new(existing) if existing
+        if (key = params.idempotency_key.presence) && (existing = job_for_key(key))
+          return JobResponse.new(existing)
         end
 
         raise Error::ModelValidation.new(job.errors)
@@ -298,7 +300,7 @@ module PlaceOS::Api
         model: chosen_model,
         context: context,
         instruction: instruction,
-        history: history_for(parent),
+        history: history,
         markup_upload_id: markup.try(&.id.as(String)),
       )
 
@@ -442,8 +444,7 @@ module PlaceOS::Api
       end
     end
 
-    # A zone outside the caller's org tree reads as unknown to anyone but
-    # support, which can change any zone's map through `PATCH /zones/:id` as well.
+    # A zone outside the caller's org tree reads as unknown to anyone but support.
     private def zone_visible?(zone : ::PlaceOS::Model::Zone) : Bool
       return true if user_support?
       org_zone_id = support_org_zone_id
@@ -487,6 +488,17 @@ module PlaceOS::Api
         upload.save
       end
       upload
+    end
+
+    # The map edit job already holding the caller's idempotency key. The key
+    # is unique per user across every kind, so one held by an image job is a 409.
+    private def job_for_key(key : String) : ::PlaceOS::Model::SignageAIJob?
+      existing = on_primary do
+        ::PlaceOS::Model::SignageAIJob.where(user_id: current_user.id.as(String), idempotency_key: key).first?
+      end
+      return if existing.nil?
+      raise Error::Conflict.new("idempotency key #{key} was used for a #{existing.kind} job") unless existing.kind.map_edit?
+      existing
     end
 
     # The refine chain, oldest first, as the prompt builder takes it.

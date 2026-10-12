@@ -149,6 +149,7 @@ module PlaceOS::Api
         stored.request.to_json.should_not contain "table-01.004"
 
         final = await_signage_ai_job(base, job_id, headers)
+        Llm.slots.available.should eq MAP_AI_MAX_CALLS
         final["state"].as_s.should eq "done"
         final["summary"].as_s.should eq "Recoloured Meeting 1.01 light green."
         final["schema_version"].as_i.should eq 1
@@ -160,11 +161,13 @@ module PlaceOS::Api
 
         ops = final["ops"].as_a
         ops.size.should eq 1
-        ops.first["id"].as_s.should eq "op-1"
-        ops.first["op"].as_s.should eq "set_attr"
+        # the model's op with nothing added (jsonb orders the keys); the editor
+        # validates it against the same schema
+        ops.first.as_h.keys.sort.should eq ["name", "op", "target", "value", "why"]
         ops.first["target"]["a"].as_s.should eq "e2"
         ops.first["value"].as_s.should eq "#90ee90"
-        ops.first["server_issue"]?.should be_nil
+        final["server_issues"].as_h.should be_empty
+        final["usage"]["attempts"].as_i.should eq 1
 
         # what reached the vendor
         requests.size.should eq 1
@@ -174,7 +177,8 @@ module PlaceOS::Api
         sent["reasoning_effort"].as_s.should eq "low"
         sent["response_format"]["type"].as_s.should eq "json_schema"
         sent["response_format"]["json_schema"]["strict"].as_bool.should be_true
-        sent["response_format"]["json_schema"]["schema"]["properties"]["ops"]["items"]["properties"]["op"]["enum"].as_a.size.should eq Llm::Schema::OPS.size
+        sent["response_format"]["json_schema"]["name"].as_s.should eq "map_edit"
+        sent["response_format"]["json_schema"]["schema"].should eq Llm::Schema.openai
         messages = sent["messages"].as_a
         messages.first["role"].as_s.should eq "system"
         messages.first["content"].as_s.should contain "You edit SVG floor-plan maps"
@@ -276,18 +280,46 @@ module PlaceOS::Api
         final["cost_units"].as_f.should eq 1280.0
       end
 
-      it "fails the job as invalid_response when the answer was cut off" do
+      it "retries once at a larger output budget, then fails as invalid_response when still cut off" do
         setup_signage_ai
         _, headers = Spec::Authentication.authentication
         level = map_ai_level
+        requests = [] of JSON::Any
 
-        HttpMocks.map_ai_vendor(%({"summary":"partial","ops":[{"op":"set_attr"), finish: "length")
+        HttpMocks.map_ai_vendor(%({"summary":"partial","ops":[{"op":"set_attr"), finish: "length", requests: requests)
 
         result = client.post(File.join(base, "edit"), headers: headers, body: {zone_id: level.id, instruction: "x", context: map_ai_context}.to_json)
         final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
         final["state"].as_s.should eq "failed"
         final["error_kind"].as_s.should eq "invalid_response"
         final["error_message"].as_s.should contain "cut off"
+        # both attempts were billed
+        final["cost_units"].as_f.should eq 2560.0
+
+        requests.size.should eq 2
+        requests[0]["max_completion_tokens"].as_i.should eq MAP_AI_MAX_OUTPUT_TOKENS
+        requests[1]["max_completion_tokens"].as_i.should eq MAP_AI_RETRY_OUTPUT_TOKENS
+      end
+
+      it "finishes with the second attempt when the first was cut off" do
+        setup_signage_ai
+        _, headers = Spec::Authentication.authentication
+        level = map_ai_level
+        requests = [] of JSON::Any
+
+        HttpMocks.map_ai_vendor_cut_off(MAP_AI_ANSWER, requests)
+
+        result = client.post(File.join(base, "edit"), headers: headers, body: {zone_id: level.id, instruction: "x", context: map_ai_context}.to_json)
+        final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
+        final["state"].as_s.should eq "done"
+        final["ops"].as_a.size.should eq 1
+        final["usage"]["attempts"].as_i.should eq 2
+        final["usage"]["total_tokens"].as_i.should eq 2560
+        final["usage"]["finish"].as_s.should eq "stop"
+        final["cost_units"].as_f.should eq 2560.0
+
+        requests.size.should eq 2
+        requests[1]["max_completion_tokens"].as_i.should eq MAP_AI_RETRY_OUTPUT_TOKENS
       end
 
       it "keeps an op with an unknown anchor, flagged rather than dropped" do
@@ -311,8 +343,9 @@ module PlaceOS::Api
 
         ops = final["ops"].as_a
         ops.size.should eq 2
-        ops[0]["server_issue"].as_s.should eq "anchor e404 is not in the index"
-        ops[1]["server_issue"]?.should be_nil
+        ops[0].as_h.has_key?("server_issue").should be_false
+        final["server_issues"].as_h.keys.should eq ["op-1"]
+        final["server_issues"]["op-1"].as_s.should eq "anchor e404 is not in the index"
       end
 
       it "records a refusal as a moderation failure" do
@@ -488,6 +521,23 @@ module PlaceOS::Api
         await_signage_ai_job(base, job_id, headers)
       end
 
+      it "answers 409 when the idempotency key belongs to an image job" do
+        _, _, provider = setup_signage_ai
+        user, headers = Spec::Authentication.authentication
+        level = map_ai_level
+        image_job = Model::Generator.signage_ai_job(user: user, provider: provider)
+        image_job.idempotency_key = "shared-#{random_name}"
+        image_job.save!
+
+        result = client.post(
+          File.join(base, "edit"),
+          headers: headers,
+          body: {zone_id: level.id, instruction: "x", context: map_ai_context, idempotency_key: image_job.idempotency_key}.to_json,
+        )
+        result.status_code.should eq 409
+        Model::SignageAIJob.where(user_id: user.id.as(String)).to_a.size.should eq 1
+      end
+
       it "feeds the parent chain into the prompt" do
         _, _, provider = setup_signage_ai
         user, headers = Spec::Authentication.authentication
@@ -496,7 +546,7 @@ module PlaceOS::Api
 
         parent = Model::Generator.signage_ai_job(user: user, provider: provider, candidates: 1, kind: Model::SignageAIJob::Kind::MapEdit)
         parent.state = Model::SignageAIJob::State::Done
-        parent.result = JSON.parse(%({"summary":"Recoloured it.","ops":[{"id":"op-1","op":"set_attr","target":{"a":"e2","id":null,"h":null},"name":"fill","value":"#90ee90","why":"w"}],"questions":[],"resolution":{"decision":"rejected","accepted_op_ids":[],"rejected_op_ids":["op-1"],"reasons":["too bright"]}}))
+        parent.result = JSON.parse(%({"summary":"Recoloured it.","ops":[{"op":"set_attr","target":{"a":"e2","id":null,"h":null},"name":"fill","value":"#90ee90","why":"w"}],"server_issues":{},"questions":[],"resolution":{"decision":"rejected","accepted_op_ids":[],"rejected_op_ids":["op-1"],"reasons":["too bright"]}}))
         parent.save!
 
         HttpMocks.map_ai_vendor(MAP_AI_ANSWER, requests: requests)
@@ -524,6 +574,9 @@ module PlaceOS::Api
 
         result = client.post(File.join(base, "edit"), headers: headers, body: {zone_id: level.id, instruction: "x", context: map_ai_context, parent_job_id: image_job.id}.to_json)
         result.status_code.should eq 404
+        # nothing was written and no slot is held
+        Model::SignageAIJob.where("kind = ?", "MAP_EDIT").to_a.should be_empty
+        Llm.slots.available.should eq MAP_AI_MAX_CALLS
       end
     end
 
@@ -599,7 +652,7 @@ module PlaceOS::Api
         user, headers = Spec::Authentication.authentication
         job = Model::Generator.signage_ai_job(user: user, provider: provider, candidates: 1, kind: Model::SignageAIJob::Kind::MapEdit)
         job.state = Model::SignageAIJob::State::Done
-        job.result = JSON.parse(%({"schema_version":1,"summary":"s","ops":[{"id":"op-1","op":"no_change","reason":"r","why":"w"}],"questions":[]}))
+        job.result = JSON.parse(%({"schema_version":1,"summary":"s","ops":[{"op":"no_change","reason":"r","why":"w"}],"server_issues":{},"questions":[]}))
         job.save!
 
         result = client.post(
