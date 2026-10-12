@@ -71,7 +71,7 @@ module PlaceOS::Api::ImageGen
       cutoff = Time.utc - SIGNAGE_AI_RETENTION
 
       # bind each tag individually: an array cannot go in as one parameter
-      tags = [Store::CANDIDATE_TAG, Store::REFERENCE_TAG]
+      tags = [Store::CANDIDATE_TAG, Store::REFERENCE_TAG, Store::MARKUP_TAG]
       placeholders = Array.new(tags.size, "?").join(", ")
       args = ([cutoff] of ::PgORM::Value) + tags.map(&.as(::PgORM::Value))
 

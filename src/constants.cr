@@ -54,6 +54,36 @@ module PlaceOS::Api
   SIGNAGE_AI_USER_PER_DAY     = (ENV["SIGNAGE_AI_USER_PER_DAY"]? || "60").to_i
   SIGNAGE_AI_DOMAIN_PER_MONTH = (ENV["SIGNAGE_AI_DOMAIN_PER_MONTH"]? || "2000").to_i
 
+  # Map AI editing (text/vision calls against the same provider rows)
+  ####################################################################################################
+
+  # kill switch for map editing alone; SIGNAGE_AI_DISABLED turns both off
+  MAP_AI_DISABLED = SIGNAGE_AI_DISABLED || ENV["MAP_AI_DISABLED"]?.try(&.downcase) == "true"
+
+  # concurrent vendor text calls per replica, separate from the image slots
+  MAP_AI_MAX_CALLS = (ENV["MAP_AI_MAX_CALLS"]? || "4").to_i
+
+  MAP_AI_READ_TIMEOUT = (ENV["MAP_AI_READ_TIMEOUT"]? || "180").to_i.seconds
+
+  # the context JSON posted inline with an edit request (nginx's default body limit is 1MB)
+  MAP_AI_MAX_CONTEXT_BYTES = (ENV["MAP_AI_MAX_CONTEXT_KB"]? || "512").to_i * 1024
+
+  MAP_AI_MAX_INSTRUCTION_CHARS = (ENV["MAP_AI_MAX_INSTRUCTION_CHARS"]? || "4000").to_i
+
+  # operations accepted from one answer; the rest are kept but flagged
+  MAP_AI_MAX_OPS = (ENV["MAP_AI_MAX_OPS"]? || "80").to_i
+
+  MAP_AI_MAX_OUTPUT_TOKENS = (ENV["MAP_AI_MAX_OUTPUT_TOKENS"]? || "12000").to_i
+
+  # default quotas in calls, overridden per provider row by map_user_per_day
+  # and map_domain_per_month
+  MAP_AI_USER_PER_DAY     = (ENV["MAP_AI_USER_PER_DAY"]? || "40").to_i
+  MAP_AI_DOMAIN_PER_MONTH = (ENV["MAP_AI_DOMAIN_PER_MONTH"]? || "1000").to_i
+
+  # used when a provider row names no text_model
+  MAP_AI_DEFAULT_OPENAI_MODEL = ENV["MAP_AI_DEFAULT_OPENAI_MODEL"]? || "gpt-5.4-mini"
+  MAP_AI_DEFAULT_VERTEX_MODEL = ENV["MAP_AI_DEFAULT_VERTEX_MODEL"]? || "gemini-3.8-flash"
+
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")
 

@@ -251,8 +251,8 @@ module PlaceOS::Api
       CommonError.new(error, false)
     end
 
-    # Signage AI image generation. `kind` lets a client branch without matching
-    # on message text.
+    # Signage AI image generation and map AI editing. `kind` lets a client
+    # branch without matching on message text.
     struct ImageGenError
       include JSON::Serializable
       include YAML::Serializable
@@ -269,6 +269,7 @@ module PlaceOS::Api
     @[AC::Route::Exception(Error::ImageGen::Busy, status_code: HTTP::Status::SERVICE_UNAVAILABLE)]
     @[AC::Route::Exception(Error::ImageGen::NotConfigured, status_code: HTTP::Status::SERVICE_UNAVAILABLE)]
     @[AC::Route::Exception(Error::ImageGen::Vendor, status_code: HTTP::Status::BAD_GATEWAY)]
+    @[AC::Route::Exception(Error::ImageGen::InvalidResponse, status_code: HTTP::Status::BAD_GATEWAY)]
     @[AC::Route::Exception(Error::ImageGen::Timeout, status_code: HTTP::Status::GATEWAY_TIMEOUT)]
     @[AC::Route::Exception(Error::ImageGen::Permission, status_code: HTTP::Status::FORBIDDEN)]
     def image_generation_failed(error) : ImageGenError
