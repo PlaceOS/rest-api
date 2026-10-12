@@ -1,5 +1,7 @@
 require "placeos-models/signage_ai_provider"
 
+require "../vendor_credentials"
+
 module PlaceOS::Api::ImageGen
   # A vendor. Adapters take an `AdapterRequest` and return images, or raise:
   #
@@ -9,6 +11,8 @@ module PlaceOS::Api::ImageGen
   #
   # They never see a job row, a model or the request.
   abstract class Adapter
+    include Utils::VendorCredentials
+
     getter row : ::PlaceOS::Model::SignageAIProvider
 
     def initialize(@row : ::PlaceOS::Model::SignageAIProvider)
@@ -52,24 +56,6 @@ module PlaceOS::Api::ImageGen
       allow = row.allowed_models
       return defaults if allow.empty?
       defaults.select { |model| allow.includes?(model.id) }
-    end
-
-    protected def credentials : Hash(String, JSON::Any)
-      row.credentials_json
-    rescue ex : ::PlaceOS::Model::Error
-      raise Error::ImageGen::NotConfigured.new(ex.message || "provider credentials could not be read")
-    end
-
-    protected def credential(key : String) : String
-      value = credentials[key]?.try(&.as_s?)
-      raise Error::ImageGen::NotConfigured.new("provider #{row.name} is missing #{key}") if value.nil? || value.empty?
-      value
-    end
-
-    # trimmed so a vendor body never lands whole in the logs or an API response
-    protected def vendor_message(body : String, limit : Int32 = 300) : String
-      cleaned = body.gsub(/\s+/, " ").strip
-      cleaned.size > limit ? "#{cleaned[0, limit]}..." : cleaned
     end
   end
 end
