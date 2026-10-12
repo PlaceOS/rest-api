@@ -46621,6 +46621,10 @@ components:
           type: array
           items:
             type: object
+        server_issues:
+          type: object
+          additionalProperties:
+            type: string
         questions:
           type: array
           items:
@@ -46667,7 +46671,12 @@ components:
       - kind
       - version
       - ops
+      - server_issues
       - questions
+      description: 'A job as the editor sees it. `ops` are the model''s operations
+        exactly as
+
+        returned; `server_issues` names the ones the server could not accept.'
     PlaceOS.Api.MapAI.ResolveParams:
       type: object
       properties:
