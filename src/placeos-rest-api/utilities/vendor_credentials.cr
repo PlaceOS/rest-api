@@ -3,9 +3,8 @@ require "placeos-models/signage_ai_provider"
 module PlaceOS::Api
   # Reads a provider row's encrypted credentials for a vendor adapter.
   #
-  # The including class exposes the row as `row`. Errors read as
-  # `Error::ImageGen::NotConfigured` so a bad secret or a missing field is
-  # reported as configuration rather than as a vendor fault.
+  # The including class exposes the row as `row`. An unreadable or
+  # incomplete credential raises `Error::ImageGen::NotConfigured`.
   module Utils::VendorCredentials
     protected def credentials : Hash(String, JSON::Any)
       row.credentials_json
