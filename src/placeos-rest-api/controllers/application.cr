@@ -39,10 +39,12 @@ module PlaceOS::Api
     include Utils::Scopes
 
     # for converting comma seperated lists
-    # i.e. `"id-1,id-2,id-3"`
+    # i.e. `"id-1,id-2,id-3"`, or a JSON array `["id-1","id-2"]`
     struct ConvertStringArray
       def convert(raw : String)
-        raw.split(',').map!(&.strip).reject(&.empty?).uniq!
+        # MCP tool calls send array arguments as JSON
+        list = (Array(String).from_json(raw) rescue nil) if raw.lstrip.starts_with?('[')
+        (list || raw.split(',')).map!(&.strip).reject(&.empty?).uniq!
       end
     end
 

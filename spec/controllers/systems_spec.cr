@@ -374,6 +374,33 @@ module PlaceOS::Api
           b.destroy
         end
 
+        it "zone_id accepts a JSON array, as MCP tool calls send lists" do
+          Model::ControlSystem.clear
+
+          a = Model::Generator.zone.save!
+          b = Model::Generator.zone.save!
+
+          both = Model::Generator.control_system
+          both.zones = [a.id.as(String), b.id.as(String)]
+          both.save!
+
+          a_only = Model::Generator.control_system
+          a_only.zones = [a.id.as(String)]
+          a_only.save!
+
+          path = "#{Systems.base_route}?#{HTTP::Params.encode({"zone_id" => [a.id, b.id].to_json})}"
+          result = client.get(path, headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          ids = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+          ids.should contain(both.id.as(String))
+          ids.should_not contain(a_only.id.as(String))
+
+          both.destroy
+          a_only.destroy
+          a.destroy
+          b.destroy
+        end
+
         it "email filters systems by email (exact, case-insensitive)" do
           # NOTE: the Elasticsearch version of this filter was a no-op on
           # its own (optional `should` clause) and the old spec passed on
