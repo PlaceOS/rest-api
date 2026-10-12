@@ -171,9 +171,9 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
-    # the text probe: a few output tokens, discarded
+    # the text probe and its output budget; the answer is discarded
     TEXT_PROBE        = "Reply with the single word OK"
-    TEXT_PROBE_TOKENS = 5
+    TEXT_PROBE_TOKENS = 128
 
     # Prove a row's credentials work, without leaving anything behind: one small
     # image, discarded, or with `kind=text` one tiny chat completion against the
@@ -235,16 +235,20 @@ module PlaceOS::Api
       begin
         adapter = Llm::Adapter.for(row)
         model = adapter.text_model
-        adapter.complete(Llm::Request.new(
+        answer = adapter.complete(Llm::Request.new(
           system: "You are a connectivity check.",
           parts: [Llm::TextPart.new(TEXT_PROBE)] of Llm::Part,
           model: model,
           max_output_tokens: TEXT_PROBE_TOKENS,
           schema: nil,
-          reasoning_effort: nil,
         ))
+        latency = (Time.utc - started).total_milliseconds.to_i64
 
-        TestResult.new(ok: true, latency_ms: (Time.utc - started).total_milliseconds.to_i64, model: model)
+        if answer.finish == "length" || answer.text.strip.empty?
+          TestResult.new(false, latency, model, "the model used its #{TEXT_PROBE_TOKENS} output tokens without answering", "invalid_response")
+        else
+          TestResult.new(ok: true, latency_ms: latency, model: model)
+        end
       rescue ex : Error::ImageGen
         TestResult.new(false, (Time.utc - started).total_milliseconds.to_i64, model, ex.message, ex.kind)
       rescue ex

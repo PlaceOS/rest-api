@@ -241,11 +241,23 @@ module PlaceOS::Api
 
         requests.size.should eq 1
         requests.first["model"].as_s.should eq "gpt-5.4-mini-custom"
-        requests.first["max_completion_tokens"].as_i.should eq 5
+        requests.first["max_completion_tokens"].as_i.should eq SignageAIProviders::TEXT_PROBE_TOKENS
         requests.first["response_format"]?.should be_nil
-        requests.first["reasoning_effort"]?.should be_nil
+        requests.first["reasoning_effort"].as_s.should eq "low"
 
         client.post(File.join(base, provider.id.to_s, "test?kind=sound"), headers: Spec::Authentication.headers).status_code.should eq 422
+      end
+
+      it "reports a text probe that spent its budget without answering" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        provider = Model::Generator.signage_ai_provider(authority: authority, name: "openai-#{random_name}").save!
+
+        HttpMocks.map_ai_vendor("", finish: "length")
+
+        body = JSON.parse(client.post(File.join(base, provider.id.to_s, "test?kind=text"), headers: Spec::Authentication.headers).body)
+        body["ok"].as_bool.should be_false
+        body["kind"].as_s.should eq "invalid_response"
+        body["error"].as_s.should contain "without answering"
       end
 
       it "reports a text probe that times out" do
