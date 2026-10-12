@@ -3,18 +3,35 @@ require "xml"
 
 module PlaceOS::Api::Llm
   # Reads the model's answer and checks each operation against the context the
-  # editor posted. Failing ops are kept with `server_issue` set so the client can
-  # show them unchecked with the reason; the client's own validator, which has
-  # the live document, remains the authority.
+  # editor posted. Ops are kept as the model returned them; an op that fails a
+  # check is named in `issues` by its id so the editor can show it unchecked
+  # with the reason. The editor's own validator, which has the live document,
+  # remains the authority.
   module Ops
-    record Envelope, summary : String, ops : Array(Hash(String, JSON::Any)), questions : Array(String)
+    record Envelope, summary : String, ops : Array(JSON::Any), questions : Array(String)
+
+    # `issues` is keyed by op id: `op-N`, N the op's 1-based position in `ops`
+    record Checked, ops : Array(JSON::Any), issues : Hash(String, String)
 
     FENCE = /\A\s*```[a-zA-Z]*\s*(.*?)\s*```\s*\z/m
 
     MAX_MARKUP_BYTES = 16_384
     MAX_DUPLICATES   =     40
 
-    DENIED_ELEMENTS = %w(script foreignObject iframe embed object animate set animateMotion animateTransform use image a)
+    SVG_NS = "http://www.w3.org/2000/svg"
+
+    # `sanitise.ts` DENIED_TAGS, plus style (the sheet changes only through
+    # set_style_rule) and use (DOMPurify's SVG profile drops it); compared lower-cased
+    DENIED_ELEMENTS = %w(script foreignobject handler iframe embed object animate animatecolor
+      animatemotion animatetransform set discard mpath style use)
+
+    REFERENCE_ATTRIBUTES = %w(href xlink:href src)
+
+    DATA_IMAGE = /\Adata:image\/(?:png|jpe?g|gif|webp|svg\+xml);/i
+
+    def self.id_for(position : Int32) : String
+      "op-#{position + 1}"
+    end
 
     # The whole answer as JSON, with a markdown fence stripped when the model
     # wrapped it in one.
@@ -37,29 +54,28 @@ module PlaceOS::Api::Llm
       ops = hash["ops"]?.try(&.as_a?)
       raise Error::ImageGen::InvalidResponse.new("the model's answer has no ops list") if ops.nil?
 
-      listed = ops.map do |op|
-        op.as_h? || {"op" => JSON::Any.new(nil), "server_issue" => JSON::Any.new("not an object")}
-      end
       questions = hash["questions"]?.try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
-      Envelope.new(summary: hash["summary"]?.try(&.as_s?) || "", ops: listed, questions: questions)
+      Envelope.new(summary: hash["summary"]?.try(&.as_s?) || "", ops: ops, questions: questions)
     end
 
-    # Each op with an `id` ("op-1" ...) and, when it fails a check, a
-    # `server_issue` naming the reason.
-    def self.check(ops : Array(Hash(String, JSON::Any)), context : JSON::Any) : Array(JSON::Any)
+    # The ops untouched, with the reason for each one that fails a check.
+    def self.check(ops : Array(JSON::Any), context : JSON::Any) : Checked
       index = Index.new(context)
+      claimed = Set(String).new
+      issues = {} of String => String
 
-      ops.map_with_index do |op, position|
-        checked = op.dup
-        checked["id"] = JSON::Any.new("op-#{position + 1}")
+      ops.each_with_index do |op, position|
         issue = if position >= MAP_AI_MAX_OPS
                   "over the limit of #{MAP_AI_MAX_OPS} operations in one answer"
+                elsif (hash = op.as_h?)
+                  issue_for(hash, index, claimed)
                 else
-                  checked["server_issue"]?.try(&.as_s?) || issue_for(checked, index)
+                  "not an object"
                 end
-        checked["server_issue"] = JSON::Any.new(issue) if issue
-        JSON::Any.new(checked)
+        issues[id_for(position)] = issue if issue
       end
+
+      Checked.new(ops: ops, issues: issues)
     end
 
     # What the editor posted, keyed for lookups.
@@ -113,85 +129,95 @@ module PlaceOS::Api::Llm
       end
     end
 
-    private def self.issue_for(op : Hash(String, JSON::Any), index : Index) : String?
+    private def self.issue_for(op : Hash(String, JSON::Any), index : Index, claimed : Set(String)) : String?
       kind = op["op"]?.try(&.as_s?)
       return "unknown operation #{kind.inspect}" unless kind && Schema::OPS.includes?(kind)
 
       case kind
       when "set_attr"
         with_target(op, index) do
-          name = op["name"]?.try(&.as_s?).presence
+          name = op["name"]?.try(&.as_s?).try(&.strip).presence
           return "set_attr needs a name" unless name
           return "attribute #{name} may not be set" unless Schema.allowed_attribute?(name)
-          value = op["value"]?.try(&.as_s?)
-          if name == "visibility" && value && !Schema::VISIBILITY_VALUES.includes?(value.strip)
-            return "visibility must be one of #{Schema::VISIBILITY_VALUES.join(", ")}"
+          if (value = op["value"]?.try(&.as_s?))
+            Values.attribute_value_issue(name, value)
           end
-          nil
         end
       when "set_style_rule"
         selector = op["selector"]?.try(&.as_s?).try(&.strip).presence
-        declarations = op["declarations"]?.try(&.as_s?).try(&.strip).presence
         return "set_style_rule needs a selector" unless selector
-        return "the selector * is not allowed" if selector == "*"
-        return "set_style_rule needs declarations" unless declarations
-        css_issue(declarations)
+        if selector == "*" || selector.includes?(',') || selector =~ /[{};@\/\\]/ || Values.unsafe_css?(selector)
+          return "the selector #{selector.inspect} is not allowed"
+        end
+        declarations_issue(op["declarations"]?)
       when "set_text"
         with_target(op, index) do |entry|
           tag = entry["tag"]?.try(&.as_s?)
           tag == "text" || tag == "tspan" ? nil : "set_text only applies to text and tspan elements"
         end
       when "transform"
-        unless op["translate"]? || op["scale"]? || op["rotate"]?
+        unless present?(op["translate"]?) || present?(op["scale"]?) || present?(op["rotate"]?)
           return "transform needs translate, scale or rotate"
         end
         return "translate must be [dx, dy]" unless pair?(op["translate"]?)
         return "scale must be [sx, sy]" unless pair?(op["scale"]?)
+        return "rotate must be a number" unless number?(op["rotate"]?)
         return "origin must be [x, y]" unless pair?(op["origin"]?)
         with_targets(op, index) { nil }
       when "delete"
         with_targets(op, index) { nil }
       when "duplicate"
         with_target(op, index) do
+          return "duplicate needs translate" unless present?(op["translate"]?)
           return "translate must be [dx, dy]" unless pair?(op["translate"]?)
-          count = op["count"]?.try(&.as_i?)
-          return "count must be between 1 and #{MAX_DUPLICATES}" if count && (count < 1 || count > MAX_DUPLICATES)
-          new_id_issue(op["new_id"]?, index)
+          if (count = op["count"]?) && !count.raw.nil?
+            whole = count.as_i?
+            return "count must be a whole number" if whole.nil?
+            return "count must be between 1 and #{MAX_DUPLICATES}" if whole < 1 || whole > MAX_DUPLICATES
+          end
+          new_id_issue(op["new_id"]?, index, claimed)
         end
       when "insert_shape"
         shape = op["kind"]?.try(&.as_s?)
         return "insert_shape needs a kind" unless shape
         return "#{shape} is not a shape that can be inserted" unless Schema::SHAPES.includes?(shape)
-        if op["parent"]? && !op["parent"].raw.nil?
+        if present?(op["parent"]?)
           _, issue = index.resolve(op["parent"])
           return "parent: #{issue}" if issue
         end
-        if op["after"]? && !op["after"].raw.nil?
+        if present?(op["after"]?)
           _, issue = index.resolve(op["after"])
           return "after: #{issue}" if issue
         end
+        geometry = Schema::SHAPE_GEOMETRY_ATTRIBUTES[shape]
         (op["attrs"]?.try(&.as_a?) || [] of JSON::Any).each do |attr|
-          name = attr["name"]?.try(&.as_s?)
-          return "an attribute has no name" unless name
-          unless Schema.allowed_attribute?(name) || Schema::GEOMETRY_ATTRIBUTES.includes?(name)
-            return "attribute #{name} may not be set on a new element"
-          end
+          pair = attr.as_h?
+          name = pair.try(&.["name"]?).try(&.as_s?).try(&.strip).presence
+          return "an attribute has no name" unless pair && name
+          value = pair["value"]?.try(&.as_s?) || ""
+          issue = if geometry.includes?(name)
+                    Values.geometry_value_issue(name, value)
+                  elsif Schema.allowed_attribute?(name)
+                    Values.attribute_value_issue(name, value)
+                  else
+                    "attribute #{name} is not allowed on a #{shape}"
+                  end
+          return issue if issue
         end
-        new_id_issue(op["new_id"]?, index)
+        new_id_issue(op["new_id"]?, index, claimed)
       when "set_id"
         with_target(op, index) do
-          new_id = op["new_id"]?
-          new_id.nil? || new_id.raw.nil? ? nil : new_id_issue(new_id, index)
+          present?(op["new_id"]?) ? new_id_issue(op["new_id"], index, claimed) : nil
         end
       when "reorder"
         with_target(op, index) do
-          where = [op["before"]?, op["after"]?, op["position"]?].count { |value| value && !value.raw.nil? }
+          where = [op["before"]?, op["after"]?, op["position"]?].count { |value| present?(value) }
           return "reorder needs exactly one of before, after or position" unless where == 1
           if (position = op["position"]?.try(&.as_s?)) && !Schema::POSITIONS.includes?(position)
-            return "position must be first or last"
+            return "position must be #{Schema::POSITIONS.join(" or ")}"
           end
           {op["before"]?, op["after"]?}.each do |sibling|
-            next if sibling.nil? || sibling.raw.nil?
+            next unless present?(sibling)
             _, issue = index.resolve(sibling)
             return issue if issue
           end
@@ -204,7 +230,7 @@ module PlaceOS::Api::Llm
           _, issue = index.resolve(target)
           return issue if issue
         end
-        new_id_issue(op["new_id"]?, index)
+        new_id_issue(op["new_id"]?, index, claimed)
       when "ungroup"
         with_target(op, index) do |entry|
           entry["tag"]?.try(&.as_s?) == "g" ? nil : "ungroup only applies to a group"
@@ -219,15 +245,34 @@ module PlaceOS::Api::Llm
       when "replace_path"
         with_target(op, index) do |entry|
           return "replace_path only applies to a path" unless entry["tag"]?.try(&.as_s?) == "path"
-          data = op["d"]?.try(&.as_s?).try(&.strip).presence
-          return "replace_path needs d" unless data
-          /\A[MmZzLlHhVvCcSsQqTtAa0-9\s,.\-+eE]+\z/.match(data) ? nil : "d is not path data"
+          data = op["d"]?.try(&.as_s?)
+          return "replace_path needs d" if data.nil? || data.strip.empty?
+          Values.path_data_issue(data)
         end
       when "no_change"
         op["reason"]?.try(&.as_s?).presence ? nil : "no_change needs a reason"
       when "ask"
         op["question"]?.try(&.as_s?).presence ? nil : "ask needs a question"
       end
+    end
+
+    private def self.declarations_issue(declarations : JSON::Any?) : String?
+      listed = declarations.try(&.as_a?)
+      return "set_style_rule needs declarations" if listed.nil? || listed.empty?
+
+      listed.each do |declaration|
+        pair = declaration.as_h?
+        name = pair.try(&.["name"]?).try(&.as_s?).try(&.strip).presence
+        return "a declaration has no property name" unless pair && name
+        return "property #{name} may not be set" unless Schema.allowed_attribute?(name)
+        value = pair["value"]?.try(&.as_s?)
+        return "declaration #{name} has no value" if value.nil? || value.strip.empty?
+        return "the value of #{name} is not allowed" if Values.unsafe_css?(value)
+        if (issue = Values.attribute_value_issue(name, value))
+          return issue
+        end
+      end
+      nil
     end
 
     private def self.with_target(op : Hash(String, JSON::Any), index : Index, & : Hash(String, JSON::Any) -> String?) : String?
@@ -238,8 +283,8 @@ module PlaceOS::Api::Llm
 
     private def self.with_targets(op : Hash(String, JSON::Any), index : Index, & : Array(Hash(String, JSON::Any)) -> String?) : String?
       listed = [] of JSON::Any
-      if (target = op["target"]?) && !target.raw.nil?
-        listed << target
+      if present?(target = op["target"]?)
+        listed << target.not_nil!
       end
       if (targets = op["targets"]?.try(&.as_a?))
         listed.concat(targets)
@@ -254,41 +299,42 @@ module PlaceOS::Api::Llm
       yield entries
     end
 
+    # a field that is there and not JSON null
+    private def self.present?(value : JSON::Any?) : Bool
+      !value.nil? && !value.raw.nil?
+    end
+
+    private def self.number?(value : JSON::Any?) : Bool
+      return true unless present?(value)
+      !value.not_nil!.as_f?.nil? || !value.not_nil!.as_i?.nil?
+    end
+
     private def self.pair?(value : JSON::Any?) : Bool
-      return true if value.nil? || value.raw.nil?
-      list = value.as_a?
+      return true unless present?(value)
+      list = value.not_nil!.as_a?
       !list.nil? && list.size == 2 && list.all? { |item| item.as_f? || item.as_i? }
     end
 
-    private def self.new_id_issue(value : JSON::Any?, index : Index) : String?
-      return if value.nil? || value.raw.nil?
-      id = value.as_s?
+    # An id a new element takes: well formed, not in the map, not bound, and
+    # not already taken by an earlier op of this answer.
+    private def self.new_id_issue(value : JSON::Any?, index : Index, claimed : Set(String)) : String?
+      return unless present?(value)
+      id = value.not_nil!.as_s?
       return "new_id must be a string" if id.nil?
       return "#{id.inspect} is not a valid id (letter first, then letters, digits, _ . -)" unless Schema.valid_id?(id)
       return "#{id} is already an id in the map" if index.known_id?(id)
       return "#{id} is a protected id" if index.protected_ids.includes?(id)
+      return "#{id} is used twice in this answer" if claimed.includes?(id)
+      claimed << id
       nil
     end
 
-    private def self.css_issue(declarations : String) : String?
-      lowered = declarations.downcase
-      return "declarations may not import or reference URLs" if lowered.includes?("@import") || lowered.includes?("url(") || lowered.includes?("expression(") || lowered.includes?("behavior:")
-
-      declarations.split(';').each do |declaration|
-        next if declaration.strip.empty?
-        name, _, value = declaration.partition(':')
-        name = name.strip
-        return "declaration #{declaration.strip.inspect} has no value" if value.strip.empty?
-        return "property #{name} may not be set" unless Schema.allowed_attribute?(name)
-      end
-      nil
-    end
-
-    # A libxml2 walk of replacement markup: one root element, nothing from the
-    # deny list, no event handlers, no external references.
+    # A libxml2 walk of replacement markup: one root element, everything in
+    # the SVG namespace, nothing from the deny list, no event handlers, and no
+    # reference outside the document.
     private def self.markup_issue(markup : String) : String?
       document = begin
-        XML.parse("<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">#{markup}</svg>", XML::ParserOptions::NONET)
+        XML.parse("<svg xmlns=\"#{SVG_NS}\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">#{markup}</svg>", XML::ParserOptions::NONET)
       rescue
         return "the markup does not parse"
       end
@@ -303,16 +349,26 @@ module PlaceOS::Api::Llm
       collect_elements(roots.first, elements)
       elements.each do |node|
         name = node.name
-        return "<#{name}> is not allowed" if DENIED_ELEMENTS.includes?(name)
-        if name == "style" && (text = node.content) && css_issue(text.gsub(/[^{}]*\{/, "").gsub('}', ';'))
-          return "the style content is not allowed"
-        end
+        tag = name.downcase
+        return "<#{name}> is not allowed" if DENIED_ELEMENTS.includes?(tag)
+        return "<#{name}> is outside the SVG namespace" unless node.namespace.try(&.href) == SVG_NS
+
         node.attributes.each do |attribute|
-          attr_name = attribute.name
-          value = attribute.content
-          return "event handler attributes are not allowed" if attr_name.downcase.starts_with?("on")
-          return "href must point inside the document" if attr_name == "href" && !value.starts_with?('#')
-          return "the style attribute content is not allowed" if attr_name == "style" && css_issue(value)
+          attr_name = if (prefix = attribute.namespace.try(&.prefix).presence)
+                        "#{prefix}:#{attribute.name}"
+                      else
+                        attribute.name
+                      end
+          lower = attr_name.downcase
+          value = attribute.content.strip
+          return "attribute #{attr_name} is not allowed" if lower.starts_with?("on")
+          if REFERENCE_ATTRIBUTES.includes?(lower) || lower.ends_with?(":href")
+            unless value.starts_with?('#') || (tag == "image" && DATA_IMAGE.match(value))
+              return "#{attr_name} must reference an id in the document"
+            end
+          end
+          return "style contains an unsafe value" if lower == "style" && Values.unsafe_css?(value)
+          return "#{attr_name} may not reference anything outside the document" if Values.external_url?(value)
         end
       end
       nil

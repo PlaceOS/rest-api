@@ -133,6 +133,22 @@ module PlaceOS::Api::HttpMocks
     map_ai_vendor("I think the boardroom should be light blue, so I would change its fill.")
   end
 
+  # The answer cut off at the output limit on the first call, whole on the second.
+  def self.map_ai_vendor_cut_off(content : String, requests : Array(JSON::Any))
+    WebMock
+      .stub(:post, CHAT_COMPLETIONS)
+      .to_return do |request|
+        requests << JSON.parse(WebMock.body(request).to_s)
+        cut = requests.size == 1
+        body = {
+          id:      "chatcmpl-spec",
+          choices: [{message: {role: "assistant", content: cut ? "" : content, refusal: nil}, finish_reason: cut ? "length" : "stop"}],
+          usage:   {prompt_tokens: 1200, completion_tokens: 80, total_tokens: 1280},
+        }.to_json
+        HTTP::Client::Response.new(200, body, HTTP::Headers{"Content-Type" => "application/json"})
+      end
+  end
+
   # A 400 naming reasoning_effort on the first call, the answer on the second.
   def self.map_ai_vendor_no_reasoning(content : String, requests : Array(JSON::Any))
     WebMock

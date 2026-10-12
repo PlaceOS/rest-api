@@ -5,8 +5,7 @@ module PlaceOS::Api::Llm
   #
   # Parts go in this order: rules and the op reference (system), then the index,
   # the subtrees, the snapshot image, the annotations, earlier turns, and the
-  # instruction last, so the stable front of the prompt is the same across the
-  # turns of one editing session.
+  # instruction last.
   module Prompt
     CONTEXT_SCHEMA = "placeos.map-ai-context/1"
 
@@ -37,7 +36,7 @@ module PlaceOS::Api::Llm
       - Every op carries a one-sentence why that names the element's label. summary is one sentence for the person. questions is usually empty.
       Coordinates: user units of the viewBox; x grows to the right, y grows downward.
 
-      Fields each operation reads (everything else stays null):
+      Fields each operation carries, besides op and why:
       TEXT
 
     # One earlier turn of the same edit, oldest first.

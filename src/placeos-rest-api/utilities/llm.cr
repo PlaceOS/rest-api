@@ -1,6 +1,7 @@
 require "./image_gen"
 require "./llm/types"
 require "./llm/schema"
+require "./llm/values"
 require "./llm/prompt"
 require "./llm/ops"
 require "./llm/adapter"
@@ -17,8 +18,7 @@ module PlaceOS::Api
   module Llm
     Log = ::Log.for(self)
 
-    # shared across the process, sized by MAP_AI_MAX_CALLS, apart from the
-    # image slots so a burst of map edits cannot starve poster generation
+    # the map edit slots, sized by MAP_AI_MAX_CALLS; image calls use `ImageGen.slots`
     class_getter slots : ImageGen::Slots { ImageGen::Slots.new(MAP_AI_MAX_CALLS) }
   end
 end
