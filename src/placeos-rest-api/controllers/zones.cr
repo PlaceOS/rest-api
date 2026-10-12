@@ -118,15 +118,7 @@ module PlaceOS::Api
     # True if the legacy zone-based permission scheme (org_zone +
     # current_user.groups) grants the requested level on `zone`.
     private def has_legacy_access?(zone : ::PlaceOS::Model::Zone, admin_required : Bool = false) : Bool
-      authority = current_authority.as(::PlaceOS::Model::Authority)
-      org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
-      return false unless org_zone_id
-      return false unless zone.persisted? || zone.parent_id.presence
-      return false unless zone.root_zone_id == org_zone_id
-
-      zones = [org_zone_id, zone.id].compact.uniq!
-      access = check_access(current_user.groups, zones)
-      admin_required ? access.admin? : access.can_manage?
+      zone_legacy_access?(zone, admin_required: admin_required)
     end
 
     # True if the user has a Manage or Update grant in *any* group that

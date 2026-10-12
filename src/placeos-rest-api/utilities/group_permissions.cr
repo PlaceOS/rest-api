@@ -339,6 +339,30 @@ module PlaceOS::Api
       admin_required ? access.admin? : access.can_manage?
     end
 
+    # The legacy org_zone path for a zone record: the zone must sit under the
+    # authority's org zone, and the org zone's or the zone's own `permissions`
+    # metadata must grant `current_user.groups` manage (or admin, when
+    # `admin_required`).
+    def zone_legacy_access?(zone : ::PlaceOS::Model::Zone, admin_required : Bool = false) : Bool
+      org_zone_id = support_org_zone_id
+      return false unless org_zone_id
+      return false unless zone.persisted? || zone.parent_id.presence
+      return false unless zone.root_zone_id == org_zone_id
+
+      zones = [org_zone_id, zone.id].compact.uniq!
+      access = check_access(current_user.groups, zones)
+      admin_required ? access.admin? : access.can_manage?
+    end
+
+    # Whether the caller may change this zone: support or admin, the legacy
+    # org-zone ACL, or a support-subsystem Update on the zone. The broad
+    # signage-subsystem grant `Zones#update` also honours is not part of this.
+    def zone_updatable?(zone : ::PlaceOS::Model::Zone) : Bool
+      return true if user_support?
+      return true if zone_legacy_access?(zone, admin_required: false)
+      support_subsystem_grants?([zone.id.as(String)], ::PlaceOS::Model::Permissions::Update)
+    end
+
     # The combined support gate. Raises `Error::Forbidden` unless one of:
     #   - the JWT role bypasses (admin when `admin_required`, else support),
     #   - the legacy org_zone path grants access, or
