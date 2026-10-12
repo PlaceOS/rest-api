@@ -20686,6 +20686,838 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/maps/ai/capabilities:
+    summary: AI editing of a level's SVG map, with the signage AI provider rows.
+    description: 'AI editing of a level''s SVG map, with the signage AI provider rows.
+
+
+      The editor posts the instruction and the context it built from the map (the
+
+      element index, the shortlisted subtrees, the annotations and a marked up
+
+      snapshot by upload id). The answer is a list of operations the editor
+
+      applies, reviews and saves itself; nothing here reads or writes the map.
+
+      One job is one vendor call, long polled through `jobs/:id` as signage is.'
+    get:
+      summary: what this domain can do, and what the caller has left of their quota
+      tags:
+      - MapAI
+      operationId: PlaceOS::Api::MapAI_capabilities
+      parameters: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.MapAI.Capabilities'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/maps/ai/edit:
+    summary: AI editing of a level's SVG map, with the signage AI provider rows.
+    description: 'AI editing of a level''s SVG map, with the signage AI provider rows.
+
+
+      The editor posts the instruction and the context it built from the map (the
+
+      element index, the shortlisted subtrees, the annotations and a marked up
+
+      snapshot by upload id). The answer is a list of operations the editor
+
+      applies, reviews and saves itself; nothing here reads or writes the map.
+
+      One job is one vendor call, long polled through `jobs/:id` as signage is.'
+    post:
+      summary: ask for operations that carry out an instruction on a level's map
+      tags:
+      - MapAI
+      operationId: PlaceOS::Api::MapAI_edit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS.Api.MapAI.EditParams'
+        required: true
+      parameters: []
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.MapAI.JobResponse'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/maps/ai/jobs/{id}:
+    summary: AI editing of a level's SVG map, with the signage AI provider rows.
+    description: 'AI editing of a level''s SVG map, with the signage AI provider rows.
+
+
+      The editor posts the instruction and the context it built from the map (the
+
+      element index, the shortlisted subtrees, the annotations and a marked up
+
+      snapshot by upload id). The answer is a list of operations the editor
+
+      applies, reviews and saves itself; nothing here reads or writes the map.
+
+      One job is one vendor call, long polled through `jobs/:id` as signage is.'
+    get:
+      summary: 'long poll: holds until the job changes past `since`, or `wait` runs
+        out'
+      tags:
+      - MapAI
+      operationId: PlaceOS::Api::MapAI_show_job
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: wait
+        in: query
+        description: seconds to hold the request open, 0 to answer immediately
+        example: 25
+        schema:
+          type: integer
+          format: Int32
+      - name: since
+        in: query
+        description: the version the caller already has
+        example: 3
+        schema:
+          anyOf:
+          - type: integer
+            format: Int32
+          - type: "null"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.MapAI.JobResponse'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/maps/ai/jobs:
+    summary: AI editing of a level's SVG map, with the signage AI provider rows.
+    description: 'AI editing of a level''s SVG map, with the signage AI provider rows.
+
+
+      The editor posts the instruction and the context it built from the map (the
+
+      element index, the shortlisted subtrees, the annotations and a marked up
+
+      snapshot by upload id). The answer is a list of operations the editor
+
+      applies, reviews and saves itself; nothing here reads or writes the map.
+
+      One job is one vendor call, long polled through `jobs/:id` as signage is.'
+    get:
+      summary: recent map edit jobs
+      tags:
+      - MapAI
+      operationId: PlaceOS::Api::MapAI_index_jobs
+      parameters:
+      - name: mine
+        in: query
+        description: only the caller's own jobs
+        example: true
+        schema:
+          type: boolean
+      - name: zone_id
+        in: query
+        description: only jobs against this zone
+        example: zone-1234
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
+      - name: kind
+        in: query
+        description: map_edit; another kind lists that kind instead
+        example: map_edit
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          format: Int32
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS.Api.MapAI.JobResponse'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/maps/ai/jobs/{id}/cancel:
+    summary: AI editing of a level's SVG map, with the signage AI provider rows.
+    description: 'AI editing of a level''s SVG map, with the signage AI provider rows.
+
+
+      The editor posts the instruction and the context it built from the map (the
+
+      element index, the shortlisted subtrees, the annotations and a marked up
+
+      snapshot by upload id). The answer is a list of operations the editor
+
+      applies, reviews and saves itself; nothing here reads or writes the map.
+
+      One job is one vendor call, long polled through `jobs/:id` as signage is.'
+    post:
+      summary: ask a running job to stop. A call already with the vendor runs to completion.
+      tags:
+      - MapAI
+      operationId: PlaceOS::Api::MapAI_cancel
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.MapAI.JobResponse'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/maps/ai/jobs/{id}/resolve:
+    summary: AI editing of a level's SVG map, with the signage AI provider rows.
+    description: 'AI editing of a level''s SVG map, with the signage AI provider rows.
+
+
+      The editor posts the instruction and the context it built from the map (the
+
+      element index, the shortlisted subtrees, the annotations and a marked up
+
+      snapshot by upload id). The answer is a list of operations the editor
+
+      applies, reviews and saves itself; nothing here reads or writes the map.
+
+      One job is one vendor call, long polled through `jobs/:id` as signage is.'
+    post:
+      summary: 'record what the person did with the answer: which ops were applied
+        or'
+      description: 'record what the person did with the answer: which ops were applied
+        or
+
+        rejected and why, and the upload the saved map became'
+      tags:
+      - MapAI
+      operationId: PlaceOS::Api::MapAI_resolve
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOS.Api.MapAI.ResolveParams'
+        required: true
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.MapAI.JobResponse'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/maps/ai/usage:
+    summary: AI editing of a level's SVG map, with the signage AI provider rows.
+    description: 'AI editing of a level''s SVG map, with the signage AI provider rows.
+
+
+      The editor posts the instruction and the context it built from the map (the
+
+      element index, the shortlisted subtrees, the annotations and a marked up
+
+      snapshot by upload id). The answer is a list of operations the editor
+
+      applies, reviews and saves itself; nothing here reads or writes the map.
+
+      One job is one vendor call, long polled through `jobs/:id` as signage is.'
+    get:
+      summary: map edit spend per provider and model
+      tags:
+      - MapAI
+      operationId: PlaceOS::Api::MapAI_usage
+      parameters:
+      - name: from
+        in: query
+        description: unix seconds, defaults to 30 days ago
+        schema:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+      - name: to
+        in: query
+        description: unix seconds, defaults to now
+        schema:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS.Model.SignageAIJob.UsageRow'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
   /api/engine/v2/metadata/{name}/bulk:
     summary: Metadata, named JSON documents attached to zones, systems and users (e.g.
       floor maps, booking rules)
@@ -28844,6 +29676,14 @@ paths:
         schema:
           type: integer
           format: Int32
+      - name: kind
+        in: query
+        description: generate, edit or map_edit; the image kinds when left out
+        example: generate
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
       responses:
         "200":
           description: OK
@@ -29284,8 +30124,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
   /api/engine/v2/signage/ai/providers:
-    summary: Vendor credentials for signage image generation.
-    description: 'Vendor credentials for signage image generation.
+    summary: Vendor credentials for signage image generation and AI map editing.
+    description: 'Vendor credentials for signage image generation and AI map editing.
 
 
       The Data Stores rule: sys_admin writes, support reads. Responses never carry
@@ -29358,7 +30198,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
+                  $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-ntext_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
         "409":
           description: Conflict
           content:
@@ -29454,7 +30294,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
+                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-ntext_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
         "409":
           description: Conflict
           content:
@@ -29534,8 +30374,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
   /api/engine/v2/signage/ai/providers/{id}:
-    summary: Vendor credentials for signage image generation.
-    description: 'Vendor credentials for signage image generation.
+    summary: Vendor credentials for signage image generation and AI map editing.
+    description: 'Vendor credentials for signage image generation and AI map editing.
 
 
       The Data Stores rule: sys_admin writes, support reads. Responses never carry
@@ -29558,7 +30398,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
+                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-ntext_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
         "409":
           description: Conflict
           content:
@@ -29660,7 +30500,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
+                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-ntext_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
         "409":
           description: Conflict
           content:
@@ -29854,7 +30694,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
+                $ref: '#/components/schemas/NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-ntext_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c'
         "409":
           description: Conflict
           content:
@@ -29934,8 +30774,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
   /api/engine/v2/signage/ai/providers/{id}/test:
-    summary: Vendor credentials for signage image generation.
-    description: 'Vendor credentials for signage image generation.
+    summary: Vendor credentials for signage image generation and AI map editing.
+    description: 'Vendor credentials for signage image generation and AI map editing.
 
 
       The Data Stores rule: sys_admin writes, support reads. Responses never carry
@@ -29947,7 +30787,9 @@ paths:
       description: 'Prove a row''s credentials work, without leaving anything behind:
         one small
 
-        image, discarded.'
+        image, discarded, or with `kind=text` one tiny chat completion against the
+
+        row''s text model.'
       tags:
       - SignageAIProviders
       operationId: PlaceOS::Api::SignageAIProviders_test
@@ -29958,6 +30800,12 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: kind
+        in: query
+        description: image (the default) or text
+        example: text
+        schema:
+          type: string
       responses:
         "200":
           description: OK
@@ -45637,6 +46485,243 @@ components:
           anyOf:
           - type: "null"
           - $ref: '#/components/schemas/PlaceOS.Model.Zone'
+    PlaceOS.Api.MapAI.Capabilities:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        reason:
+          anyOf:
+          - type: "null"
+          - type: string
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaceOS.Api.Llm.ProviderCapabilities'
+        default_provider_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        quota:
+          type: object
+          properties:
+            user_remaining_today:
+              anyOf:
+              - type: integer
+                format: Int32
+              - type: "null"
+            domain_remaining_month:
+              anyOf:
+              - type: integer
+                format: Int32
+              - type: "null"
+        limits:
+          type: object
+          properties:
+            max_context_bytes:
+              type: integer
+              format: Int32
+            max_ops:
+              type: integer
+              format: Int32
+            max_instruction_chars:
+              type: integer
+              format: Int32
+          required:
+          - max_context_bytes
+          - max_ops
+          - max_instruction_chars
+      required:
+      - enabled
+      - providers
+      - quota
+      - limits
+    PlaceOS.Api.MapAI.EditParams:
+      type: object
+      properties:
+        zone_id:
+          type: string
+        instruction:
+          type: string
+        context:
+          anyOf:
+          - type: object
+          - type: "null"
+        markup_upload_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        parent_job_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: "null"
+        provider_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: "null"
+        model:
+          anyOf:
+          - type: "null"
+          - type: string
+        idempotency_key:
+          anyOf:
+          - type: "null"
+          - type: string
+      required:
+      - zone_id
+      - instruction
+    PlaceOS.Api.MapAI.JobResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+        kind:
+          type: string
+        zone_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        provider:
+          anyOf:
+          - type: "null"
+          - type: string
+        model:
+          anyOf:
+          - type: "null"
+          - type: string
+        parent_job_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        version:
+          type: integer
+          format: Int32
+        instruction:
+          anyOf:
+          - type: "null"
+          - type: string
+        markup_upload_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        schema_version:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+        summary:
+          anyOf:
+          - type: "null"
+          - type: string
+        ops:
+          type: array
+          items:
+            type: object
+        questions:
+          type: array
+          items:
+            type: object
+        usage:
+          anyOf:
+          - type: object
+          - type: "null"
+        resolution:
+          anyOf:
+          - type: object
+          - type: "null"
+        error_kind:
+          anyOf:
+          - type: "null"
+          - type: string
+        error_message:
+          anyOf:
+          - type: "null"
+          - type: string
+        cost_units:
+          anyOf:
+          - type: number
+            format: Float64
+          - type: "null"
+        latency_ms:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+        created_at:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+        finished_at:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+      required:
+      - id
+      - state
+      - kind
+      - version
+      - ops
+      - questions
+    PlaceOS.Api.MapAI.ResolveParams:
+      type: object
+      properties:
+        decision:
+          type: string
+        accepted_op_ids:
+          type: array
+          items:
+            type: string
+        rejected_op_ids:
+          type: array
+          items:
+            type: string
+        reasons:
+          anyOf:
+          - type: object
+          - type: "null"
+        saved_upload_id:
+          anyOf:
+          - type: "null"
+          - type: string
+      required:
+      - decision
+      - accepted_op_ids
+      - rejected_op_ids
+    PlaceOS.Model.SignageAIJob.UsageRow:
+      type: object
+      properties:
+        kind:
+          type: string
+        provider:
+          type: string
+        model:
+          type: string
+        jobs:
+          type: integer
+          format: Int64
+        candidates:
+          type: integer
+          format: Int64
+        images_produced:
+          type: integer
+          format: Int64
+        cost_units:
+          type: number
+          format: Float64
+      required:
+      - kind
+      - provider
+      - model
+      - jobs
+      - candidates
+      - images_produced
+      - cost_units
     PlaceOS.Api.Metadata.Children:
       type: object
       properties:
@@ -46351,32 +47436,6 @@ components:
       required:
       - upload_id
       - item_id
-    PlaceOS.Model.SignageAIJob.UsageRow:
-      type: object
-      properties:
-        provider:
-          type: string
-        model:
-          type: string
-        jobs:
-          type: integer
-          format: Int64
-        candidates:
-          type: integer
-          format: Int64
-        images_produced:
-          type: integer
-          format: Int64
-        cost_units:
-          type: number
-          format: Float64
-      required:
-      - provider
-      - model
-      - jobs
-      - candidates
-      - images_produced
-      - cost_units
     PlaceOS.Api.SignageAIProviders.ProviderParams:
       type: object
       properties:
@@ -46405,6 +47464,10 @@ components:
           - type: "null"
           - type: string
         default_model:
+          anyOf:
+          - type: "null"
+          - type: string
+        text_model:
           anyOf:
           - type: "null"
           - type: string
@@ -48210,10 +49273,10 @@ components:
       required:
       - error
       - kind
-      description: 'Signage AI image generation. `kind` lets a client branch without
-        matching
+      description: 'Signage AI image generation and map AI editing. `kind` lets a
+        client
 
-        on message text.'
+        branch without matching on message text.'
     PlaceOS.Api.Application.ValidationError:
       type: object
       properties:
@@ -48522,6 +49585,22 @@ components:
       - landscape
       - portrait
       - square
+    PlaceOS.Api.Llm.ProviderCapabilities:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        provider:
+          type: string
+        text_model:
+          type: string
+      required:
+      - id
+      - name
+      - provider
+      - text_model
     PlaceOS.Api.MicrosoftNotification.ChangeNotification:
       type: object
       properties:
@@ -49291,7 +50370,7 @@ components:
           type: string
       required:
       - commit_hash
-    ? NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c
+    ? NamedTuple-oid-u00003A-u000020String-nname-u00003A-u000020String-nprovider-u00003A-u000020String-nauthority_id-u00003A-u000020String-pNil-nendpoint-u00003A-u000020String-pNil-nlocation-u00003A-u000020String-pNil-ndefault_model-u00003A-u000020String-pNil-ntext_model-u00003A-u000020String-pNil-nallowed_models-u00003A-u000020Array-oString-c-nenabled-u00003A-u000020Bool-nis_default-u00003A-u000020Bool-nquotas-u00003A-u000020JSON.Any-ncreated_at-u00003A-u000020Int64-nupdated_at-u00003A-u000020Int64-c
     : type: object
       properties:
         id:
@@ -49313,6 +50392,10 @@ components:
           - type: "null"
           - type: string
         default_model:
+          anyOf:
+          - type: "null"
+          - type: string
+        text_model:
           anyOf:
           - type: "null"
           - type: string
