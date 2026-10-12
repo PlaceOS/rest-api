@@ -146,6 +146,7 @@
 
 ### Fix
 
+- **params**: accept JSON arrays for comma separated list params
 - **signage**: samsung eink content duration
 - **ms-token-exchange**: improve security
 - **docker-compose**: pull MinIO images from quay.io
