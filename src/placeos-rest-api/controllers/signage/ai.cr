@@ -397,8 +397,8 @@ module PlaceOS::Api
 
     private def remaining_quota(row : ::PlaceOS::Model::SignageAIProvider?)
       user_limit, domain_limit = quotas_for(row)
-      used_today = ::PlaceOS::Model::SignageAIJob.sum_candidates(current_user.id.as(String), 1.day.ago)
-      used_month = ::PlaceOS::Model::SignageAIJob.sum_candidates_for_authority(authority.id.as(String), 30.days.ago)
+      used_today = ::PlaceOS::Model::SignageAIJob.sum_candidates(current_user.id.as(String), 1.day.ago, ::PlaceOS::Model::SignageAIJob::Kind.image)
+      used_month = ::PlaceOS::Model::SignageAIJob.sum_candidates_for_authority(authority.id.as(String), 30.days.ago, ::PlaceOS::Model::SignageAIJob::Kind.image)
 
       {
         user_remaining_today:   Math.max(0, user_limit - used_today),
@@ -528,9 +528,9 @@ module PlaceOS::Api
       end
 
       user_limit, domain_limit = quotas_for(row)
-      used_today = ::PlaceOS::Model::SignageAIJob.sum_candidates(current_user.id.as(String), 1.day.ago)
+      used_today = ::PlaceOS::Model::SignageAIJob.sum_candidates(current_user.id.as(String), 1.day.ago, ::PlaceOS::Model::SignageAIJob::Kind.image)
       raise Error::ImageGen::Quota.new("you have used your image allowance for today") if used_today + candidates > user_limit
-      used_month = ::PlaceOS::Model::SignageAIJob.sum_candidates_for_authority(authority.id.as(String), 30.days.ago)
+      used_month = ::PlaceOS::Model::SignageAIJob.sum_candidates_for_authority(authority.id.as(String), 30.days.ago, ::PlaceOS::Model::SignageAIJob::Kind.image)
       raise Error::ImageGen::Quota.new("this domain has used its image allowance for the month") if used_month + candidates > domain_limit
 
       adapter = ImageGen::Adapter.for(row)

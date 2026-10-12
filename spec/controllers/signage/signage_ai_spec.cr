@@ -38,8 +38,9 @@ module PlaceOS::Api
         _, _, provider = setup_signage_ai(quotas: {"user_per_day" => JSON::Any.new(5_i64)})
         user, headers = Spec::Authentication.authentication
 
-        # two candidates already spent today
+        # two candidates already spent today; map edits are a separate allowance
         Model::Generator.signage_ai_job(user: user, provider: provider, candidates: 2).save!
+        Model::Generator.signage_ai_job(user: user, provider: provider, candidates: 1, kind: Model::SignageAIJob::Kind::MapEdit).save!
 
         result = client.get(File.join(base, "capabilities"), headers: headers)
         result.status_code.should eq 200
@@ -257,6 +258,24 @@ module PlaceOS::Api
 
         result.status_code.should eq 429
         JSON.parse(result.body)["kind"].as_s.should eq "quota"
+      end
+
+      it "does not count map edit jobs against the image allowance" do
+        _, _, provider = setup_signage_ai(quotas: {"user_per_day" => JSON::Any.new(1_i64)})
+        user, headers = Spec::Authentication.authentication
+        Model::Generator.signage_ai_job(user: user, provider: provider, candidates: 1, kind: Model::SignageAIJob::Kind::MapEdit).save!
+
+        HttpMocks.signage_ai_vendor
+        HttpMocks.signage_ai_storage
+
+        result = client.post(
+          File.join(base, "generate"),
+          headers: headers,
+          body: {prompt: "a poster", candidates: 1}.to_json,
+        )
+
+        result.status_code.should eq 202
+        await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)["state"].as_s.should eq "done"
       end
 
       it "records a vendor refusal against the job as a moderation failure" do
