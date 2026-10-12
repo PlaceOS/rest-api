@@ -18,6 +18,7 @@ module PlaceOS::Api
   @[AC::MCP(hide: true)]
   class SignageAI < Application
     include Utils::GroupPermissions
+    include Utils::AIJobs
 
     base "/api/engine/v2/signage/ai"
 
@@ -34,9 +35,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:show_job, :cancel, :claim])]
     def find_current_job(id : UUID)
       Log.context.set(signage_ai_job: id.to_s)
-      job = ::PlaceOS::Model::SignageAIJob.find!(id)
-      raise Error::NotFound.new("no such job") unless job.authority_id == authority.id
-      @current_job = job
+      @current_job = authority_job(id, authority.id.as(String))
     end
 
     getter! current_job : ::PlaceOS::Model::SignageAIJob
@@ -254,21 +253,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the version the caller already has", example: "3")]
       since : Int32? = nil,
     ) : JobResponse
-      job = current_job
-      return JobResponse.new(job) if wait <= 0 || job.final?
-
-      deadline = Time.utc + Math.min(wait, MAX_WAIT).seconds
-      known = since || job.version
-
-      while Time.utc < deadline
-        sleep POLL_INTERVAL
-        fresh = on_primary { ::PlaceOS::Model::SignageAIJob.find?(job.id.as(UUID)) }
-        next if fresh.nil?
-        job = fresh
-        break if job.version > known || job.final?
-      end
-
-      JobResponse.new(job)
+      JobResponse.new(await_job_change(current_job, wait, since))
     end
 
     # the caller's recent jobs, for the recent generations list
@@ -277,10 +262,23 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "only the caller's own jobs", example: "true")]
       mine : Bool = true,
       limit : Int32 = 20,
+      @[AC::Param::Info(description: "generate, edit or map_edit; the image kinds when left out", example: "generate")]
+      kind : String? = nil,
     ) : Array(JobResponse)
       limit = limit.clamp(1, 100)
 
-      query = ::PlaceOS::Model::SignageAIJob.where(authority_id: authority.id.as(String))
+      kinds = if kind
+                parsed = ::PlaceOS::Model::SignageAIJob::Kind.parse?(kind)
+                raise Error::ModelValidation.new([Error::Field.new(:kind, "must be one of generate, edit, map_edit")]) if parsed.nil?
+                [parsed]
+              else
+                ::PlaceOS::Model::SignageAIJob::Kind.image
+              end
+      labels = kinds.map { |entry| ::PlaceOS::Model::SignageAIJob.kind_label(entry) }
+
+      query = ::PlaceOS::Model::SignageAIJob
+        .where(authority_id: authority.id.as(String))
+        .where("kind IN (#{labels.map { "?" }.join(", ")})", args: labels.map(&.as(::PgORM::Value)))
       if mine
         query = query.where(user_id: current_user.id.as(String))
       else
@@ -370,9 +368,6 @@ module PlaceOS::Api
 
     # Internals
     ###############################################################################################
-
-    MAX_WAIT      = 25
-    POLL_INTERVAL = 500.milliseconds
 
     private def disabled(reason : String) : Capabilities
       Capabilities.new(
