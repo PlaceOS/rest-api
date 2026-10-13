@@ -71,6 +71,12 @@ module PlaceOS::Api::Llm
         existing = converted.as_h["$defs"]?.try(&.as_h?) || {} of String => JSON::Any
         converted.as_h["$defs"] = JSON::Any.new(existing.merge(definitions))
       end
+      # Empty target strings are treated as absent by both operation validators.
+      if target = converted["$defs"]?.try(&.["target"]?)
+        target["properties"].as_h.each_key do |key|
+          target["properties"].as_h[key] = JSON.parse(%({"type":"string","description":"Use an empty string when this target field is not needed."}))
+        end
+      end
       converted
     end
 

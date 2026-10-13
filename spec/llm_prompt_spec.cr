@@ -196,6 +196,9 @@ module PlaceOS::Api
       variants[0]["properties"]["value"]["$ref"].should eq variants[5]["properties"]["new_id"]["$ref"]
       union_count(schema).should be <= 16
       schema["$defs"]["name_value"].should eq Llm::Schema.openai["$defs"]["name_value"]
+      schema["$defs"]["target"]["properties"].as_h.each_value do |field|
+        field["type"].as_s.should eq "string"
+      end
     end
 
     it "derives the vocabulary from the schema" do
@@ -298,6 +301,10 @@ module PlaceOS::Api
     it "flags the ops that fail a check, by id, and leaves every op as it came" do
       cases = [
         { %({"op":"set_attr","target":{"a":"e2","id":"area-1.01-status","h":"b2b2b2b2"},"name":"fill","value":"#90ee90","why":"w"}), nil },
+        { %({"op":"set_attr","target":{"a":"e2","id":"","h":""},"name":"fill","value":"#90ee90","why":"w"}), nil },
+        { %({"op":"set_attr","target":{"a":"","id":"area-1.01-status","h":"b2b2b2b2"},"name":"fill","value":"#90ee90","why":"w"}), nil },
+        { %({"op":"set_attr","target":{"a":"","id":"","h":""},"name":"fill","value":"#90ee90","why":"w"}), "target names neither an anchor nor an id" },
+        { %({"op":"set_attr","target":{"a":"e2","id":"","h":"stale"},"name":"fill","value":"#90ee90","why":"w"}), "the element changed since the index was built (hash mismatch)" },
         { %({"op":"set_attr","target":{"a":"e99","id":null,"h":null},"name":"fill","value":"#90ee90","why":"w"}), "anchor e99 is not in the index" },
         { %({"op":"set_attr","target":{"a":"e2","id":"table-01.004","h":null},"name":"fill","value":"#000","why":"w"}), "anchor e2 and id table-01.004 are different elements" },
         { %({"op":"set_attr","target":{"a":"e2","id":null,"h":"stale"},"name":"fill","value":"#000","why":"w"}), "the element changed since the index was built (hash mismatch)" },
