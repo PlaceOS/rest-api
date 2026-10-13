@@ -107,6 +107,32 @@ module PlaceOS::Api
         body = JSON.parse(client.get(File.join(base, "capabilities"), headers: Spec::Authentication.headers).body)
         body["providers"].as_a.first["text_model"].as_s.should eq MAP_AI_DEFAULT_OPENAI_MODEL
       end
+
+      it "lists the text models each provider can run, the row's own first" do
+        authority, _, provider = setup_signage_ai
+        provider.text_model = "gpt-5.4-mini-custom"
+        provider.save!
+        Model::Generator.signage_ai_provider(
+          authority: authority,
+          name: "claude-#{random_name}",
+          provider: Model::SignageAIProvider::Provider::ANTHROPIC,
+        ).save!
+
+        body = JSON.parse(client.get(File.join(base, "capabilities"), headers: Spec::Authentication.headers).body)
+        body["enabled"].as_bool.should be_true
+        body["default_provider_id"].as_s.should eq provider.id.to_s
+        providers = body["providers"].as_a
+        providers.size.should eq 2
+
+        openai = providers.find { |entry| entry["provider"].as_s == "OPENAI" }.not_nil!
+        openai["text_model"].as_s.should eq "gpt-5.4-mini-custom"
+        openai["text_models"].as_a.map(&.as_s).should eq ["gpt-5.4-mini-custom"] + MAP_AI_OPENAI_MODELS
+
+        claude = providers.find { |entry| entry["provider"].as_s == "ANTHROPIC" }.not_nil!
+        claude["text_model"].as_s.should eq MAP_AI_DEFAULT_ANTHROPIC_MODEL
+        claude["text_models"].as_a.map(&.as_s).should eq MAP_AI_ANTHROPIC_MODELS
+        claude["text_models"].as_a.map(&.as_s).should contain "claude-fable-5-1"
+      end
     end
 
     describe "edit" do
@@ -390,6 +416,143 @@ module PlaceOS::Api
         requests.size.should eq 2
         requests[0]["reasoning_effort"].as_s.should eq "low"
         requests[1]["reasoning_effort"]?.should be_nil
+      end
+
+      it "edits through an Anthropic provider with the model the editor chose" do
+        authority, _, _ = setup_signage_ai
+        claude = Model::Generator.signage_ai_provider(
+          authority: authority,
+          name: "claude-#{random_name}",
+          provider: Model::SignageAIProvider::Provider::ANTHROPIC,
+        ).save!
+        _, headers = Spec::Authentication.authentication
+        level = map_ai_level
+        requests = [] of JSON::Any
+        seen = [] of HTTP::Headers
+
+        HttpMocks.map_ai_anthropic(MAP_AI_ANSWER, requests: requests, headers: seen)
+        HttpMocks.signage_ai_vendor
+
+        result = client.post(
+          File.join(base, "edit"),
+          headers: headers,
+          body: {
+            zone_id:     level.id,
+            instruction: "Make meeting room 1.01 light green.",
+            context:     map_ai_context,
+            provider_id: claude.id.to_s,
+            model:       "claude-fable-5-1",
+          }.to_json,
+        )
+        result.status_code.should eq 202
+        accepted = JSON.parse(result.body)
+        accepted["provider"].as_s.should eq "ANTHROPIC"
+        accepted["model"].as_s.should eq "claude-fable-5-1"
+
+        final = await_signage_ai_job(base, accepted["id"].as_s, headers)
+        final["state"].as_s.should eq "done"
+        final["summary"].as_s.should eq "Recoloured Meeting 1.01 light green."
+        final["ops"].as_a.size.should eq 1
+        final["usage"]["model"].as_s.should eq "claude-fable-5-1"
+        final["usage"]["served_by"].as_s.should eq "claude-fable-5-1"
+        final["usage"]["total_tokens"].as_i.should eq 1590
+        final["cost_units"].as_f.should eq 1590.0
+
+        requests.size.should eq 1
+        sent = requests.first
+        sent["model"].as_s.should eq "claude-fable-5-1"
+        sent["max_tokens"].as_i.should eq MAP_AI_MAX_OUTPUT_TOKENS
+        sent["system"].as_s.should contain "You edit SVG floor-plan maps"
+        sent["output_config"]["format"]["type"].as_s.should eq "json_schema"
+        sent["output_config"]["format"]["schema"].should eq Llm::Schema.openai
+        sent["output_config"]["effort"].as_s.should eq MAP_AI_ANTHROPIC_EFFORT
+        sent["fallbacks"].as_s.should eq "default"
+        sent["thinking"]?.should be_nil
+        sent["temperature"]?.should be_nil
+        sent["response_format"]?.should be_nil
+        messages = sent["messages"].as_a
+        messages.size.should eq 1
+        messages.first["role"].as_s.should eq "user"
+        parts = messages.first["content"].as_a
+        parts.first["type"].as_s.should eq "text"
+        parts.first["text"].as_s.should contain "e2 | area-1.01-status"
+        parts.last["text"].as_s.should end_with "INSTRUCTION\nMake meeting room 1.01 light green."
+
+        seen.size.should eq 1
+        seen.first["x-api-key"].should eq "test-key"
+        seen.first["anthropic-version"].should eq "2023-06-01"
+        seen.first["anthropic-beta"].should eq "server-side-fallback-2026-07-01"
+        seen.first["Authorization"]?.should be_nil
+      end
+
+      it "sends no fallbacks to a model that takes none, and drops them when one rejects them" do
+        authority, _, _ = setup_signage_ai
+        claude = Model::Generator.signage_ai_provider(
+          authority: authority,
+          name: "claude-#{random_name}",
+          provider: Model::SignageAIProvider::Provider::ANTHROPIC,
+        ).save!
+        _, headers = Spec::Authentication.authentication
+        level = map_ai_level
+        requests = [] of JSON::Any
+        seen = [] of HTTP::Headers
+
+        HttpMocks.map_ai_anthropic(MAP_AI_ANSWER, requests: requests, headers: seen)
+        HttpMocks.signage_ai_vendor
+
+        result = client.post(
+          File.join(base, "edit"),
+          headers: headers,
+          body: {zone_id: level.id, instruction: "x", context: map_ai_context, provider_id: claude.id.to_s, model: "claude-haiku-5-5"}.to_json,
+        )
+        final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
+        final["state"].as_s.should eq "done"
+        requests.size.should eq 1
+        requests.first["fallbacks"]?.should be_nil
+        seen.first["anthropic-beta"]?.should be_nil
+
+        requests.clear
+        WebMock.reset
+        HttpMocks.map_ai_anthropic_no_fallbacks(MAP_AI_ANSWER, requests)
+        HttpMocks.signage_ai_vendor
+
+        result = client.post(
+          File.join(base, "edit"),
+          headers: headers,
+          body: {zone_id: level.id, instruction: "x", context: map_ai_context, provider_id: claude.id.to_s, model: "claude-opus-5-5"}.to_json,
+        )
+        final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
+        final["state"].as_s.should eq "done"
+        requests.size.should eq 2
+        requests.first["fallbacks"].as_s.should eq "default"
+        requests.last["fallbacks"]?.should be_nil
+        final["usage"]["attempts"].as_i.should eq 1
+      end
+
+      it "records an Anthropic refusal as a moderation failure" do
+        authority, _, _ = setup_signage_ai
+        claude = Model::Generator.signage_ai_provider(
+          authority: authority,
+          name: "claude-#{random_name}",
+          provider: Model::SignageAIProvider::Provider::ANTHROPIC,
+        ).save!
+        _, headers = Spec::Authentication.authentication
+        level = map_ai_level
+
+        HttpMocks.map_ai_anthropic_refused
+        HttpMocks.signage_ai_vendor
+
+        result = client.post(
+          File.join(base, "edit"),
+          headers: headers,
+          body: {zone_id: level.id, instruction: "x", context: map_ai_context, provider_id: claude.id.to_s}.to_json,
+        )
+        result.status_code.should eq 202
+        JSON.parse(result.body)["model"].as_s.should eq MAP_AI_DEFAULT_ANTHROPIC_MODEL
+        final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
+        final["state"].as_s.should eq "failed"
+        final["error_kind"].as_s.should eq "moderation"
+        final["error_message"].as_s.should eq "This request was declined."
       end
 
       it "answers 429 by the map quota, not the image quota" do

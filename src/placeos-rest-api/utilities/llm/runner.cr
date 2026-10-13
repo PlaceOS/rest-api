@@ -53,6 +53,7 @@ module PlaceOS::Api::Llm
           model: context.model,
           history: context.history,
           image: markup_image(context.markup_upload_id),
+          reasoning_effort: context.adapter.default_effort,
         ))
 
         answer = context.adapter.complete(request)
@@ -110,7 +111,9 @@ module PlaceOS::Api::Llm
       ImagePart.new(bytes: reference.bytes, mime: reference.mime)
     end
 
-    # Token counts summed over every attempt; `finish` is the last attempt's.
+    # Token counts summed over every attempt; `finish` and `served_by` are the
+    # last attempt's, the latter the model that answered when it was not the
+    # one asked for.
     private def self.usage_of(results : Array(Result), model : String) : Hash(String, JSON::Any)
       {
         "input_tokens"  => JSON::Any.new(sum_tokens(results, &.input_tokens)),
@@ -119,6 +122,7 @@ module PlaceOS::Api::Llm
         "finish"        => JSON::Any.new(results.last?.try(&.finish)),
         "attempts"      => JSON::Any.new(results.size.to_i64),
         "model"         => JSON::Any.new(model),
+        "served_by"     => JSON::Any.new(results.last?.try(&.model) || model),
       }
     end
 

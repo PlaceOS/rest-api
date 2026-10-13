@@ -29,14 +29,16 @@ module PlaceOS::Api::Llm
   end
 
   # One answer back from a vendor. `finish` is the vendor's stop reason,
-  # normalised to stop, length or other.
+  # normalised to stop, length or other; `model` is the model that answered
+  # when the vendor says.
   record Result,
     text : String,
     finish : String,
     input_tokens : Int64? = nil,
     output_tokens : Int64? = nil,
     total_tokens : Int64? = nil,
-    vendor_id : String? = nil do
+    vendor_id : String? = nil,
+    model : String? = nil do
     def usage : Hash(String, JSON::Any)
       {
         "input_tokens"  => JSON::Any.new(input_tokens),
@@ -54,8 +56,9 @@ module PlaceOS::Api::Llm
     getter name : String
     getter provider : String
     getter text_model : String
+    getter text_models : Array(String)
 
-    def initialize(@id, @name, @provider, @text_model)
+    def initialize(@id, @name, @provider, @text_model, @text_models = [@text_model])
     end
   end
 end

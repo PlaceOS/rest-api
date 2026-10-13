@@ -22,11 +22,15 @@ module PlaceOS::Api::Llm
     SYSTEM = <<-TEXT
       You edit SVG floor-plan maps for a workplace platform by returning a list of operations; the application applies them to the SVG document, never you.
 
-      You are given an index of the map's elements (one line each), the markup of a few shortlisted elements, sometimes a snapshot image of the map, and an instruction. Anchors are the first column of the index; the id column is the element's id when it has one. The inside column names the smallest room, desk or zone whose box contains the element. The snapshot shows the map as the person sees it, with the ids of the larger rooms and zones printed at their top-left corner and the person's annotations drawn on it.
+      You are given an index of the map's elements (one line each), the labels the application found, the markup of a few shortlisted elements, sometimes a snapshot image of the map, and an instruction. Anchors are the first column of the index; the id column is the element's id when it has one. The inside column names the smallest room, desk or zone whose box contains the element. The snapshot shows the map as the person sees it, with the ids of the larger rooms and zones printed at their top-left corner and the person's annotations drawn on it.
 
       Names and ids: rooms, desks, bays and lockers carry their number in their id (area-1.03-status is room 1.03, table-01.004 is desk 01.004, park-100 is bay 100). A name in the instruction such as "Boardroom 1.03" or "desk 01.004" identifies the element whose id carries that number; the words around the number are the label painted on the map, which the snapshot shows.
 
-      Labels: most labels are outlined into anonymous path elements, one per letter. The LABELS section lists each outlined label the application found: the element it sits in, its glyph anchors in reading order, its box and fill; the index marks those elements kind glyph. The snapshot shows what each label says. To rename an outlined label: delete every glyph anchor of that label, then insert_shape a text element with the new words, after the label's last glyph (the application puts it where the glyphs were), text-anchor middle, x at the centre of the label's box, y at the baseline of the first line (the box's top plus the font size), font-size equal to the box height divided by the number of rows, font-family sans-serif, font-weight bold and the label's fill. Keep the label's rows: separate lines with a newline character in text and the application lays them out one under the other. When the label is a real text element, use set_text, with newlines for its lines.
+      Labels: the LABELS section lists every label the application found, of two kinds. A text label is a real text element and its line shows its words: rename it with set_text on that element, keeping its lines (a newline character between lines), and never delete it to insert another. An outlined label is a word drawn as anonymous path elements, one per letter: its line shows the element it sits in (- when it is outside every room), its glyph anchors in reading order, its box and fill; the index marks those elements kind glyph, and the snapshot shows what the label says. To rename an outlined label: delete every glyph anchor of that label, then insert_shape a text element with the new words, after the label's last glyph (the application puts it where the glyphs were), text-anchor middle, x at the centre of the label's box, y at the baseline of the first line (the box's top plus the font size), font-size equal to the box height divided by the number of rows, font-family sans-serif, font-weight bold and the label's fill. Keep the label's rows: separate lines with a newline character in text and the application lays them out one under the other.
+
+      Finding a label by its words: when the instruction quotes words rather than a number ("Kitchen", "Back Entry/Exit"), look for a text label with those words first; otherwise read the snapshot to see which outlined label shows them, matching each label's box to where the words are drawn. A label inside a room names that room; a label in a corridor or open area names the space around it. Act only on the label whose words match, never on another label nearby.
+
+      Places: the regions line gives the thirds of the map, so "the top middle of the map" is the top third, horizontally the middle third. The same thirds apply inside a room's box ("the top middle of the Studio"). A copy asked for at a place is offset by the target's centre minus the element's centre so it lands in that region, and stays inside the room's box.
 
       Rules:
       - Refer to elements only by anchor or id exactly as they appear in the index, as a target object {"a": anchor, "id": id, "h": hash}. Never invent anchors or ids. Never estimate the coordinates of an existing element.
@@ -37,9 +41,11 @@ module PlaceOS::Api::Llm
       - set_text only works on text or tspan elements; outlined labels are renamed as described above, never with set_text.
       - Chairs, plants and other furniture are anonymous shapes inside the room; find them by the inside column, their tag and fill, and their box. "The desk on the left in room 1.03" is the desk (table-... id) inside area-1.03-status with the smallest x.
       - A drawn object is usually several sibling elements stacked on one spot (a chair: its shadow, its seat and a stroke-only outline). Elements that share a piece value are the layers of one object: delete, move or copy every element of the piece together, with the same offset. A chair at a desk is one piece next to the desk's box; to add chairs, duplicate a whole piece per chair.
+      - Desks come in runs. To add desks beside existing ones, duplicate the desk nearest the new position (its table-... element and the chair pieces beside it, all by one offset per new desk); the offset is the spacing between the two nearest desks of that run, so the copies continue the run on the side asked for, and new ids continue the neighbours' numbering (table-01.012 after table-01.011). Copy the desk next to where the new ones go, never a desk in another room, and keep the copies inside the room.
+      - A room is bookable when a rect or path with an area-<number>-status id lies over it, in the same parent as the other area-* elements. To make a room bookable, insert_shape such a rect into that parent covering the room (the extent of its walls, or of its label and furniture), with the class and attributes of a neighbouring area-* element and an id following their pattern.
       - Ids marked protected are bound to bookings; delete, rename or hide them only when the instruction asks for exactly that.
       - Act on the best-supported reading and say in why what you took the words to mean. Return a single ask op only when no element carries the number the instruction names, when several do and nothing else separates them, or when a needed position cannot be derived from any element. When an instruction has several parts, do every part you can and name the rest in summary. If nothing needs to change, return no_change.
-      - Every op carries a one-sentence why that names the element's label. summary is one sentence for the person. questions is usually empty.
+      - Every op carries a one-sentence why that names the element's label. summary is one sentence for the person stating only what the ops do, and names any part of the instruction that was not done. questions is usually empty.
       Coordinates: user units of the viewBox; x grows to the right, y grows downward.
 
       Fields each operation carries, besides op and why:
@@ -59,7 +65,8 @@ module PlaceOS::Api::Llm
       history : Array(Turn) = [] of Turn,
       image : ImagePart? = nil,
       max_output_tokens : Int32 = MAP_AI_MAX_OUTPUT_TOKENS,
-      schema : JSON::Any? = Schema.openai
+      schema : JSON::Any? = Schema.openai,
+      reasoning_effort : String? = "low"
 
     def self.build(options : Options) : Request
       context = options.context
@@ -89,6 +96,7 @@ module PlaceOS::Api::Llm
         max_output_tokens: options.max_output_tokens,
         schema: options.schema,
         schema_name: Schema::OPENAI_NAME,
+        reasoning_effort: options.reasoning_effort,
       )
     end
 
@@ -100,6 +108,11 @@ module PlaceOS::Api::Llm
         if (view_box = context["viewBox"]?.try(&.as_a?))
           text << "viewBox: " << view_box.map { |value| number(value) }.join(' ')
           text << " (all coordinates in these user units, origin top-left)\n"
+          if view_box.size == 4
+            x, y, w, h = view_box.map { |value| value.as_f? || value.as_i64?.try(&.to_f) || 0.0 }
+            text << "regions (thirds of the map): left x<" << number(x + w / 3) << ", middle, right x>" << number(x + 2 * w / 3)
+            text << "; top y<" << number(y + h / 3) << ", middle, bottom y>" << number(y + 2 * h / 3) << '\n'
+          end
         end
         if (image_px = context["image_px"]?.try(&.as_a?)) && (units = context["units_per_px"]?)
           text << "snapshot: " << image_px.map { |value| number(value) }.join('x')
@@ -142,17 +155,23 @@ module PlaceOS::Api::Llm
 
         labels = context["labels"]?.try(&.as_a?) || [] of JSON::Any
         unless labels.empty?
-          text << "\nLABELS (outlined; glyph anchors in reading order, the words are on the snapshot)\n"
-          labels.each do |label|
-            hash = label.as_h? || {} of String => JSON::Any
-            anchors = hash["anchors"]?.try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
-            bbox = hash["bbox"]?.try(&.as_a?).try(&.map { |value| number(value) }.join(' ')) || "-"
-            text << "inside " << (hash["in"]?.try(&.as_s?) || "-")
-            text << ": " << anchors.size << " glyphs " << anchors.join(' ')
-            text << " | bbox " << bbox
-            text << " | fill " << (hash["fill"]?.try(&.as_s?) || "-") << '\n'
-          end
+          text << "\nLABELS (text labels show their words; outlined labels list glyph anchors in reading order and their words are on the snapshot)\n"
+          labels.each { |label| text << label_line(label) << '\n' }
         end
+      end
+    end
+
+    private def self.label_line(label : JSON::Any) : String
+      hash = label.as_h? || {} of String => JSON::Any
+      anchors = hash["anchors"]?.try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
+      bbox = hash["bbox"]?.try(&.as_a?).try(&.map { |value| number(value) }.join(' ')) || "-"
+      inside = hash["in"]?.try(&.as_s?).presence || "-"
+      fill = hash["fill"]?.try(&.as_s?).presence || "-"
+      if hash["kind"]?.try(&.as_s?) == "text"
+        words = (hash["text"]?.try(&.as_s?) || "").gsub('\n', " / ").gsub('"', "'")
+        %(text #{anchors.first? || "-"} "#{words}" | inside #{inside} | bbox #{bbox} | fill #{fill})
+      else
+        "outlined inside #{inside}: #{anchors.size} glyphs #{anchors.join(' ')} | bbox #{bbox} | fill #{fill}"
       end
     end
 
@@ -310,6 +329,10 @@ module PlaceOS::Api::Llm
     private def self.compact_op(op : JSON::Any) : Hash(String, JSON::Any)
       hash = op.as_h? || {} of String => JSON::Any
       hash.reject { |key, value| value.raw.nil? || key == "why" }
+    end
+
+    private def self.number(value : Float64) : String
+      value == value.floor ? value.to_i64.to_s : value.round(2).to_s
     end
 
     private def self.number(value : JSON::Any) : String

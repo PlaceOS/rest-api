@@ -48,6 +48,8 @@ module PlaceOS::Api::ImageGen
         Adapters::OpenAIImages.new(row)
       in ::PlaceOS::Model::SignageAIProvider::Provider::GOOGLE_VERTEX
         Adapters::GeminiVertex.new(row)
+      in ::PlaceOS::Model::SignageAIProvider::Provider::ANTHROPIC
+        raise Error::ImageGen::NotConfigured.new("provider #{row.name} is an Anthropic row, which edits maps but does not generate images")
       end
     end
 

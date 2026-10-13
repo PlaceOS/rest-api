@@ -149,6 +149,68 @@ module PlaceOS::Api::HttpMocks
       end
   end
 
+  ANTHROPIC_MESSAGES = /api\.anthropic\.com\/v1\/messages/
+
+  def self.anthropic_message(content : String, stop_reason : String = "end_turn", model : String = "claude-opus-5-5") : String
+    {
+      id:           "msg_spec",
+      type:         "message",
+      role:         "assistant",
+      model:        model,
+      content:      [{type: "text", text: content}],
+      stop_reason:  stop_reason,
+      stop_details: nil,
+      usage:        {input_tokens: 1500, output_tokens: 90},
+    }.to_json
+  end
+
+  # The Messages API answering `content` as its text block. `requests` collects
+  # every body received and `headers` every header set, for assertions.
+  def self.map_ai_anthropic(content : String, requests : Array(JSON::Any)? = nil, headers : Array(HTTP::Headers)? = nil)
+    WebMock
+      .stub(:post, ANTHROPIC_MESSAGES)
+      .to_return do |request|
+        requests << JSON.parse(WebMock.body(request).to_s) if requests
+        headers << request.headers if headers
+        model = JSON.parse(WebMock.body(request).to_s)["model"]?.try(&.as_s?) || "claude-opus-5-5"
+        HTTP::Client::Response.new(200, anthropic_message(content, model: model), HTTP::Headers{"Content-Type" => "application/json"})
+      end
+  end
+
+  # The safety classifier declining before any output.
+  def self.map_ai_anthropic_refused
+    body = {
+      id:           "msg_spec",
+      type:         "message",
+      role:         "assistant",
+      model:        "claude-fable-5-1",
+      content:      [] of String,
+      stop_reason:  "refusal",
+      stop_details: {type: "refusal", category: "cyber", explanation: "This request was declined."},
+      usage:        {input_tokens: 1500, output_tokens: 0},
+    }.to_json
+
+    WebMock
+      .stub(:post, ANTHROPIC_MESSAGES)
+      .to_return(body: body, status: 200, headers: HTTP::Headers{"Content-Type" => "application/json"})
+  end
+
+  # A 400 naming fallbacks on the first call, the answer on the second.
+  def self.map_ai_anthropic_no_fallbacks(content : String, requests : Array(JSON::Any))
+    WebMock
+      .stub(:post, ANTHROPIC_MESSAGES)
+      .to_return do |request|
+        parsed = JSON.parse(WebMock.body(request).to_s)
+        requests << parsed
+        if parsed["fallbacks"]?
+          error = {type: "error", error: {type: "invalid_request_error", message: "fallbacks: Extra inputs are not permitted"}}.to_json
+          HTTP::Client::Response.new(400, error, HTTP::Headers{"Content-Type" => "application/json"})
+        else
+          HTTP::Client::Response.new(200, anthropic_message(content), HTTP::Headers{"Content-Type" => "application/json"})
+        end
+      end
+  end
+
   # A 400 naming reasoning_effort on the first call, the answer on the second.
   def self.map_ai_vendor_no_reasoning(content : String, requests : Array(JSON::Any))
     WebMock

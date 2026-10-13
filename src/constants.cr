@@ -84,8 +84,14 @@ module PlaceOS::Api
   MAP_AI_DOMAIN_PER_MONTH = (ENV["MAP_AI_DOMAIN_PER_MONTH"]? || "1000").to_i
 
   # used when a provider row names no text_model
-  MAP_AI_DEFAULT_OPENAI_MODEL = ENV["MAP_AI_DEFAULT_OPENAI_MODEL"]? || "gpt-5.4-mini"
-  MAP_AI_DEFAULT_VERTEX_MODEL = ENV["MAP_AI_DEFAULT_VERTEX_MODEL"]? || "gemini-3.8-flash"
+  MAP_AI_DEFAULT_OPENAI_MODEL    = ENV["MAP_AI_DEFAULT_OPENAI_MODEL"]? || "gpt-5.4-mini"
+  MAP_AI_DEFAULT_VERTEX_MODEL    = ENV["MAP_AI_DEFAULT_VERTEX_MODEL"]? || "gemini-3.8-flash"
+  MAP_AI_DEFAULT_ANTHROPIC_MODEL = ENV["MAP_AI_DEFAULT_ANTHROPIC_MODEL"]? || "claude-opus-5-5"
+  MAP_AI_ANTHROPIC_EFFORT        = ENV["MAP_AI_ANTHROPIC_EFFORT"]? || "medium"
+
+  # text models offered in the editor's picker besides the row's own, comma separated
+  MAP_AI_OPENAI_MODELS    = (ENV["MAP_AI_OPENAI_MODELS"]? || "gpt-5.4-mini,gpt-6-luna,gpt-6.1-sol").split(',').map(&.strip).reject(&.empty?)
+  MAP_AI_ANTHROPIC_MODELS = (ENV["MAP_AI_ANTHROPIC_MODELS"]? || "claude-opus-5-5,claude-fable-5-1,claude-sonnet-5-5,claude-haiku-5-5").split(',').map(&.strip).reject(&.empty?)
 
   # server defaults in `./app.cr`
   TRIGGERS_URI = URI.parse(ENV["TRIGGERS_URI"]? || "http://triggers:3000")

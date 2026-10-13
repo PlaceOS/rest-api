@@ -6,6 +6,7 @@ require "./llm/prompt"
 require "./llm/ops"
 require "./llm/adapter"
 require "./llm/adapters/openai_chat"
+require "./llm/adapters/anthropic_messages"
 require "./llm/runner"
 
 module PlaceOS::Api

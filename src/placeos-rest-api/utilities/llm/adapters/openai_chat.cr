@@ -19,6 +19,10 @@ module PlaceOS::Api::Llm::Adapters
       MAP_AI_DEFAULT_OPENAI_MODEL
     end
 
+    def known_text_models : Array(String)
+      MAP_AI_OPENAI_MODELS
+    end
+
     def complete(request : Request) : Result
       response = post(request.model, body_for(request, request.reasoning_effort))
 

@@ -29,19 +29,32 @@ module PlaceOS::Api::Llm
       row.text_model.presence || default_text_model
     end
 
+    # the reasoning effort asked of the vendor's models
+    def default_effort : String?
+      "low"
+    end
+
     def capabilities : ProviderCapabilities
       ProviderCapabilities.new(
         id: row.id.to_s,
         name: row.name,
         provider: row.provider.to_s,
         text_model: text_model,
+        text_models: text_models,
       )
     end
 
     # whether a row's vendor has a text adapter here
     def self.supports?(row : ::PlaceOS::Model::SignageAIProvider) : Bool
-      row.provider.openai_compatible?
+      row.provider.openai_compatible? || row.provider.anthropic?
     end
+
+    # the text models a row's vendor is known to serve, the row's own first
+    def text_models : Array(String)
+      ([text_model] + known_text_models).uniq
+    end
+
+    abstract def known_text_models : Array(String)
 
     def self.for(row : ::PlaceOS::Model::SignageAIProvider) : Adapter
       case row.provider
@@ -50,6 +63,8 @@ module PlaceOS::Api::Llm
         Adapters::OpenAIChat.new(row)
       in ::PlaceOS::Model::SignageAIProvider::Provider::GOOGLE_VERTEX
         raise Error::ImageGen::NotConfigured.new("provider #{row.name} is a Google Vertex row, which cannot edit maps yet")
+      in ::PlaceOS::Model::SignageAIProvider::Provider::ANTHROPIC
+        Adapters::AnthropicMessages.new(row)
       end
     end
   end
