@@ -124,11 +124,11 @@ module PlaceOS::Api
         providers = body["providers"].as_a
         providers.size.should eq 2
 
-        openai = providers.find { |entry| entry["provider"].as_s == "OPENAI" }.not_nil!
+        openai = providers.find! { |entry| entry["provider"].as_s == "OPENAI" }
         openai["text_model"].as_s.should eq "gpt-5.4-mini-custom"
         openai["text_models"].as_a.map(&.as_s).should eq ["gpt-5.4-mini-custom"] + MAP_AI_OPENAI_MODELS
 
-        claude = providers.find { |entry| entry["provider"].as_s == "ANTHROPIC" }.not_nil!
+        claude = providers.find! { |entry| entry["provider"].as_s == "ANTHROPIC" }
         claude["text_model"].as_s.should eq MAP_AI_DEFAULT_ANTHROPIC_MODEL
         claude["text_models"].as_a.map(&.as_s).should eq MAP_AI_ANTHROPIC_MODELS
         claude["text_models"].as_a.map(&.as_s).should contain "claude-fable-5-1"
@@ -189,7 +189,7 @@ module PlaceOS::Api
         ops.size.should eq 1
         # the model's op with nothing added (jsonb orders the keys); the editor
         # validates it against the same schema
-        ops.first.as_h.keys.sort.should eq ["name", "op", "target", "value", "why"]
+        ops.first.as_h.keys.sort!.should eq ["name", "op", "target", "value", "why"]
         ops.first["target"]["a"].as_s.should eq "e2"
         ops.first["value"].as_s.should eq "#90ee90"
         final["server_issues"].as_h.should be_empty

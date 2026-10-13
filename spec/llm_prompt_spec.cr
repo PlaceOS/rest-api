@@ -154,7 +154,7 @@ module PlaceOS::Api
       schema["properties"]["schema_version"]["enum"].as_a.map(&.as_i).should eq [Llm::Schema::VERSION]
 
       variants = schema["properties"]["ops"]["items"]["anyOf"].as_a
-      variants.map { |variant| variant["properties"]["op"]["enum"][0].as_s }.should eq Llm::Schema::OPS
+      variants.map(&.["properties"].["op"].["enum"].[0].as_s).should eq Llm::Schema::OPS
       variants.each do |variant|
         variant["additionalProperties"].as_bool.should be_false
         variant["required"].as_a.map(&.as_s).should eq variant["properties"].as_h.keys
