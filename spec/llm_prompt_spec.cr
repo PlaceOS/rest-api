@@ -13,6 +13,17 @@ module PlaceOS::Api
     end
   end
 
+  def self.union_count(node : JSON::Any) : Int32
+    if hash = node.as_h?
+      own = (hash["anyOf"]? || hash["type"]?.try(&.as_a?)) ? 1 : 0
+      own + hash.values.sum { |value| union_count(value) }
+    elsif list = node.as_a?
+      list.sum { |value| union_count(value) }
+    else
+      0
+    end
+  end
+
   def self.op(json : String) : Hash(String, JSON::Any)
     JSON.parse(json).as_h
   end
@@ -177,10 +188,14 @@ module PlaceOS::Api
       reorder = schema["properties"]["ops"]["items"]["anyOf"].as_a.find do |variant|
         variant["properties"]["op"]["enum"][0].as_s == "reorder"
       end.not_nil!
-      reorder["properties"]["position"].should eq JSON.parse(%({"anyOf":[{"type":"string","enum":["first","last"]},{"type":"null"}]}))
+      position_ref = reorder["properties"]["position"]["$ref"].as_s.split('/').last
+      schema["$defs"][position_ref].should eq JSON.parse(%({"anyOf":[{"type":"string","enum":["first","last"]},{"type":"null"}]}))
       PlaceOS::Api.assert_strict_objects(schema)
       Llm::Schema.openai.to_json.should eq original
-      schema["$defs"].should eq Llm::Schema.openai["$defs"]
+      variants = schema["properties"]["ops"]["items"]["anyOf"].as_a
+      variants[0]["properties"]["value"]["$ref"].should eq variants[5]["properties"]["new_id"]["$ref"]
+      union_count(schema).should be <= 16
+      schema["$defs"]["name_value"].should eq Llm::Schema.openai["$defs"]["name_value"]
     end
 
     it "derives the vocabulary from the schema" do
