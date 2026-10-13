@@ -425,6 +425,8 @@ module PlaceOS::Api
           name: "claude-#{random_name}",
           provider: Model::SignageAIProvider::Provider::ANTHROPIC,
         ).save!
+        claude.credentials_json = {"api_key" => JSON::Any.new("test-key"), "workspace_id" => JSON::Any.new("wrkspc_test")}
+        claude.save!
         _, headers = Spec::Authentication.authentication
         level = map_ai_level
         requests = [] of JSON::Any
@@ -480,6 +482,7 @@ module PlaceOS::Api
 
         seen.size.should eq 1
         seen.first["x-api-key"].should eq "test-key"
+        seen.first["anthropic-workspace-id"].should eq "wrkspc_test"
         seen.first["anthropic-version"].should eq "2023-06-01"
         seen.first["anthropic-beta"].should eq "server-side-fallback-2026-07-01"
         seen.first["Authorization"]?.should be_nil
@@ -510,6 +513,7 @@ module PlaceOS::Api
         requests.size.should eq 1
         requests.first["fallbacks"]?.should be_nil
         seen.first["anthropic-beta"]?.should be_nil
+        seen.first["anthropic-workspace-id"]?.should be_nil
 
         requests.clear
         WebMock.reset

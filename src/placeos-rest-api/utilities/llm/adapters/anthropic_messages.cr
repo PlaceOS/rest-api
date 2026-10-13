@@ -129,6 +129,9 @@ module PlaceOS::Api::Llm::Adapters
         "x-api-key"         => credential("api_key"),
         "anthropic-version" => API_VERSION,
       }
+      if workspace_id = credentials["workspace_id"]?.try(&.as_s?).try(&.strip).presence
+        headers["anthropic-workspace-id"] = workspace_id
+      end
       headers["anthropic-beta"] = FALLBACK_BETA if fallbacks
       headers
     end
