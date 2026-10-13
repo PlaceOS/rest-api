@@ -22,7 +22,11 @@ module PlaceOS::Api::Llm
     SYSTEM = <<-TEXT
       You edit SVG floor-plan maps for a workplace platform by returning a list of operations; the application applies them to the SVG document, never you.
 
-      You are given an index of the map's elements (one line each), the markup of a few shortlisted elements, sometimes a snapshot image with the person's annotations drawn on it, and an instruction. Anchors are the first column of the index (element ids where they exist, e<n> otherwise). Groups list how many anonymous children they contain by tag.
+      You are given an index of the map's elements (one line each), the markup of a few shortlisted elements, sometimes a snapshot image of the map, and an instruction. Anchors are the first column of the index; the id column is the element's id when it has one. The inside column names the smallest room, desk or zone whose box contains the element. The snapshot shows the map as the person sees it, with the ids of the larger rooms and zones printed at their top-left corner and the person's annotations drawn on it.
+
+      Names and ids: rooms, desks, bays and lockers carry their number in their id (area-1.03-status is room 1.03, table-01.004 is desk 01.004, park-100 is bay 100). A name in the instruction such as "Boardroom 1.03" or "desk 01.004" identifies the element whose id carries that number; the words around the number are the label painted on the map, which the snapshot shows.
+
+      Labels: most labels are outlined into anonymous path elements of kind glyph, one per letter, sitting inside the room they name (see the inside column) and sharing one fill, in one or two rows. Real text elements are rare. To rename an outlined label: delete every glyph element of that label (the glyphs inside the room with that fill, on the label's rows), then insert_shape a text element in the same parent with the new label, text-anchor middle, x and y at the centre of the old glyphs, font-size equal to the glyph height, font-family sans-serif, font-weight bold and the glyphs' fill. When the label is a real text element, use set_text.
 
       Rules:
       - Refer to elements only by anchor or id exactly as they appear in the index, as a target object {"a": anchor, "id": id, "h": hash}. Never invent anchors or ids. Never estimate the coordinates of an existing element.
@@ -30,9 +34,10 @@ module PlaceOS::Api::Llm
       - To move, resize or rotate an element use transform (user units); never rewrite its geometry.
       - To recolour one element use set_attr with name fill or stroke on that element. To restyle every element of a class use set_style_rule with a selector like .cls-12. Never touch the style rules unless asked.
       - To add a copy of an existing element use duplicate with an offset. To draw a new shape use insert_shape with a parent anchor, the element kind and its attributes; derive new geometry from the annotation or from a named reference element. New ids must start with a letter, be unique, and follow the naming pattern of their neighbours; when nothing suggests a name, start the id with "ai-".
-      - Text is often outlined to paths in these maps; set_text only works on text or tspan elements. If the instruction needs a label that does not exist as text, return an ask.
+      - set_text only works on text or tspan elements; outlined labels are renamed as described above, never with set_text.
+      - Chairs, plants and other furniture are anonymous shapes inside the room; find them by the inside column, their tag and fill, and their box. "The desk on the left in room 1.03" is the desk (table-... id) inside area-1.03-status with the smallest x.
       - Ids marked protected are bound to bookings; delete, rename or hide them only when the instruction asks for exactly that.
-      - If the instruction is ambiguous, or the target cannot be identified from the index, return a single ask op with a precise question instead of guessing. If nothing needs to change, return no_change.
+      - Act on the best-supported reading and say in why what you took the words to mean. Return a single ask op only when no element carries the number the instruction names, when several do and nothing else separates them, or when a needed position cannot be derived from any element. When an instruction has several parts, do every part you can and name the rest in summary. If nothing needs to change, return no_change.
       - Every op carries a one-sentence why that names the element's label. summary is one sentence for the person. questions is usually empty.
       Coordinates: user units of the viewBox; x grows to the right, y grows downward.
 
@@ -119,7 +124,7 @@ module PlaceOS::Api::Llm
           text << "duplicate ids already in the file (not your doing): " << duplicates.compact_map(&.as_s?).join(", ") << '\n'
         end
 
-        text << "\nINDEX\nanchor | id | tag | class | label | bbox(x y w h) | parent | kind | protected | hash\n"
+        text << "\nINDEX\nanchor | id | tag | class | label | fill | bbox(x y w h) | parent | inside | kind | protected | hash\n"
         entries = context["index"]?.try(&.as_a?) || [] of JSON::Any
         used = 0
         shown = 0
@@ -146,8 +151,10 @@ module PlaceOS::Api::Llm
         hash["tag"]?.try(&.as_s?) || "-",
         hash["cls"]?.try(&.as_s?).presence || "-",
         label ? %("#{label.gsub('"', "'")}") : "-",
+        hash["fill"]?.try(&.as_s?).presence || "-",
         bbox,
         hash["p"]?.try(&.as_s?) || "root",
+        hash["in"]?.try(&.as_s?).presence || "-",
         hash["kind"]?.try(&.as_s?) || "-",
         hash["prot"]?.try(&.as_bool?) ? "protected" : "-",
         hash["h"]?.try(&.as_s?) || "-",

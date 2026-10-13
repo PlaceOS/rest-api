@@ -1,33 +1,220 @@
 {
   "schema": "placeos.map-ai-context/1",
-  "viewBox": [0, 0, 1725.26, 619],
-  "image_px": [2048, 735],
-  "units_per_px": 0.8424,
-  "protected_ids": ["table-01.004", "area-1.02-status"],
-  "duplicate_ids": ["table-01.015"],
-  "index": [
-    {"a": "e1", "id": null, "tag": "g", "cls": null, "label": "walls", "bbox": [0, 0, 1725.26, 619], "p": null, "z": 1, "kind": "layer-group", "prot": false, "h": "a1a1a1a1"},
-    {"a": "e2", "id": "area-1.01-status", "tag": "path", "cls": "cls-3", "label": "Meeting 1.01", "bbox": [100, 80, 120, 90], "p": "e1", "z": 2, "kind": "zone", "prot": false, "h": "b2b2b2b2"},
-    {"a": "e3", "id": "area-1.02-status", "tag": "path", "cls": "cls-3", "label": "Meeting 1.02", "bbox": [240, 80, 120, 90], "p": "e1", "z": 3, "kind": "zone", "prot": true, "h": "c3c3c3c3"},
-    {"a": "e4", "id": "table-01.004", "tag": "rect", "cls": "cls-12", "label": "Desk 01.004", "bbox": [640, 420, 30, 20], "p": "e1", "z": 4, "kind": "bookable", "prot": true, "h": "d4d4d4d4"},
-    {"a": "e5", "id": "table-01.005", "tag": "rect", "cls": "cls-12", "label": "Desk 01.005", "bbox": [680, 420, 30, 20], "p": "e1", "z": 5, "kind": "bookable", "prot": false, "h": "e5e5e5e5"},
-    {"a": "e6", "id": "label-1.01", "tag": "text", "cls": null, "label": "Meeting 1.01", "bbox": [110, 60, 60, 12], "p": "e1", "z": 6, "kind": "art", "prot": false, "h": "f6f6f6f6"},
-    {"a": "e7", "id": null, "tag": "path", "cls": "cls-1", "label": null, "bbox": [0, 0, 1725.26, 4], "p": "e1", "z": 7, "kind": "art", "prot": false, "h": "07070707"}
+  "viewBox": [
+    0,
+    0,
+    1725.26,
+    619
   ],
-  "shortlist": ["e2", "e4"],
+  "image_px": [
+    2048,
+    735
+  ],
+  "units_per_px": 0.8424,
+  "protected_ids": [
+    "table-01.004",
+    "area-1.02-status"
+  ],
+  "duplicate_ids": [
+    "table-01.015"
+  ],
+  "index": [
+    {
+      "a": "e1",
+      "id": null,
+      "tag": "g",
+      "cls": null,
+      "label": "walls",
+      "bbox": [
+        0,
+        0,
+        1725.26,
+        619
+      ],
+      "p": null,
+      "z": 1,
+      "kind": "layer-group",
+      "prot": false,
+      "h": "a1a1a1a1",
+      "fill": null,
+      "in": null
+    },
+    {
+      "a": "e2",
+      "id": "area-1.01-status",
+      "tag": "path",
+      "cls": "cls-3",
+      "label": "Meeting 1.01",
+      "bbox": [
+        100,
+        80,
+        120,
+        90
+      ],
+      "p": "e1",
+      "z": 2,
+      "kind": "zone",
+      "prot": false,
+      "h": "b2b2b2b2",
+      "fill": null,
+      "in": null
+    },
+    {
+      "a": "e3",
+      "id": "area-1.02-status",
+      "tag": "path",
+      "cls": "cls-3",
+      "label": "Meeting 1.02",
+      "bbox": [
+        240,
+        80,
+        120,
+        90
+      ],
+      "p": "e1",
+      "z": 3,
+      "kind": "zone",
+      "prot": true,
+      "h": "c3c3c3c3",
+      "fill": null,
+      "in": null
+    },
+    {
+      "a": "e4",
+      "id": "table-01.004",
+      "tag": "rect",
+      "cls": "cls-12",
+      "label": "Desk 01.004",
+      "bbox": [
+        640,
+        420,
+        30,
+        20
+      ],
+      "p": "e1",
+      "z": 4,
+      "kind": "bookable",
+      "prot": true,
+      "h": "d4d4d4d4",
+      "fill": null,
+      "in": null
+    },
+    {
+      "a": "e5",
+      "id": "table-01.005",
+      "tag": "rect",
+      "cls": "cls-12",
+      "label": "Desk 01.005",
+      "bbox": [
+        680,
+        420,
+        30,
+        20
+      ],
+      "p": "e1",
+      "z": 5,
+      "kind": "bookable",
+      "prot": false,
+      "h": "e5e5e5e5",
+      "fill": null,
+      "in": null
+    },
+    {
+      "a": "e6",
+      "id": "label-1.01",
+      "tag": "text",
+      "cls": null,
+      "label": "Meeting 1.01",
+      "bbox": [
+        110,
+        60,
+        60,
+        12
+      ],
+      "p": "e1",
+      "z": 6,
+      "kind": "art",
+      "prot": false,
+      "h": "f6f6f6f6",
+      "fill": null,
+      "in": null
+    },
+    {
+      "a": "e7",
+      "id": null,
+      "tag": "path",
+      "cls": "cls-1",
+      "label": null,
+      "bbox": [
+        0,
+        0,
+        1725.26,
+        4
+      ],
+      "p": "e1",
+      "z": 7,
+      "kind": "art",
+      "prot": false,
+      "h": "07070707",
+      "fill": null,
+      "in": null
+    }
+  ],
+  "shortlist": [
+    "e2",
+    "e4"
+  ],
   "subtrees": {
     "e2": "<path id=\"area-1.01-status\" class=\"cls-3\" d=\"M100 80h120v90h-120z\"/>",
     "e4": "<rect id=\"table-01.004\" class=\"cls-12\" x=\"640\" y=\"420\" width=\"30\" height=\"20\"/>"
   },
-  "style_rules": [".cls-1{fill:none;stroke:#231f20}", ".cls-3{fill:#fff}", ".cls-12{fill:#d1d3d4}"],
+  "style_rules": [
+    ".cls-1{fill:none;stroke:#231f20}",
+    ".cls-3{fill:#fff}",
+    ".cls-12{fill:#d1d3d4}"
+  ],
   "markup": {
     "schema": "placeos.map-markup/1",
-    "viewBox": [0, 0, 1725.26, 619],
-    "annotations": [
-      {"n": 1, "kind": "box", "x": 630, "y": 410, "width": 90, "height": 40, "hits": ["e4", "e5"], "near": ["e7"]},
-      {"n": 2, "kind": "pin", "x": 160, "y": 120, "text": "this room", "hits": ["e2"]}
+    "viewBox": [
+      0,
+      0,
+      1725.26,
+      619
     ],
-    "selected": ["area-1.01-status"]
+    "annotations": [
+      {
+        "n": 1,
+        "kind": "box",
+        "x": 630,
+        "y": 410,
+        "width": 90,
+        "height": 40,
+        "hits": [
+          "e4",
+          "e5"
+        ],
+        "near": [
+          "e7"
+        ]
+      },
+      {
+        "n": 2,
+        "kind": "pin",
+        "x": 160,
+        "y": 120,
+        "text": "this room",
+        "hits": [
+          "e2"
+        ]
+      }
+    ],
+    "selected": [
+      "area-1.01-status"
+    ]
   },
-  "stats": {"elements": 748, "ids": 84, "bytes": 134861}
+  "stats": {
+    "elements": 748,
+    "ids": 84,
+    "bytes": 134861
+  }
 }
