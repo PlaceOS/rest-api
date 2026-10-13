@@ -44,8 +44,8 @@ module PlaceOS::Api
       # the index carries what the model may ground on, nothing else
       text.should contain "viewBox: 0 0 1725.26 619"
       text.should contain "protected ids (bound to bookings): table-01.004, area-1.02-status"
-      text.should contain "e4 | table-01.004 | rect | cls-12 | \"Desk 01.004\" | 640 420 30 20 | e1 | bookable | protected | d4d4d4d4"
-      text.should contain "e7 | - | path | cls-1 | - | 0 0 1725.26 4 | e1 | art | - | 07070707"
+      text.should contain "e4 | table-01.004 | rect | cls-12 | \"Desk 01.004\" | - | 640 420 30 20 | e1 | - | - | bookable | protected | d4d4d4d4"
+      text.should contain "e7 | - | path | cls-1 | - | - | 0 0 1725.26 4 | e1 | - | - | art | - | 07070707"
       text.should contain ".cls-12{fill:#d1d3d4}"
       text.should contain "[e4]\n<rect id=\"table-01.004\""
       text.should contain "1. box x=630 y=410 width=90 height=40 hits: e4, e5 near: e7"
@@ -169,6 +169,18 @@ module PlaceOS::Api
       request = Llm::Prompt.build(Llm::Prompt::Options.new(context: JSON.parse(%({"index":[]})), instruction: "x", model: "m"))
       request.schema.should eq source
       request.schema_name.should eq "map_edit"
+    end
+
+    it "splits the nullable position enum for Anthropic without changing the shared schema" do
+      original = Llm::Schema.openai.to_json
+      schema = Llm::Schema.anthropic
+      reorder = schema["properties"]["ops"]["items"]["anyOf"].as_a.find do |variant|
+        variant["properties"]["op"]["enum"][0].as_s == "reorder"
+      end.not_nil!
+      reorder["properties"]["position"].should eq JSON.parse(%({"anyOf":[{"type":"string","enum":["first","last"]},{"type":"null"}]}))
+      PlaceOS::Api.assert_strict_objects(schema)
+      Llm::Schema.openai.to_json.should eq original
+      schema["$defs"].should eq Llm::Schema.openai["$defs"]
     end
 
     it "derives the vocabulary from the schema" do

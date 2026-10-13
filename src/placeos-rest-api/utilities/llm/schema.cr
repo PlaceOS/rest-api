@@ -3,7 +3,7 @@ require "json"
 module PlaceOS::Api::Llm
   # The map edit operation vocabulary, `ops-schema.json` beside this file: the
   # same file as `libs/map-editor/src/lib/ops-schema.json` in user-interfaces,
-  # which the editor validates proposals against. The vendor is sent it as is.
+  # which the editor validates proposals against.
   module Schema
     VERSION = 1
 
@@ -59,6 +59,33 @@ module PlaceOS::Api::Llm
     # The schema as sent to OpenAI: `response_format.json_schema.schema`.
     def self.openai : JSON::Any
       DOCUMENT
+    end
+
+    private NULLABLE_STRING_TYPE = JSON.parse(%(["string","null"]))
+
+    # Anthropic rejects enums paired with a nullable string type array.
+    def self.anthropic(node : JSON::Any = DOCUMENT) : JSON::Any
+      if hash = node.as_h?
+        converted = hash.transform_values { |value| anthropic(value) }
+        if hash["type"]? == NULLABLE_STRING_TYPE && (values = hash["enum"]?.try(&.as_a?))
+          branches = [] of JSON::Any
+          strings = values.select { |value| value.as_s? }
+          unless strings.empty?
+            branches << JSON::Any.new({"type" => JSON::Any.new("string"), "enum" => JSON::Any.new(strings)})
+          end
+          if values.any?(&.raw.nil?)
+            branches << JSON::Any.new({"type" => JSON::Any.new("null")})
+          end
+          converted.delete("type")
+          converted.delete("enum")
+          converted["anyOf"] = JSON::Any.new(branches)
+        end
+        JSON::Any.new(converted)
+      elsif list = node.as_a?
+        JSON::Any.new(list.map { |value| anthropic(value) })
+      else
+        node
+      end
     end
 
     # One line per op naming the fields it carries, for the system prompt.

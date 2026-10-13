@@ -84,7 +84,7 @@ module PlaceOS::Api::Llm::Adapters
                   json.field "format" do
                     json.object do
                       json.field "type", "json_schema"
-                      json.field "schema" { schema.to_json(json) }
+                      json.field "schema" { Schema.anthropic(schema).to_json(json) }
                     end
                   end
                 end
