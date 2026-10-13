@@ -378,6 +378,23 @@ module PlaceOS::Api
       end
     end
 
+    it "resolves explicit ids created earlier in a proposal without accepting forward references" do
+      created_context = JSON.parse(%({"index":[{"a":"e1","id":"chair","tag":"path"}]}))
+      ops = [
+        %({"op":"transform","target":{"id":"ai-chair"},"rotate":90}),
+        %({"op":"duplicate","target":{"a":"e1"},"new_id":"ai-chair","translate":[20,0]}),
+        %({"op":"transform","target":{"id":"ai-chair"},"rotate":90}),
+        %({"op":"set_text","target":{"id":"ai-chair"},"text":"wrong kind"}),
+        %({"op":"insert_shape","kind":"text","new_id":"ai-label","attrs":[],"text":"Room"}),
+        %({"op":"set_text","target":{"id":"ai-label"},"text":"New room"}),
+        %({"op":"insert_shape","kind":"script","new_id":"ai-invalid","attrs":[]}),
+        %({"op":"transform","target":{"id":"ai-invalid"},"rotate":90}),
+      ].map { |op| JSON.parse(op) }
+      checked = Llm::Ops.check(ops, created_context)
+      checked.issues.keys.should eq ["op-1", "op-4", "op-7", "op-8"]
+      checked.issues["op-4"].should eq "set_text only applies to text and tspan elements"
+    end
+
     it "flags everything past the op limit" do
       ops = Array.new(MAP_AI_MAX_OPS + 2) { JSON.parse(%({"op":"no_change","reason":"r","why":"w"})) }
       checked = Llm::Ops.check(ops, context)

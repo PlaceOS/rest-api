@@ -72,7 +72,11 @@ module PlaceOS::Api::Llm
                 else
                   "not an object"
                 end
-        issues[id_for(position)] = issue if issue
+        if issue
+          issues[id_for(position)] = issue
+        elsif (hash = op.as_h?)
+          index.register_created(hash)
+        end
       end
 
       Checked.new(ops: ops, issues: issues)
@@ -122,6 +126,28 @@ module PlaceOS::Api::Llm
           return {nil, "the element changed since the index was built (hash mismatch)"}
         end
         {entry, nil}
+      end
+
+      # Later operations may reference explicit ids created earlier in this batch.
+      def register_created(op : Hash(String, JSON::Any)) : Nil
+        id = op["new_id"]?.try(&.as_s?).presence
+        return unless id
+        tag = case op["op"]?.try(&.as_s?)
+              when "duplicate"
+                return if op["id_pattern"]?.try(&.as_s?).presence
+                entry, _ = resolve(op["target"]?)
+                entry.try(&.["tag"]?).try(&.as_s?)
+              when "insert_shape"
+                op["kind"]?.try(&.as_s?)
+              when "group"
+                "g"
+              end
+        return unless tag
+        count = op["op"]?.try(&.as_s?) == "duplicate" ? (op["count"]?.try(&.as_i?) || 1) : 1
+        count.times do |offset|
+          created_id = offset == 0 ? id : "#{id}-#{offset + 1}"
+          @ids[created_id] ||= {"id" => JSON::Any.new(created_id), "tag" => JSON::Any.new(tag)}
+        end
       end
 
       def known_id?(id : String) : Bool
@@ -322,9 +348,9 @@ module PlaceOS::Api::Llm
       id = value.not_nil!.as_s?
       return "new_id must be a string" if id.nil?
       return "#{id.inspect} is not a valid id (letter first, then letters, digits, _ . -)" unless Schema.valid_id?(id)
+      return "#{id} is used twice in this answer" if claimed.includes?(id)
       return "#{id} is already an id in the map" if index.known_id?(id)
       return "#{id} is a protected id" if index.protected_ids.includes?(id)
-      return "#{id} is used twice in this answer" if claimed.includes?(id)
       claimed << id
       nil
     end

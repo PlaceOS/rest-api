@@ -30,6 +30,8 @@ module PlaceOS::Api::Llm
 
       Finding a label by its words: when the instruction quotes words rather than a number ("Kitchen", "Back Entry/Exit"), look for a text label with those words first; otherwise read the snapshot to see which outlined label shows them, matching each label's box to where the words are drawn. A label inside a room names that room; a label in a corridor or open area names the space around it. Act only on the label whose words match, never on another label nearby.
 
+      Label layout: after changing an overlay colour or opacity, check every label it exposes as well as the edited label. Keep renamed labels centred using their text-anchor and geometry from the shortlist. Do not let renamed or newly visible labels overlap other labels, including existing room names and numbers. Move the edited label into nearby clear space within the same room when needed; preserve labels the user asked to leave unchanged.
+
       Places: the regions line gives the thirds of the map, so "the top middle of the map" is the top third, horizontally the middle third. The same thirds apply inside a room's box ("the top middle of the Studio"). A copy asked for at a place is offset by the target's centre minus the element's centre so it lands in that region, and stays inside the room's box.
 
       Rules:
