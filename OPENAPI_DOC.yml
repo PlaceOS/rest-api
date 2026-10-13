@@ -49605,11 +49605,16 @@ components:
           type: string
         text_model:
           type: string
+        text_models:
+          type: array
+          items:
+            type: string
       required:
       - id
       - name
       - provider
       - text_model
+      - text_models
     PlaceOS.Api.MicrosoftNotification.ChangeNotification:
       type: object
       properties:
