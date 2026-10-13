@@ -201,7 +201,18 @@ module PlaceOS::Api::Llm
             return "count must be a whole number" if whole.nil?
             return "count must be between 1 and #{MAX_DUPLICATES}" if whole < 1 || whole > MAX_DUPLICATES
           end
-          new_id_issue(op["new_id"]?, index, claimed)
+          if (new_id = op["new_id"]?.try(&.as_s?)) && !op["id_pattern"]?.try(&.as_s?).presence
+            pending = claimed.dup
+            (op["count"]?.try(&.as_i?) || 1).times do |offset|
+              id = offset == 0 ? new_id : "#{new_id}-#{offset + 1}"
+              issue = new_id_issue(JSON::Any.new(id), index, pending)
+              return issue if issue
+            end
+            claimed.concat(pending)
+            nil
+          else
+            new_id_issue(op["new_id"]?, index, claimed)
+          end
         end
       when "insert_shape"
         shape = op["kind"]?.try(&.as_s?)

@@ -395,6 +395,22 @@ module PlaceOS::Api
       checked.issues["op-4"].should eq "set_text only applies to text and tspan elements"
     end
 
+    it "rejects duplicate suffix collisions without claiming or registering the other copies" do
+      created_context = JSON.parse(%({"index":[{"a":"e1","id":"chair","tag":"path"},{"a":"e2","id":"ai-chair-2","tag":"path"}]}))
+      ops = [
+        %({"op":"duplicate","target":{"a":"e1"},"new_id":"ai-chair","count":3,"translate":[20,0]}),
+        %({"op":"transform","target":{"id":"ai-chair"},"rotate":90}),
+        %({"op":"transform","target":{"id":"ai-chair-3"},"rotate":90}),
+        %({"op":"duplicate","target":{"a":"e1"},"new_id":"ai-chair","translate":[20,0]}),
+        %({"op":"transform","target":{"id":"ai-chair"},"rotate":90}),
+        %({"op":"duplicate","target":{"a":"e1"},"new_id":"new-chair","count":2,"translate":[20,0]}),
+        %({"op":"transform","target":{"id":"new-chair-2"},"rotate":90}),
+      ].map { |op| JSON.parse(op) }
+      checked = Llm::Ops.check(ops, created_context)
+      checked.issues.keys.should eq ["op-1", "op-2", "op-3"]
+      checked.issues["op-1"].should eq "ai-chair-2 is already an id in the map"
+    end
+
     it "flags everything past the op limit" do
       ops = Array.new(MAP_AI_MAX_OPS + 2) { JSON.parse(%({"op":"no_change","reason":"r","why":"w"})) }
       checked = Llm::Ops.check(ops, context)
