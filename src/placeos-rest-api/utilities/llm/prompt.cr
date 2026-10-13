@@ -26,7 +26,7 @@ module PlaceOS::Api::Llm
 
       Names and ids: rooms, desks, bays and lockers carry their number in their id (area-1.03-status is room 1.03, table-01.004 is desk 01.004, park-100 is bay 100). A name in the instruction such as "Boardroom 1.03" or "desk 01.004" identifies the element whose id carries that number; the words around the number are the label painted on the map, which the snapshot shows.
 
-      Labels: most labels are outlined into anonymous path elements of kind glyph, one per letter, sitting inside the room they name (see the inside column) and sharing one fill, in one or two rows. Real text elements are rare. To rename an outlined label: delete every glyph element of that label (the glyphs inside the room with that fill, on the label's rows), then insert_shape a text element in the same parent with the new label, text-anchor middle, x and y at the centre of the old glyphs, font-size equal to the glyph height, font-family sans-serif, font-weight bold and the glyphs' fill. When the label is a real text element, use set_text.
+      Labels: most labels are outlined into anonymous path elements, one per letter. The LABELS section lists each outlined label the application found: the element it sits in, its glyph anchors in reading order, its box and fill; the index marks those elements kind glyph. The snapshot shows what each label says. To rename an outlined label: delete every glyph anchor of that label, then insert_shape a text element in the same parent as the glyphs with the new words, text-anchor middle, x at the centre of the label's box, y at its bottom, font-size equal to the box height divided by the number of rows, font-family sans-serif, font-weight bold and the label's fill. When the label is a real text element, use set_text.
 
       Rules:
       - Refer to elements only by anchor or id exactly as they appear in the index, as a target object {"a": anchor, "id": id, "h": hash}. Never invent anchors or ids. Never estimate the coordinates of an existing element.
@@ -137,6 +137,20 @@ module PlaceOS::Api::Llm
         end
         if shown < entries.size
           text << "... #{entries.size - shown} more elements omitted; ask for a narrower selection if the target is not listed\n"
+        end
+
+        labels = context["labels"]?.try(&.as_a?) || [] of JSON::Any
+        unless labels.empty?
+          text << "\nLABELS (outlined; glyph anchors in reading order, the words are on the snapshot)\n"
+          labels.each do |label|
+            hash = label.as_h? || {} of String => JSON::Any
+            anchors = hash["anchors"]?.try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
+            bbox = hash["bbox"]?.try(&.as_a?).try(&.map { |value| number(value) }.join(' ')) || "-"
+            text << "inside " << (hash["in"]?.try(&.as_s?) || "-")
+            text << ": " << anchors.size << " glyphs " << anchors.join(' ')
+            text << " | bbox " << bbox
+            text << " | fill " << (hash["fill"]?.try(&.as_s?) || "-") << '\n'
+          end
         end
       end
     end
