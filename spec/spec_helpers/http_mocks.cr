@@ -151,20 +151,20 @@ module PlaceOS::Api::HttpMocks
 
   ANTHROPIC_MESSAGES = /api\.anthropic\.com\/v1\/messages/
 
-  def self.anthropic_message(content : String, stop_reason : String = "end_turn", model : String = "claude-opus-5-5") : String
+  def self.anthropic_message(content : String, stop_reason : String = "tool_use", model : String = "claude-opus-5-5") : String
     {
       id:           "msg_spec",
       type:         "message",
       role:         "assistant",
       model:        model,
-      content:      [{type: "text", text: content}],
+      content:      [{type: "tool_use", id: "toolu_spec", name: "map_edit", input: JSON.parse(content)}],
       stop_reason:  stop_reason,
       stop_details: nil,
       usage:        {input_tokens: 1500, output_tokens: 90},
     }.to_json
   end
 
-  # The Messages API answering `content` as its text block. `requests` collects
+  # The Messages API answering `content` as its map_edit tool input. `requests` collects
   # every body received and `headers` every header set, for assertions.
   def self.map_ai_anthropic(content : String, requests : Array(JSON::Any)? = nil, headers : Array(HTTP::Headers)? = nil)
     WebMock

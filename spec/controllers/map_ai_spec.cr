@@ -465,8 +465,12 @@ module PlaceOS::Api
         sent["model"].as_s.should eq "claude-fable-5-1"
         sent["max_tokens"].as_i.should eq MAP_AI_MAX_OUTPUT_TOKENS
         sent["system"].as_s.should contain "You edit SVG floor-plan maps"
-        sent["output_config"]["format"]["type"].as_s.should eq "json_schema"
-        sent["output_config"]["format"]["schema"].should eq Llm::Schema.anthropic
+        sent["output_config"]["format"]?.should be_nil
+        sent["tools"][0]["name"].as_s.should eq "map_edit"
+        sent["tools"][0]["input_schema"].should eq Llm::Schema.openai
+        sent["tools"][0]["strict"]?.should be_nil
+        sent["tool_choice"]["type"].as_s.should eq "auto"
+        sent["tool_choice"]["disable_parallel_tool_use"].as_bool.should be_true
         sent["output_config"]["effort"].as_s.should eq MAP_AI_ANTHROPIC_EFFORT
         sent["fallbacks"].as_s.should eq "default"
         sent["thinking"]?.should be_nil

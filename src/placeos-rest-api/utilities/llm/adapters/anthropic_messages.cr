@@ -3,7 +3,7 @@ require "json"
 
 module PlaceOS::Api::Llm::Adapters
   # The Anthropic Messages API. The answer is asked for as JSON matching the
-  # op schema through `output_config.format` and read back from the text block.
+  # op schema through a tool input and read back from the tool_use block.
   #
   # Models whose safety classifiers may decline a request are sent
   # `fallbacks: "default"`, and the API reruns a declined request on its
@@ -50,7 +50,7 @@ module PlaceOS::Api::Llm::Adapters
       end
 
       raise_for_status(response)
-      parse(response.body)
+      parse(response.body, request.schema ? request.schema_name : nil)
     rescue IO::TimeoutError
       raise Error::ImageGen::Timeout.new("the model did not answer within #{MAP_AI_READ_TIMEOUT.total_seconds.to_i} seconds")
     end
@@ -64,7 +64,7 @@ module PlaceOS::Api::Llm::Adapters
         json.object do
           json.field "model", request.model
           json.field "max_tokens", request.max_output_tokens
-          json.field "system", request.system
+          json.field "system", request.schema ? "#{request.system}\nReturn the complete proposal by calling #{request.schema_name} exactly once. Do not return the proposal as text." : request.system
           json.field "messages" do
             json.array do
               json.object do
@@ -77,20 +77,20 @@ module PlaceOS::Api::Llm::Adapters
               end
             end
           end
-          if request.schema || effort
-            json.field "output_config" do
-              json.object do
-                if (schema = request.schema)
-                  json.field "format" do
-                    json.object do
-                      json.field "type", "json_schema"
-                      json.field "schema" { Schema.anthropic(schema).to_json(json) }
-                    end
-                  end
+          if schema = request.schema
+            json.field "tools" do
+              json.array do
+                json.object do
+                  json.field "name", request.schema_name
+                  json.field "description", "Propose the map edits for the user's review. Return the complete proposal with summary, operations and clarification questions. Operations reference the supplied map index. The editor validates each operation before previewing it; this tool does not save the map."
+                  json.field "input_schema", schema
                 end
-                json.field "effort", effort if effort
               end
             end
+            json.field "tool_choice", {type: "auto", disable_parallel_tool_use: true}
+          end
+          if effort
+            json.field "output_config", {effort: effort}
           end
           json.field "fallbacks", "default" if fallbacks
         end
@@ -162,7 +162,7 @@ module PlaceOS::Api::Llm::Adapters
       raise Error::ImageGen::Vendor.new(message || vendor_message(response.body))
     end
 
-    private def parse(body : String) : Result
+    private def parse(body : String, tool_name : String?) : Result
       payload = begin
         JSON.parse(body)
       rescue JSON::ParseException
@@ -180,14 +180,23 @@ module PlaceOS::Api::Llm::Adapters
       end
 
       blocks = payload["content"]?.try(&.as_a?) || [] of JSON::Any
-      text = blocks.compact_map do |block|
-        block["type"]?.try(&.as_s?) == "text" ? block["text"]?.try(&.as_s?) : nil
-      end.join
+      text = if tool_name
+               calls = blocks.select { |block| block["type"]?.try(&.as_s?) == "tool_use" }
+               call = calls.first?
+               if calls.size != 1 || call.try(&.["name"]?).try(&.as_s?) != tool_name || !call.try(&.["input"]?).try(&.as_h?)
+                 raise Error::ImageGen::InvalidResponse.new("the model did not return one #{tool_name} tool result")
+               end
+               call.not_nil!["input"].to_json
+             else
+               blocks.compact_map do |block|
+                 block["type"]?.try(&.as_s?) == "text" ? block["text"]?.try(&.as_s?) : nil
+               end.join
+             end
 
       finish = case stop
-               when "end_turn", "stop_sequence" then "stop"
-               when "max_tokens"                then "length"
-               else                                  "other"
+               when "end_turn", "stop_sequence", "tool_use" then "stop"
+               when "max_tokens"                            then "length"
+               else                                              "other"
                end
 
       usage = payload["usage"]?

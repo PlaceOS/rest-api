@@ -13,17 +13,6 @@ module PlaceOS::Api
     end
   end
 
-  def self.union_count(node : JSON::Any) : Int32
-    if hash = node.as_h?
-      own = (hash["anyOf"]? || hash["type"]?.try(&.as_a?)) ? 1 : 0
-      own + hash.values.sum { |value| union_count(value) }
-    elsif list = node.as_a?
-      list.sum { |value| union_count(value) }
-    else
-      0
-    end
-  end
-
   def self.op(json : String) : Hash(String, JSON::Any)
     JSON.parse(json).as_h
   end
@@ -180,25 +169,6 @@ module PlaceOS::Api
       request = Llm::Prompt.build(Llm::Prompt::Options.new(context: JSON.parse(%({"index":[]})), instruction: "x", model: "m"))
       request.schema.should eq source
       request.schema_name.should eq "map_edit"
-    end
-
-    it "splits the nullable position enum for Anthropic without changing the shared schema" do
-      original = Llm::Schema.openai.to_json
-      schema = Llm::Schema.anthropic
-      reorder = schema["properties"]["ops"]["items"]["anyOf"].as_a.find do |variant|
-        variant["properties"]["op"]["enum"][0].as_s == "reorder"
-      end.not_nil!
-      position_ref = reorder["properties"]["position"]["$ref"].as_s.split('/').last
-      schema["$defs"][position_ref].should eq JSON.parse(%({"anyOf":[{"type":"string","enum":["first","last"]},{"type":"null"}]}))
-      PlaceOS::Api.assert_strict_objects(schema)
-      Llm::Schema.openai.to_json.should eq original
-      variants = schema["properties"]["ops"]["items"]["anyOf"].as_a
-      variants[0]["properties"]["value"]["$ref"].should eq variants[5]["properties"]["new_id"]["$ref"]
-      union_count(schema).should be <= 16
-      schema["$defs"]["name_value"].should eq Llm::Schema.openai["$defs"]["name_value"]
-      schema["$defs"]["target"]["properties"].as_h.each_value do |field|
-        field["type"].as_s.should eq "string"
-      end
     end
 
     it "derives the vocabulary from the schema" do
