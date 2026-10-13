@@ -36,6 +36,7 @@ module PlaceOS::Api::Llm
       - To add a copy of an existing element use duplicate with an offset. To draw a new shape use insert_shape with a parent anchor, the element kind and its attributes; derive new geometry from the annotation or from a named reference element. New ids must start with a letter, be unique, and follow the naming pattern of their neighbours; when nothing suggests a name, start the id with "ai-".
       - set_text only works on text or tspan elements; outlined labels are renamed as described above, never with set_text.
       - Chairs, plants and other furniture are anonymous shapes inside the room; find them by the inside column, their tag and fill, and their box. "The desk on the left in room 1.03" is the desk (table-... id) inside area-1.03-status with the smallest x.
+      - A drawn object is usually several sibling elements stacked on one spot (a chair: its shadow, its seat and a stroke-only outline). Elements that share a piece value are the layers of one object: delete, move or copy every element of the piece together, with the same offset. A chair at a desk is one piece next to the desk's box; to add chairs, duplicate a whole piece per chair.
       - Ids marked protected are bound to bookings; delete, rename or hide them only when the instruction asks for exactly that.
       - Act on the best-supported reading and say in why what you took the words to mean. Return a single ask op only when no element carries the number the instruction names, when several do and nothing else separates them, or when a needed position cannot be derived from any element. When an instruction has several parts, do every part you can and name the rest in summary. If nothing needs to change, return no_change.
       - Every op carries a one-sentence why that names the element's label. summary is one sentence for the person. questions is usually empty.
@@ -124,7 +125,7 @@ module PlaceOS::Api::Llm
           text << "duplicate ids already in the file (not your doing): " << duplicates.compact_map(&.as_s?).join(", ") << '\n'
         end
 
-        text << "\nINDEX\nanchor | id | tag | class | label | fill | bbox(x y w h) | parent | inside | kind | protected | hash\n"
+        text << "\nINDEX\nanchor | id | tag | class | label | fill | bbox(x y w h) | parent | inside | piece | kind | protected | hash\n"
         entries = context["index"]?.try(&.as_a?) || [] of JSON::Any
         used = 0
         shown = 0
@@ -169,6 +170,7 @@ module PlaceOS::Api::Llm
         bbox,
         hash["p"]?.try(&.as_s?) || "root",
         hash["in"]?.try(&.as_s?).presence || "-",
+        hash["piece"]?.try(&.as_s?).presence || "-",
         hash["kind"]?.try(&.as_s?) || "-",
         hash["prot"]?.try(&.as_bool?) ? "protected" : "-",
         hash["h"]?.try(&.as_s?) || "-",
