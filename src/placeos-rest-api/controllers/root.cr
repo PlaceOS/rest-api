@@ -212,21 +212,52 @@ module PlaceOS::Api
       end
     end
 
-    # DEPRECATED: search is served directly from PostgreSQL (PPT-2644); there
-    # is no external index to rebuild. Kept as a no-op so existing admin UIs
-    # and automation don't error. Remove in a future release.
-    @[AC::Route::POST("/reindex")]
-    def reindex(
-      @[AC::Param::Info(description: "deprecated, has no effect", example: "true")]
-      backfill : Bool = false,
-    ) : Nil
+    # MQTT
+    ###############################################################################################
+
+    # Where a resync of the MQTT brokers got to, as source reports it
+    struct SourceResyncStatus
+      include JSON::Serializable
+
+      # idle, clearing, resyncing, complete or failed
+      getter state : String
+      # whether everything source publishes was removed from the brokers first
+      getter? clear : Bool
+      getter started_at : Time?
+      getter finished_at : Time?
+      # retained topics removed, when clearing
+      getter cleared : Int64
+      # models whose metadata was published again
+      getter metadata : Int32
+      getter error : String?
     end
 
-    # DEPRECATED: search is served directly from PostgreSQL (PPT-2644); the
-    # database is always authoritative. Kept as a no-op so existing admin UIs
-    # and automation don't error. Remove in a future release.
-    @[AC::Route::POST("/backfill")]
-    def backfill : Nil
+    # publishes every module's state and every model's metadata to the MQTT brokers again.
+    # With `clear`, everything source publishes is removed from the brokers first, for when
+    # what they hold has drifted. Runs in the background: 202 once started, 409 while one is
+    # running. Progress is at `GET /source/resync`
+    @[AC::Route::POST("/source/resync", status_code: HTTP::Status::ACCEPTED)]
+    def source_resync(
+      @[AC::Param::Info(description: "remove everything source publishes from the brokers first", example: "true")]
+      clear : Bool = false,
+    ) : SourceResyncStatus
+      response = Root.source_request("POST", "/api/source/v1/resync?clear=#{clear}")
+      status = SourceResyncStatus.from_json(response.body)
+      render status: :conflict, json: status if response.status_code == 409
+      status
+    end
+
+    # where the last resync of the MQTT brokers got to
+    @[AC::Route::GET("/source/resync")]
+    def source_resync_status : SourceResyncStatus
+      SourceResyncStatus.from_json(Root.source_request("GET", "/api/source/v1/resync").body)
+    end
+
+    protected def self.source_request(method : String, path : String) : HTTP::Client::Response
+      uri = URI.new(host: PLACE_SOURCE_HOST, port: PLACE_SOURCE_PORT, scheme: "http")
+      response = HTTP::Client.exec(method, "#{uri}#{path}")
+      return response if response.success? || response.status_code == 409
+      raise "source responded to #{method} #{path} with #{response.status_code}"
     end
   end
 end
