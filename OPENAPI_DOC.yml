@@ -26514,29 +26514,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
-  /api/engine/v2/reindex:
-    post:
-      summary: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
-        there'
-      description: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
-        there
-
-        is no external index to rebuild. Kept as a no-op so existing admin UIs
-
-        and automation don''t error. Remove in a future release.'
+  /api/engine/v2/source/resync:
+    get:
+      summary: where the last resync of the MQTT brokers got to
       tags:
       - Root
-      operationId: PlaceOS::Api::Root_reindex
-      parameters:
-      - name: backfill
-        in: query
-        description: deprecated, has no effect
-        example: true
-        schema:
-          type: boolean
+      operationId: PlaceOS::Api::Root_source_resync_status
+      parameters: []
       responses:
         "200":
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Root.SourceResyncStatus'
         "409":
           description: Conflict
           content:
@@ -26615,23 +26606,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
-  /api/engine/v2/backfill:
     post:
-      summary: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
-        the'
-      description: 'DEPRECATED: search is served directly from PostgreSQL (PPT-2644);
-        the
+      summary: publishes every module's state and every model's metadata to the MQTT
+        brokers again.
+      description: 'publishes every module''s state and every model''s metadata to
+        the MQTT brokers again.
 
-        database is always authoritative. Kept as a no-op so existing admin UIs
+        With `clear`, everything source publishes is removed from the brokers first,
+        for when
 
-        and automation don''t error. Remove in a future release.'
+        what they hold has drifted. Runs in the background: 202 once started, 409
+        while one is
+
+        running. Progress is at `GET /source/resync`'
       tags:
       - Root
-      operationId: PlaceOS::Api::Root_backfill
-      parameters: []
+      operationId: PlaceOS::Api::Root_source_resync
+      parameters:
+      - name: clear
+        in: query
+        description: remove everything source publishes from the brokers first
+        example: true
+        schema:
+          type: boolean
       responses:
-        "200":
-          description: OK
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Root.SourceResyncStatus'
         "409":
           description: Conflict
           content:
@@ -46004,6 +46008,39 @@ components:
       - version
       - build_time
       - platform_version
+    PlaceOS.Api.Root.SourceResyncStatus:
+      type: object
+      properties:
+        state:
+          type: string
+        clear:
+          type: boolean
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: "null"
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: "null"
+        cleared:
+          type: integer
+          format: Int64
+        metadata:
+          type: integer
+          format: Int32
+        error:
+          anyOf:
+          - type: "null"
+          - type: string
+      required:
+      - state
+      - clear
+      - cleared
+      - metadata
+      description: Where a resync of the MQTT brokers got to, as source reports it
     PlaceOS.Model.JsonSchema:
       type: object
       properties:
