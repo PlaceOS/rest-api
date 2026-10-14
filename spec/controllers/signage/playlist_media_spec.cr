@@ -2,10 +2,9 @@ require "../../helper"
 
 module PlaceOS::Api
   # Two groups sharing one media item: `group_a` and `group_b`, both children
-  # of the authority root `parent_a`. Returns (authority, item, parent_a, group_a, group_b).
+  # of the root `parent_a`. Returns (authority, item, parent_a, group_a, group_b).
   def self.setup_shared_media
     authority = Model::Authority.find_by_domain("localhost").not_nil!
-    # an authority has a single root group; everything else hangs off it
     parent_a = Model::Generator.group(authority: authority).save!
     group_a = Model::Generator.group(authority: authority, parent: parent_a).save!
     group_b = Model::Generator.group(authority: authority, parent: parent_a).save!

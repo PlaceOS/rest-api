@@ -20,6 +20,24 @@ module PlaceOS::Api
       Model::Group.find?(created.id.not_nil!).should_not be_nil
     end
 
+    it "sys_admin can create several root groups, all listed under parent_id=root" do
+      authority = Model::Authority.find_by_domain("localhost").not_nil!
+      support = Model::Generator.group(authority: authority, subsystems: ["support"])
+      signage = Model::Generator.group(authority: authority, subsystems: ["signage"])
+
+      ids = [support, signage].map do |group|
+        result = client.post(base, body: group.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 201
+        Model::Group.from_trusted_json(result.body).id.to_s
+      end
+      Model::Generator.group(authority: authority, parent: Model::Group.find!(UUID.new(ids.first))).save!
+
+      result = client.get("#{base}?parent_id=root", headers: Spec::Authentication.headers)
+      result.status_code.should eq 200
+      listed = Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["id"].as_s)
+      listed.sort.should eq ids.sort
+    end
+
     it "a manager can create a child group under their managed root" do
       authority = Model::Authority.find_by_domain("localhost").not_nil!
       user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
