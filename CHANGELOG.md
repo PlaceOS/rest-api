@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **root**: proxy source's MQTT resync for system admins ([#454](https://github.com/PlaceOS/rest-api/pull/454))
 - **assets**: scope asset records to the caller's authority
 - **chatgpt**: describe each system in its MCP instructions
 - **signage**: default signage AI image generation to gpt-image-2.5 ([#450](https://github.com/PlaceOS/rest-api/pull/450))
