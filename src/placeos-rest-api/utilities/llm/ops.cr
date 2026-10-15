@@ -75,6 +75,7 @@ module PlaceOS::Api::Llm
         if issue
           issues[id_for(position)] = issue
         elsif (hash = op.as_h?)
+          index.register_rename(hash, claimed)
           index.register_created(hash)
         end
       end
@@ -92,7 +93,7 @@ module PlaceOS::Api::Llm
         @anchors = {} of String => Hash(String, JSON::Any)
         @ids = {} of String => Hash(String, JSON::Any)
         (context["index"]?.try(&.as_a?) || [] of JSON::Any).each do |entry|
-          hash = entry.as_h?
+          hash = entry.as_h?.try(&.dup)
           next unless hash
           if (anchor = hash["a"]?.try(&.as_s?))
             @anchors[anchor] = hash
@@ -128,6 +129,23 @@ module PlaceOS::Api::Llm
         {entry, nil}
       end
 
+      # Id ownership follows accepted renames in proposal order.
+      def register_rename(op : Hash(String, JSON::Any), claimed : Set(String)) : Nil
+        return unless op["op"]?.try(&.as_s?) == "set_id"
+        entry, _ = resolve(op["target"]?)
+        return unless entry
+        if (old_id = entry["id"]?.try(&.as_s?))
+          @ids.delete(old_id)
+          claimed.delete(old_id)
+        end
+        if (new_id = op["new_id"]?.try(&.as_s?).presence)
+          entry["id"] = JSON::Any.new(new_id)
+          @ids[new_id] = entry
+        else
+          entry.delete("id")
+        end
+      end
+
       # Later operations may reference explicit ids created earlier in this batch.
       def register_created(op : Hash(String, JSON::Any)) : Nil
         id = op["new_id"]?.try(&.as_s?).presence
@@ -161,9 +179,16 @@ module PlaceOS::Api::Llm
 
       case kind
       when "set_attr"
-        with_target(op, index) do
+        with_target(op, index) do |entry|
           name = op["name"]?.try(&.as_s?).try(&.strip).presence
           return "set_attr needs a name" unless name
+          if name == "viewBox"
+            return "canvas bounds can only be changed on the SVG root" unless entry["kind"]?.try(&.as_s?) == "root"
+            tokens = op["value"]?.try(&.as_s?).try(&.strip.split(/[\s,]+/)) || [] of String
+            numbers = tokens.compact_map(&.to_f64?)
+            return "canvas bounds need four finite numbers with positive dimensions" unless tokens.size == 4 && numbers.size == 4 && numbers.all?(&.finite?) && numbers[2] > 0 && numbers[3] > 0
+            return nil
+          end
           return "attribute #{name} may not be set" unless Schema.allowed_attribute?(name)
           if (value = op["value"]?.try(&.as_s?))
             Values.attribute_value_issue(name, value)

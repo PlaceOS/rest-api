@@ -30,6 +30,14 @@ module PlaceOS::Api
 
       request.system.should contain "You edit SVG floor-plan maps"
       request.system.should contain "set_attr: target, name, value"
+      request.system.should contain "Preserve the apparent original font weight and style shown in the snapshot"
+      request.system.should contain "use bold only when the original label is bold"
+      request.system.should contain "set fill-opacity to 0.3 explicitly"
+      request.system.should contain "Preserve the furniture unless the instruction explicitly requests its removal"
+      request.system.should contain "expanding the canvas is part of that request"
+      request.system.should contain "Never crop the old viewBox"
+      request.system.should contain "A new room needs a readable name label"
+      request.system.should contain "make a usable doorway through that shared wall"
       request.schema.should_not be_nil
       request.model.should eq "gpt-5.4-mini"
       request.max_output_tokens.should eq MAP_AI_MAX_OUTPUT_TOKENS
@@ -64,7 +72,12 @@ module PlaceOS::Api
 
       kinds = request.parts.map { |part| part.is_a?(Llm::ImagePart) ? "image" : part.as(Llm::TextPart).text.lines.first }
       kinds.index!("image").should be > kinds.index!(&.starts_with?("SUBTREES"))
-      kinds.index!("image").should be < kinds.index!(&.starts_with?("ANNOTATIONS"))
+      annotations_position = request.parts.index! do |part|
+        part.is_a?(Llm::TextPart) && part.text.includes?("ANNOTATIONS drawn by the person")
+      end
+      kinds.index!("image").should be < annotations_position
+      request.text.should contain "SNAPSHOT bounds in user units:"
+      request.text.should contain "these may include annotations outside the map canvas"
       request.images.size.should eq 1
       request.text.should contain "the numbers match the badges on the snapshot"
     end
@@ -378,6 +391,21 @@ module PlaceOS::Api
       end
     end
 
+    it "only accepts finite canvas bounds on the indexed SVG root" do
+      canvas_context = JSON.parse(%({"index":[{"a":"e0","tag":"svg","kind":"root"},{"a":"e1","tag":"svg","kind":"art"},{"a":"e2","tag":"rect","kind":"art"}]}))
+      values = ["0 0 100 100", "-20 -30 120 130", "0,0,100,100", "0 0 -100 100", "0 0 100 0", "0 0 100", "0 rubbish 0 100 100", "0 0 NaN 100", "0 0 Infinity 100", "0 0 1e999 100"]
+      ops = values.map do |value|
+        JSON.parse({"op" => "set_attr", "target" => {"a" => "e0"}, "name" => "viewBox", "value" => value}.to_json)
+      end
+      ops << JSON.parse(%({"op":"set_attr","target":{"a":"e0"},"name":"viewBox","value":null}))
+      ops << JSON.parse(%({"op":"set_attr","target":{"a":"e1"},"name":"viewBox","value":"0 0 100 100"}))
+      ops << JSON.parse(%({"op":"set_attr","target":{"a":"e2"},"name":"viewBox","value":"0 0 100 100"}))
+      checked = Llm::Ops.check(ops, canvas_context)
+      checked.issues.keys.should eq (4..13).map { |n| "op-#{n}" }
+      checked.issues["op-12"].should eq "canvas bounds can only be changed on the SVG root"
+      checked.issues["op-13"].should eq "canvas bounds can only be changed on the SVG root"
+    end
+
     it "resolves explicit ids created earlier in a proposal without accepting forward references" do
       created_context = JSON.parse(%({"index":[{"a":"e1","id":"chair","tag":"path"}]}))
       ops = [
@@ -409,6 +437,42 @@ module PlaceOS::Api
       checked = Llm::Ops.check(ops, created_context)
       checked.issues.keys.should eq ["op-1", "op-2", "op-3"]
       checked.issues["op-1"].should eq "ai-chair-2 is already an id in the map"
+    end
+
+    it "renumbers rooms sequentially and reuses the freed id for a new room" do
+      rename_context = JSON.parse(%({"index":[{"a":"e1","id":"room-04","tag":"rect"},{"a":"e2","id":"room-05","tag":"rect"}]}))
+      ops = [
+        %({"op":"set_id","target":{"a":"e2","id":"room-05"},"new_id":"room-06"}),
+        %({"op":"set_id","target":{"a":"e1","id":"room-04"},"new_id":"room-05"}),
+        %({"op":"insert_shape","kind":"rect","new_id":"room-04","attrs":[]}),
+        %({"op":"set_attr","target":{"id":"room-06"},"name":"fill","value":"red"}),
+      ].map { |op| JSON.parse(op) }
+      Llm::Ops.check(ops, rename_context).issues.should be_empty
+      rename_context["index"][0]["id"].as_s.should eq "room-04"
+      rename_context["index"][1]["id"].as_s.should eq "room-05"
+    end
+
+    it "swaps ids through a temporary id and releases earlier claimed ids" do
+      rename_context = JSON.parse(%({"index":[{"a":"e1","id":"zone-a","tag":"g"},{"a":"e2","id":"zone-b","tag":"g"}]}))
+      ops = [
+        %({"op":"set_id","target":{"a":"e1"},"new_id":"temp-zone"}),
+        %({"op":"set_id","target":{"a":"e2"},"new_id":"zone-a"}),
+        %({"op":"set_id","target":{"id":"temp-zone"},"new_id":"zone-b"}),
+        %({"op":"insert_shape","kind":"rect","new_id":"temp-zone","attrs":[]}),
+        %({"op":"insert_shape","kind":"rect","new_id":"zone-a","attrs":[]}),
+      ].map { |op| JSON.parse(op) }
+      Llm::Ops.check(ops, rename_context).issues.keys.should eq ["op-5"]
+    end
+
+    it "does not release an id after a rejected rename" do
+      rename_context = JSON.parse(%({"index":[{"a":"e1","id":"room-a","tag":"rect"},{"a":"e2","id":"room-b","tag":"rect"}]}))
+      ops = [
+        %({"op":"set_id","target":{"a":"e1"},"new_id":"room-b"}),
+        %({"op":"insert_shape","kind":"rect","new_id":"room-a","attrs":[]}),
+        %({"op":"set_id","target":{"a":"e1"},"new_id":null}),
+        %({"op":"insert_shape","kind":"rect","new_id":"room-a","attrs":[]}),
+      ].map { |op| JSON.parse(op) }
+      Llm::Ops.check(ops, rename_context).issues.keys.should eq ["op-1", "op-2"]
     end
 
     it "flags everything past the op limit" do
