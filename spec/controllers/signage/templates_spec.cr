@@ -2,10 +2,9 @@ require "../../helper"
 
 module PlaceOS::Api
   # Two groups sharing one template: `group_a` and `group_b`, both children
-  # of the authority root `parent_a`. Returns (authority, template, parent_a, group_a, group_b).
+  # of the root `parent_a`. Returns (authority, template, parent_a, group_a, group_b).
   def self.setup_shared_template
     authority = Model::Authority.find_by_domain("localhost").not_nil!
-    # an authority has a single root group; everything else hangs off it
     parent_a = Model::Generator.group(authority: authority).save!
     group_a = Model::Generator.group(authority: authority, parent: parent_a).save!
     group_b = Model::Generator.group(authority: authority, parent: parent_a).save!
@@ -992,7 +991,7 @@ module PlaceOS::Api
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
-        # One root per authority — source/target sit beneath it.
+        # source/target sit beneath a shared root.
         root = Model::Generator.group(authority: authority).save!
         source = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"]).save!
         target = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"]).save!

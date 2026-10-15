@@ -14,8 +14,7 @@ module PlaceOS::Api
     {authority, storage, provider}
   end
 
-  # A signage group the caller may act in, hung off the authority root (an
-  # authority only ever has one root group).
+  # A signage group the caller may act in, hung off a root group.
   def self.signage_group(authority, user, permissions : Model::Permissions)
     root = Model::Generator.group(authority: authority).save!
     group = Model::Generator.group(authority: authority, parent: root, subsystems: ["signage"]).save!

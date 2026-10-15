@@ -51,6 +51,52 @@ module PlaceOS::Api
       end
     end
 
+    describe "source resync" do
+      status_json = ->(state : String, clear : Bool) {
+        {state: state, clear: clear, started_at: Time.utc, finished_at: nil, cleared: 0, metadata: 0, error: nil}.to_json
+      }
+
+      it "starts a resync with clearing, for a system admin" do
+        HttpMocks.reset
+        WebMock.stub(:post, /\/api\/source\/v1\/resync\?clear=true$/)
+          .to_return(status: 202, body: status_json.call("clearing", true))
+
+        result = client.post(File.join(Root.base_route, "source/resync?clear=true"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 202
+        status = Root::SourceResyncStatus.from_json(result.body)
+        status.state.should eq "clearing"
+        status.clear?.should be_true
+      end
+
+      it "reports one already running" do
+        HttpMocks.reset
+        WebMock.stub(:post, /\/api\/source\/v1\/resync\?clear=false$/)
+          .to_return(status: 409, body: status_json.call("resyncing", false))
+
+        result = client.post(File.join(Root.base_route, "source/resync"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 409
+        Root::SourceResyncStatus.from_json(result.body).state.should eq "resyncing"
+      end
+
+      it "reports where the last one got to" do
+        HttpMocks.reset
+        WebMock.stub(:get, /\/api\/source\/v1\/resync$/)
+          .to_return(status: 200, body: status_json.call("complete", true))
+
+        result = client.get(File.join(Root.base_route, "source/resync"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        Root::SourceResyncStatus.from_json(result.body).state.should eq "complete"
+      end
+
+      it "is for system admins only" do
+        HttpMocks.reset
+        headers = Spec::Authentication.headers(sys_admin: false, support: true)
+
+        client.post(File.join(Root.base_route, "source/resync"), headers: headers).status_code.should eq 403
+        client.get(File.join(Root.base_route, "source/resync"), headers: headers).status_code.should eq 403
+      end
+    end
+
     describe "POST /signal" do
       it "writes an arbitrary payload to a redis subscription on scoped channel" do
         user, headers = Spec::Authentication.authenticated

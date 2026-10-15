@@ -37,10 +37,13 @@ RUN shards install --production --ignore-crystal-version --skip-postinstall --sk
 COPY ./src /app/src
 
 # Build application
+# -no-pie: backtraces of a static PIE binary can't be resolved, they print `from ???`
+# -Devloop=libevent: the native epoll event loop corrupts its timers under load
+# (crystal-lang/crystal#17058)
 RUN UNAME_AT_COMPILE_TIME=true \
     PLACE_COMMIT=$PLACE_COMMIT \
     PLACE_VERSION=$PLACE_VERSION \
-    shards build --production --error-trace --static
+    shards build --production --error-trace --static --link-flags=-no-pie -Devloop=libevent
 
 # Generate the MCP tool descriptions, they're extracted from the source code comments
 RUN ./bin/rest-api --mcp=/app/mcp.yml
