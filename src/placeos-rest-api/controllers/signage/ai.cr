@@ -274,20 +274,7 @@ module PlaceOS::Api
               else
                 ::PlaceOS::Model::SignageAIJob::Kind.image
               end
-      labels = kinds.map { |entry| ::PlaceOS::Model::SignageAIJob.kind_label(entry) }
-
-      query = ::PlaceOS::Model::SignageAIJob
-        .where(authority_id: authority.id.as(String))
-        .where("kind IN (#{labels.map { "?" }.join(", ")})", args: labels.map(&.as(::PgORM::Value)))
-      if mine
-        query = query.where(user_id: current_user.id.as(String))
-      else
-        check_support
-      end
-
-      query
-        .where("created_at > ?", 7.days.ago)
-        .order(created_at: :desc)
+      recent_ai_jobs(kinds, mine)
         .limit(limit)
         .to_a
         .map { |job| JobResponse.new(job) }
@@ -296,20 +283,7 @@ module PlaceOS::Api
     # ask a running job to stop. Calls already with a vendor run to completion.
     @[AC::Route::POST("/jobs/:id/cancel")]
     def cancel : JobResponse
-      job = current_job
-      raise Error::Forbidden.new unless job.user_id == current_user.id || user_support?
-
-      unless job.final?
-        job.cancel_requested = true
-        job.save
-        # in SQL, not read-modify-write: a candidate fiber may have moved the
-        # version since this row was loaded, and writing a stale value back
-        # leaves a long polling client waiting out its whole timeout
-        ::PlaceOS::Model::SignageAIJob.bump_version(job.id.as(UUID))
-        job = ::PlaceOS::Model::SignageAIJob.find!(job.id.as(UUID))
-      end
-
-      JobResponse.new(job)
+      JobResponse.new(request_job_cancel(current_job))
     end
 
     # record that a candidate became a media item, so the sweep leaves it alone
@@ -397,13 +371,7 @@ module PlaceOS::Api
 
     private def remaining_quota(row : ::PlaceOS::Model::SignageAIProvider?)
       user_limit, domain_limit = quotas_for(row)
-      used_today = ::PlaceOS::Model::SignageAIJob.sum_candidates(current_user.id.as(String), 1.day.ago, ::PlaceOS::Model::SignageAIJob::Kind.image)
-      used_month = ::PlaceOS::Model::SignageAIJob.sum_candidates_for_authority(authority.id.as(String), 30.days.ago, ::PlaceOS::Model::SignageAIJob::Kind.image)
-
-      {
-        user_remaining_today:   Math.max(0, user_limit - used_today),
-        domain_remaining_month: Math.max(0, domain_limit - used_month),
-      }
+      remaining_ai_quota(::PlaceOS::Model::SignageAIJob::Kind.image, user_limit, domain_limit)
     end
 
     # An upload the caller may use as a source or a reference: one they own, or

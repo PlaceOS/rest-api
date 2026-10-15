@@ -336,21 +336,12 @@ module PlaceOS::Api
       parsed = ::PlaceOS::Model::SignageAIJob::Kind.parse?(kind)
       raise Error::ModelValidation.new([Error::Field.new(:kind, "must be one of generate, edit, map_edit")]) if parsed.nil?
 
-      query = ::PlaceOS::Model::SignageAIJob
-        .where(authority_id: authority.id.as(String))
-        .where("kind = ?", ::PlaceOS::Model::SignageAIJob.kind_label(parsed))
-      if mine
-        query = query.where(user_id: current_user.id.as(String))
-      else
-        check_support
-      end
+      query = recent_ai_jobs([parsed], mine)
       if (zone = zone_id.presence)
         query = query.where("request->>'zone_id' = ?", zone)
       end
 
       query
-        .where("created_at > ?", 7.days.ago)
-        .order(created_at: :desc)
         .limit(limit)
         .to_a
         .map { |job| JobResponse.new(job) }
@@ -359,17 +350,7 @@ module PlaceOS::Api
     # ask a running job to stop. A call already with the vendor runs to completion.
     @[AC::Route::POST("/jobs/:id/cancel")]
     def cancel : JobResponse
-      job = current_job
-      raise Error::Forbidden.new unless job.user_id == current_user.id || user_support?
-
-      unless job.final?
-        job.cancel_requested = true
-        job.save
-        ::PlaceOS::Model::SignageAIJob.bump_version(job.id.as(UUID))
-        job = ::PlaceOS::Model::SignageAIJob.find!(job.id.as(UUID))
-      end
-
-      JobResponse.new(job)
+      JobResponse.new(request_job_cancel(current_job))
     end
 
     # record what the person did with the answer: which ops were applied or
@@ -460,14 +441,7 @@ module PlaceOS::Api
 
     private def remaining_quota(row : ::PlaceOS::Model::SignageAIProvider?)
       user_limit, domain_limit = quotas_for(row)
-      kind = ::PlaceOS::Model::SignageAIJob::Kind::MapEdit
-      used_today = ::PlaceOS::Model::SignageAIJob.sum_candidates(current_user.id.as(String), 1.day.ago, kind)
-      used_month = ::PlaceOS::Model::SignageAIJob.sum_candidates_for_authority(authority.id.as(String), 30.days.ago, kind)
-
-      {
-        user_remaining_today:   Math.max(0, user_limit - used_today),
-        domain_remaining_month: Math.max(0, domain_limit - used_month),
-      }
+      remaining_ai_quota(::PlaceOS::Model::SignageAIJob::Kind::MapEdit, user_limit, domain_limit)
     end
 
     # The marked up snapshot: the caller's own image, under the size cap, tagged
