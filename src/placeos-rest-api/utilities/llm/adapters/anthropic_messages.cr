@@ -179,8 +179,18 @@ module PlaceOS::Api::Llm::Adapters
         )
       end
 
+      finish = case stop
+               when "end_turn", "stop_sequence", "tool_use" then "stop"
+               when "max_tokens"                            then "length"
+               else                                              "other"
+               end
+
+      # A proposal cut off at max_tokens has no complete tool input; the runner
+      # retries "length" with a larger budget and never parses this text.
       blocks = payload["content"]?.try(&.as_a?) || [] of JSON::Any
-      text = if tool_name
+      text = if finish == "length"
+               ""
+             elsif tool_name
                calls = blocks.select { |block| block["type"]?.try(&.as_s?) == "tool_use" }
                call = calls.first?
                if calls.size != 1 || call.try(&.["name"]?).try(&.as_s?) != tool_name || !call.try(&.["input"]?).try(&.as_h?)
@@ -192,12 +202,6 @@ module PlaceOS::Api::Llm::Adapters
                  block["type"]?.try(&.as_s?) == "text" ? block["text"]?.try(&.as_s?) : nil
                end.join
              end
-
-      finish = case stop
-               when "end_turn", "stop_sequence", "tool_use" then "stop"
-               when "max_tokens"                            then "length"
-               else                                              "other"
-               end
 
       usage = payload["usage"]?
       input = usage.try(&.["input_tokens"]?).try(&.as_i64?)
