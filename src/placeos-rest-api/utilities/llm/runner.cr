@@ -28,11 +28,15 @@ module PlaceOS::Api::Llm
         user_id: context.user_id,
       )
 
+      # The slot goes back before the final state is written, so a client that
+      # sees a final job also sees its slot free.
+      held = true
       started = Time.utc
       job = ::PlaceOS::Model::SignageAIJob.find?(context.job_id)
       return if job.nil?
 
       if job.cancel_requested
+        held = give_back(held)
         finish(job, started, nil, [] of Result, nil)
         return
       end
@@ -88,14 +92,22 @@ module PlaceOS::Api::Llm
       end
 
       fresh = ::PlaceOS::Model::SignageAIJob.find?(context.job_id)
+      held = give_back(held)
       finish(fresh, started, written, results, failure) if fresh
     rescue ex
       Log.error(exception: ex) { "map AI job failed outside the vendor call" }
+      held = give_back(held)
       if (job = ::PlaceOS::Model::SignageAIJob.find?(context.job_id))
         finish(job, started || Time.utc, nil, [] of Result, ex)
       end
     ensure
-      Llm.slots.release
+      give_back(held)
+    end
+
+    # Releases the run's slot if it still holds it; returns false, the new state.
+    private def self.give_back(held : Bool?) : Bool
+      Llm.slots.release if held
+      false
     end
 
     private def self.cancelled?(job_id : UUID) : Bool
