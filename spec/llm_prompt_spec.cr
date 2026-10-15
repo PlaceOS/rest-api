@@ -406,6 +406,21 @@ module PlaceOS::Api
       checked.issues["op-13"].should eq "canvas bounds can only be changed on the SVG root"
     end
 
+    it "only accepts canvas bounds that keep the old map and stay within four times its size" do
+      canvas_context = JSON.parse(%({"viewBox":[0,0,100,100],"index":[{"a":"e0","tag":"svg","kind":"root"}]}))
+      values = ["0 0 100 100", "-50 -50 200 200", "0 -100 100 200", "10 0 100 100", "0 0 90 100", "0 0 500 100", "-100 -100 300 300"]
+      ops = values.map do |value|
+        JSON.parse({"op" => "set_attr", "target" => {"a" => "e0"}, "name" => "viewBox", "value" => value}.to_json)
+      end
+      checked = Llm::Ops.check(ops, canvas_context)
+      checked.issues.should eq({
+        "op-4" => "the canvas may expand but cannot crop the existing map",
+        "op-5" => "the canvas may expand but cannot crop the existing map",
+        "op-6" => "the canvas expansion exceeds four times the existing size",
+        "op-7" => "the canvas expansion exceeds four times the existing size",
+      })
+    end
+
     it "resolves explicit ids created earlier in a proposal without accepting forward references" do
       created_context = JSON.parse(%({"index":[{"a":"e1","id":"chair","tag":"path"}]}))
       ops = [

@@ -88,6 +88,8 @@ module PlaceOS::Api::Llm
       getter anchors : Hash(String, Hash(String, JSON::Any))
       getter ids : Hash(String, Hash(String, JSON::Any))
       getter protected_ids : Set(String)
+      # The map's viewBox as x, y, width, height; nil when the context has none.
+      getter view_box : Array(Float64)?
 
       def initialize(context : JSON::Any)
         @anchors = {} of String => Hash(String, JSON::Any)
@@ -103,6 +105,8 @@ module PlaceOS::Api::Llm
           end
         end
         @protected_ids = (context["protected_ids"]?.try(&.as_a?) || [] of JSON::Any).compact_map(&.as_s?).to_set
+        numbers = (context["viewBox"]?.try(&.as_a?) || [] of JSON::Any).compact_map { |value| value.as_f? || value.as_i64?.try(&.to_f) }
+        @view_box = numbers if numbers.size == 4 && numbers[2] > 0 && numbers[3] > 0
       end
 
       # The entry a target names, or the reason it does not resolve.
@@ -173,6 +177,21 @@ module PlaceOS::Api::Llm
       end
     end
 
+    # The editor's `canvasExpansionIssue`: the new bounds keep the whole old
+    # viewBox and grow neither dimension nor the area beyond four times.
+    def self.canvas_expansion_issue(before : Array(Float64)?, after : Array(Float64)) : String?
+      return nil unless before
+      bx, by, bw, bh = before
+      ax, ay, aw, ah = after
+      if ax > bx || ay > by || ax + aw < bx + bw || ay + ah < by + bh
+        return "the canvas may expand but cannot crop the existing map"
+      end
+      if aw > bw * 4 || ah > bh * 4 || aw * ah > bw * bh * 4
+        return "the canvas expansion exceeds four times the existing size"
+      end
+      nil
+    end
+
     private def self.issue_for(op : Hash(String, JSON::Any), index : Index, claimed : Set(String)) : String?
       kind = op["op"]?.try(&.as_s?)
       return "unknown operation #{kind.inspect}" unless kind && Schema::OPS.includes?(kind)
@@ -187,7 +206,7 @@ module PlaceOS::Api::Llm
             tokens = op["value"]?.try(&.as_s?).try(&.strip.split(/[\s,]+/)) || [] of String
             numbers = tokens.compact_map(&.to_f64?)
             return "canvas bounds need four finite numbers with positive dimensions" unless tokens.size == 4 && numbers.size == 4 && numbers.all?(&.finite?) && numbers[2] > 0 && numbers[3] > 0
-            return nil
+            return Ops.canvas_expansion_issue(index.view_box, numbers)
           end
           return "attribute #{name} may not be set" unless Schema.allowed_attribute?(name)
           if (value = op["value"]?.try(&.as_s?))
