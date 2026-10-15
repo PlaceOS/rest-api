@@ -237,14 +237,14 @@ module PlaceOS::Api::Llm
 
       String.build do |text|
         if markup
-          if with_image && (image_bounds = markup["viewBox"]?.try(&.as_a?))
-            text << "SNAPSHOT bounds in user units: " << image_bounds.map { |value| number(value) }.join(' ') << "; these may include annotations outside the map canvas.\n"
-          end
           annotations = markup["annotations"]?.try(&.as_a?) || [] of JSON::Any
           unless annotations.empty?
             text << "ANNOTATIONS drawn by the person, in viewBox units"
             text << "; the numbers match the badges on the snapshot" if with_image
             text << '\n'
+            if with_image && (image_bounds = markup["viewBox"]?.try(&.as_a?))
+              text << "SNAPSHOT bounds in user units: " << image_bounds.map { |value| number(value) }.join(' ') << "; these may include annotations outside the map canvas.\n"
+            end
             used = 0
             annotations.each do |mark|
               line = annotation_line(mark)
