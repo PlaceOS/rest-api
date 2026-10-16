@@ -270,8 +270,20 @@ module PlaceOS::Api
       envelope.ops.should be_empty
       envelope.questions.should eq ["which?"]
 
+      stringified = Llm::Ops.parse({
+        summary:   "s",
+        ops:       [{op: "delete", target: {a: "e2"}}].to_json,
+        questions: ["which?"].to_json,
+      }.to_json)
+      stringified.ops.size.should eq 1
+      stringified.ops[0]["op"].should eq "delete"
+      stringified.questions.should eq ["which?"]
+
       expect_raises(Error::ImageGen::InvalidResponse, "did not answer with JSON") do
         Llm::Ops.parse("I would change the fill of the boardroom.")
+      end
+      expect_raises(Error::ImageGen::InvalidResponse, "no ops list") do
+        Llm::Ops.parse(%({"summary":"s","ops":"not json"}))
       end
       expect_raises(Error::ImageGen::InvalidResponse, "no ops list") do
         Llm::Ops.parse(%({"summary":"s"}))

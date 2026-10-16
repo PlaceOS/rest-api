@@ -51,11 +51,39 @@ module PlaceOS::Api::Llm
       hash = parsed.as_h?
       raise Error::ImageGen::InvalidResponse.new("the model's answer is not an object") if hash.nil?
 
-      ops = hash["ops"]?.try(&.as_a?)
-      raise Error::ImageGen::InvalidResponse.new("the model's answer has no ops list") if ops.nil?
+      ops = list(hash["ops"]?)
+      if ops.nil?
+        shape = hash.map { |key, value| "#{key}: #{kind_of(value)}" }.join(", ")
+        Log.warn { "map AI answer has no ops list; fields: #{shape}" }
+        raise Error::ImageGen::InvalidResponse.new("the model's answer has no ops list")
+      end
 
-      questions = hash["questions"]?.try(&.as_a?).try(&.compact_map(&.as_s?)) || [] of String
+      questions = list(hash["questions"]?).try(&.compact_map(&.as_s?)) || [] of String
       Envelope.new(summary: hash["summary"]?.try(&.as_s?) || "", ops: ops, questions: questions)
+    end
+
+    # An array, or a string holding a JSON array: Claude sometimes sends a
+    # nested tool input parameter JSON-encoded as a string.
+    private def self.list(value : JSON::Any?) : Array(JSON::Any)?
+      return nil if value.nil?
+      if (array = value.as_a?)
+        return array
+      end
+      text = value.as_s?
+      return nil if text.nil?
+      JSON.parse(text).as_a?
+    rescue JSON::ParseException
+      nil
+    end
+
+    private def self.kind_of(value : JSON::Any) : String
+      case raw = value.raw
+      when Array  then "array"
+      when Hash   then "object"
+      when String then "string (#{raw.bytesize} bytes)"
+      when Nil    then "null"
+      else             raw.class.name.downcase
+      end
     end
 
     # The ops untouched, with the reason for each one that fails a check.
