@@ -3,7 +3,7 @@ require "placeos-models/signage_ai_provider"
 require "../application"
 
 module PlaceOS::Api
-  # Vendor credentials for signage image generation.
+  # Vendor credentials for signage image generation and AI map editing.
   #
   # The Data Stores rule: sys_admin writes, support reads. Responses never carry
   # the credentials, so every route renders `as_json` rather than the row.
@@ -57,6 +57,7 @@ module PlaceOS::Api
       getter endpoint : String? = nil
       getter location : String? = nil
       getter default_model : String? = nil
+      getter text_model : String? = nil
       getter allowed_models : Array(String)? = nil
       getter enabled : Bool? = nil
       getter is_default : Bool? = nil
@@ -71,6 +72,7 @@ module PlaceOS::Api
       endpoint: String?,
       location: String?,
       default_model: String?,
+      text_model: String?,
       allowed_models: Array(String),
       enabled: Bool,
       is_default: Bool,
@@ -169,10 +171,21 @@ module PlaceOS::Api
       include JSON::Serializable
     end
 
+    # the text probe and its output budget; the answer is discarded
+    TEXT_PROBE        = "Reply with the single word OK"
+    TEXT_PROBE_TOKENS = 128
+
     # Prove a row's credentials work, without leaving anything behind: one small
-    # image, discarded.
+    # image, discarded, or with `kind=text` one tiny chat completion against the
+    # row's text model.
     @[AC::Route::POST("/:id/test")]
-    def test : TestResult
+    def test(
+      @[AC::Param::Info(description: "image (the default) or text", example: "text")]
+      kind : String = "image",
+    ) : TestResult
+      return test_text if kind == "text"
+      raise Error::ModelValidation.new([Error::Field.new(:kind, "must be image or text")]) unless kind == "image"
+
       row = current_provider
       adapter = ImageGen::Adapter.for(row)
       model = row.default_model || adapter.capabilities.default_model
@@ -210,6 +223,41 @@ module PlaceOS::Api
       end
     end
 
+    private def test_text : TestResult
+      row = current_provider
+      model = row.text_model.presence
+      started = Time.utc
+
+      unless Llm.slots.try_reserve(1)
+        raise Error::ImageGen::Busy.new("too many map edits are running right now, try again in a moment")
+      end
+
+      begin
+        adapter = Llm::Adapter.for(row)
+        model = adapter.text_model
+        answer = adapter.complete(Llm::Request.new(
+          system: "You are a connectivity check.",
+          parts: [Llm::TextPart.new(TEXT_PROBE)] of Llm::Part,
+          model: model,
+          max_output_tokens: TEXT_PROBE_TOKENS,
+          schema: nil,
+        ))
+        latency = (Time.utc - started).total_milliseconds.to_i64
+
+        if answer.finish == "length" || answer.text.strip.empty?
+          TestResult.new(false, latency, model, "the model used its #{TEXT_PROBE_TOKENS} output tokens without answering", "invalid_response")
+        else
+          TestResult.new(ok: true, latency_ms: latency, model: model)
+        end
+      rescue ex : Error::ImageGen
+        TestResult.new(false, (Time.utc - started).total_milliseconds.to_i64, model, ex.message, ex.kind)
+      rescue ex
+        TestResult.new(false, (Time.utc - started).total_milliseconds.to_i64, model, ex.message, "vendor")
+      ensure
+        Llm.slots.release(1)
+      end
+    end
+
     private def parse_provider(value : String?) : ::PlaceOS::Model::SignageAIProvider::Provider
       return ::PlaceOS::Model::SignageAIProvider::Provider::OPENAI if value.nil?
       ::PlaceOS::Model::SignageAIProvider::Provider.parse(value)
@@ -225,6 +273,7 @@ module PlaceOS::Api
       row.endpoint = params.endpoint.try(&.presence) if params.endpoint
       row.location = params.location.try(&.presence) if params.location
       row.default_model = params.default_model.try(&.presence) if params.default_model
+      row.text_model = params.text_model.try(&.presence) if params.text_model
       row.allowed_models = params.allowed_models.not_nil! if params.allowed_models
       row.enabled = params.enabled.not_nil! unless params.enabled.nil?
       row.is_default = params.is_default.not_nil! unless params.is_default.nil?

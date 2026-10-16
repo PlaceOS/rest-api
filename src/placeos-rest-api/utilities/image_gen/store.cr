@@ -8,6 +8,8 @@ module PlaceOS::Api::ImageGen
   module Store
     CANDIDATE_TAG = "ai-candidate"
     REFERENCE_TAG = "ai-reference"
+    # the marked up map snapshot attached to a map AI edit
+    MARKUP_TAG = "ai-map-markup"
 
     record Stored, upload : ::PlaceOS::Model::Upload, width : Int32?, height : Int32?
 

@@ -1,0 +1,593 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "map_edit_proposal",
+    "description": "Operations the map editor applies to a level's SVG. Targets name elements from the index by anchor or id; coordinates are viewBox user units.",
+    "type": "object",
+    "properties": {
+        "schema_version": {
+            "type": "integer",
+            "enum": [1]
+        },
+        "summary": {
+            "type": "string",
+            "description": "One sentence for the person."
+        },
+        "ops": {
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "description": "Set or remove one presentation attribute on one element.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["set_attr"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "fill, stroke, stroke-width, stroke-dasharray, fill-opacity, stroke-opacity, opacity, class, visibility, rx, ry, font-size, font-family, font-weight, text-anchor or data-*"
+                            },
+                            "value": {
+                                "type": ["string", "null"],
+                                "description": "null removes the attribute"
+                            }
+                        },
+                        "required": ["op", "why", "target", "name", "value"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Edit or add a rule in the map's <style>; declarations are merged into an existing rule with the same selector.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["set_style_rule"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "selector": {
+                                "type": "string",
+                                "description": "CSS selector of the rule in the map's <style>; never *"
+                            },
+                            "declarations": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/$defs/name_value"
+                                },
+                                "description": "Properties from the set_attr allow-list"
+                            }
+                        },
+                        "required": ["op", "why", "selector", "declarations"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Replace the text content of a text or tspan element.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["set_text"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            },
+                            "text": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["op", "why", "target", "text"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Move, scale or rotate elements in viewBox user units by prepending to their transform; geometry attributes are never rewritten.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["transform"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/target"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "targets": {
+                                "anyOf": [
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/$defs/target"
+                                        }
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "translate": {
+                                "anyOf": [
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "number"
+                                        },
+                                        "description": "[x, y] in viewBox user units"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "scale": {
+                                "anyOf": [
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "number"
+                                        },
+                                        "description": "[x, y] in viewBox user units"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "rotate": {
+                                "type": ["number", "null"],
+                                "description": "degrees, clockwise"
+                            },
+                            "origin": {
+                                "anyOf": [
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "number"
+                                        },
+                                        "description": "[x, y] in viewBox user units"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ],
+                                "description": "centre of scale and rotate, in viewBox user units"
+                            }
+                        },
+                        "required": [
+                            "op",
+                            "why",
+                            "target",
+                            "targets",
+                            "translate",
+                            "scale",
+                            "rotate",
+                            "origin"
+                        ],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Remove elements and their descendants.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["delete"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/target"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "targets": {
+                                "anyOf": [
+                                    {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/$defs/target"
+                                        }
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            }
+                        },
+                        "required": ["op", "why", "target", "targets"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Copy an element one or more times, each copy offset by translate from the previous.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["duplicate"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            },
+                            "new_id": {
+                                "type": ["string", "null"]
+                            },
+                            "translate": {
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                },
+                                "description": "[x, y] in viewBox user units"
+                            },
+                            "count": {
+                                "type": ["integer", "null"],
+                                "description": "copies, 1 to 40; default 1"
+                            },
+                            "id_pattern": {
+                                "type": ["string", "null"],
+                                "description": "id pattern such as table-01.{n:03}, continuing after the highest existing number"
+                            }
+                        },
+                        "required": [
+                            "op",
+                            "why",
+                            "target",
+                            "new_id",
+                            "translate",
+                            "count",
+                            "id_pattern"
+                        ],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Create a new element in viewBox user units.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["insert_shape"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "parent": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/target"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ],
+                                "description": "root when null; must be the root or a <g>"
+                            },
+                            "after": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/target"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ],
+                                "description": "sibling to insert after; appended to the parent when null"
+                            },
+                            "kind": {
+                                "type": "string",
+                                "enum": [
+                                    "rect",
+                                    "circle",
+                                    "ellipse",
+                                    "line",
+                                    "polygon",
+                                    "polyline",
+                                    "path",
+                                    "text",
+                                    "g"
+                                ]
+                            },
+                            "attrs": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/$defs/name_value"
+                                },
+                                "description": "geometry attributes of the kind plus the set_attr allow-list, in viewBox user units"
+                            },
+                            "new_id": {
+                                "type": ["string", "null"]
+                            },
+                            "text": {
+                                "type": ["string", "null"],
+                                "description": "text content for kind text"
+                            }
+                        },
+                        "required": [
+                            "op",
+                            "why",
+                            "parent",
+                            "after",
+                            "kind",
+                            "attrs",
+                            "new_id",
+                            "text"
+                        ],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Rename an element's id, rewriting url(#old) and href=\"#old\" references.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["set_id"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            },
+                            "new_id": {
+                                "type": ["string", "null"],
+                                "description": "null removes the id"
+                            }
+                        },
+                        "required": ["op", "why", "target", "new_id"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Move an element among its siblings (paint order); exactly one of before, after or position.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["reorder"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            },
+                            "before": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/target"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "after": {
+                                "anyOf": [
+                                    {
+                                        "$ref": "#/$defs/target"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            },
+                            "position": {
+                                "type": ["string", "null"],
+                                "enum": ["first", "last", null]
+                            }
+                        },
+                        "required": [
+                            "op",
+                            "why",
+                            "target",
+                            "before",
+                            "after",
+                            "position"
+                        ],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Wrap sibling elements in a new <g>.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["group"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "targets": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/$defs/target"
+                                }
+                            },
+                            "new_id": {
+                                "type": ["string", "null"]
+                            }
+                        },
+                        "required": ["op", "why", "targets", "new_id"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Lift a <g>'s children into its parent, folding the group's transform into each child.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["ungroup"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            }
+                        },
+                        "required": ["op", "why", "target"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Swap an element for new markup.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["replace_element"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            },
+                            "markup": {
+                                "type": "string",
+                                "description": "one SVG element, under 16 KB; keeps the target's id"
+                            }
+                        },
+                        "required": ["op", "why", "target", "markup"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Replace the path data of a <path>.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["replace_path"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "target": {
+                                "$ref": "#/$defs/target"
+                            },
+                            "d": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["op", "why", "target", "d"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "Nothing needs to change.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["no_change"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "reason": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["op", "why", "reason"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "description": "The instruction is ambiguous or the target cannot be identified; ask the person.",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": ["ask"]
+                            },
+                            "why": {
+                                "type": "string",
+                                "description": "One sentence for the person reviewing the change."
+                            },
+                            "question": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["op", "why", "question"],
+                        "additionalProperties": false
+                    }
+                ]
+            }
+        },
+        "questions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["schema_version", "summary", "ops", "questions"],
+    "additionalProperties": false,
+    "$defs": {
+        "target": {
+            "type": "object",
+            "description": "At least one of a (anchor) or id; when both are given they must be the same element. h is the element's content hash from the index.",
+            "properties": {
+                "a": {
+                    "type": ["string", "null"]
+                },
+                "id": {
+                    "type": ["string", "null"]
+                },
+                "h": {
+                    "type": ["string", "null"]
+                }
+            },
+            "required": ["a", "id", "h"],
+            "additionalProperties": false
+        },
+        "name_value": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "required": ["name", "value"],
+            "additionalProperties": false
+        }
+    }
+}

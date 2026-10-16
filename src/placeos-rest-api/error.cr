@@ -37,9 +37,9 @@ module PlaceOS::Api
     class GuestAccessDisabled < Error
     end
 
-    # Signage AI image generation. Each subclass maps to its own status code in
-    # `Application`, and renders `{"error": ..., "kind": ...}` so a client can
-    # branch on the kind without matching on message text.
+    # Signage AI image generation and map AI editing. Each subclass maps to its
+    # own status code in `Application`, and renders `{"error": ..., "kind": ...}`
+    # so a client can branch on the kind without matching on message text.
     class ImageGen < Error
       # the caller has used up a per user or per domain quota
       class Quota < ImageGen
@@ -69,17 +69,24 @@ module PlaceOS::Api
       class NotConfigured < ImageGen
       end
 
+      # the vendor answered, but not with something that parses as the result
+      # asked for (a map edit that is not JSON, or an answer cut off by the
+      # output token limit)
+      class InvalidResponse < ImageGen
+      end
+
       # kind reported to the client, e.g. "moderation", "quota"
       def kind : String
         case self
-        when Quota         then "quota"
-        when Moderated     then "moderation"
-        when Busy          then "busy"
-        when Vendor        then "vendor"
-        when Timeout       then "timeout"
-        when Permission    then "permission"
-        when NotConfigured then "not_configured"
-        else                    "error"
+        when Quota           then "quota"
+        when Moderated       then "moderation"
+        when Busy            then "busy"
+        when Vendor          then "vendor"
+        when Timeout         then "timeout"
+        when Permission      then "permission"
+        when NotConfigured   then "not_configured"
+        when InvalidResponse then "invalid_response"
+        else                      "error"
         end
       end
     end

@@ -27,6 +27,7 @@ module PlaceOS::Api
         authority_id:  authority.id,
         credentials:   {api_key: "sk-spec-secret"},
         default_model: "gpt-image-2",
+        text_model:    "gpt-5.4-mini",
         is_default:    true,
       }.to_json
 
@@ -39,6 +40,7 @@ module PlaceOS::Api
       rendered = JSON.parse(result.body)
       rendered["provider"].as_s.should eq "OPENAI"
       rendered["is_default"].as_bool.should be_true
+      rendered["text_model"].as_s.should eq "gpt-5.4-mini"
 
       row = Model::SignageAIProvider.find!(UUID.new(rendered["id"].as_s))
       row.credentials_encrypted?.should be_true
@@ -51,6 +53,7 @@ module PlaceOS::Api
         authority: authority,
         name: "openai-#{random_name}",
         credentials: %({"api_key":"keep-me"}),
+        text_model: "gpt-5.4-mini",
       ).save!
 
       result = client.patch(
@@ -66,6 +69,12 @@ module PlaceOS::Api
       row.name.should eq "renamed"
       row.enabled.should be_false
       row.credentials_json["api_key"].as_s.should eq "keep-me"
+      # left out of the body, left alone
+      row.text_model.should eq "gpt-5.4-mini"
+
+      # sent empty, cleared
+      client.patch(File.join(base, provider.id.to_s), headers: Spec::Authentication.headers, body: {text_model: ""}.to_json).status_code.should eq 200
+      Model::SignageAIProvider.find!(provider.id.as(UUID)).text_model.should be_nil
     end
 
     it "lets support read, and nothing more" do
@@ -209,6 +218,58 @@ module PlaceOS::Api
         result = client.post(File.join(base, provider.id.to_s, "test"), headers: Spec::Authentication.headers)
         result.status_code.should eq 200
         JSON.parse(result.body)["model"].as_s.should eq "gpt-image-2.5-sunburst"
+      end
+
+      it "probes the text model with kind=text" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        provider = Model::Generator.signage_ai_provider(
+          authority: authority,
+          name: "openai-#{random_name}",
+          text_model: "gpt-5.4-mini-custom",
+        ).save!
+        requests = [] of JSON::Any
+
+        HttpMocks.map_ai_vendor("OK", requests: requests)
+        HttpMocks.signage_ai_vendor_refused
+
+        result = client.post(File.join(base, provider.id.to_s, "test?kind=text"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+
+        body = JSON.parse(result.body)
+        body["ok"].as_bool.should be_true
+        body["model"].as_s.should eq "gpt-5.4-mini-custom"
+
+        requests.size.should eq 1
+        requests.first["model"].as_s.should eq "gpt-5.4-mini-custom"
+        requests.first["max_completion_tokens"].as_i.should eq SignageAIProviders::TEXT_PROBE_TOKENS
+        requests.first["response_format"]?.should be_nil
+        requests.first["reasoning_effort"].as_s.should eq "low"
+
+        client.post(File.join(base, provider.id.to_s, "test?kind=sound"), headers: Spec::Authentication.headers).status_code.should eq 422
+      end
+
+      it "reports a text probe that spent its budget without answering" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        provider = Model::Generator.signage_ai_provider(authority: authority, name: "openai-#{random_name}").save!
+
+        HttpMocks.map_ai_vendor("", finish: "length")
+
+        body = JSON.parse(client.post(File.join(base, provider.id.to_s, "test?kind=text"), headers: Spec::Authentication.headers).body)
+        body["ok"].as_bool.should be_false
+        body["kind"].as_s.should eq "invalid_response"
+        body["error"].as_s.should contain "without answering"
+      end
+
+      it "reports a text probe that times out" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        provider = Model::Generator.signage_ai_provider(authority: authority, name: "openai-#{random_name}").save!
+
+        HttpMocks.map_ai_vendor_timeout
+
+        body = JSON.parse(client.post(File.join(base, provider.id.to_s, "test?kind=text"), headers: Spec::Authentication.headers).body)
+        body["ok"].as_bool.should be_false
+        body["kind"].as_s.should eq "timeout"
+        body["model"].as_s.should eq MAP_AI_DEFAULT_OPENAI_MODEL
       end
 
       it "reports a refusal as a moderation failure rather than an error" do
