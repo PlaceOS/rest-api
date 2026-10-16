@@ -147,6 +147,7 @@
 
 ### Fix
 
+- **constants**: default source hostname
 - **groups**: allow multiple roots
 - **params**: accept JSON arrays for comma separated list params
 - **signage**: samsung eink content duration
