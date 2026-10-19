@@ -19,7 +19,6 @@ module PlaceOS::Api
       headers["Host"] = "localhost"
       response = rpc.call(mcp_path.call(sys_id), headers, "initialize", {"protocolVersion" => JSON::Any.new("2025-11-25")})
       response.status_code.should eq 200
-      headers["Mcp-Session-Id"] = response.headers["Mcp-Session-Id"]
       {headers, JSON.parse(response.body)["result"]}
     }
     call_tool = ->(sys_id : String, headers : HTTP::Headers, name : String, arguments : Hash(String, JSON::Any)) {
@@ -120,7 +119,7 @@ module PlaceOS::Api
       headers["Accept"] = "application/json"
       headers["Host"] = "localhost"
       response = mcp_client.post(MCP::PATH, headers: headers, body: {jsonrpc: "2.0", id: 1, method: "initialize", params: {protocolVersion: "2025-11-25"}}.to_json)
-      headers["Mcp-Session-Id"] = response.headers["Mcp-Session-Id"]
+      response.status_code.should eq 200
       response = mcp_client.post(MCP::PATH, headers: headers, body: {jsonrpc: "2.0", id: 2, method: "tools/call", params: {name: "list_toolboxes", arguments: {} of String => String}}.to_json)
       names = JSON.parse(response.body)["result"]["structuredContent"]["toolboxes"].as_a.map(&.["name"].as_s)
       names.should_not contain "chat_gpt_plugin"

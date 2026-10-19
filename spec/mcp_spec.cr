@@ -19,12 +19,11 @@ module PlaceOS::Api
     initialize_params = {"protocolVersion" => JSON::Any.new("2025-11-25")}
     no_params = {} of String => JSON::Any
 
-    # establishes a session, returning the headers to use for it
+    # initializes the stateless server, returning the headers to use for later requests
     open_session = ->(credentials : HTTP::Headers) {
       headers = mcp_headers.call(credentials)
       response = rpc.call(headers, "initialize", initialize_params)
       response.status_code.should eq 200
-      headers["Mcp-Session-Id"] = response.headers["Mcp-Session-Id"]
       headers
     }
     call_tool = ->(headers : HTTP::Headers, name : String, arguments : Hash(String, JSON::Any)) {
