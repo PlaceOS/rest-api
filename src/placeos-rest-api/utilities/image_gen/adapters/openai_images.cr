@@ -1,6 +1,8 @@
 require "http/formdata"
 require "json"
 
+require "../../openai_vendor"
+
 module PlaceOS::Api::ImageGen::Adapters
   # OpenAI's image API, and Azure OpenAI, which speaks the same request and
   # response shape at a different base URL with a different auth header.
@@ -9,8 +11,9 @@ module PlaceOS::Api::ImageGen::Adapters
   # in `data[].b64_json`, and can return every candidate from one call, so a
   # request of n candidates costs one vendor call.
   class OpenAIImages < Adapter
+    include Utils::OpenAIVendor
+
     DEFAULT_MODEL   = "gpt-image-2.5-sunburst"
-    DEFAULT_BASE    = "https://api.openai.com/v1"
     DEFAULT_VERSION = "2026-04-01-preview"
 
     # Sunburst is tuned for edit precision, Flare for speed; both cost the same.
@@ -122,20 +125,6 @@ module PlaceOS::Api::ImageGen::Adapters
       end
     end
 
-    private def azure? : Bool
-      row.provider.azure_openai?
-    end
-
-    private def base : String
-      if (endpoint = row.endpoint.presence)
-        endpoint.rstrip('/')
-      elsif azure?
-        raise Error::ImageGen::NotConfigured.new("Azure OpenAI provider #{row.name} needs an endpoint")
-      else
-        DEFAULT_BASE
-      end
-    end
-
     private def url_for(path : String) : URI
       if azure?
         deployment = credential("deployment")
@@ -146,50 +135,14 @@ module PlaceOS::Api::ImageGen::Adapters
       end
     end
 
-    private def headers(content_type : String) : HTTP::Headers
-      headers = HTTP::Headers{"Content-Type" => content_type}
-      if azure?
-        headers["api-key"] = credential("api_key")
-      else
-        headers["Authorization"] = "Bearer #{credential("api_key")}"
-        if organisation = credentials["organisation"]?.try(&.as_s?).presence
-          headers["OpenAI-Organization"] = organisation
-        end
-      end
-      headers
-    end
-
     private def post(path : String, body : String, content_type : String) : Array(AdapterImage)
       uri = url_for(path)
       response = Http.client(uri) do |client|
-        client.post(uri.request_target, headers: headers(content_type), body: body)
+        client.post(uri.request_target, headers: openai_headers(content_type), body: body)
       end
 
       raise_for_status(response)
       parse(response.body)
-    end
-
-    private def raise_for_status(response : HTTP::Client::Response) : Nil
-      return if response.success?
-
-      code = nil
-      message = nil
-      begin
-        error = JSON.parse(response.body)["error"]?
-        code = error.try(&.["code"]?).try(&.as_s?)
-        message = error.try(&.["message"]?).try(&.as_s?)
-      rescue JSON::ParseException
-      end
-
-      if code == "moderation_blocked" || code == "content_policy_violation"
-        raise Error::ImageGen::Moderated.new(message || "the request was blocked by the vendor's safety system")
-      end
-
-      if response.status_code == 429
-        raise Error::ImageGen::Busy.new(message || "the vendor is rate limiting this account")
-      end
-
-      raise Error::ImageGen::Vendor.new(message || vendor_message(response.body))
     end
 
     private def parse(body : String) : Array(AdapterImage)
