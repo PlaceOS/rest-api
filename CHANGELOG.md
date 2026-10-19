@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **map-ai**: generate SVG edit proposals for Concierge (PPT-2832) ([#453](https://github.com/PlaceOS/rest-api/pull/453))
 - **root**: proxy source's MQTT resync for system admins ([#454](https://github.com/PlaceOS/rest-api/pull/454))
 - **assets**: scope asset records to the caller's authority
 - **chatgpt**: describe each system in its MCP instructions
