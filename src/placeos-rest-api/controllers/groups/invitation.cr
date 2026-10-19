@@ -123,7 +123,6 @@ module PlaceOS::Api
         permissions: perms,
         expires_at: payload.expires_at,
       )
-      invitation.acting_user = current_user
       raise Error::ModelValidation.new(invitation.errors) unless invitation.save
       InvitationCreatedResponse.new(invitation, invitation.plaintext_secret.as(String))
     end
@@ -131,7 +130,6 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       invitation = current_invitation
-      invitation.acting_user = current_user
       invitation.destroy
     end
 

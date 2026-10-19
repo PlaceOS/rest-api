@@ -161,7 +161,6 @@ module PlaceOS::Api
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
     def create : ::PlaceOS::Model::GroupUser
       gu = group_user_update
-      gu.acting_user = current_user
       raise Error::ModelValidation.new(gu.errors) unless gu.save
       gu
     end
@@ -173,7 +172,6 @@ module PlaceOS::Api
       # Only permissions are mutable on this junction; composite PK is immutable.
       new_perms = group_user_update.permissions
       current.permissions = new_perms
-      current.acting_user = current_user
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -181,7 +179,6 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:user_id/:group_id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       gu = current_group_user
-      gu.acting_user = current_user
       gu.destroy
     end
   end

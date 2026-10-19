@@ -18610,16 +18610,18 @@ paths:
   /api/engine/v2/group_history:
     summary: Audit history of changes to groups and their memberships
     get:
-      summary: List audit entries. sys_admin sees everything; other callers must
-      description: 'List audit entries. sys_admin sees everything; other callers must
+      summary: List audit entries, newest first. sys_admin sees everything; other
+      description: 'List audit entries, newest first. sys_admin sees everything; other
 
-        pass `group_id=` and have Manage on it.'
+        callers must pass `group_id=` and have Manage on it.'
       tags:
       - History
       operationId: PlaceOS::Api::Groups::History_index
       parameters:
       - name: group_id
         in: query
+        description: only return changes to this group and its memberships
+        example: 0192d1c8-2f0e-7cc1-9d2a-6f1c7e1b3a51
         schema:
           anyOf:
           - type: string
@@ -18627,11 +18629,14 @@ paths:
           - type: "null"
       - name: limit
         in: query
+        description: the maximum number of results to return
+        example: 100
         schema:
           type: integer
           format: Int32
       - name: offset
         in: query
+        description: the starting offset of the result set, used to implement pagination
         schema:
           type: integer
           format: Int32
@@ -18667,7 +18672,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaceOS.Model.GroupHistory'
+                  $ref: '#/components/schemas/PlaceOS.Model.History'
         "409":
           description: Conflict
           content:
@@ -18765,7 +18770,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.GroupHistory'
+                $ref: '#/components/schemas/PlaceOS.Model.History'
         "409":
           description: Conflict
           content:
@@ -20608,6 +20613,428 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Model.GroupZone'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/history:
+    summary: Change history of the platform's models, see `PlaceOS::Model::History`
+    get:
+      summary: List changes, newest first
+      tags:
+      - History
+      operationId: PlaceOS::Api::History_index
+      parameters:
+      - name: resource_types
+        in: query
+        description: only return changes to these resource types (table names)
+        example:
+        - zone
+        - sys
+        schema:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              type: string
+      - name: exclude_resource_types
+        in: query
+        description: exclude changes to these resource types (table names)
+        example:
+        - bookings
+        - event_metadatas
+        schema:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              type: string
+      - name: resource_id
+        in: query
+        description: only return changes to this resource, usually combined with `resource_types`
+        example: zone-1234
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
+      - name: correlation_id
+        in: query
+        description: only return changes related to this parent, such as a group,
+          playlist or booking
+        example: 0192d1c8-2f0e-7cc1-9d2a-6f1c7e1b3a51
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
+      - name: user_id
+        in: query
+        description: only return changes made by this user
+        example: user-1234
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
+      - name: actions
+        in: query
+        description: 'only return these kinds of change: create, update, delete, approve
+          or restore'
+        example:
+        - delete
+        schema:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              type: string
+      - name: period_start
+        in: query
+        description: only return changes made at or after this time, as a unix epoch
+        example: 1729382400
+        schema:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+      - name: period_end
+        in: query
+        description: only return changes made before this time, as a unix epoch
+        example: 1729468800
+        schema:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: 100
+        schema:
+          type: integer
+          format: Int32
+      - name: offset
+        in: query
+        description: the starting offset of the result set, used to implement pagination
+        schema:
+          type: integer
+          format: Int32
+      - name: q
+        in: query
+        description: 'filters results by the given text: a record matches when any
+          word matches its searchable fields as a whole word, and the last word also
+          matches as a prefix (search as you type)'
+        schema:
+          type: string
+      - name: ref
+        in: query
+        description: deprecated, ignored — pagination follows the `Link` header's
+          offset
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
+      - name: fields
+        in: query
+        description: deprecated, ignored — search covers the resource's indexed fields
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS.Model.History'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/history/{id}:
+    summary: Change history of the platform's models, see `PlaceOS::Model::History`
+    get:
+      tags:
+      - History
+      operationId: PlaceOS::Api::History_show
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Model.History'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/history/undelete:
+    summary: Change history of the platform's models, see `PlaceOS::Model::History`
+    post:
+      summary: Restores a deleted record from its change history, keeping its id.
+      description: 'Restores a deleted record from its change history, keeping its
+        id.
+
+        Records deleted alongside it are not restored and redacted fields, such
+
+        as passwords and secrets, are left empty.'
+      tags:
+      - History
+      operationId: PlaceOS::Api::History_undelete
+      parameters:
+      - name: resource_type
+        in: query
+        description: the type (table name) of the deleted resource
+        example: zone
+        required: true
+        schema:
+          type: string
+      - name: resource_id
+        in: query
+        description: the id of the deleted resource
+        example: zone-1234
+        required: true
+        schema:
+          type: string
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PgORM.Base'
         "409":
           description: Conflict
           content:
@@ -46329,7 +46756,7 @@ components:
         within the current authority. Lightweight — returns the group
 
         rows plus the user''s effective permission bitmask per group.'
-    PlaceOS.Model.GroupHistory:
+    PlaceOS.Model.History:
       type: object
       properties:
         id:
@@ -46337,28 +46764,19 @@ components:
           - type: string
             format: uuid
           - type: "null"
-        group_id:
-          anyOf:
-          - type: string
-            format: uuid
-          - type: "null"
-        user_id:
-          anyOf:
-          - type: "null"
-          - type: string
-        email:
-          anyOf:
-          - type: "null"
-          - type: string
-        action:
-          anyOf:
-          - type: "null"
-          - type: string
         resource_type:
           anyOf:
           - type: "null"
           - type: string
         resource_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        correlation_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        action:
           anyOf:
           - type: "null"
           - type: string
@@ -46368,6 +46786,26 @@ components:
           - type: array
             items:
               type: string
+        diff:
+          anyOf:
+          - type: object
+          - type: "null"
+        snapshot:
+          anyOf:
+          - type: object
+          - type: "null"
+        user_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        user_email:
+          anyOf:
+          - type: "null"
+          - type: string
+        context:
+          anyOf:
+          - type: object
+          - type: "null"
         created_at:
           anyOf:
           - type: string
@@ -46489,6 +46927,8 @@ components:
           anyOf:
           - type: "null"
           - $ref: '#/components/schemas/PlaceOS.Model.Zone'
+    PgORM.Base:
+      type: object
     PlaceOS.Api.MapAI.Capabilities:
       type: object
       properties:
@@ -49205,10 +49645,6 @@ components:
           anyOf:
           - type: "null"
           - type: string
-        admin_destroy_lock:
-          anyOf:
-          - type: "null"
-          - $ref: '#/components/schemas/PgORM.PgAdvisoryLock'
         id:
           anyOf:
           - type: "null"
@@ -49910,13 +50346,6 @@ components:
       required:
       - day_of_week
       - blocks
-    PgORM.PgAdvisoryLock:
-      type: object
-      properties:
-        key:
-          type: string
-      required:
-      - key
     PlaceOS.Model.Trigger.Conditions.Comparison:
       type: object
       properties:
