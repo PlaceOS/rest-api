@@ -140,7 +140,6 @@ module PlaceOS::Api
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
     def create : ::PlaceOS::Model::GroupZone
       gz = group_zone_update
-      gz.acting_user = current_user
       raise Error::ModelValidation.new(gz.errors) unless gz.save
       gz
     end
@@ -152,7 +151,6 @@ module PlaceOS::Api
       update = group_zone_update
       current.permissions = update.permissions
       current.deny = update.deny
-      current.acting_user = current_user
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -160,7 +158,6 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:group_id/:zone_id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       gz = current_group_zone
-      gz.acting_user = current_user
       gz.destroy
     end
   end

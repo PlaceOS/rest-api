@@ -11,6 +11,9 @@ module PlaceOS::Api
   # Helper to grab user and authority from a request
 
   module Utils::CurrentUser
+    # The API key used to authenticate the request, if any
+    getter api_key : ::PlaceOS::Model::ApiKey? = nil
+
     # Parses, and validates JWT if present.
     # Throws Error::MissingBearer and JWT::Error.
 
@@ -28,6 +31,7 @@ module PlaceOS::Api
           Log.context.set(api_key_id: api_key.id, api_key_name: api_key.name)
           ensure_matching_domain(user_token)
           @user_token = user_token
+          @api_key = api_key
           @current_user = ::PlaceOS::Model::User.find(user_token.id)
           return user_token
         rescue e : Error::Unauthorized

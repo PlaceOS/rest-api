@@ -191,7 +191,6 @@ module PlaceOS::Api
       update = group_update
       current = current_group
       current.assign_attributes(update)
-      current.acting_user = current_user
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -203,7 +202,6 @@ module PlaceOS::Api
       group = group_update
       # Force the authority to the caller's — no cross-authority moves.
       group.authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
-      group.acting_user = current_user
       raise Error::ModelValidation.new(group.errors) unless group.save
       group
     end
@@ -212,7 +210,6 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       group = current_group
-      group.acting_user = current_user
       group.destroy
     end
 

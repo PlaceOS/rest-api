@@ -61,7 +61,7 @@ def clear_tables
   # and must be dropped before their parents. Done sequentially since
   # some of them reference each other.
   [
-    PlaceOS::Model::GroupHistory,
+    PlaceOS::Model::History,
     PlaceOS::Model::GroupInvitation,
     PlaceOS::Model::GroupZone,
     PlaceOS::Model::GroupUser,
@@ -106,7 +106,7 @@ end
 # that creates a root group fails with a validation error.
 def clear_group_tables
   [
-    PlaceOS::Model::GroupHistory,
+    PlaceOS::Model::History,
     PlaceOS::Model::GroupInvitation,
     PlaceOS::Model::GroupZone,
     PlaceOS::Model::GroupUser,

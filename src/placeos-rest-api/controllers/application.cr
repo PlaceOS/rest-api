@@ -193,6 +193,37 @@ module PlaceOS::Api
       response.headers["X-Request-ID"] = request_id
     end
 
+    # Attributes model changes made during the request in their change
+    # history. The metadata is only built when a change is recorded, after
+    # the request has been authenticated.
+    @[AC::Route::Filter(:around_action)]
+    def with_history_metadata(&)
+      provider = ::PlaceOS::Model::History::MetadataProvider.new { history_metadata(request, @current_user) }
+      ::PlaceOS::Model::History.with_metadata(provider) { yield }
+    end
+
+    # Who made a change and from where, see `PlaceOS::Model::History::Metadata`
+    def history_metadata(request : HTTP::Request, current_user : ::PlaceOS::Model::User?) : ::PlaceOS::Model::History::Metadata
+      headers = request.headers
+      metadata = ::PlaceOS::Model::History::Metadata.new(
+        api_key_id: api_key.try(&.id),
+        api_key_name: api_key.try(&.name),
+        app_id: history_header(headers, "X-App-Id"),
+        app_name: history_header(headers, "X-App-Name"),
+        app_date: history_header(headers, "X-App-Date"),
+        app_build: history_header(headers, "X-App-Build"),
+        user_agent: history_header(headers, "User-Agent"),
+        ip: client_ip,
+        request_id: request_id,
+      )
+      current_user ? metadata.with_user(current_user) : metadata
+    end
+
+    # Client supplied header, limited in length as it is stored with each change
+    private def history_header(headers : HTTP::Headers, name : String) : String?
+      headers[name]?.presence.try(&.[0, 256])
+    end
+
     ###########################################################################
     # Error Handlers
     ###########################################################################
