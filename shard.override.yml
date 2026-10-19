@@ -18,10 +18,6 @@ dependencies:
     github: place-labs/ulid
     branch: master
 
-  placeos-models:
-    github: placeos/models
-    branch: PPT-2832-ai-map-review
-
   # uncomment to test different model branches
   # placeos-models:
   #  github: placeos/models
