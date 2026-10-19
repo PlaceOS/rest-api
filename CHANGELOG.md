@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **history**: unified change history API ([#456](https://github.com/PlaceOS/rest-api/pull/456))
 - **map-ai**: generate SVG edit proposals for Concierge (PPT-2832) ([#453](https://github.com/PlaceOS/rest-api/pull/453))
 - **root**: proxy source's MQTT resync for system admins ([#454](https://github.com/PlaceOS/rest-api/pull/454))
 - **assets**: scope asset records to the caller's authority
