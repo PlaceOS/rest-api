@@ -150,6 +150,7 @@
 
 ### Fix
 
+- **modules**: state lookup returns "null" for unset keys
 - **mcp**: notify subscriptions once acknowledged
 - **constants**: default source hostname
 - **groups**: allow multiple roots
