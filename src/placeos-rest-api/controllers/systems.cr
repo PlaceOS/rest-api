@@ -575,7 +575,9 @@ module PlaceOS::Api
       self.class.module_state(sys_id, module_name, index) || {} of String => String
     end
 
-    # Returns the state lookup for a given key on a module
+    # Returns the state lookup for a given key on a module.
+    # Subscribe to the resource to be notified when the value changes
+    @[AC::MCP(resource: "placeos://systems/{sys_id}/{module_slug}/{key}", mime_type: "application/json", subscribe: true, cache_ttl: 0)]
     @[AC::Route::GET("/:sys_id/:module_slug/:key")]
     def state_lookup(
       sys_id : String,

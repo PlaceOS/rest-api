@@ -414,6 +414,26 @@ module PlaceOS::Api
       zones.uniq
     end
 
+    # Debug output can include device traffic and credentials, so a "support"
+    # subsystem user needs both Operate and Read on the module's zones.
+    MODULE_DEBUG_PERMISSIONS = ::PlaceOS::Model::Permissions::Operate | ::PlaceOS::Model::Permissions::Read
+
+    # Whether the user can see a module's debug output (the websocket `debug`
+    # command and `GET /modules/:id/logs`): support/admin JWT, the legacy
+    # org_zone path, or the "support" subsystem granting Operate and Read (or
+    # Manage) on the module's zones. A module attached to no system has no
+    # derivable zones => support/admin only.
+    def module_debug_access?(module_id : String) : Bool
+      return true if user_support?
+      zones = module_zones(module_id)
+      return false if zones.empty?
+      return true if has_legacy_access?(zones)
+
+      perms_map = subsystem_zone_permissions(SUPPORT_SUBSYSTEM)
+      perms = zones.reduce(::PlaceOS::Model::Permissions::None) { |acc, zone| acc | (perms_map[zone]? || ::PlaceOS::Model::Permissions::None) }
+      perms.manage? || perms.includes?(MODULE_DEBUG_PERMISSIONS)
+    end
+
     # SQL subquery (single column: zone id) of the zones where the current
     # user holds `required` within any of `subsystems` — the zone-subtree
     # expansion runs in the database rather than materialising the zone set

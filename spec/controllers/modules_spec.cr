@@ -978,6 +978,95 @@ module PlaceOS::Api
         zone.destroy
       end
 
+      it "gates GET state value on the Read bit, returning the stored JSON as is" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        state_path = File.join(Modules.base_route, mod.id.as(String), "state")
+        PlaceOS::Driver::RedisStorage.new(mod.id.as(String))["power"] = %({"on":true,"level":2})
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Update).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Update).save!
+
+        client.get(path: File.join(state_path, "power", "value"), headers: headers).status_code.should eq 403
+
+        gu.permissions = Model::Permissions::Read.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Read.to_i
+        gz.save!
+
+        result = client.get(path: File.join(state_path, "power", "value"), headers: headers)
+        result.status_code.should eq 200
+        result.headers["Content-Type"].should start_with "application/json"
+        JSON.parse(result.body).should eq JSON.parse(%({"on":true,"level":2}))
+
+        # the existing lookup still returns the value encoded as a string
+        String.from_json(client.get(path: File.join(state_path, "power"), headers: headers).body).should eq %({"on":true,"level":2})
+
+        missing = client.get(path: File.join(state_path, "missing", "value"), headers: headers)
+        missing.status_code.should eq 200
+        missing.body.should eq "null"
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "gates GET logs on the Operate and Read bits" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        logs_path = File.join(Modules.base_route, mod.id.as(String), "logs?seconds=1")
+
+        group = Model::Generator.group(authority: authority, subsystems: ["support"]).save!
+        gu = Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        gz = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+
+        # Read alone is not enough
+        client.get(path: logs_path, headers: headers).status_code.should eq 403
+
+        # nor is Operate alone
+        gu.permissions = Model::Permissions::Operate.to_i
+        gu.save!
+        gz.permissions = Model::Permissions::Operate.to_i
+        gz.save!
+        client.get(path: logs_path, headers: headers).status_code.should eq 403
+
+        # Operate and Read => past the auth gate. Only the auth outcome is asserted,
+        # as core may not be running the module
+        both = (Model::Permissions::Operate | Model::Permissions::Read).to_i
+        gu.permissions = both
+        gu.save!
+        gz.permissions = both
+        gz.save!
+        client.get(path: logs_path, headers: headers).status_code.should_not eq 403
+
+        # support users can always capture logs
+        client.get(path: logs_path, headers: Spec::Authentication.headers(sys_admin: false, support: true)).status_code.should_not eq 403
+
+        mod.destroy
+        zone.destroy
+      end
+
+      it "validates the GET logs params" do
+        zone = Model::Generator.zone.save!
+        mod = support_setup.call(zone)
+        logs_path = File.join(Modules.base_route, mod.id.as(String), "logs")
+        headers = Spec::Authentication.headers
+
+        client.get(path: "#{logs_path}?seconds=0", headers: headers).status_code.should eq 400
+        client.get(path: "#{logs_path}?seconds=#{Modules::LOGS_MAX_SECONDS + 1}", headers: headers).status_code.should eq 400
+        client.get(path: "#{logs_path}?seconds=1&level=loud", headers: headers).status_code.should eq 400
+        client.get(path: "#{logs_path}?seconds=1&level=none", headers: headers).status_code.should eq 400
+
+        mod.destroy
+        zone.destroy
+      end
+
       it "keeps GET error support-JWT only, even for Manage grants" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)

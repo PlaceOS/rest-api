@@ -140,6 +140,27 @@ module PlaceOS::Api::WebSocket
         updates.shift.type.should eq Session::Response::Type::Success
       end
 
+      it "denies debug to users without access to the module" do
+        id = rand(10).to_i64
+        headers = Spec::Authentication.headers(sys_admin: false, support: false)
+        updates, _, _ = test_websocket_api(Systems.base_route, headers) do |ws, control_system, mod, ws_updates|
+          request = {
+            id:          id,
+            system_id:   control_system.id.as(String),
+            module_name: mod.id.as(String),
+            name:        "nugget",
+            command:     Session::Request::Command::Debug,
+          }
+          ws.send Session::Request.new(**request).to_json
+          wait_for_updates(ws_updates, 1)
+        end
+
+        updates.size.should eq 1
+        error = updates.shift
+        error.type.should eq Session::Response::Type::Error
+        error.error_code.should eq Session::Response::ErrorCode::AccessDenied
+      end
+
       it "ignore" do
         status_name = "nugget"
 
