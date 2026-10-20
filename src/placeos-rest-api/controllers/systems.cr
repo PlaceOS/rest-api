@@ -641,7 +641,7 @@ module PlaceOS::Api
       end
     end
 
-    def self.module_state(sys_id : String, module_name : String, index : Int32, key : String? = nil)
+    def self.module_state(sys_id : String, module_name : String, index : Int32) : Hash(String, String)?
       # Look up module's id for module on system
       module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
         system_id: sys_id,
@@ -649,7 +649,7 @@ module PlaceOS::Api
         index: index
       )
 
-      Modules.module_state(module_id, key) if module_id
+      Modules.module_state(module_id) if module_id
     end
 
     # Websocket API

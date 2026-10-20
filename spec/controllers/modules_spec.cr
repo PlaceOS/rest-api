@@ -277,6 +277,35 @@ module PlaceOS::Api
       end
     end
 
+    describe "GET /modules/:id/state/:key" do
+      it "returns the value as serialised JSON" do
+        mod = Model::Generator.module.save!
+        PlaceOS::Driver::RedisStorage.new(mod.id.as(String))["power"] = %({"on":true})
+
+        response = client.get(File.join(Modules.base_route, "#{mod.id}/state/power"), headers: Spec::Authentication.headers)
+        response.status_code.should eq 200
+        String.from_json(response.body).should eq %({"on":true})
+
+        value = client.get(File.join(Modules.base_route, "#{mod.id}/state/power/value"), headers: Spec::Authentication.headers)
+        value.status_code.should eq 200
+        JSON.parse(value.body).should eq JSON.parse(%({"on":true}))
+        mod.destroy
+      end
+
+      it "returns null when the key isn't set" do
+        mod = Model::Generator.module.save!
+
+        response = client.get(File.join(Modules.base_route, "#{mod.id}/state/unset_status"), headers: Spec::Authentication.headers)
+        response.status_code.should eq 200
+        String.from_json(response.body).should eq "null"
+
+        value = client.get(File.join(Modules.base_route, "#{mod.id}/state/unset_status/value"), headers: Spec::Authentication.headers)
+        value.status_code.should eq 200
+        JSON.parse(value.body).raw.should be_nil
+        mod.destroy
+      end
+    end
+
     describe "GET /modules/:id/settings" do
       it "collates Module settings" do
         driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!

@@ -474,7 +474,7 @@ module PlaceOS::Api
     @[AC::MCP(resource: "placeos://modules/{id}/state", mime_type: "application/json", cache_ttl: 0)]
     @[AC::Route::GET("/:id/state")]
     def state : Hash(String, String)
-      self.class.module_state(current_module).as(Hash(String, String))
+      self.class.module_state(current_module)
     end
 
     # Returns the value of the requested status variable as JSON, `null` when it isn't set.
@@ -489,13 +489,13 @@ module PlaceOS::Api
       render json: (Driver::RedisStorage.new(current_module.id.as(String))[key]? || "null")
     end
 
-    # Returns the value of the requested status variable
+    # Returns the value of the requested status variable, serialised JSON (`"null"` when it isn't set)
     @[AC::Route::GET("/:id/state/:key")]
     def state_lookup(
       @[AC::Param::Info(description: "that name of the status we are after")]
       key : String,
     ) : String
-      self.class.module_state(current_module, key).as(String)
+      Driver::RedisStorage.new(current_module.id.as(String))[key]? || "null"
     end
 
     # the longest module logs capture, 36 hours
@@ -593,10 +593,9 @@ module PlaceOS::Api
       Api::Drivers.driver_compiled?(driver, repository, request_id, mod.id.as(String))
     end
 
-    def self.module_state(mod : ::PlaceOS::Model::Module | String, key : String? = nil)
+    def self.module_state(mod : ::PlaceOS::Model::Module | String) : Hash(String, String)
       id = mod.is_a?(String) ? mod : mod.id.as(String)
-      storage = Driver::RedisStorage.new(id)
-      key ? storage[key] : storage.to_h
+      Driver::RedisStorage.new(id).to_h
     end
 
     # Use consistent hashing to determine the location of the module

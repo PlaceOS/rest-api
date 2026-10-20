@@ -12934,7 +12934,8 @@ paths:
     summary: Modules, running instances of drivers that control individual devices
       and services
     get:
-      summary: Returns the value of the requested status variable
+      summary: Returns the value of the requested status variable, serialised JSON
+        (`"null"` when it isn't set)
       tags:
       - Modules
       operationId: PlaceOS::Api::Modules_state_lookup
