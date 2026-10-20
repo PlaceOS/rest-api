@@ -20,6 +20,11 @@ module PlaceOS::Api::MCP
     There is one toolbox per API resource. Every call is made as the signed in user,
     with their permissions. List results are paginated: follow the `Link` header (or use
     `X-Total-Count`) to fetch more.
+
+    Module state and debug logs are also resources (see resources/templates/list):
+    placeos://modules/{id}/state/{key} and placeos://systems/{sys_id}/{module_slug}/{key}
+    can be subscribed to for changes, placeos://modules/{id}/logs captures a module's
+    debug output for a number of seconds.
     TEXT
 
   # tokens are issued by auth.cr on the same host, its issuer is scheme + host
@@ -48,5 +53,25 @@ module PlaceOS::Api::MCP
     ActionController::MCPServer.mount(router, PATH)
   end
 
+  # Module state resources can be subscribed to. State changes are published on
+  # redis, so the instance holding a client's `subscriptions/listen` stream sees
+  # changes made anywhere. Access is checked by reading the resource first.
+  def self.watch_state : Nil
+    ActionController::MCPServer.watch("placeos://modules/{id}/state/{key}") do |variables, _request, changed|
+      subscriptions = WebSocket::Session.subscriptions
+      subscription = subscriptions.subscribe(variables["id"], variables["key"]) { |_, _| changed.call }
+      -> { subscriptions.unsubscribe(subscription); nil }
+    end
+
+    # follows the module if another is assigned to the system's module slot
+    ActionController::MCPServer.watch("placeos://systems/{sys_id}/{module_slug}/{key}") do |variables, _request, changed|
+      module_name, index = Driver::Proxy::RemoteDriver.get_parts(variables["module_slug"])
+      subscriptions = WebSocket::Session.subscriptions
+      subscription = subscriptions.subscribe(variables["sys_id"], module_name, index, variables["key"]) { |_, _| changed.call }
+      -> { subscriptions.unsubscribe(subscription); nil }
+    end
+  end
+
   configure
+  watch_state
 end

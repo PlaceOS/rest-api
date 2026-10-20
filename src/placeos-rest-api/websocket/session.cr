@@ -4,6 +4,7 @@ require "placeos-driver/proxy/remote_driver"
 require "tasker"
 
 require "../error"
+require "../utilities/module_logs"
 require "../utilities/params"
 require "../utilities/permissions"
 
@@ -232,42 +233,30 @@ module PlaceOS::Api::WebSocket
     )
       # NOTE: In the interest of saving a redis lookup, the frontend passes
       #       the module_id, rather than name.
+      unless Utils::ModuleDebugAccess.allowed?(user, module_name)
+        Log.warn { {message: "websocket debug attempted without access", module_id: module_name} }
+        respond error_response(request_id, :access_denied, "attempted to debug a module without access", 403)
+        return
+      end
+
       existing_socket = debug_sessions[{system_id, module_name, index}]?
 
       if !existing_socket || existing_socket.closed?
-        driver = Driver::Proxy::RemoteDriver.new(
-          module_id: module_name,
-          sys_id: system_id,
-          module_name: module_name,
-          discovery: @discovery,
-          user_id: user.id,
-        ) { |module_id|
-          ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
-        }
-
-        ws = driver.debug
-        ws.on_message do |message|
-          begin
-            level_value, message = Tuple(Int32, String).from_json(message)
-            level = ::Log::Severity.from_value(level_value)
-
-            respond(
-              Response.new(
-                id: request_id,
-                type: :debug,
-                module_id: module_name,
-                level: level,
-                message: message,
-                metadata: {
-                  sys:   system_id,
-                  mod:   module_name,
-                  index: index,
-                  name:  name,
-                },
-              ))
-          rescue e
-            Log.warn(exception: e) { "failed to forward debug message" }
-          end
+        ws = Utils::ModuleLogs.open(module_id: module_name, sys_id: system_id, user_id: user.id, discovery: @discovery) do |level, message|
+          respond(
+            Response.new(
+              id: request_id,
+              type: :debug,
+              module_id: module_name,
+              level: level,
+              message: message,
+              metadata: {
+                sys:   system_id,
+                mod:   module_name,
+                index: index,
+                name:  name,
+              },
+            ))
         end
 
         spawn { ws.run }

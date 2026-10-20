@@ -12823,6 +12823,113 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/modules/{id}/state/{key}/value:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
+    get:
+      summary: Returns the value of the requested status variable as JSON, `null`
+        when it isn't set.
+      description: 'Returns the value of the requested status variable as JSON, `null`
+        when it isn''t set.
+
+        Subscribe to the resource to be notified when the value changes'
+      tags:
+      - Modules
+      operationId: PlaceOS::Api::Modules_state_value
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: key
+        in: path
+        description: the name of the status variable
+        example: power
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
   /api/engine/v2/modules/{id}/state/{key}:
     summary: Modules, running instances of drivers that control individual devices
       and services
@@ -12850,6 +12957,124 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/String'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/modules/{id}/logs:
+    summary: Modules, running instances of drivers that control individual devices
+      and services
+    get:
+      summary: Captures the module's debug output for a period of time, as lines of
+      description: 'Captures the module''s debug output for a period of time, as lines
+        of
+
+        `<time> <LEVEL> <message>`. Over HTTP the lines are streamed as they arrive.
+
+        MCP clients receive them once the capture ends, so capturing for more than
+        a
+
+        minute may not work with all clients. The output is limited to 3 MiB.'
+      tags:
+      - Modules
+      operationId: PlaceOS::Api::Modules_logs
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: seconds
+        in: query
+        description: how long to capture logs for, in seconds, up to 129600 (36 hours)
+        example: 30
+        schema:
+          type: integer
+          format: Int32
+      - name: level
+        in: query
+        description: 'the minimum level of the lines captured: trace, debug, info,
+          notice, warn, error or fatal'
+        example: info
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
         "409":
           description: Conflict
           content:
@@ -15034,7 +15259,10 @@ paths:
     summary: Systems are typically rooms or spaces, they can represent digital signage
       endpoints and are a collection of modules (devices) placed in zones
     get:
-      summary: Returns the state lookup for a given key on a module
+      summary: Returns the state lookup for a given key on a module.
+      description: 'Returns the state lookup for a given key on a module.
+
+        Subscribe to the resource to be notified when the value changes'
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems_state_lookup
