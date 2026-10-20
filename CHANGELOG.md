@@ -150,6 +150,7 @@
 
 ### Fix
 
+- **mcp**: notify subscriptions once acknowledged
 - **constants**: default source hostname
 - **groups**: allow multiple roots
 - **params**: accept JSON arrays for comma separated list params
