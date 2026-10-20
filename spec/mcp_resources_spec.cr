@@ -145,6 +145,10 @@ module PlaceOS::Api
         # logs can't be subscribed to
         ack["params"]["notifications"]["resourceSubscriptions"].should eq JSON.parse([uri].to_json)
 
+        # every subscription is notified once acknowledged
+        initial = MCPResourcesClient.next_event(body).should_not be_nil
+        initial["params"]["uri"].should eq uri
+
         # redis pub/sub has no replay, so publish until the update arrives
         update = nil
         5.times do |attempt|
@@ -160,6 +164,49 @@ module PlaceOS::Api
       end
 
       mod.destroy
+    end
+
+    # the driver only delivers existing values, so unset values are notified by the watcher
+    {nil, %({"on":true})}.each do |value|
+      it "notifies each subscription once acknowledged, #{value ? "with" : "without"} a value" do
+        mod = Model::Generator.module.save!
+        module_id = mod.id.as(String)
+        control_system = Model::Generator.control_system
+        control_system.modules = [module_id]
+        control_system.save!
+        wait_for_module_lookups(control_system.id.as(String), {"#{mod.resolved_name}/1" => module_id})
+        PlaceOS::Driver::RedisStorage.new(module_id)["power"] = value if value
+
+        uris = [
+          "placeos://modules/#{module_id}/state/power",
+          "placeos://systems/#{control_system.id}/#{mod.resolved_name}_1/power",
+        ]
+        client = MCPResourcesClient.new(Spec::Authentication.headers)
+        params = {"notifications" => JSON.parse({resourceSubscriptions: uris}.to_json)}
+        client.stream("subscriptions/listen", params) do |body|
+          ack = MCPResourcesClient.next_event(body).should_not be_nil
+          ack["params"]["notifications"]["resourceSubscriptions"].as_a.map(&.as_s).sort!.should eq uris.sort
+
+          # an existing value can be notified twice, by the watcher and by the driver
+          updated = Set(String).new
+          4.times do
+            break if updated.size == uris.size
+            update = MCPResourcesClient.next_event(body).should_not be_nil
+            update["method"].should eq "notifications/resources/updated"
+            updated << update["params"]["uri"].as_s
+          end
+          updated.should eq uris.to_set
+        end
+
+        # reading once notified returns the current value
+        uris.each do |uri|
+          contents = client.read(uri)["result"]["contents"][0]
+          JSON.parse(contents["text"].as_s).should eq JSON.parse(value || "null")
+        end
+
+        control_system.destroy
+        mod.destroy
+      end
     end
 
     it "doesn't subscribe to module state without access" do

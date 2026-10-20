@@ -25,6 +25,10 @@ module PlaceOS::Api::MCP
     placeos://modules/{id}/state/{key} and placeos://systems/{sys_id}/{module_slug}/{key}
     can be subscribed to for changes, placeos://modules/{id}/logs{?seconds,level} captures a module's
     debug output for a number of seconds. Use resources over function calls where you can.
+
+    Each subscribed resource is sent at least one notifications/resources/updated after
+    subscriptions/listen is acknowledged, so subscribe first and read the resource when its
+    update arrives, there's no need to read it beforehand.
     TEXT
 
   # tokens are issued by auth.cr on the same host, its issuer is scheme + host
@@ -56,10 +60,16 @@ module PlaceOS::Api::MCP
   # Module state resources can be subscribed to. State changes are published on
   # redis, so the instance holding a client's `subscriptions/listen` stream sees
   # changes made anywhere. Access is checked by reading the resource first.
+  #
+  # Every subscribed resource is notified once the listen is acknowledged, so clients
+  # read after subscribing without missing a change. The driver subscription also
+  # delivers an existing value once redis has registered the channel, which covers
+  # changes made before then, so a resource with a value can be notified twice.
   def self.watch_state : Nil
     ActionController::MCPServer.watch("placeos://modules/{id}/state/{key}") do |variables, _request, changed|
       subscriptions = WebSocket::Session.subscriptions
       subscription = subscriptions.subscribe(variables["id"], variables["key"]) { |_, _| changed.call }
+      changed.call
       -> { subscriptions.unsubscribe(subscription); nil }
     end
 
@@ -68,6 +78,7 @@ module PlaceOS::Api::MCP
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(variables["module_slug"])
       subscriptions = WebSocket::Session.subscriptions
       subscription = subscriptions.subscribe(variables["sys_id"], module_name, index, variables["key"]) { |_, _| changed.call }
+      changed.call
       -> { subscriptions.unsubscribe(subscription); nil }
     end
   end

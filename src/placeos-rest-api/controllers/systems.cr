@@ -587,7 +587,9 @@ module PlaceOS::Api
       key : String,
     ) : JSON::Any
       module_name, index = RemoteDriver.get_parts(module_slug)
-      JSON.parse(self.class.module_state(sys_id, module_name, index, key).as(String?) || "null")
+      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(system_id: sys_id, module_name: module_name, index: index)
+      # `null` when the module or the key doesn't exist
+      JSON.parse(module_id.try { |id| Driver::RedisStorage.new(id)[key]? } || "null")
     end
 
     record FunctionDetails, arity : Int32, params : Hash(String, JSON::Any), order : Array(String) do

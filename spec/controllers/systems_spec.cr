@@ -1020,6 +1020,18 @@ module PlaceOS::Api
         Int32.from_json(response.body).should eq(1)
       end
 
+      it "GET /systems/:sys_id/:module_slug/:key returns null when the key isn't set" do
+        cs, _mod = PlaceOS::Api.mapped_module_system("Display")
+
+        response = client.get(
+          path: Systems.base_route + "#{cs.id}/Display_1/unset_status",
+          headers: Spec::Authentication.headers,
+        )
+
+        response.status_code.should eq 200
+        JSON.parse(response.body).raw.should be_nil
+      end
+
       it "GET /systems/:sys_id/:module_slug" do
         cs, mod = PlaceOS::Api.mapped_module_system("Display")
         module_slug = "Display_1"
