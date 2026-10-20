@@ -23,8 +23,8 @@ module PlaceOS::Api::MCP
 
     Module state and debug logs are also resources (see resources/templates/list):
     placeos://modules/{id}/state/{key} and placeos://systems/{sys_id}/{module_slug}/{key}
-    can be subscribed to for changes, placeos://modules/{id}/logs captures a module's
-    debug output for a number of seconds.
+    can be subscribed to for changes, placeos://modules/{id}/logs{?seconds,level} captures a module's
+    debug output for a number of seconds. Use resources over function calls where you can.
     TEXT
 
   # tokens are issued by auth.cr on the same host, its issuer is scheme + host
