@@ -78,6 +78,9 @@ module PlaceOS::Api
   # the second attempt's output budget after an answer cut off at MAP_AI_MAX_OUTPUT_TOKENS
   MAP_AI_RETRY_OUTPUT_TOKENS = (ENV["MAP_AI_RETRY_OUTPUT_TOKENS"]? || "24000").to_i
 
+  # one more vendor call, inside the same job, when the server rejects some of an answer's ops
+  MAP_AI_REPAIR = ENV["MAP_AI_REPAIR"]?.try(&.downcase) != "false"
+
   # default quotas in calls, overridden per provider row by map_user_per_day
   # and map_domain_per_month
   MAP_AI_USER_PER_DAY     = (ENV["MAP_AI_USER_PER_DAY"]? || "40").to_i

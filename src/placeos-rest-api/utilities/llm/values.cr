@@ -39,6 +39,10 @@ module PlaceOS::Api::Llm
     FONT_WEIGHT     = /\A(?:normal|bold|bolder|lighter|[1-9]00)\z/
     UNSAFE_TEXT     = /url\(|expression\(|behavior:|javascript:|<|>|[\r\n]/i
 
+    # `dominant-baseline` keywords from SVG 2, plus the two SVG 1.1 edge keywords browsers still honour
+    DOMINANT_BASELINES = %w(auto alphabetic central hanging ideographic mathematical middle
+      text-after-edge text-before-edge text-bottom text-top)
+
     # `sanitise.ts` UNSAFE_CSS_VALUE plus a backslash: browsers decode CSS
     # escapes (`u\72l(`), so escaped text cannot be matched literally
     UNSAFE_CSS = /expression\s*\(|behavior\s*:|javascript\s*:|url\s*\(\s*(?!['"]?#)|\\/i
@@ -115,6 +119,8 @@ module PlaceOS::Api::Llm
         FONT_WEIGHT.match(value.strip) ? nil : "#{value.inspect} is not a font weight"
       when "text-anchor"
         %w(start middle end).includes?(value.strip) ? nil : "#{value.inspect} is not a text anchor"
+      when "dominant-baseline"
+        DOMINANT_BASELINES.includes?(value.strip) ? nil : "#{value.inspect} is not a dominant baseline"
       else
         if name.starts_with?("data-") && value =~ /[<>]/
           "#{name} may not contain markup"

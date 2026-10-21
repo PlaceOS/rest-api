@@ -47306,6 +47306,10 @@ components:
           anyOf:
           - type: object
           - type: "null"
+        repair:
+          anyOf:
+          - type: object
+          - type: "null"
         resolution:
           anyOf:
           - type: object

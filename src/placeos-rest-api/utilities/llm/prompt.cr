@@ -285,6 +285,25 @@ module PlaceOS::Api::Llm
       parts.join(' ')
     end
 
+    # `request` again with its answer's rejected operations and the reasons,
+    # asking for the whole proposal corrected. Nothing from the answer was
+    # applied, so the map in the request is still the current state.
+    def self.repair(request : Request, envelope : Ops::Envelope, issues : Hash(String, String)) : Request
+      answered = envelope.ops.map_with_index do |op, position|
+        {"op_id" => JSON::Any.new(Ops.id_for(position))}.merge(compact_op(op))
+      end
+      text = String.build do |io|
+        io << "REPAIR\n"
+        io << "Your previous answer to this request has not been applied: the application rejected the operations listed under REJECTED, so the map is exactly as described above. "
+        io << "Answer again with the whole corrected proposal. Keep every operation that was not rejected as it was, fix each rejected operation or leave it out, and add nothing else.\n"
+        io << "PREVIOUS ANSWER summary: " << envelope.summary << '\n' if envelope.summary.presence
+        io << "PREVIOUS ANSWER ops: " << answered.to_json << '\n'
+        io << "REJECTED\n"
+        issues.each { |id, reason| io << id << ": " << reason << '\n' }
+      end
+      request.copy_with(parts: request.parts + [TextPart.new(text)] of Part)
+    end
+
     # Earlier turns of this edit: the instruction, the ops answered and what the
     # person did with them.
     def self.history_text(history : Array(Turn)) : String

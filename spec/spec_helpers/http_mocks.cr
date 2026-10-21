@@ -106,6 +106,22 @@ module PlaceOS::Api::HttpMocks
       end
   end
 
+  # `contents` answered in turn, the last one again once they run out.
+  def self.map_ai_vendor_sequence(contents : Array(String), requests : Array(JSON::Any))
+    WebMock
+      .stub(:post, CHAT_COMPLETIONS)
+      .to_return do |request|
+        requests << JSON.parse(WebMock.body(request).to_s)
+        content = contents[Math.min(requests.size, contents.size) - 1]
+        body = {
+          id:      "chatcmpl-spec",
+          choices: [{message: {role: "assistant", content: content, refusal: nil}, finish_reason: "stop"}],
+          usage:   {prompt_tokens: 1200, completion_tokens: 80, total_tokens: 1280},
+        }.to_json
+        HTTP::Client::Response.new(200, body, HTTP::Headers{"Content-Type" => "application/json"})
+      end
+  end
+
   # The model declining to answer, which the adapter maps to `Moderated`.
   def self.map_ai_vendor_refused
     body = {

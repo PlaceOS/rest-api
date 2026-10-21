@@ -115,6 +115,10 @@ module PlaceOS::Api
       getter server_issues : Hash(String, String)
       getter questions : Array(JSON::Any)
       getter usage : JSON::Any?
+      # when the server asked again about rejected ops: `rejected` before,
+      # `remaining` in the second answer (null when it was unusable), `used`
+      # when that answer replaced the first
+      getter repair : JSON::Any?
       getter resolution : JSON::Any?
       getter error_kind : String?
       getter error_message : String?
@@ -145,6 +149,7 @@ module PlaceOS::Api
         end
         @questions = result["questions"]?.try(&.as_a?) || [] of JSON::Any
         @usage = result["usage"]?
+        @repair = result["repair"]?
         @resolution = result["resolution"]?
         @error_kind = job.error_kind
         @error_message = job.error_message
