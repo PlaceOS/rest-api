@@ -230,6 +230,8 @@ module PlaceOS::Api
       Llm::Values.attribute_value_issue("font-weight", "700").should be_nil
       Llm::Values.attribute_value_issue("font-weight", "heavy").should eq %("heavy" is not a font weight)
       Llm::Values.attribute_value_issue("text-anchor", "middle").should be_nil
+      Llm::Values.attribute_value_issue("dominant-baseline", "middle").should be_nil
+      Llm::Values.attribute_value_issue("dominant-baseline", "centre").should eq %("centre" is not a dominant baseline)
       Llm::Values.attribute_value_issue("data-name", "Boardroom").should be_nil
       Llm::Values.attribute_value_issue("data-name", "<b>x</b>").should eq "data-name may not contain markup"
     end

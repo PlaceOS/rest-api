@@ -33,7 +33,7 @@
                             },
                             "name": {
                                 "type": "string",
-                                "description": "fill, stroke, stroke-width, stroke-dasharray, fill-opacity, stroke-opacity, opacity, class, visibility, rx, ry, font-size, font-family, font-weight, text-anchor or data-*"
+                                "description": "fill, stroke, stroke-width, stroke-dasharray, fill-opacity, stroke-opacity, opacity, class, visibility, rx, ry, font-size, font-family, font-weight, text-anchor, dominant-baseline or data-*"
                             },
                             "value": {
                                 "type": ["string", "null"],

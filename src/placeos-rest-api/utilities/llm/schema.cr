@@ -27,7 +27,8 @@ module PlaceOS::Api::Llm
 
     # attributes set_attr may touch, plus data-*; style rules take the same list
     ATTRIBUTES = %w(fill stroke stroke-width stroke-dasharray fill-opacity stroke-opacity
-      opacity class visibility rx ry font-size font-family font-weight text-anchor)
+      opacity class visibility rx ry font-size font-family font-weight text-anchor
+      dominant-baseline)
 
     DATA_ATTRIBUTE = /\Adata-[a-z][a-z0-9_-]*\z/i
 
