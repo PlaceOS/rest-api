@@ -123,6 +123,96 @@ module PlaceOS::Api
       end
     end
 
+    describe "POST / with system_id" do
+      # `Generator.module` picks a random driver role, and logic modules come with their own parent system
+      non_logic_driver = -> { Model::Generator.driver(role: Model::Driver::Role::Service).save! }
+      it "creates the module and adds it to the system" do
+        sys = Model::Generator.control_system.save!
+        mod = Model::Generator.module(driver: non_logic_driver.call)
+
+        params = HTTP::Params{"system_id" => sys.id.as(String)}
+        result = client.post("#{Modules.base_route}?#{params}", body: mod.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 201
+
+        created = Model::Module.from_trusted_json(result.body)
+        Model::Module.find?(created.id.as(String)).should_not be_nil
+
+        sys = Model::ControlSystem.find!(sys.id.as(String))
+        sys.modules.should eq [created.id]
+      end
+
+      it "doesn't add a logic module to its parent system twice" do
+        sys = Model::Generator.control_system.save!
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        mod = Model::Generator.module(driver: driver, control_system: sys)
+
+        params = HTTP::Params{"system_id" => sys.id.as(String)}
+        result = client.post("#{Modules.base_route}?#{params}", body: mod.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 201
+
+        created = Model::Module.from_trusted_json(result.body)
+        sys = Model::ControlSystem.find!(sys.id.as(String))
+        sys.modules.should eq [created.id]
+      end
+
+      it "rejects a logic module whose control_system_id doesn't match system_id" do
+        parent = Model::Generator.control_system.save!
+        other = Model::Generator.control_system.save!
+        driver = Model::Generator.driver(role: Model::Driver::Role::Logic).save!
+        mod = Model::Generator.module(driver: driver, control_system: parent)
+
+        params = HTTP::Params{"system_id" => other.id.as(String)}
+        result = client.post("#{Modules.base_route}?#{params}", body: mod.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 422
+
+        Model::Module.count.should eq 0
+        Model::ControlSystem.find!(parent.id.as(String)).modules.should be_empty
+        Model::ControlSystem.find!(other.id.as(String)).modules.should be_empty
+      end
+
+      it "returns 404 and doesn't create the module when the system doesn't exist" do
+        mod = Model::Generator.module(driver: non_logic_driver.call)
+
+        params = HTTP::Params{"system_id" => "sys-does-not-exist"}
+        result = client.post("#{Modules.base_route}?#{params}", body: mod.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 404
+
+        Model::Module.count.should eq 0
+      end
+
+      it "leaves the system unchanged when the module is invalid" do
+        sys = Model::Generator.control_system.save!
+        version = sys.version
+        mod = Model::Generator.module(driver: non_logic_driver.call)
+        mod.uri = "not-a-uri"
+
+        params = HTTP::Params{"system_id" => sys.id.as(String)}
+        result = client.post("#{Modules.base_route}?#{params}", body: mod.to_json, headers: Spec::Authentication.headers)
+        result.status_code.should eq 422
+
+        Model::Module.count.should eq 0
+        sys = Model::ControlSystem.find!(sys.id.as(String))
+        sys.modules.should be_empty
+        sys.version.should eq version
+      end
+
+      it "forbids users without access to the system" do
+        sys = Model::Generator.control_system.save!
+        mod = Model::Generator.module(driver: non_logic_driver.call)
+
+        params = HTTP::Params{"system_id" => sys.id.as(String)}
+        result = client.post(
+          "#{Modules.base_route}?#{params}",
+          body: mod.to_json,
+          headers: Spec::Authentication.headers(sys_admin: false, support: false, groups: ["management"]),
+        )
+        result.status_code.should eq 403
+
+        Model::Module.count.should eq 0
+        Model::ControlSystem.find!(sys.id.as(String)).modules.should be_empty
+      end
+    end
+
     describe "index", tags: "search" do
       it "queries by parent driver" do
         name = random_name

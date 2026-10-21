@@ -24,7 +24,8 @@ module PlaceOS::Api::MCP
     Module state and debug logs are also resources (see resources/templates/list):
     placeos://modules/{id}/state/{key} and placeos://systems/{sys_id}/{module_slug}/{key}
     can be subscribed to for changes, placeos://modules/{id}/logs{?seconds,level} captures a module's
-    debug output for a number of seconds. Use resources over function calls where you can.
+    debug output for a number of seconds. Use resources over function calls where available.
+    Capture logs using a subagent if you want to execute commands during a capture.
 
     Each subscribed resource is sent at least one notifications/resources/updated after
     subscriptions/listen is acknowledged, so subscribe first and read the resource when its

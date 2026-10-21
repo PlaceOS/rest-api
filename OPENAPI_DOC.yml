@@ -11733,7 +11733,15 @@ paths:
             schema:
               $ref: '#/components/schemas/PlaceOS.Model.Module'
         required: true
-      parameters: []
+      parameters:
+      - name: system_id
+        in: query
+        description: add the new module to this control system
+        example: sys-1234
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
       responses:
         "201":
           description: Created

@@ -376,9 +376,40 @@ module PlaceOS::Api
 
     # add a new module / instance of a driver
     @[AC::Route::POST("/", body: :mod, status_code: HTTP::Status::CREATED)]
-    def create(mod : ::PlaceOS::Model::Module) : ::PlaceOS::Model::Module
+    def create(
+      mod : ::PlaceOS::Model::Module,
+      @[AC::Param::Info(description: "add the new module to this control system", example: "sys-1234")]
+      system_id : String? = nil,
+    ) : ::PlaceOS::Model::Module
+      if system_id
+        # only logic modules have a parent system, and they're added to it by an `after_create` callback
+        if cs_id = mod.control_system_id.presence
+          raise Error::ModelValidation.new({Error::Field.new(:control_system_id, "must match system_id when both are provided")}) unless cs_id == system_id
+        else
+          return create_in_system(mod, system_id)
+        end
+      end
+
       can_modify?(mod)
       raise Error::ModelValidation.new(mod.errors) unless mod.save
+      mod
+    end
+
+    # Creates the module and appends it to the system atomically, so a failure
+    # adding it to the system doesn't leave an orphaned module behind.
+    private def create_in_system(mod : ::PlaceOS::Model::Module, system_id : String) : ::PlaceOS::Model::Module
+      sys = ::PlaceOS::Model::ControlSystem.find!(system_id)
+
+      # the module isn't in any system yet, so the target system's zones are the only ones that apply.
+      # Adding to the system requires the same access as `PUT /systems/:sys_id/module/:module_id`
+      ensure_support_access!(sys.zones, verb_permission)
+      ensure_support_access!(sys.zones, ::PlaceOS::Model::Permissions::Update, admin_required: true)
+
+      ::PgORM::Database.transaction do |_tx|
+        raise Error::ModelValidation.new(mod.errors) unless mod.save
+        raise "Failed to add ControlSystem Module" unless ::PlaceOS::Model::ControlSystem.add_module(system_id, mod.id.as(String))
+      end
+
       mod
     end
 
