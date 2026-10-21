@@ -341,8 +341,8 @@ module PlaceOS::Api::Llm
         if present?(op["after"]?)
           after, issue = index.resolve(op["after"])
           return "after: #{issue}" if issue
-          if after && (sibling = index.sibling_issue(parent, after))
-            return sibling
+          if after && (misplaced = index.sibling_issue(parent, after))
+            return misplaced
           end
         end
         geometry = Schema::SHAPE_GEOMETRY_ATTRIBUTES[shape]
