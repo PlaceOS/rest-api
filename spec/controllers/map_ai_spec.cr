@@ -372,6 +372,88 @@ module PlaceOS::Api
         ops[0].as_h.has_key?("server_issue").should be_false
         final["server_issues"].as_h.keys.should eq ["op-1"]
         final["server_issues"]["op-1"].as_s.should eq "anchor e404 is not in the index"
+        # the repair round answered the same, so the first answer stands
+        final["repair"].should eq JSON.parse(%({"rejected":1,"remaining":1,"used":false}))
+        final["usage"]["attempts"].as_i.should eq 2
+      end
+
+      it "asks once more with the rejected ops and keeps the corrected answer" do
+        setup_signage_ai
+        _, headers = Spec::Authentication.authentication
+        level = map_ai_level
+        requests = [] of JSON::Any
+
+        first = {
+          summary: "s",
+          ops:     [
+            {op: "set_attr", why: "w", target: {a: "e404", id: nil, h: nil}, name: "fill", value: "#fff"},
+            {op: "set_attr", why: "w", target: {a: "e5", id: nil, h: nil}, name: "fill", value: "#fff"},
+          ],
+          questions: [] of String,
+        }.to_json
+        second = {
+          summary: "s2",
+          ops:     [
+            {op: "set_attr", why: "w", target: {a: "e4", id: nil, h: nil}, name: "fill", value: "#fff"},
+            {op: "set_attr", why: "w", target: {a: "e5", id: nil, h: nil}, name: "fill", value: "#fff"},
+          ],
+          questions: [] of String,
+        }.to_json
+        HttpMocks.map_ai_vendor_sequence([first, second], requests)
+
+        result = client.post(File.join(base, "edit"), headers: headers, body: {zone_id: level.id, instruction: "x", context: map_ai_context}.to_json)
+        final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
+        final["state"].as_s.should eq "done"
+        final["summary"].as_s.should eq "s2"
+        final["ops"].as_a.map(&.["target"]["a"].as_s).should eq ["e4", "e5"]
+        final["server_issues"].as_h.should be_empty
+        final["repair"].should eq JSON.parse(%({"rejected":1,"remaining":0,"used":true}))
+        final["usage"]["attempts"].as_i.should eq 2
+        final["cost_units"].as_f.should eq 2560.0
+
+        requests.size.should eq 2
+        asked_again = requests[1].to_json
+        asked_again.should contain "REJECTED"
+        asked_again.should contain "op-1: anchor e404 is not in the index"
+      end
+
+      it "keeps the first answer when the repair would drop ops the server accepted" do
+        setup_signage_ai
+        _, headers = Spec::Authentication.authentication
+        level = map_ai_level
+        requests = [] of JSON::Any
+
+        first = {
+          summary: "s",
+          ops:     [
+            {op: "set_attr", why: "w", target: {a: "e404", id: nil, h: nil}, name: "fill", value: "#fff"},
+            {op: "set_attr", why: "w", target: {a: "e5", id: nil, h: nil}, name: "fill", value: "#fff"},
+          ],
+          questions: [] of String,
+        }.to_json
+        HttpMocks.map_ai_vendor_sequence([first, {summary: "gave up", ops: [] of String, questions: [] of String}.to_json], requests)
+
+        result = client.post(File.join(base, "edit"), headers: headers, body: {zone_id: level.id, instruction: "x", context: map_ai_context}.to_json)
+        final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
+        final["state"].as_s.should eq "done"
+        final["summary"].as_s.should eq "s"
+        final["ops"].as_a.size.should eq 2
+        final["repair"].should eq JSON.parse(%({"rejected":1,"remaining":0,"used":false}))
+        requests.size.should eq 2
+      end
+
+      it "does not ask again when every op passes" do
+        setup_signage_ai
+        _, headers = Spec::Authentication.authentication
+        level = map_ai_level
+        requests = [] of JSON::Any
+        HttpMocks.map_ai_vendor(MAP_AI_ANSWER, requests: requests)
+
+        result = client.post(File.join(base, "edit"), headers: headers, body: {zone_id: level.id, instruction: "x", context: map_ai_context}.to_json)
+        final = await_signage_ai_job(base, JSON.parse(result.body)["id"].as_s, headers)
+        final["state"].as_s.should eq "done"
+        final.as_h.has_key?("repair").should be_false
+        requests.size.should eq 1
       end
 
       it "records a refusal as a moderation failure" do

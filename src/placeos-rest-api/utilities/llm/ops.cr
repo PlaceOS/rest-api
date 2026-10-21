@@ -105,6 +105,7 @@ module PlaceOS::Api::Llm
         elsif (hash = op.as_h?)
           index.register_rename(hash, claimed)
           index.register_created(hash)
+          index.register_structure(hash)
         end
       end
 
@@ -118,6 +119,10 @@ module PlaceOS::Api::Llm
       getter protected_ids : Set(String)
       # The map's viewBox as x, y, width, height; nil when the context has none.
       getter view_box : Array(Float64)?
+      # anchors an earlier op in the batch deletes; an insert placed after one goes where it was
+      getter deleted = Set(String).new
+      # set once an earlier op in the batch can move elements to another parent
+      getter? restructured = false
 
       def initialize(context : JSON::Any)
         @anchors = {} of String => Hash(String, JSON::Any)
@@ -202,6 +207,41 @@ module PlaceOS::Api::Llm
 
       def known_id?(id : String) : Bool
         @ids.has_key?(id)
+      end
+
+      # Records what an accepted op does to the tree that later insert_shape
+      # checks rely on.
+      def register_structure(op : Hash(String, JSON::Any)) : Nil
+        case op["op"]?.try(&.as_s?)
+        when "delete"
+          targets = op["targets"]?.try(&.as_a?) || [] of JSON::Any
+          ([op["target"]?] + targets).each do |target|
+            entry, _ = resolve(target)
+            if (anchor = entry.try(&.["a"]?).try(&.as_s?))
+              @deleted << anchor
+            end
+          end
+        when "reorder", "group", "ungroup", "replace_element"
+          @restructured = true
+        end
+      end
+
+      # The editor's rule for insert_shape: `after` is a direct child of
+      # `parent`, the root when none is named. Nil when it holds or cannot be
+      # judged from the index: `after` or `parent` made in this batch, `after`
+      # deleted earlier in it, or the tree restructured by an earlier op.
+      def sibling_issue(parent : Hash(String, JSON::Any)?, after : Hash(String, JSON::Any)) : String?
+        return nil if restructured?
+        return nil unless after.has_key?("p")
+        anchor = after["a"]?.try(&.as_s?)
+        return nil if anchor && @deleted.includes?(anchor)
+
+        expected = nil
+        if parent && parent["tag"]?.try(&.as_s?) != "svg"
+          expected = parent["a"]?.try(&.as_s?)
+          return nil unless expected
+        end
+        after["p"]?.try(&.as_s?) == expected ? nil : "after must be a child of the parent"
       end
     end
 
@@ -290,13 +330,20 @@ module PlaceOS::Api::Llm
         shape = op["kind"]?.try(&.as_s?)
         return "insert_shape needs a kind" unless shape
         return "#{shape} is not a shape that can be inserted" unless Schema::SHAPES.includes?(shape)
+        parent = nil
         if present?(op["parent"]?)
-          _, issue = index.resolve(op["parent"])
+          parent, issue = index.resolve(op["parent"])
           return "parent: #{issue}" if issue
         end
+        if (tag = parent.try(&.["tag"]?).try(&.as_s?)) && !{"g", "svg"}.includes?(tag)
+          return "parent must be the root or a <g>, not <#{tag}>"
+        end
         if present?(op["after"]?)
-          _, issue = index.resolve(op["after"])
+          after, issue = index.resolve(op["after"])
           return "after: #{issue}" if issue
+          if after && (sibling = index.sibling_issue(parent, after))
+            return sibling
+          end
         end
         geometry = Schema::SHAPE_GEOMETRY_ATTRIBUTES[shape]
         (op["attrs"]?.try(&.as_a?) || [] of JSON::Any).each do |attr|

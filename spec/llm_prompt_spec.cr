@@ -110,6 +110,36 @@ module PlaceOS::Api
       text.should_not contain "recolours Meeting 1.01"
     end
 
+    it "asks again with the rejected operations and why, after the instruction" do
+      request = Llm::Prompt.build(Llm::Prompt::Options.new(
+        context: context,
+        instruction: "Label Meeting 1.01.",
+        model: "gpt-6.1-sol",
+      ))
+      envelope = Llm::Ops::Envelope.new(
+        summary: "Labelled Meeting 1.01.",
+        ops: [
+          JSON.parse(%({"op":"set_attr","target":{"a":"e2","id":null,"h":null},"name":"fill","value":"#90ee90","why":"w"})),
+          JSON.parse(%({"op":"insert_shape","parent":null,"after":{"a":"e2","id":null,"h":null},"kind":"text","attrs":[],"new_id":"ai-label","text":"1.01","why":"w"})),
+        ],
+        questions: [] of String,
+      )
+
+      repair = Llm::Prompt.repair(request, envelope, {"op-2" => "after must be a child of the parent"})
+
+      repair.parts.size.should eq request.parts.size + 1
+      repair.parts[0...request.parts.size].should eq request.parts
+      repair.system.should eq request.system
+      repair.max_output_tokens.should eq request.max_output_tokens
+      text = repair.text
+      text.index!("REPAIR\n").should be > text.index!("INSTRUCTION\n")
+      text.should contain "PREVIOUS ANSWER summary: Labelled Meeting 1.01."
+      text.should contain %("op_id":"op-1","op":"set_attr")
+      text.should contain %("op_id":"op-2","op":"insert_shape")
+      text.should_not contain %("parent":null)
+      text.should contain "REJECTED\nop-2: after must be a child of the parent\n"
+    end
+
     it "caps the index, the subtrees and the history" do
       big = JSON.parse(context.to_json)
       index = big["index"].as_a
@@ -339,6 +369,9 @@ module PlaceOS::Api
         { %({"op":"insert_shape","parent":{"a":"e1","id":null,"h":null},"after":null,"kind":"path","attrs":[{"name":"d","value":"M0 0 L10 10 Z"}],"new_id":null,"text":null,"why":"w"}), nil },
         { %({"op":"insert_shape","parent":{"a":"e1","id":null,"h":null},"after":null,"kind":"polygon","attrs":[{"name":"points","value":"0,0 10,0 10"}],"new_id":null,"text":null,"why":"w"}), %("0,0 10,0 10" is not a points list) },
         { %({"op":"insert_shape","parent":{"a":"e99","id":null,"h":null},"after":null,"kind":"g","attrs":[],"new_id":null,"text":null,"why":"w"}), "parent: anchor e99 is not in the index" },
+        { %({"op":"insert_shape","parent":{"a":"e1","id":null,"h":null},"after":{"a":"e2","id":null,"h":null},"kind":"rect","attrs":[],"new_id":null,"text":null,"why":"w"}), nil },
+        { %({"op":"insert_shape","parent":null,"after":{"a":"e2","id":null,"h":null},"kind":"rect","attrs":[],"new_id":null,"text":null,"why":"w"}), "after must be a child of the parent" },
+        { %({"op":"insert_shape","parent":{"a":"e5","id":null,"h":null},"after":null,"kind":"rect","attrs":[],"new_id":null,"text":null,"why":"w"}), "parent must be the root or a <g>, not <rect>" },
         { %({"op":"set_style_rule","selector":".cls-12","declarations":[{"name":"fill","value":"#eee"},{"name":"stroke","value":"#333"}],"why":"w"}), nil },
         { %({"op":"set_style_rule","selector":"*","declarations":[{"name":"fill","value":"#eee"}],"why":"w"}), %(the selector "*" is not allowed) },
         { %({"op":"set_style_rule","selector":".a{} @import url(http://evil); .b","declarations":[{"name":"fill","value":"#eee"}],"why":"w"}), %(the selector ".a{} @import url(http://evil); .b" is not allowed) },
@@ -466,6 +499,64 @@ module PlaceOS::Api
       checked = Llm::Ops.check(ops, created_context)
       checked.issues.keys.should eq ["op-1", "op-2", "op-3"]
       checked.issues["op-1"].should eq "ai-chair-2 is already an id in the map"
+    end
+
+    it "places an insert after a child of its parent, the root when none is named" do
+      tree = JSON.parse(%({"index":[
+        {"a":"e0","id":"Layer_1","tag":"svg","p":null},
+        {"a":"e1","id":"room_meeting","tag":"g","p":null},
+        {"a":"e2","id":"room_border_8","tag":"g","p":"e1"},
+        {"a":"e3","id":"space_room_7","tag":"rect","p":"e2"},
+        {"a":"e4","id":"table","tag":"rect","p":"e1"}
+      ]}))
+      insert = ->(parent : String?, after : String?) do
+        JSON.parse({
+          "op" => "insert_shape", "kind" => "text", "text" => "Sydney Room 1", "attrs" => [] of String, "new_id" => nil,
+          "parent" => parent.try { |anchor| {"a" => anchor} }, "after" => after.try { |anchor| {"a" => anchor} },
+        }.to_json)
+      end
+      ops = [
+        insert.call("e2", "e3"), # after a child of the parent
+        insert.call("e1", "e3"), # after a grandchild: the gpt-5.4-mini mistake
+        insert.call(nil, "e1"),  # after a child of the root, no parent named
+        insert.call("e0", "e1"), # the root named as the parent
+        insert.call(nil, "e3"),  # not a child of the root
+        insert.call("e3", nil),  # a rect is no parent
+        insert.call("e1", nil),
+      ]
+      checked = Llm::Ops.check(ops, tree)
+      checked.issues.should eq({
+        "op-2" => "after must be a child of the parent",
+        "op-5" => "after must be a child of the parent",
+        "op-6" => "parent must be the root or a <g>, not <rect>",
+      })
+    end
+
+    it "leaves the after check to the editor once the batch deletes after or moves elements" do
+      tree = JSON.parse(%({"index":[
+        {"a":"e1","id":"room","tag":"g","p":null},
+        {"a":"e2","id":"border","tag":"g","p":"e1"},
+        {"a":"e3","id":"space","tag":"rect","p":"e2"},
+        {"a":"e4","id":"label","tag":"text","p":"e1"}
+      ]}))
+      deleted = [
+        %({"op":"delete","target":{"a":"e3"}}),
+        %({"op":"insert_shape","kind":"text","text":"x","attrs":[],"parent":{"a":"e1"},"after":{"a":"e3"}}),
+        %({"op":"insert_shape","kind":"text","text":"x","attrs":[],"parent":{"a":"e2"},"after":{"a":"e4"}}),
+      ].map { |op| JSON.parse(op) }
+      Llm::Ops.check(deleted, tree).issues.keys.should eq ["op-3"]
+
+      moved = [
+        %({"op":"group","targets":[{"a":"e3"},{"a":"e4"}],"new_id":"ai-group"}),
+        %({"op":"insert_shape","kind":"text","text":"x","attrs":[],"parent":{"a":"e2"},"after":{"a":"e4"}}),
+      ].map { |op| JSON.parse(op) }
+      Llm::Ops.check(moved, tree).issues.should be_empty
+
+      created = [
+        %({"op":"insert_shape","kind":"g","attrs":[],"new_id":"ai-wrap","parent":{"a":"e1"}}),
+        %({"op":"insert_shape","kind":"text","text":"x","attrs":[],"parent":{"id":"ai-wrap"},"after":{"a":"e4"}}),
+      ].map { |op| JSON.parse(op) }
+      Llm::Ops.check(created, tree).issues.should be_empty
     end
 
     it "renumbers rooms sequentially and reuses the freed id for a new room" do

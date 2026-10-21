@@ -4,7 +4,8 @@ require "placeos-models/upload"
 module PlaceOS::Api::Llm
   # The body of the spawned fiber for a map edit: the vendor call under the
   # slot the request handler reserved, made once more at a larger output
-  # budget when the first answer was cut off.
+  # budget when the first answer was cut off, and once more with the reasons
+  # when the server rejects some of the answer's operations.
   #
   # Everything it needs is captured before `spawn`: inside the fiber there is
   # no request and `Log.context` is empty. The context the editor posted is
@@ -60,11 +61,13 @@ module PlaceOS::Api::Llm
           reasoning_effort: context.adapter.default_effort,
         ))
 
-        answer = context.adapter.complete(request)
+        asked = request
+        answer = context.adapter.complete(asked)
         results << answer
 
         if answer.finish == "length" && !cancelled?(context.job_id)
-          answer = context.adapter.complete(request.copy_with(max_output_tokens: MAP_AI_RETRY_OUTPUT_TOKENS))
+          asked = request.copy_with(max_output_tokens: MAP_AI_RETRY_OUTPUT_TOKENS)
+          answer = context.adapter.complete(asked)
           results << answer
         end
 
@@ -74,6 +77,11 @@ module PlaceOS::Api::Llm
 
         envelope = Ops.parse(answer.text)
         checked = Ops.check(envelope.ops, context.context)
+
+        repair = nil
+        if MAP_AI_REPAIR && !checked.issues.empty? && !cancelled?(context.job_id)
+          envelope, checked, repair = repaired(context, asked, envelope, checked, results)
+        end
 
         issues = {} of String => JSON::Any
         checked.issues.each { |id, reason| issues[id] = JSON::Any.new(reason) }
@@ -86,6 +94,7 @@ module PlaceOS::Api::Llm
           "questions"      => JSON::Any.new(envelope.questions.map { |question| JSON::Any.new(question) }),
           "usage"          => JSON::Any.new(usage_of(results, context.model)),
         }
+        written["repair"] = JSON::Any.new(repair) if repair
       rescue ex
         Log.warn(exception: ex) { "map AI vendor call failed" }
         failure = ex
@@ -102,6 +111,45 @@ module PlaceOS::Api::Llm
       end
     ensure
       give_back(held)
+    end
+
+    # The repair round: `request` again with the rejected ops and why. Its
+    # answer replaces the first only when it is whole, parses, keeps at least
+    # as many ops the server accepts, and has fewer rejected. Any failure of
+    # this call keeps the first answer.
+    private def self.repaired(
+      context : Context,
+      request : Request,
+      envelope : Ops::Envelope,
+      checked : Ops::Checked,
+      results : Array(Result),
+    ) : Tuple(Ops::Envelope, Ops::Checked, Hash(String, JSON::Any))
+      rejected = checked.issues.size
+      accepted = envelope.ops.size - rejected
+      remaining = nil
+      begin
+        answer = context.adapter.complete(Prompt.repair(request, envelope, checked.issues))
+        results << answer
+        if answer.finish != "length"
+          candidate = Ops.parse(answer.text)
+          rechecked = Ops.check(candidate.ops, context.context)
+          remaining = rechecked.issues.size
+          if remaining < rejected && candidate.ops.size - remaining >= accepted
+            return {candidate, rechecked, repair_note(rejected, remaining, true)}
+          end
+        end
+      rescue ex
+        Log.warn(exception: ex) { "map AI repair call failed, keeping the first answer" }
+      end
+      {envelope, checked, repair_note(rejected, remaining, false)}
+    end
+
+    private def self.repair_note(rejected : Int32, remaining : Int32?, used : Bool) : Hash(String, JSON::Any)
+      {
+        "rejected"  => JSON::Any.new(rejected.to_i64),
+        "remaining" => JSON::Any.new(remaining.try(&.to_i64)),
+        "used"      => JSON::Any.new(used),
+      }
     end
 
     # Releases the run's slot if it still holds it; returns false, the new state.
