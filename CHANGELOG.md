@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **map-ai**: repair round for rejected ops, and accept dominant-baseline (PPT-2832) ([#458](https://github.com/PlaceOS/rest-api/pull/458))
 - **mcp**: module state and logs as MCP resources ([#457](https://github.com/PlaceOS/rest-api/pull/457))
 - **history**: unified change history API ([#456](https://github.com/PlaceOS/rest-api/pull/456))
 - **map-ai**: generate SVG edit proposals for Concierge (PPT-2832) ([#453](https://github.com/PlaceOS/rest-api/pull/453))
