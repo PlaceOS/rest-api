@@ -152,6 +152,7 @@
 
 ### Fix
 
+- **security**: enforce token/authority domain match for bare-host domains
 - **security**: prevent SQL injection in uploads search and domain lookup
 - **search**: match dotted room numbers like "4.23" as a single term
 - **modules**: state lookup returns "null" for unset keys
