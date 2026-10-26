@@ -43,6 +43,23 @@ module PlaceOS::Api
       uploads.size.should eq(2)
     end
 
+    it "should treat file_search as a value, not SQL" do
+      s = Model::Generator.storage.save!
+
+      Model::Generator.upload(file_name: "some_file", storage_id: s.id).save!
+      Model::Generator.upload(file_name: "my_file", storage_id: s.id).save!
+
+      params = HTTP::Params.encode({
+        "file_search" => "nothing%' OR true OR u.file_name LIKE '",
+      })
+
+      result = client.get("#{Uploads.base_route}/?#{params}",
+        headers: Spec::Authentication.headers)
+
+      result.success?.should be_true
+      Array(Model::Upload).from_json(result.body).should be_empty
+    end
+
     it "should support tag filtering on list of uploads" do
       s = Model::Generator.storage.save!
 

@@ -13,10 +13,6 @@ shards:
     git: https://github.com/spider-gazelle/active-model.git
     version: 4.7.1
 
-  ameba:
-    git: https://github.com/crystal-ameba/ameba.git
-    version: 1.7.0
-
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
     version: 0.10.0
@@ -223,7 +219,7 @@ shards:
 
   placeos-models:
     git: https://github.com/placeos/models.git
-    version: 9.123.1
+    version: 9.123.2
 
   placeos-resource:
     git: https://github.com/place-labs/resource.git

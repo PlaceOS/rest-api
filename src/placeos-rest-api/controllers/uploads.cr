@@ -111,9 +111,11 @@ module PlaceOS::Api
       params = [] of String | Int32
       params << storage.id.as(String)
 
-      # 2a. Optional filename search (unchanged)
+      # 2a. Optional filename search
       if file_search
-        conditions << "u.file_name LIKE '%#{file_search}%'"
+        idx = params.size + 1
+        conditions << "u.file_name LIKE $#{idx}"
+        params << "%#{file_search}%"
       end
 
       # 2b. Optional tags filter: require array to contain all provided tags
