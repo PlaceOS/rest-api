@@ -723,6 +723,41 @@ module PlaceOS::Api
           ids.sort.should eq [public_sys.id.as(String), private_sys.id.as(String)].sort
         end
 
+        it "q matches dotted room numbers like 4.23" do
+          Model::ControlSystem.clear
+
+          names = {
+            dotted:   "Darwin City 4.23 Classroom",
+            suffixed: "Darwin Rm 4.23a",
+            level:    "Darwin L4.23 Lab",
+            hyphen:   "Darwin Room 4-23",
+            spaced:   "Level 4 Room 23",
+            other:    "Darwin City 14.5 Classroom",
+          }
+          systems = names.to_h.transform_values do |name|
+            sys = Model::Generator.control_system
+            sys.name = name
+            sys.save!
+          end
+
+          search = ->(q : String) do
+            params = HTTP::Params.encode({"q" => q})
+            result = client.get("#{Systems.base_route}?#{params}", headers: Spec::Authentication.headers)
+            result.status_code.should eq 200
+            Array(Hash(String, JSON::Any)).from_json(result.body).map(&.["name"].as_s).sort!
+          end
+
+          search.call("4.23").should eq [names[:dotted], names[:suffixed]].sort
+          # the final token prefix-matches while it is still being typed
+          search.call("4.2").should eq [names[:dotted], names[:suffixed]].sort
+          search.call("L4.23").should eq [names[:level]]
+          search.call("4-23").should eq [names[:hyphen]]
+          # terms are OR-joined (Elasticsearch parity)
+          search.call("4.23 classroom").should eq [names[:dotted], names[:suffixed], names[:other]].sort
+
+          systems.each_value &.destroy
+        end
+
         it "q combines with zone_id filtering" do
           Model::ControlSystem.clear
 

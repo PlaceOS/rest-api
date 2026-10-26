@@ -48,8 +48,35 @@ module PlaceOS::Api
           .should eq "'adele@example.com' | hello:*"
       end
 
-      it "splits hyphenated identifiers" do
-        Utils::TextSearch.tsquery("sys-abc123").should eq "sys | abc123:*"
+      it "matches dotted room numbers as a unit rather than OR-splitting them" do
+        # "4 | 23" never matched "Darwin City 4.23 Classroom" (indexed as the
+        # single lexeme '4.23') yet matched every record containing a bare "4"
+        Utils::TextSearch.tsquery("4.23").should eq "('4.23':* | 4 <-> 23:*)"
+        Utils::TextSearch.tsquery("4.23 classroom").should eq "('4.23' | 4 <-> 23) | classroom:*"
+        Utils::TextSearch.tsquery("darwin 4.23").should eq "darwin | ('4.23':* | 4 <-> 23:*)"
+        Utils::TextSearch.tsquery("L4.23").should eq "('L4.23':* | L4 <-> 23:*)"
+        Utils::TextSearch.tsquery("4.23.1").should eq "('4.23.1':* | 4 <-> 23 <-> 1:*)"
+      end
+
+      it "matches identifiers joined by hyphens, underscores and slashes as a unit" do
+        Utils::TextSearch.tsquery("sys-abc123").should eq "('sys-abc123':* | sys <-> abc123:*)"
+        Utils::TextSearch.tsquery("4-23").should eq "('4-23':* | 4 <-> 23:*)"
+        Utils::TextSearch.tsquery("video_switcher").should eq "('video_switcher':* | video <-> switcher:*)"
+        Utils::TextSearch.tsquery("place/video").should eq "('place/video':* | place <-> video:*)"
+      end
+
+      it "drops dangling separators while a compound term is being typed" do
+        Utils::TextSearch.tsquery("4.").should eq "4:*"
+        Utils::TextSearch.tsquery("sys-").should eq "sys:*"
+        Utils::TextSearch.tsquery(".23").should eq "23:*"
+        Utils::TextSearch.tsquery("4..23").should eq "4 | 23:*"
+      end
+
+      it "keeps emails and field prefixes ahead of compound terms" do
+        Utils::TextSearch.tsquery("first.last@example.com 4.23")
+          .should eq "'first.last@example.com' | ('4.23':* | 4 <-> 23:*)"
+        Utils::TextSearch.tsquery("tags:(+level) building.zone")
+          .should eq "level | ('building.zone':* | building <-> zone:*)"
       end
 
       it "keeps unicode terms without folding" do
@@ -62,6 +89,20 @@ module PlaceOS::Api
         query.split(" | ").size.should eq Utils::TextSearch::MAX_TOKENS
 
         Utils::TextSearch.tsquery("x" * 20_000).not_nil!.size.should be <= Utils::TextSearch::MAX_QUERY_CHARS + 2
+      end
+
+      it "always produces a tsquery PostgreSQL accepts" do
+        inputs = [
+          "4.23", "L4.23", "4-23", "4/23", "4.23a", "-4.23-", "a.b.c/d-e_f",
+          "it's 4.23", %(4.23\\ 'x'), "o'brien.smith", "4.23 & !x | (y)", "café.ünï-23",
+          "first.last@example.com", "tags:(+level AND +building)", "4.23" * 200,
+        ]
+        ::PgORM::Database.connection do |conn|
+          inputs.each do |input|
+            tsq = Utils::TextSearch.tsquery(input).not_nil!
+            conn.query_one("SELECT to_tsquery('simple', $1)::text", args: [tsq.as(::PgORM::Value)], as: String).should_not be_empty
+          end
+        end
       end
     end
   end
