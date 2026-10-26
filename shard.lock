@@ -13,6 +13,10 @@ shards:
     git: https://github.com/spider-gazelle/active-model.git
     version: 4.7.1
 
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.7.0
+
   awscr-s3:
     git: https://github.com/taylorfinnell/awscr-s3.git
     version: 0.10.0
