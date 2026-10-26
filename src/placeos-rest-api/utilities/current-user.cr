@@ -105,12 +105,17 @@ module PlaceOS::Api
       end
 
       # Token and authority domains must match
-      token_domain_host = URI.parse(user_token.domain).host
-      authority_domain_host = URI.parse(authority.domain.as(String)).host
+      token_domain_host = domain_host(user_token.domain)
+      authority_domain_host = domain_host(authority.domain.as(String))
       unless token_domain_host == authority_domain_host
         Log.warn { {message: "authority domain does not match token's", action: "authorize!", token_domain: user_token.domain, authority_domain: authority.domain} }
         raise Error::Unauthorized.new "authority domain does not match token's"
       end
+    end
+
+    # Domains are usually bare hosts (`tenant.example`), which `URI.parse` reads as a path
+    private def domain_host(domain : String) : String
+      (URI.parse(domain).host || domain).downcase
     end
 
     def check_oauth_scope

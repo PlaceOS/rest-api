@@ -47,8 +47,20 @@ module PlaceOS::Api::Spec::Authentication
     CREATION_LOCK.synchronize do
       authenticated_user = generate_auth_user(sys_admin, support, scope, groups)
 
+      # the generator uses a random domain, tokens must be issued for the user's authority
+      jwt = PlaceOS::Model::Generator.jwt(authenticated_user, scope)
+      jwt = PlaceOS::Model::UserJWT.new(
+        iss: jwt.iss,
+        iat: jwt.iat,
+        exp: jwt.exp,
+        domain: authenticated_user.authority.as(PlaceOS::Model::Authority).domain.as(String),
+        id: jwt.id,
+        user: jwt.user,
+        scope: jwt.scope,
+      )
+
       headers = HTTP::Headers{
-        "Authorization" => "Bearer #{PlaceOS::Model::Generator.jwt(authenticated_user, scope).encode}",
+        "Authorization" => "Bearer #{jwt.encode}",
         "Content-Type"  => "application/json",
         "Host"          => "localhost",
       }
