@@ -152,6 +152,7 @@
 
 ### Fix
 
+- **search**: match dotted room numbers like "4.23" as a single term
 - **modules**: state lookup returns "null" for unset keys
 - **mcp**: notify subscriptions once acknowledged
 - **constants**: default source hostname
