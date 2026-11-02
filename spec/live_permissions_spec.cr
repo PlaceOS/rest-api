@@ -1,8 +1,8 @@
 require "./helper"
 
 module PlaceOS::Api
-  # sys_admin / support are capped by the user's current model, so revoking them applies
-  # before the JWT expires. API keys deliberately keep their own stored permissions.
+  # sys_admin / support come from the user's current model, not the JWT claims, so changes
+  # apply to existing sessions. API keys deliberately keep their own stored permissions.
   describe "live user permissions" do
     admin_path = ApiKeys.base_route    # check_admin
     support_path = Storages.base_route # check_support
@@ -70,16 +70,19 @@ module PlaceOS::Api
       client.get(support_path, headers: headers).status_code.should eq 200
     end
 
-    it "does not elevate a JWT when the user is promoted" do
+    it "elevates a JWT when the user is promoted" do
       user = new_user.call(false, false)
       headers = bearer_headers.call(user)
+
+      client.get(admin_path, headers: headers).status_code.should eq 403
+      client.get(support_path, headers: headers).status_code.should eq 403
 
       user.sys_admin = true
       user.support = true
       user.save!
 
-      client.get(admin_path, headers: headers).status_code.should eq 403
-      client.get(support_path, headers: headers).status_code.should eq 403
+      client.get(admin_path, headers: headers).status_code.should eq 200
+      client.get(support_path, headers: headers).status_code.should eq 200
     end
 
     it "lets an API key grant more than its owner holds" do
