@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Brokers do
-    Spec.test_404(Brokers.base_route, model_name: Model::Broker.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Brokers.base_route, model_name: Model::Broker.table_name)
 
     describe "index", tags: "search" do
       Spec.test_base_index(klass: Model::Broker, controller_klass: Brokers)

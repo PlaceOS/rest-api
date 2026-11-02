@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Repositories do
-    Spec.test_404(Repositories.base_route, model_name: Model::Repository.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Repositories.base_route, model_name: Model::Repository.table_name)
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::Repository, Repositories)

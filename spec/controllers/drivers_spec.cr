@@ -25,7 +25,7 @@ module PlaceOS::Api
       end
     end
 
-    Spec.test_404(Drivers.base_route, model_name: Model::Driver.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Drivers.base_route, model_name: Model::Driver.table_name)
 
     describe "CRUD operations", tags: "crud" do
       before_each do

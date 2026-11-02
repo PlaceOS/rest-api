@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Zones do
-    Spec.test_404(Zones.base_route, model_name: Model::Zone.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Zones.base_route, model_name: Model::Zone.table_name)
 
     describe "index", tags: "search" do
       Spec.test_base_index(klass: Model::Zone, controller_klass: Zones)

@@ -10,7 +10,7 @@ end
 
 module PlaceOS::Api
   describe Assets do
-    Spec.test_404(Assets.base_route, model_name: Model::Asset.table_name, headers: Spec::Authentication.headers, clz: Int64)
+    Spec.test_404(Assets.base_route, model_name: Model::Asset.table_name, clz: Int64)
 
     describe "index", tags: "search" do
       it "queries Asset", tags: "search" do

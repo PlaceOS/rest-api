@@ -5,7 +5,7 @@ module PlaceOS::Api
     _, scoped_headers = Spec::Authentication.x_api_authentication
     before_all { _, scoped_headers = Spec::Authentication.x_api_authentication }
 
-    Spec.test_404(ApiKeys.base_route, model_name: Model::ApiKey.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(ApiKeys.base_route, model_name: Model::ApiKey.table_name)
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::ApiKey, ApiKeys)

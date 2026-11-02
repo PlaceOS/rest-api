@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Settings do
-    Spec.test_404(Settings.base_route, model_name: Model::Settings.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Settings.base_route, model_name: Model::Settings.table_name)
 
     describe "support user" do
       context "access" do

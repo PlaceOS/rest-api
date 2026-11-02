@@ -3,7 +3,7 @@ require "placeos-core/placeos-edge/client"
 
 module PlaceOS::Api
   describe Edges do
-    Spec.test_404(Edges.base_route, model_name: Model::Edge.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Edges.base_route, model_name: Model::Edge.table_name)
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::Edge, Edges)

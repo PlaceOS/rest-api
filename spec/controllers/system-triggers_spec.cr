@@ -6,7 +6,6 @@ module PlaceOS::Api
     Spec.test_404(
       SystemTriggers.base_route.gsub(/:sys_id/, "sys-#{Random.rand(9999)}"),
       model_name: Model::TriggerInstance.table_name,
-      headers: Spec::Authentication.headers,
     )
 
     describe "index", tags: "search" do

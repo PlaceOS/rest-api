@@ -1,9 +1,12 @@
 require "./authentication"
 
 module PlaceOS::Api::Spec
-  # Check application responds with 404 when model not present
-  def self.test_404(base, model_name, headers : HTTP::Headers, clz : Class = String)
+  # Check application responds with 404 when model not present.
+  # Headers are minted inside the example: ones built at file load belong to a user that
+  # `before_suite` has since cleared, so the request would 401 before reaching the route.
+  def self.test_404(base, model_name, clz : Class = String)
     it "404s if #{model_name} isn't present in database", tags: "search" do
+      headers = Spec::Authentication.headers
       id = (clz < Int) ? Random.rand(9999).to_s : "#{model_name}-#{Random.rand(9999).to_s.ljust(4, '0')}"
       path = File.join(base, id)
       result = client.get(path, headers: headers)

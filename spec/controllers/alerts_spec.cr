@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Alerts do
-    Spec.test_404(Alerts.base_route, model_name: Model::Alert.table_name, headers: Spec::Authentication.headers, clz: String)
+    Spec.test_404(Alerts.base_route, model_name: Model::Alert.table_name, clz: String)
 
     describe "index", tags: "search" do
       Spec.test_base_index(Model::Alert, Alerts)

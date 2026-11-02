@@ -7,7 +7,7 @@ module PlaceOS::Api
       Model::Chat.clear
     end
 
-    Spec.test_404(ChatGPT.base_route, model_name: Model::Chat.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(ChatGPT.base_route, model_name: Model::Chat.table_name)
 
     it "GET should return an empty list of chats for users without any chat history" do
       resp = client.get("#{ChatGPT.base_route}",

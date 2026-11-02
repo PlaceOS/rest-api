@@ -8,7 +8,7 @@ module PlaceOS::Api
       Model::ControlSystem.clear
     end
 
-    Spec.test_404(Modules.base_route, model_name: Model::Module.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Modules.base_route, model_name: Model::Module.table_name)
 
     describe "CRUD operations", tags: "crud" do
       Spec.test_crd(klass: Model::Module, controller_klass: Modules)

@@ -111,7 +111,7 @@ module PlaceOS::Api
       PlaceOS::Model::ControlSystem.clear
     end
 
-    Spec.test_404(Systems.base_route, model_name: Model::ControlSystem.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Systems.base_route, model_name: Model::ControlSystem.table_name)
 
     describe "index", tags: "search" do
       Spec.test_base_index(klass: Model::ControlSystem, controller_klass: Systems)

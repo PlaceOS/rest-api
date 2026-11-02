@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Users do
-    Spec.test_404(Users.base_route, model_name: Model::User.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Users.base_route, model_name: Model::User.table_name)
 
     describe "index", tags: "search" do
       Spec.test_base_index(klass: Model::User, controller_klass: Users)

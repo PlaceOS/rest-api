@@ -42,7 +42,7 @@ end
 
 module PlaceOS::Api
   describe PendingMails do
-    Spec.test_404(PendingMails.base_route, model_name: Model::PendingMail.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(PendingMails.base_route, model_name: Model::PendingMail.table_name)
 
     describe "index", tags: "search" do
       it "filters by source_service" do

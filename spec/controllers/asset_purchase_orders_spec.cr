@@ -10,7 +10,7 @@ end
 
 module PlaceOS::Api
   describe AssetPurchaseOrders do
-    Spec.test_404(AssetPurchaseOrders.base_route, model_name: Model::AssetPurchaseOrder.table_name, headers: Spec::Authentication.headers, clz: Int64)
+    Spec.test_404(AssetPurchaseOrders.base_route, model_name: Model::AssetPurchaseOrder.table_name, clz: Int64)
 
     describe "index", tags: "search" do
       it "queries AssetPurchaseOrder", tags: "search" do

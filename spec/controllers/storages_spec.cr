@@ -2,7 +2,7 @@ require "../helper"
 
 module PlaceOS::Api
   describe Storages do
-    Spec.test_404(Storages.base_route, model_name: Model::Storage.table_name, headers: Spec::Authentication.headers)
+    Spec.test_404(Storages.base_route, model_name: Model::Storage.table_name)
 
     describe "CRUD operations", tags: "crud" do
       it "create" do
