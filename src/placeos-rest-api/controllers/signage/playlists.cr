@@ -1,5 +1,6 @@
 require "uuid"
 require "placeos-models/group/playlist"
+require "placeos-models/history"
 
 require "../application"
 
@@ -22,7 +23,7 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
-    before_action :can_read, only: [:index, :show, :media, :media_revisions, :approvers]
+    before_action :can_read, only: [:index, :show, :media, :media_revisions, :approvers, :history]
     before_action :can_write, only: [:create, :update, :destroy, :update_media, :approve_media, :share, :schedule_media, :update_schedule]
 
     ###############################################################################################
@@ -77,7 +78,7 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless block.call(perms)
     end
 
-    @[AC::Route::Filter(:before_action, only: [:show, :media, :media_revisions])]
+    @[AC::Route::Filter(:before_action, only: [:show, :media, :media_revisions, :history])]
     def check_read_access
       enforce_playlist_access!(&.read?)
     end
@@ -340,6 +341,63 @@ module PlaceOS::Api
         next if perms.read? || perms.share? || perms.manage?
         raise Error::Forbidden.new("no read access to playlist #{playlist_id}")
       end
+    end
+
+    # Change history
+    # ==============
+
+    # list the change history of the playlist, newest first: changes to its
+    # settings (`playlists`), approved revisions of its media
+    # (`playlist_revisions`, with the full revision in `snapshot`) and, for
+    # distribution playlists, changes to its item schedules
+    # (`playlist_item_schedules`). Only who made each change is returned in
+    # `context`, request details such as IP addresses are left to the admin
+    # history API
+    @[AC::Route::GET("/:id/history", converters: {resource_types: ConvertStringArray, actions: ConvertStringArray})]
+    def history(
+      @[AC::Param::Info(description: "only return changes to these resource types: playlists, playlist_revisions or playlist_item_schedules", example: "playlist_revisions,playlist_item_schedules")]
+      resource_types : Array(String)? = nil,
+      @[AC::Param::Info(description: "only return changes to this resource, such as a revision or item schedule of the playlist", example: "playlist_item_schedule-1234")]
+      resource_id : String? = nil,
+      @[AC::Param::Info(description: "only return these kinds of change: create, update, delete, approve or restore", example: "approve")]
+      actions : Array(String)? = nil,
+      @[AC::Param::Info(description: "only return changes made at or after this time, as a unix epoch", example: "1729382400")]
+      period_start : Int64? = nil,
+      @[AC::Param::Info(description: "only return changes made before this time, as a unix epoch", example: "1729468800")]
+      period_end : Int64? = nil,
+      @[AC::Param::Info(description: "the maximum number of results to return", example: "100")]
+      limit : Int32 = 100,
+      @[AC::Param::Info(description: "the starting offset of the result set, used to implement pagination")]
+      offset : Int32 = 0,
+    ) : Array(::PlaceOS::Model::History)
+      playlist_id = current_playlist.id.as(String)
+      query = ::PlaceOS::Model::History
+        .where("((resource_type = 'playlists' AND resource_id = ?) OR correlation_id = ?)", playlist_id, playlist_id)
+        .order(created_at: :desc, id: :desc)
+      query = query.where(resource_type: resource_types) if resource_types && !resource_types.empty?
+      query = query.where(resource_id: resource_id) if resource_id
+      query = query.where(action: actions) if actions && !actions.empty?
+      query = query.where("created_at >= ?", Time.unix(period_start)) if period_start
+      query = query.where("created_at < ?", Time.unix(period_end)) if period_end
+
+      entries = paginate_sql(
+        query,
+        type: "history",
+        limit: limit.clamp(0, 1_000),
+        offset: offset.clamp(0, 1_000_000),
+        route: File.join(base_route, playlist_id, "history"),
+      )
+
+      # playlist readers see who made a change, not where they made it from
+      entries.each do |entry|
+        who = entry.metadata
+        entry.context = JSON.parse(::PlaceOS::Model::History::Metadata.new(
+          user_id: who.user_id,
+          user_email: who.user_email,
+          user_name: who.user_name,
+        ).to_json)
+      end
+      entries
     end
 
     # Playlist Revisions

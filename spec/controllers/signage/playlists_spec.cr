@@ -770,6 +770,155 @@ module PlaceOS::Api
       end
     end
 
+    describe "GET /:id/history" do
+      before_each { Model::History.clear }
+
+      it "returns settings changes, approved revisions and item schedule changes, newest first" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        playlist = Model::Generator.playlist(authority: authority, distribution: true).save!
+        playlist.name = "renamed"
+        playlist.save!
+
+        item = Model::Generator.item(authority: authority).save!
+        schedule = Model::Generator.item_schedule(playlist: playlist, item: item).save!
+        schedule.schedules = [Model::Playlist::Schedule.new(play_cron: "30 8 * * *")]
+        schedule.save!
+
+        approver = Model::Generator.user(authority: authority).save!
+        revision = Model::Generator.revision(playlist: playlist, user: approver)
+        revision.items = [schedule.id.as(String)]
+        revision.save!
+        revision.approver = approver
+        revision.save!
+
+        # changes to other playlists and to unrelated resources are excluded
+        other = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.zone.save!
+
+        result = client.get(File.join(base, playlist.id.to_s, "history"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        result.headers["X-Total-Count"].should eq "5"
+
+        entries = Array(Model::History).from_json(result.body)
+        entries.map { |e| {e.resource_type, e.action} }.should eq [
+          {"playlist_revisions", "approve"},
+          {"playlist_item_schedules", "update"},
+          {"playlist_item_schedules", "create"},
+          {"playlists", "update"},
+          {"playlists", "create"},
+        ]
+        entries.map(&.resource_id).should_not contain(other.id)
+
+        approval = entries.find!(&.resource_type.==("playlist_revisions"))
+        approval.resource_id.should eq revision.id
+        approval.snapshot.not_nil!["items"].should eq JSON.parse([schedule.id].to_json)
+
+        schedule_update = entries.find! { |e| e.resource_type == "playlist_item_schedules" && e.action == "update" }
+        schedule_update.resource_id.should eq schedule.id
+        schedule_update.correlation_id.should eq playlist.id
+        schedule_update.changed_fields.should eq ["schedules"]
+      end
+
+      it "filters by resource type, resource id, action and period" do
+        playlist = Model::Generator.playlist.save!
+        playlist_id = playlist.id.as(String)
+        record = ->(type : String, id : String, action : String) {
+          Model::History.record_change(resource_type: type, resource_id: id, correlation_id: (playlist_id unless type == "playlists"), action: action)
+        }
+        record.call("playlist_revisions", "rev-1", "approve")
+        record.call("playlist_item_schedules", "sched-1", "update")
+        record.call("playlist_item_schedules", "sched-2", "delete")
+        old = record.call("playlist_item_schedules", "sched-1", "create")
+        old.update_fields(created_at: 2.days.ago)
+
+        path = File.join(base, playlist_id, "history")
+        fetch = ->(query : String) {
+          result = client.get("#{path}?#{query}", headers: Spec::Authentication.headers)
+          result.status_code.should eq 200
+          Array(Model::History).from_json(result.body)
+        }
+
+        fetch.call("resource_types=playlist_item_schedules").map(&.resource_type).uniq!.should eq ["playlist_item_schedules"]
+        fetch.call("resource_types=playlists,playlist_revisions").map(&.resource_type).sort!.should eq ["playlist_revisions", "playlists"]
+        fetch.call("resource_id=sched-1").map(&.action).should eq ["update", "create"]
+        fetch.call("actions=delete,approve").map(&.resource_id).sort!.should eq ["rev-1", "sched-2"]
+        fetch.call("period_start=#{1.day.ago.to_unix}&resource_id=sched-1").map(&.action).should eq ["update"]
+        fetch.call("period_end=#{1.day.ago.to_unix}").map(&.id).should eq [old.id]
+      end
+
+      it "paginates with a Link to the playlist history route" do
+        playlist = Model::Generator.playlist.save!
+        3.times { |i| Model::History.record_change(resource_type: "playlist_revisions", resource_id: "rev-#{i}", correlation_id: playlist.id, action: "approve") }
+
+        path = File.join(base, playlist.id.to_s, "history")
+        result = client.get("#{path}?limit=2", headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        Array(Model::History).from_json(result.body).size.should eq 2
+        # playlist create + 3 approvals
+        result.headers["X-Total-Count"].should eq "4"
+        result.headers["Link"].should start_with %(<#{path}?)
+        result.headers["Link"].should contain "offset=2"
+      end
+
+      it "returns who made a change but not request details" do
+        playlist = Model::Generator.playlist.save!
+        Model::History.clear
+        Model::History.record_change(
+          resource_type: "playlists",
+          resource_id: playlist.id.as(String),
+          action: "update",
+          metadata: Model::History::Metadata.new(
+            user_id: "user-1", user_email: "jo@example.com", user_name: "Jo",
+            ip: "10.0.0.1", user_agent: "Mozilla", request_id: "req-1", api_key_id: "key-1",
+          ),
+        )
+
+        result = client.get(File.join(base, playlist.id.to_s, "history"), headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        result.body.should_not contain "10.0.0.1"
+        result.body.should_not contain "Mozilla"
+
+        entry = Array(Model::History).from_json(result.body).first
+        entry.user_id.should eq "user-1"
+        entry.context.as_h.should eq({
+          "user_id"    => JSON::Any.new("user-1"),
+          "user_email" => JSON::Any.new("jo@example.com"),
+          "user_name"  => JSON::Any.new("Jo"),
+        })
+      end
+
+      it "is available to a member with Read on a linked group" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        group = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: group, permissions: Model::Permissions::Read).save!
+        playlist = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: group, playlist: playlist).save!
+
+        result = client.get(File.join(base, playlist.id.to_s, "history"), headers: headers)
+        result.status_code.should eq 200
+        Array(Model::History).from_json(result.body).map(&.action).should eq ["create"]
+      end
+
+      it "is forbidden without Read on one of the playlist's groups" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        member_of = Model::Generator.group(authority: authority).save!
+        Model::Generator.group_user(user: user, group: member_of, permissions: Model::Permissions::Read).save!
+        other_group = Model::Generator.group(authority: authority).save!
+        linked = Model::Generator.playlist(authority: authority).save!
+        Model::Generator.group_playlist(group: other_group, playlist: linked).save!
+        unlinked = Model::Generator.playlist(authority: authority).save!
+
+        client.get(File.join(base, linked.id.to_s, "history"), headers: headers).status_code.should eq 403
+        client.get(File.join(base, unlinked.id.to_s, "history"), headers: headers).status_code.should eq 403
+      end
+
+      it "is 404 for an unknown playlist" do
+        client.get(File.join(base, "playlist-1234", "history"), headers: Spec::Authentication.headers).status_code.should eq 404
+      end
+    end
+
     describe "approval requests" do
       before_each { Model::PendingMail.clear }
 

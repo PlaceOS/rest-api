@@ -33736,6 +33736,186 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+  /api/engine/v2/signage/playlists/{id}/history:
+    summary: Digital signage playlists, ordered media and the schedule it plays on
+    get:
+      summary: 'list the change history of the playlist, newest first: changes to
+        its'
+      description: 'list the change history of the playlist, newest first: changes
+        to its
+
+        settings (`playlists`), approved revisions of its media
+
+        (`playlist_revisions`, with the full revision in `snapshot`) and, for
+
+        distribution playlists, changes to its item schedules
+
+        (`playlist_item_schedules`). Only who made each change is returned in
+
+        `context`, request details such as IP addresses are left to the admin
+
+        history API'
+      tags:
+      - Playlist
+      operationId: PlaceOS::Api::Playlist_history
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: resource_types
+        in: query
+        description: 'only return changes to these resource types: playlists, playlist_revisions
+          or playlist_item_schedules'
+        example:
+        - playlist_revisions
+        - playlist_item_schedules
+        schema:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              type: string
+      - name: resource_id
+        in: query
+        description: only return changes to this resource, such as a revision or item
+          schedule of the playlist
+        example: playlist_item_schedule-1234
+        schema:
+          anyOf:
+          - type: "null"
+          - type: string
+      - name: actions
+        in: query
+        description: 'only return these kinds of change: create, update, delete, approve
+          or restore'
+        example:
+        - approve
+        schema:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              type: string
+      - name: period_start
+        in: query
+        description: only return changes made at or after this time, as a unix epoch
+        example: 1729382400
+        schema:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+      - name: period_end
+        in: query
+        description: only return changes made before this time, as a unix epoch
+        example: 1729468800
+        schema:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+      - name: limit
+        in: query
+        description: the maximum number of results to return
+        example: 100
+        schema:
+          type: integer
+          format: Int32
+      - name: offset
+        in: query
+        description: the starting offset of the result set, used to implement pagination
+        schema:
+          type: integer
+          format: Int32
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceOS.Model.History'
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "503":
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ImageGenError'
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "502":
+          description: Bad Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "504":
+          description: Gateway Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "406":
+          description: Not Acceptable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.CommonError'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ParameterError'
+        "415":
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceOS.Api.Application.ContentError'
   /api/engine/v2/signage/playlists/{id}/media:
     summary: Digital signage playlists, ordered media and the schedule it plays on
     get:
