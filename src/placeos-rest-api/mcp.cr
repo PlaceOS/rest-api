@@ -40,8 +40,13 @@ module PlaceOS::Api::MCP
 
   def self.configure : Nil
     ActionController::MCPServer.tap do |mcp|
-      mcp.server_name = "placeos"
+      # no namespace: the Server Card (`<PATH>/server-card`) prefixes the request host
+      # reversed, so each deployment is its own publisher (`com.acme.placeos/placeos-engine`)
+      mcp.server_name = "placeos-engine"
       mcp.server_version = VERSION
+      mcp.server_title = "PlaceOS Building Management"
+      mcp.server_description = "Configure buildings, rooms and devices, control AV and building systems, and debug their drivers"
+      mcp.website_url = "https://docs.placeos.com"
       mcp.instructions = "#{INSTRUCTIONS}\n\n#{mcp.toolbox_instructions}"
       mcp.description_path = ENV["MCP_DESCRIPTION_PATH"]? || "mcp.yml"
       mcp.auth_probe = AUTH_PROBE

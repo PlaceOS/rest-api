@@ -39,6 +39,25 @@ module PlaceOS::Api
       response.headers["Mcp-Session-Id"]?.should be_nil
     end
 
+    it "publishes a Server Card in the host's namespace, without authentication" do
+      response = mcp_client.get("#{MCP::PATH}/server-card", headers: HTTP::Headers{"Host" => "placeos.example.com", "X-Forwarded-Proto" => "https"})
+      response.status_code.should eq 200
+      response.headers["Content-Type"].should start_with "application/mcp-server-card+json"
+      card = JSON.parse(response.body)
+      card["name"].should eq "com.example.placeos/placeos-engine"
+      card["title"].should eq "PlaceOS Building Management"
+      card["description"].as_s.size.should be <= 100
+      card["version"].should eq VERSION
+      card["remotes"][0]["url"].should eq "https://placeos.example.com#{MCP::PATH}"
+
+      # clients see the same identity once connected
+      _, credentials = Spec::Authentication.authentication
+      headers = open_session.call(credentials)
+      info = JSON.parse(rpc.call(headers, "initialize", initialize_params).body)["result"]["serverInfo"]
+      info["name"].should eq "placeos-engine"
+      info["title"].should eq "PlaceOS Building Management"
+    end
+
     it "rejects invalid credentials" do
       headers = mcp_headers.call(HTTP::Headers{"Authorization" => "Bearer not-a-token"})
       response = rpc.call(headers, "initialize", initialize_params)
