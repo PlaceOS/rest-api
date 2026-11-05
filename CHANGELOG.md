@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **mcp**: describe the server for its MCP Server Card
 - **signage/playlists**: add playlist change history endpoint
 - **modules**: create a module and add it to a system in one request
 - **map-ai**: repair round for rejected ops, and accept dominant-baseline (PPT-2832) ([#458](https://github.com/PlaceOS/rest-api/pull/458))
