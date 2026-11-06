@@ -22,7 +22,17 @@ module PlaceOS::Api
     def find_current_trigger(id : String)
       Log.context.set(trigger_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_trigger = ::PlaceOS::Model::Trigger.find!(id)
+      trigger = ::PlaceOS::Model::Trigger.find!(id)
+      # a trigger bound to a system follows that system; a definition with
+      # no system is a template any organisation may instantiate
+      ensure_reach!(trigger) if trigger.control_system_id
+      @current_trigger = trigger
+    end
+
+    # Templates are cluster-managed
+    @[AC::Route::Filter(:before_action, only: [:update, :destroy])]
+    def check_template_write
+      check_cluster_admin if current_trigger.control_system_id.nil?
     end
 
     getter! current_trigger : ::PlaceOS::Model::Trigger
@@ -31,9 +41,25 @@ module PlaceOS::Api
 
     # returns the list of available triggers
     @[AC::Route::GET("/")]
-    def index : Array(::PlaceOS::Model::Trigger)
+    def index(
+      @[AC::Param::Info(description: "only triggers bound to systems owned by this organisation; templates are always included", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : Array(::PlaceOS::Model::Trigger)
       # PG full-text search (PPT-2644)
-      paginate_search(::PlaceOS::Model::Trigger.all, ::PlaceOS::Model::Trigger.table_name)
+      query = ::PlaceOS::Model::Trigger.all
+      if organisation_id
+        ensure_reach!(organisation_id, "organisation")
+        query = query.where("(control_system_id IS NULL OR organisation_id = ?::uuid)", organisation_id.to_s)
+      end
+      if ids = tenancy.organisation_ids
+        list = ids.to_a.map(&.to_s)
+        query = if list.empty?
+                  query.where("control_system_id IS NULL", [] of String)
+                else
+                  query.where("(control_system_id IS NULL OR organisation_id = ANY(ARRAY[#{list.join(", ") { "?" }}]::uuid[]))", list)
+                end
+      end
+      paginate_search(query, ::PlaceOS::Model::Trigger.table_name)
     end
 
     # update so we can provide instance details
@@ -66,6 +92,13 @@ module PlaceOS::Api
     # adds a new trigger
     @[AC::Route::POST("/", body: :trig, status_code: HTTP::Status::CREATED)]
     def create(trig : ::PlaceOS::Model::Trigger) : ::PlaceOS::Model::Trigger
+      if cs_id = trig.control_system_id
+        system = ::PlaceOS::Model::ControlSystem.find!(cs_id)
+        ensure_reach!(system)
+        trig.organisation_id = system.organisation_id
+      else
+        check_cluster_admin
+      end
       raise Error::ModelValidation.new(trig.errors) unless trig.save
       trig
     end

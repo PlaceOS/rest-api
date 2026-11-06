@@ -22,7 +22,9 @@ module PlaceOS::Api
       def find_current_auth(id : String)
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
-        @current_auth = ::PlaceOS::Model::{{auth_type.id}}Authentication.find!(id)
+        auth = ::PlaceOS::Model::{{auth_type.id}}Authentication.find!(id)
+        ensure_authority_reach!(auth.authority_id, "authentication")
+        @current_auth = auth
       end
 
       getter! current_auth : ::PlaceOS::Model::{{auth_type.id}}Authentication
@@ -36,9 +38,10 @@ module PlaceOS::Api
         authority_id : String? = nil,
       ) : Array(::PlaceOS::Model::{{auth_type.id}}Authentication)
         # PG full-text search (PPT-2644)
-        query = ::PlaceOS::Model::{{auth_type.id}}Authentication.all
+        query = scope_authorities(::PlaceOS::Model::{{auth_type.id}}Authentication.all)
 
         if authority = authority_id
+          ensure_authority_reach!(authority, "domain")
           query = query.where(authority_id: authority)
         end
 
@@ -64,6 +67,7 @@ module PlaceOS::Api
       # creates a new authentication method
       @[AC::Route::POST("/", body: :auth, status_code: HTTP::Status::CREATED)]
       def create(auth : ::PlaceOS::Model::{{auth_type.id}}Authentication) : ::PlaceOS::Model::{{auth_type.id}}Authentication
+        ensure_authority_reach!(auth.authority_id, "domain")
         raise Error::ModelValidation.new(auth.errors) unless auth.save
         auth
       end

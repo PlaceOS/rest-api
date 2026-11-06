@@ -13,6 +13,8 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [:index, :show, :readme]
+    # drivers are shared by every organisation; only cluster admins change them
+    before_action :check_cluster_admin, except: [:index, :show, :readme]
 
     # Restrict driver listing and readme access to admin/support. These
     # endpoints expose internal infrastructure detail (driver inventory, driver

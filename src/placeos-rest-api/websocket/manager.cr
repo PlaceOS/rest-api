@@ -27,13 +27,14 @@ module PlaceOS::Api::WebSocket
 
     # Creates the session and handles the cleanup
     #
-    def create_session(ws, request_id, user)
+    def create_session(ws, request_id, user, organisation_ids : Set(UUID)? = nil)
       Log.trace { {request_id: request_id, frame: "OPEN"} }
       session = Session.new(
         ws: ws,
         request_id: request_id,
         user: user,
         discovery: discovery,
+        organisation_ids: organisation_ids,
       )
 
       session_lock.synchronize { sessions << session }

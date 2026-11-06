@@ -39,7 +39,9 @@ module PlaceOS::Api
     def find_current_module(id : String)
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_module = ::PlaceOS::Model::Module.find!(id)
+      mod = ::PlaceOS::Model::Module.find!(id)
+      ensure_reach!(mod)
+      @current_module = mod
     end
 
     getter! current_module : ::PlaceOS::Model::Module
@@ -111,7 +113,9 @@ module PlaceOS::Api
       org_zone = support_org_zone_id
 
       if control_system_id
-        zones = ::PlaceOS::Model::ControlSystem.find!(control_system_id).zones
+        system = ::PlaceOS::Model::ControlSystem.find!(control_system_id)
+        ensure_reach!(system)
+        zones = system.zones
         # "support" subsystem: Read on the system's zones.
         return if support_subsystem_grants?(zones, ::PlaceOS::Model::Permissions::Read)
         # legacy org_zone path: the system must include the org_zone and the
@@ -178,10 +182,13 @@ module PlaceOS::Api
       no_logic : Bool = false,
       @[AC::Param::Info(description: "return only running modules", example: "true")]
       running : Bool? = nil,
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(::PlaceOS::Model::Module)
       # if a system id is present we query the database directly
       if control_system_id
         cs = ::PlaceOS::Model::ControlSystem.find!(control_system_id)
+        ensure_reach!(cs)
         # Include subset of association data with results
         results = ::PlaceOS::Model::Module.find_all(cs.modules).compact_map do |mod|
           next if (driver = mod.driver).nil?
@@ -197,10 +204,8 @@ module PlaceOS::Api
       end
 
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::Module.all
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Module.all), organisation_id)
 
-      # TODO:: we can remove this once there is a tenant_id field on modules
-      # which will make this much simpler to filter
       if scope_zones = module_scope_zones
         # we only want to show modules in use by systems within these zones
         no_logic = true
@@ -380,6 +385,8 @@ module PlaceOS::Api
       mod : ::PlaceOS::Model::Module,
       @[AC::Param::Info(description: "add the new module to this control system", example: "sys-1234")]
       system_id : String? = nil,
+      @[AC::Param::Info(description: "the organisation that owns a module not bound to a system (cluster admins only)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : ::PlaceOS::Model::Module
       if system_id
         # only logic modules have a parent system, and they're added to it by an `after_create` callback
@@ -391,6 +398,13 @@ module PlaceOS::Api
       end
 
       can_modify?(mod)
+      mod.organisation_id = if cs_id = mod.control_system_id
+                              system = ::PlaceOS::Model::ControlSystem.find!(cs_id)
+                              ensure_reach!(system)
+                              system.organisation_id
+                            else
+                              organisation_for_new_row(organisation_id)
+                            end
       raise Error::ModelValidation.new(mod.errors) unless mod.save
       mod
     end
@@ -399,6 +413,9 @@ module PlaceOS::Api
     # adding it to the system doesn't leave an orphaned module behind.
     private def create_in_system(mod : ::PlaceOS::Model::Module, system_id : String) : ::PlaceOS::Model::Module
       sys = ::PlaceOS::Model::ControlSystem.find!(system_id)
+      # a new module belongs to the organisation of the system it's created in
+      ensure_reach!(sys)
+      mod.organisation_id = sys.organisation_id
 
       # the module isn't in any system yet, so the target system's zones are the only ones that apply.
       # Adding to the system requires the same access as `PUT /systems/:sys_id/module/:module_id`

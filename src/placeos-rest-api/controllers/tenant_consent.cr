@@ -35,6 +35,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def index(id : String) : NamedTuple(url: String)
       authority = ::PlaceOS::Model::Authority.find!(id)
+      ensure_reach!(authority)
       update_app_redirect_uri
       callback_url = URI.encode_www_form(redirect_url)
       # Not the authority id. `state` comes back from Microsoft through the
