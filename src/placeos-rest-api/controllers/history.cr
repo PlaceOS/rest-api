@@ -14,6 +14,8 @@ module PlaceOS::Api
     before_action :can_write, only: [:undelete]
 
     before_action :check_admin
+    # history spans every organisation's records
+    before_action :check_cluster_admin
 
     ###############################################################################################
 

@@ -23,6 +23,9 @@ module PlaceOS::Api
 
     before_action :can_write_guest, only: [:signal]
 
+    # resyncing source's MQTT state is cluster infrastructure
+    before_action :check_cluster_admin, only: [:source_resync, :source_resync_status]
+
     # Healthcheck
     ###############################################################################################
 

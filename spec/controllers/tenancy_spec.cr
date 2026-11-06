@@ -233,6 +233,26 @@ module PlaceOS::Api
       end
     end
 
+    describe "routes added since the reach enforcement" do
+      it "keeps change history and the source resync to cluster admins" do
+        f = build.call.not_nil!
+
+        tenancy_get(History.base_route, f.acadian.admin).status_code.should eq 403
+        tenancy_get(History.base_route, f.placeos.admin).status_code.should eq 200
+        tenancy_post(File.join(History.base_route, "undelete?resource_type=zone&resource_id=#{f.ucla.org_zone.id}"), f.acadian.admin, nil).status_code.should eq 403
+
+        tenancy_post("/api/engine/v2/source/resync", f.acadian.admin, nil).status_code.should eq 403
+        tenancy_get("/api/engine/v2/source/resync", f.acadian.admin).status_code.should eq 403
+      end
+
+      it "hides another organisation's zones from map edits, support users included" do
+        f = build.call.not_nil!
+
+        result = tenancy_post(File.join(MapAI.base_route, "edit"), f.acadian.support, {zone_id: f.ucla.org_zone.id, instruction: "x", context: JSON.parse(File.read(File.join(__DIR__, "../fixtures/map_ai/context.json")))})
+        result.status_code.should eq 404
+      end
+    end
+
     describe "organisations, partners and grants" do
       it "lets cluster admins manage the hierarchy and others read their own" do
         f = build.call.not_nil!

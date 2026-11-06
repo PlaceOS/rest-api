@@ -197,7 +197,9 @@ module PlaceOS::Api
       raise Error::ModelValidation.new([Error::Field.new(:zone_id, "is required")]) if params.zone_id.blank?
 
       zone = ::PlaceOS::Model::Zone.find?(params.zone_id)
-      raise Error::NotFound.new("no such zone") if zone.nil? || !zone_visible?(zone)
+      raise Error::NotFound.new("no such zone") if zone.nil?
+      ensure_reach!(zone)
+      raise Error::NotFound.new("no such zone") unless zone_visible?(zone)
       raise Error::Forbidden.new("you cannot change this zone's map") unless zone_updatable?(zone)
 
       context = params.context
