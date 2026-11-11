@@ -154,6 +154,7 @@
 
 ### Fix
 
+- **map-ai**: keep selected elements when the index is capped ([#460](https://github.com/PlaceOS/rest-api/pull/460))
 - **auth**: take JWT sys_admin/support from the user record ([#459](https://github.com/PlaceOS/rest-api/pull/459))
 - **security**: cap JWT permissions by the user's current admin/support
 - **security**: enforce token/authority domain match for bare-host domains
