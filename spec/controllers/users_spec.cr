@@ -799,6 +799,8 @@ module PlaceOS::Api
           user.expires_at = 1.hour.from_now.to_unix
           user.expires = true
           user.misc = "admin notes"
+          user.login_name = "login-#{Random::Secure.hex(6)}"
+          user.card_number = "card-#{Random::Secure.hex(6)}"
           user.save!
           user.password_digest.should_not be_nil
 
@@ -877,6 +879,8 @@ module PlaceOS::Api
         user.access_token = "ms-access-token-#{Random::Secure.hex(6)}"
         user.refresh_token = "ms-refresh-token-#{Random::Secure.hex(6)}"
         user.misc = "admin notes"
+        user.login_name = "login-#{Random::Secure.hex(6)}"
+        user.card_number = "card-#{Random::Secure.hex(6)}"
         user.save!
         user
       end
