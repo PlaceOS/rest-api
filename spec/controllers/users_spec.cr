@@ -867,6 +867,72 @@ module PlaceOS::Api
       end
     end
 
+    describe "index / show views" do
+      secret_fields = %w(password password_digest access_token refresh_token expires_at expires)
+      admin_only_fields = %w(sys_admin support misc login_name card_number ui_theme)
+
+      secret_user = -> do
+        user = Model::Generator.user
+        user.password = "s3cr3t-p@ssw0rd"
+        user.access_token = "ms-access-token-#{Random::Secure.hex(6)}"
+        user.refresh_token = "ms-refresh-token-#{Random::Secure.hex(6)}"
+        user.misc = "admin notes"
+        user.save!
+        user
+      end
+
+      check_view = ->(result : JSON::Any, user : Model::User, admin_view : Bool) do
+        keys = result.as_h.keys
+        (keys & secret_fields).should be_empty
+        result.to_json.should_not contain(user.access_token.as(String))
+        result.to_json.should_not contain(user.refresh_token.as(String))
+        result.to_json.should_not contain(user.password_digest.as(String))
+        if admin_view
+          admin_only_fields.each { |field| keys.includes?(field).should be_true }
+        else
+          (keys & admin_only_fields).should be_empty
+        end
+      end
+
+      {
+        {"non-admin", false, false, false},
+        {"support", false, true, true},
+        {"admin", true, false, true},
+      }.each do |(role, sys_admin, support, admin_view)|
+        it "renders the #{admin_view ? "admin" : "public"} view to #{role} users via show" do
+          user = secret_user.call
+          headers = Spec::Authentication.headers(sys_admin: sys_admin, support: support)
+
+          {false, true}.each do |include_metadata|
+            resp = client.get(
+              path: "#{File.join(Users.base_route, user.id.as(String))}?include_metadata=#{include_metadata}",
+              headers: headers,
+            )
+            resp.status_code.should eq 200
+            check_view.call(JSON.parse(resp.body), user, admin_view)
+          end
+
+          user.destroy
+        end
+
+        it "renders the #{admin_view ? "admin" : "public"} view to #{role} users via index" do
+          user = secret_user.call
+          headers = Spec::Authentication.headers(sys_admin: sys_admin, support: support)
+
+          {false, true}.each do |include_metadata|
+            params = HTTP::Params.encode({"q" => user.email.to_s, "include_metadata" => include_metadata.to_s})
+            resp = client.get(path: "#{Users.base_route}?#{params}", headers: headers)
+            resp.status_code.should eq 200
+            found = JSON.parse(resp.body).as_a.find { |entry| entry["id"] == user.id }
+            found.should_not be_nil
+            check_view.call(found.not_nil!, user, admin_view)
+          end
+
+          user.destroy
+        end
+      end
+    end
+
     describe "create / update responses" do
       secret_fields = %w(password password_digest access_token refresh_token expires_at expires)
 
