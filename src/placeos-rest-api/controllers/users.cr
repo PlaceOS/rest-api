@@ -139,6 +139,13 @@ module PlaceOS::Api
 
     alias UserDetails = ::PlaceOS::Model::User::AdminResponse | ::PlaceOS::Model::User::PublicResponse | ::PlaceOS::Model::User::AdminMetadataResponse | ::PlaceOS::Model::User::PublicMetadataResponse
 
+    # Never render a raw `Model::User`: its default JSON includes the password
+    # digest and SSO access / refresh tokens. The admin view adds fields such
+    # as `sys_admin` and `support` to the public view, neither includes secrets.
+    protected def user_details(user : ::PlaceOS::Model::User, admin_view : Bool) : UserDetails
+      admin_view ? user.to_admin_struct : user.to_public_struct
+    end
+
     # returns a list of users
     @[AC::Route::GET("/")]
     def index(
@@ -198,7 +205,7 @@ module PlaceOS::Api
 
     # add a new local user
     @[AC::Route::POST("/", body: :new_user, status_code: HTTP::Status::CREATED)]
-    def create(new_user : JSON::Any) : ::PlaceOS::Model::User
+    def create(new_user : JSON::Any) : UserDetails
       body = new_user.to_json
       new_user = ::PlaceOS::Model::User.from_json(body)
 
@@ -215,13 +222,13 @@ module PlaceOS::Api
       end
 
       raise Error::ModelValidation.new(new_user.errors) unless new_user.save
-      new_user
+      user_details(new_user, admin_view: user_support?)
     end
 
     # udpate a users profile
     @[AC::Route::PATCH("/:id", body: :new_user)]
     @[AC::Route::PUT("/:id", body: :new_user)]
-    def update(new_user : JSON::Any) : ::PlaceOS::Model::User
+    def update(new_user : JSON::Any) : UserDetails
       # Prevent modification of user email via this endpoint - [PPT-2459]
       new_user.as_h?.try &.delete("email")
 
@@ -235,7 +242,7 @@ module PlaceOS::Api
       the_user.assign_attributes_from_json(body)
 
       raise Error::ModelValidation.new(the_user.errors) unless the_user.save
-      the_user
+      user_details(the_user, admin_view: user_support? || the_user.id == current_user.id)
     end
 
     # Destroy user, revoke authentication.
@@ -304,7 +311,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
       offset : Int32 = 0,
-    ) : Array(::PlaceOS::Model::User)
+    ) : Array(UserDetails)
       sql = <<-SQL
         from "user" u INNER JOIN "metadata" m ON m.parent_id = u.id AND
         jsonb_path_exists(m.details, $1) and  u.authority_id = $2
@@ -331,7 +338,8 @@ module PlaceOS::Api
         response.headers["Link"] = %(<#{base_route}?#{params}>; rel="next")
       end
 
-      result
+      admin_view = user_support?
+      result.map { |found| user_details(found, admin_view) }
     end
   end
 end
