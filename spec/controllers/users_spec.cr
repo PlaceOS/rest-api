@@ -783,6 +783,205 @@ module PlaceOS::Api
           resp.headers["Link"]?.should be_nil
         end
       end
+
+      describe "sensitive fields" do
+        secret_fields = %w(password password_digest access_token refresh_token expires_at expires)
+        admin_only_fields = %w(sys_admin support misc login_name card_number ui_theme)
+
+        # A user with a local password and Microsoft SSO tokens, tagged with
+        # unique metadata so the search only returns this user
+        searchable_secret_user = -> do
+          tag = "leak-#{Random::Secure.hex(6)}"
+          user = Model::Generator.user
+          user.password = "s3cr3t-p@ssw0rd"
+          user.access_token = "ms-access-token-#{tag}"
+          user.refresh_token = "ms-refresh-token-#{tag}"
+          user.expires_at = 1.hour.from_now.to_unix
+          user.expires = true
+          user.misc = "admin notes"
+          user.login_name = "login-#{Random::Secure.hex(6)}"
+          user.card_number = "card-#{Random::Secure.hex(6)}"
+          user.save!
+          user.password_digest.should_not be_nil
+
+          metadata = Model::Generator.metadata(name: random_name, parent: user.id)
+          metadata.details = JSON.parse({tag: tag}.to_json)
+          metadata.save!
+
+          {user, tag}
+        end
+
+        search = ->(tag : String, headers : HTTP::Headers) do
+          filter = %($.tag ? (@ == "#{tag}"))
+          resp = client.get(
+            path: "#{Users.base_route}metadata/search?filter=#{URI.encode_path_segment(filter)}",
+            headers: headers,
+          )
+          resp.status_code.should eq 200
+          resp.body
+        end
+
+        assert_no_secrets = ->(body : String, user : Model::User) do
+          results = JSON.parse(body).as_a
+          results.size.should eq 1
+          (results.first.as_h.keys & secret_fields).should be_empty
+          body.should_not contain(user.password_digest.as(String))
+          body.should_not contain(user.access_token.as(String))
+          body.should_not contain(user.refresh_token.as(String))
+          results.first.as_h
+        end
+
+        {
+          {"non-admin", false, false},
+          {"support", false, true},
+          {"admin", true, false},
+        }.each do |(role, sys_admin, support)|
+          it "never returns password digests or SSO tokens to #{role} users" do
+            user, tag = searchable_secret_user.call
+            body = search.call(tag, Spec::Authentication.headers(sys_admin: sys_admin, support: support))
+            assert_no_secrets.call(body, user)
+            user.destroy
+          end
+        end
+
+        it "hides admin only fields from non-admin users" do
+          user, tag = searchable_secret_user.call
+          body = search.call(tag, Spec::Authentication.headers(sys_admin: false, support: false))
+          result = assert_no_secrets.call(body, user)
+          (result.keys & admin_only_fields).should be_empty
+          result["id"].should eq user.id
+          user.destroy
+        end
+
+        {
+          {"support", false, true},
+          {"admin", true, false},
+        }.each do |(role, sys_admin, support)|
+          it "returns admin only fields to #{role} users" do
+            user, tag = searchable_secret_user.call
+            body = search.call(tag, Spec::Authentication.headers(sys_admin: sys_admin, support: support))
+            result = assert_no_secrets.call(body, user)
+            admin_only_fields.each { |field| result.has_key?(field).should be_true }
+            result["misc"].should eq "admin notes"
+            user.destroy
+          end
+        end
+      end
+    end
+
+    describe "index / show views" do
+      secret_fields = %w(password password_digest access_token refresh_token expires_at expires)
+      admin_only_fields = %w(sys_admin support misc login_name card_number ui_theme)
+
+      secret_user = -> do
+        user = Model::Generator.user
+        user.password = "s3cr3t-p@ssw0rd"
+        user.access_token = "ms-access-token-#{Random::Secure.hex(6)}"
+        user.refresh_token = "ms-refresh-token-#{Random::Secure.hex(6)}"
+        user.misc = "admin notes"
+        user.login_name = "login-#{Random::Secure.hex(6)}"
+        user.card_number = "card-#{Random::Secure.hex(6)}"
+        user.save!
+        user
+      end
+
+      check_view = ->(result : JSON::Any, user : Model::User, admin_view : Bool) do
+        keys = result.as_h.keys
+        (keys & secret_fields).should be_empty
+        result.to_json.should_not contain(user.access_token.as(String))
+        result.to_json.should_not contain(user.refresh_token.as(String))
+        result.to_json.should_not contain(user.password_digest.as(String))
+        if admin_view
+          admin_only_fields.each { |field| keys.includes?(field).should be_true }
+        else
+          (keys & admin_only_fields).should be_empty
+        end
+      end
+
+      {
+        {"non-admin", false, false, false},
+        {"support", false, true, true},
+        {"admin", true, false, true},
+      }.each do |(role, sys_admin, support, admin_view)|
+        it "renders the #{admin_view ? "admin" : "public"} view to #{role} users via show" do
+          user = secret_user.call
+          headers = Spec::Authentication.headers(sys_admin: sys_admin, support: support)
+
+          {false, true}.each do |include_metadata|
+            resp = client.get(
+              path: "#{File.join(Users.base_route, user.id.as(String))}?include_metadata=#{include_metadata}",
+              headers: headers,
+            )
+            resp.status_code.should eq 200
+            check_view.call(JSON.parse(resp.body), user, admin_view)
+          end
+
+          user.destroy
+        end
+
+        it "renders the #{admin_view ? "admin" : "public"} view to #{role} users via index" do
+          user = secret_user.call
+          headers = Spec::Authentication.headers(sys_admin: sys_admin, support: support)
+
+          {false, true}.each do |include_metadata|
+            params = HTTP::Params.encode({"q" => user.email.to_s, "include_metadata" => include_metadata.to_s})
+            resp = client.get(path: "#{Users.base_route}?#{params}", headers: headers)
+            resp.status_code.should eq 200
+            found = JSON.parse(resp.body).as_a.find { |entry| entry["id"] == user.id }
+            found.should_not be_nil
+            check_view.call(found.not_nil!, user, admin_view)
+          end
+
+          user.destroy
+        end
+      end
+    end
+
+    describe "create / update responses" do
+      secret_fields = %w(password password_digest access_token refresh_token expires_at expires)
+
+      it "does not return the password digest when creating a user" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        body = JSON.parse(Model::Generator.user(authority).to_json).as_h
+        body["password"] = JSON::Any.new("s3cr3t-p@ssw0rd")
+
+        result = client.post(
+          path: Users.base_route,
+          body: body.to_json,
+          headers: Spec::Authentication.headers,
+        )
+        result.status_code.should eq 201
+        created = JSON.parse(result.body).as_h
+        (created.keys & secret_fields).should be_empty
+        created["sys_admin"]?.should_not be_nil
+
+        Model::User.find!(created["id"].as_s).password_digest.should_not be_nil
+        Model::User.find!(created["id"].as_s).destroy
+      end
+
+      it "does not return SSO tokens when a user updates their own profile" do
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        user.access_token = "ms-access-token-update"
+        user.refresh_token = "ms-refresh-token-update"
+        user.save!
+
+        result = client.patch(
+          path: File.join(Users.base_route, user.id.as(String)),
+          body: {nickname: "nick-#{Random.rand(9999)}"}.to_json,
+          headers: headers,
+        )
+        result.status_code.should eq 200
+        (JSON.parse(result.body).as_h.keys & secret_fields).should be_empty
+        result.body.should_not contain("ms-access-token-update")
+        result.body.should_not contain("ms-refresh-token-update")
+      ensure
+        # the authentication user is shared across specs
+        if user
+          user.access_token = nil
+          user.refresh_token = nil
+          user.save!
+        end
+      end
     end
   end
 end
