@@ -140,6 +140,24 @@ module PlaceOS::Api
       text.should contain "REJECTED\nop-2: after must be a child of the parent\n"
     end
 
+    it "keeps selected and shortlisted elements when the index is capped" do
+      big = JSON.parse(context.to_json)
+      index = big["index"].as_a
+      3000.times do |n|
+        index << JSON.parse(%({"a":"x#{n}","id":"filler-#{n}","tag":"path","cls":"cls-1","label":null,"bbox":[#{n},#{n},10,10],"p":"e1","z":#{n},"kind":"art","prot":false,"h":"#{n.to_s.rjust(8, '0')}"}))
+      end
+      Llm::Prompt.index_text(big).should_not contain "x2999 | filler-2999"
+
+      big["markup"].as_h["selected"] = JSON.parse(%(["x2999"]))
+      big.as_h["shortlist"] = JSON.parse(%(["x2998"]))
+      index_text = Llm::Prompt.index_text(big)
+      index_text.should contain "x2999 | filler-2999"
+      index_text.should contain "x2998 | filler-2998"
+      index_text.should contain "e4 | table-01.004"
+      index_text.should contain "click the element on the map"
+      index_text.scan("x2999 | ").size.should eq 1
+    end
+
     it "caps the index, the subtrees and the history" do
       big = JSON.parse(context.to_json)
       index = big["index"].as_a
