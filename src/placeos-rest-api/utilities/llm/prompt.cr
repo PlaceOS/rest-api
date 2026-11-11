@@ -111,7 +111,8 @@ module PlaceOS::Api::Llm
     end
 
     # The map's coordinate contract, its style rules, the protected ids and one
-    # line per indexed element, capped by bytes with the tail dropped.
+    # line per indexed element, selected and shortlisted elements first, capped
+    # by bytes with the tail dropped.
     def self.index_text(context : JSON::Any) : String
       String.build do |text|
         text << "MAP\n"
@@ -149,7 +150,7 @@ module PlaceOS::Api::Llm
         end
 
         text << "\nINDEX\nanchor | id | tag | class | label | fill | bbox(x y w h) | parent | inside | piece | kind | protected | hash\n"
-        entries = context["index"]?.try(&.as_a?) || [] of JSON::Any
+        entries = prioritised(context)
         used = 0
         shown = 0
         entries.each do |entry|
@@ -160,7 +161,8 @@ module PlaceOS::Api::Llm
           shown += 1
         end
         if shown < entries.size
-          text << "... #{entries.size - shown} more elements omitted; ask for a narrower selection if the target is not listed\n"
+          text << "... #{entries.size - shown} more elements omitted. An omitted element made in an earlier turn can be targeted by its id with a and h null. "
+          text << "For any other target that is not listed, return an ask op asking the person to click the element on the map and send the request again.\n"
         end
 
         labels = context["labels"]?.try(&.as_a?) || [] of JSON::Any
@@ -169,6 +171,18 @@ module PlaceOS::Api::Llm
           labels.each { |label| text << label_line(label) << '\n' }
         end
       end
+    end
+
+    # The index entries with the selected and shortlisted elements first, the
+    # rest in the order the editor sent them.
+    private def self.prioritised(context : JSON::Any) : Array(JSON::Any)
+      entries = context["index"]?.try(&.as_a?) || [] of JSON::Any
+      wanted = Set(String).new
+      context["markup"]?.try(&.as_h?).try(&.["selected"]?).try(&.as_a?).try(&.each { |anchor| anchor.as_s?.try { |value| wanted << value } })
+      context["shortlist"]?.try(&.as_a?).try(&.each { |anchor| anchor.as_s?.try { |value| wanted << value } })
+      return entries if wanted.empty?
+      first, rest = entries.partition { |entry| (anchor = entry.as_h?.try(&.["a"]?).try(&.as_s?)) ? wanted.includes?(anchor) : false }
+      first + rest
     end
 
     private def self.label_line(label : JSON::Any) : String
