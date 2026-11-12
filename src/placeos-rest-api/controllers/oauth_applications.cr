@@ -9,7 +9,8 @@ module PlaceOS::Api
     ###############################################################################################
 
     # `index` is open to any authenticated user — the action filters
-    # results by the caller's `subsystem_access`.
+    # results by the caller's `subsystem_access` and hides client secrets
+    # from non-admins.
     before_action :check_admin, except: [:index]
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
@@ -25,6 +26,34 @@ module PlaceOS::Api
 
     getter! current_app : ::PlaceOS::Model::DoorkeeperApplication
 
+    # What non-admins get from `index`: enough to start a sign in flow,
+    # without the client `secret`.
+    struct PublicApplication
+      include JSON::Serializable
+
+      getter id : Int64?
+      getter name : String
+      getter uid : String
+      getter scopes : String
+      getter owner_id : String
+      getter redirect_uri : String
+      getter? confidential : Bool
+      getter? skip_authorization : Bool
+      getter subsystems : Array(String)
+
+      def initialize(app : ::PlaceOS::Model::DoorkeeperApplication)
+        @id = app.id
+        @name = app.name
+        @uid = app.uid
+        @scopes = app.scopes
+        @owner_id = app.owner_id
+        @redirect_uri = app.redirect_uri
+        @confidential = app.confidential
+        @skip_authorization = app.skip_authorization
+        @subsystems = app.subsystems
+      end
+    end
+
     ###############################################################################################
 
     # lists the frontend applications enabled on the domains
@@ -32,7 +61,7 @@ module PlaceOS::Api
     def index(
       @[AC::Param::Info(description: "the ID of the domain to be listed; ignored for non-admin/support callers (forced to their own authority)", example: "auth-12345")]
       authority_id : String? = nil,
-    ) : Array(::PlaceOS::Model::DoorkeeperApplication)
+    ) : Array(::PlaceOS::Model::DoorkeeperApplication) | Array(PublicApplication)
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::DoorkeeperApplication.all
 
@@ -65,7 +94,9 @@ module PlaceOS::Api
         end
       end
 
-      paginate_search(query, ::PlaceOS::Model::DoorkeeperApplication.table_name)
+      apps = paginate_search(query, ::PlaceOS::Model::DoorkeeperApplication.table_name)
+      # Only admins (who can already show / edit apps) see client secrets.
+      user_admin? ? apps : apps.map { |app| PublicApplication.new(app) }
     end
 
     # show the details of the applications
