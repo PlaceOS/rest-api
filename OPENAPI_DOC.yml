@@ -42173,7 +42173,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.User'
+                $ref: '#/components/schemas/-oPlaceOS.Model.User.AdminMetadataResponse-pPlaceOS.Model.User.AdminResponse-pPlaceOS.Model.User.PublicMetadataResponse-pPlaceOS.Model.User.PublicResponse-c'
         "409":
           description: Conflict
           content:
@@ -42383,7 +42383,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.User'
+                $ref: '#/components/schemas/-oPlaceOS.Model.User.AdminMetadataResponse-pPlaceOS.Model.User.AdminResponse-pPlaceOS.Model.User.PublicMetadataResponse-pPlaceOS.Model.User.PublicResponse-c'
         "409":
           description: Conflict
           content:
@@ -42585,7 +42585,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.User'
+                $ref: '#/components/schemas/-oPlaceOS.Model.User.AdminMetadataResponse-pPlaceOS.Model.User.AdminResponse-pPlaceOS.Model.User.PublicMetadataResponse-pPlaceOS.Model.User.PublicResponse-c'
         "409":
           description: Conflict
           content:
@@ -43017,7 +43017,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaceOS.Model.User'
+                  $ref: '#/components/schemas/-oPlaceOS.Model.User.AdminMetadataResponse-pPlaceOS.Model.User.AdminResponse-pPlaceOS.Model.User.PublicMetadataResponse-pPlaceOS.Model.User.PublicResponse-c'
         "409":
           description: Conflict
           content:
@@ -47155,8 +47155,8 @@ components:
           - $ref: '#/components/schemas/PlaceOS.Model.Group'
         user:
           anyOf:
+          - $ref: '#/components/schemas/PlaceOS.Model.User.PublicResponse'
           - type: "null"
-          - $ref: '#/components/schemas/PlaceOS.Model.User'
     PlaceOS.Api.Groups.CurrentGroup:
       type: object
       properties:
@@ -49902,174 +49902,6 @@ components:
       - login_count
       - work_preferences
       - work_overrides
-    PlaceOS.Model.User:
-      type: object
-      properties:
-        created_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        updated_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        name:
-          anyOf:
-          - type: "null"
-          - type: string
-        nickname:
-          anyOf:
-          - type: "null"
-          - type: string
-        email:
-          anyOf:
-          - type: string
-            format: email
-          - type: "null"
-        phone:
-          anyOf:
-          - type: "null"
-          - type: string
-        country:
-          anyOf:
-          - type: "null"
-          - type: string
-        image:
-          anyOf:
-          - type: "null"
-          - type: string
-        ui_theme:
-          anyOf:
-          - type: "null"
-          - type: string
-        misc:
-          anyOf:
-          - type: "null"
-          - type: string
-        login_name:
-          anyOf:
-          - type: "null"
-          - type: string
-        staff_id:
-          anyOf:
-          - type: "null"
-          - type: string
-        first_name:
-          anyOf:
-          - type: "null"
-          - type: string
-        last_name:
-          anyOf:
-          - type: "null"
-          - type: string
-        building:
-          anyOf:
-          - type: "null"
-          - type: string
-        department:
-          anyOf:
-          - type: "null"
-          - type: string
-        preferred_language:
-          anyOf:
-          - type: "null"
-          - type: string
-        password_digest:
-          anyOf:
-          - type: "null"
-          - type: string
-        email_digest:
-          anyOf:
-          - type: "null"
-          - type: string
-        card_number:
-          anyOf:
-          - type: "null"
-          - type: string
-        deleted:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        groups:
-          anyOf:
-          - type: "null"
-          - type: array
-            items:
-              type: string
-        access_token:
-          anyOf:
-          - type: "null"
-          - type: string
-        refresh_token:
-          anyOf:
-          - type: "null"
-          - type: string
-        expires_at:
-          anyOf:
-          - type: integer
-            format: Int64
-          - type: "null"
-        expires:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        password:
-          anyOf:
-          - type: "null"
-          - type: string
-        sys_admin:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        support:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        locatable:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        login_count:
-          anyOf:
-          - type: integer
-            format: Int64
-          - type: "null"
-        last_login:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        logged_out_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        work_preferences:
-          anyOf:
-          - type: "null"
-          - type: array
-            items:
-              $ref: '#/components/schemas/PlaceOS.Model.User.WorktimePreference'
-        work_overrides:
-          anyOf:
-          - type: "null"
-          - type: object
-            additionalProperties:
-              $ref: '#/components/schemas/PlaceOS.Model.User.WorktimePreference'
-        authority_id:
-          anyOf:
-          - type: "null"
-          - type: string
-        photo_upload_id:
-          anyOf:
-          - type: "null"
-          - type: string
-        id:
-          anyOf:
-          - type: "null"
-          - type: string
     PlaceOS.Model.User.GroupResponse:
       type: object
       properties:
@@ -50296,6 +50128,174 @@ components:
       - threshold
       - status
       - custom
+    PlaceOS.Model.User:
+      type: object
+      properties:
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: "null"
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: "null"
+        name:
+          anyOf:
+          - type: "null"
+          - type: string
+        nickname:
+          anyOf:
+          - type: "null"
+          - type: string
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: "null"
+        phone:
+          anyOf:
+          - type: "null"
+          - type: string
+        country:
+          anyOf:
+          - type: "null"
+          - type: string
+        image:
+          anyOf:
+          - type: "null"
+          - type: string
+        ui_theme:
+          anyOf:
+          - type: "null"
+          - type: string
+        misc:
+          anyOf:
+          - type: "null"
+          - type: string
+        login_name:
+          anyOf:
+          - type: "null"
+          - type: string
+        staff_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        first_name:
+          anyOf:
+          - type: "null"
+          - type: string
+        last_name:
+          anyOf:
+          - type: "null"
+          - type: string
+        building:
+          anyOf:
+          - type: "null"
+          - type: string
+        department:
+          anyOf:
+          - type: "null"
+          - type: string
+        preferred_language:
+          anyOf:
+          - type: "null"
+          - type: string
+        password_digest:
+          anyOf:
+          - type: "null"
+          - type: string
+        email_digest:
+          anyOf:
+          - type: "null"
+          - type: string
+        card_number:
+          anyOf:
+          - type: "null"
+          - type: string
+        deleted:
+          anyOf:
+          - type: boolean
+          - type: "null"
+        groups:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              type: string
+        access_token:
+          anyOf:
+          - type: "null"
+          - type: string
+        refresh_token:
+          anyOf:
+          - type: "null"
+          - type: string
+        expires_at:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+        expires:
+          anyOf:
+          - type: boolean
+          - type: "null"
+        password:
+          anyOf:
+          - type: "null"
+          - type: string
+        sys_admin:
+          anyOf:
+          - type: boolean
+          - type: "null"
+        support:
+          anyOf:
+          - type: boolean
+          - type: "null"
+        locatable:
+          anyOf:
+          - type: boolean
+          - type: "null"
+        login_count:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+        last_login:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: "null"
+        logged_out_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: "null"
+        work_preferences:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              $ref: '#/components/schemas/PlaceOS.Model.User.WorktimePreference'
+        work_overrides:
+          anyOf:
+          - type: "null"
+          - type: object
+            additionalProperties:
+              $ref: '#/components/schemas/PlaceOS.Model.User.WorktimePreference'
+        authority_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        photo_upload_id:
+          anyOf:
+          - type: "null"
+          - type: string
+        id:
+          anyOf:
+          - type: "null"
+          - type: string
     PlaceOS.Model.UserJWT.Permissions:
       type: string
       enum:

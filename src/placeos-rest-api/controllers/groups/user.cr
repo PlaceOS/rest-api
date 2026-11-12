@@ -17,8 +17,10 @@ module PlaceOS::Api
       @[JSON::Field(key: "group")]
       property group_data : ::PlaceOS::Model::Group? = nil
 
+      # Public view only: a raw `Model::User` serialises its password digest
+      # and SSO access / refresh tokens.
       @[JSON::Field(key: "user")]
-      property user_data : ::PlaceOS::Model::User? = nil
+      property user_data : ::PlaceOS::Model::User::PublicResponse? = nil
     end
 
     # Scopes
@@ -149,7 +151,7 @@ module PlaceOS::Api
 
       rows.each do |row|
         row.group_data = groups_by_id[row.group_id]?
-        row.user_data = users_by_id[row.user_id]?
+        row.user_data = users_by_id[row.user_id]?.try(&.to_public_struct)
       end
     end
 
