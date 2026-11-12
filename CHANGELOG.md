@@ -154,6 +154,7 @@
 
 ### Fix
 
+- **group_users**: don't return sensitive fields ([#462](https://github.com/PlaceOS/rest-api/pull/462))
 - **users**: stop leaking password digests and SSO tokens ([#461](https://github.com/PlaceOS/rest-api/pull/461))
 - **map-ai**: keep selected elements when the index is capped ([#460](https://github.com/PlaceOS/rest-api/pull/460))
 - **auth**: take JWT sys_admin/support from the user record ([#459](https://github.com/PlaceOS/rest-api/pull/459))
