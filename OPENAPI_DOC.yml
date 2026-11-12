@@ -1464,7 +1464,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaceOS.Model.ApiKey.PublicResponse'
+                  $ref: '#/components/schemas/PlaceOS.Api.ApiKeys.Response'
         "409":
           description: Conflict
           content:
@@ -1561,7 +1561,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.ApiKey.PublicResponse'
+                $ref: '#/components/schemas/PlaceOS.Api.ApiKeys.Response'
         "409":
           description: Conflict
           content:
@@ -1660,7 +1660,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.ApiKey.PublicResponse'
+                $ref: '#/components/schemas/PlaceOS.Api.ApiKeys.Response'
         "409":
           description: Conflict
           content:
@@ -1762,7 +1762,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.ApiKey.PublicResponse'
+                $ref: '#/components/schemas/PlaceOS.Api.ApiKeys.Response'
         "409":
           description: Conflict
           content:
@@ -1956,7 +1956,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceOS.Model.ApiKey.PublicResponse'
+                $ref: '#/components/schemas/PlaceOS.Api.ApiKeys.Response'
         "409":
           description: Conflict
           content:
@@ -23518,9 +23518,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PlaceOS.Model.DoorkeeperApplication'
+                $ref: '#/components/schemas/-oArray-oPlaceOS.Api.OAuthApplications.PublicApplication-c-pArray-oPlaceOS.Model.DoorkeeperApplication-c-c'
         "409":
           description: Conflict
           content:
@@ -24100,8 +24098,7 @@ paths:
       parameters:
       - name: group_id
         in: query
-        description: only mail whose zones are anchored to this group; non-support
-          callers need Read on the group
+        description: only mail whose zones are anchored to this group
         example: group-uuid
         schema:
           anyOf:
@@ -24138,8 +24135,7 @@ paths:
           - type: string
       - name: authority_id
         in: query
-        description: filter by authority (system admin / support only; regular users
-          are scoped to their own authority)
+        description: filter by authority
         example: authority-1234
         schema:
           anyOf:
@@ -45248,15 +45244,13 @@ components:
           anyOf:
           - type: "null"
           - type: string
-    PlaceOS.Model.ApiKey.PublicResponse:
+    PlaceOS.Api.ApiKeys.Response:
       type: object
       properties:
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
+        id:
+          anyOf:
+          - type: "null"
+          - type: string
         name:
           type: string
         description:
@@ -45265,10 +45259,9 @@ components:
           type: array
           items:
             type: object
-        expires_at:
+        permissions:
           anyOf:
-          - type: string
-            format: date-time
+          - $ref: '#/components/schemas/PlaceOS.Model.UserJWT.Permissions'
           - type: "null"
         user_id:
           anyOf:
@@ -45278,32 +45271,36 @@ components:
           anyOf:
           - type: "null"
           - type: string
-        user:
+        created_at:
+          type: integer
+          format: Int64
+        updated_at:
+          type: integer
+          format: Int64
+        expires_at:
           anyOf:
+          - type: string
+            format: date-time
           - type: "null"
-          - $ref: '#/components/schemas/PlaceOS.Model.User'
-        authority:
-          anyOf:
-          - type: "null"
-          - $ref: '#/components/schemas/PlaceOS.Model.Authority'
         x_api_key:
           anyOf:
           - type: "null"
           - type: string
-        permissions:
+        user:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.UserJWT.Permissions'
+          - $ref: '#/components/schemas/PlaceOS.Model.User.AdminResponse'
           - type: "null"
-        id:
+        authority:
           anyOf:
           - type: "null"
-          - type: string
+          - $ref: '#/components/schemas/PlaceOS.Model.Authority'
       required:
-      - created_at
-      - updated_at
       - name
       - description
       - scopes
+      - created_at
+      - updated_at
+      description: An API key, with its owner's admin view (never their credentials)
     PlaceOS.Model.ApiKey:
       type: object
       properties:
@@ -50128,174 +50125,6 @@ components:
       - threshold
       - status
       - custom
-    PlaceOS.Model.User:
-      type: object
-      properties:
-        created_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        updated_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        name:
-          anyOf:
-          - type: "null"
-          - type: string
-        nickname:
-          anyOf:
-          - type: "null"
-          - type: string
-        email:
-          anyOf:
-          - type: string
-            format: email
-          - type: "null"
-        phone:
-          anyOf:
-          - type: "null"
-          - type: string
-        country:
-          anyOf:
-          - type: "null"
-          - type: string
-        image:
-          anyOf:
-          - type: "null"
-          - type: string
-        ui_theme:
-          anyOf:
-          - type: "null"
-          - type: string
-        misc:
-          anyOf:
-          - type: "null"
-          - type: string
-        login_name:
-          anyOf:
-          - type: "null"
-          - type: string
-        staff_id:
-          anyOf:
-          - type: "null"
-          - type: string
-        first_name:
-          anyOf:
-          - type: "null"
-          - type: string
-        last_name:
-          anyOf:
-          - type: "null"
-          - type: string
-        building:
-          anyOf:
-          - type: "null"
-          - type: string
-        department:
-          anyOf:
-          - type: "null"
-          - type: string
-        preferred_language:
-          anyOf:
-          - type: "null"
-          - type: string
-        password_digest:
-          anyOf:
-          - type: "null"
-          - type: string
-        email_digest:
-          anyOf:
-          - type: "null"
-          - type: string
-        card_number:
-          anyOf:
-          - type: "null"
-          - type: string
-        deleted:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        groups:
-          anyOf:
-          - type: "null"
-          - type: array
-            items:
-              type: string
-        access_token:
-          anyOf:
-          - type: "null"
-          - type: string
-        refresh_token:
-          anyOf:
-          - type: "null"
-          - type: string
-        expires_at:
-          anyOf:
-          - type: integer
-            format: Int64
-          - type: "null"
-        expires:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        password:
-          anyOf:
-          - type: "null"
-          - type: string
-        sys_admin:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        support:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        locatable:
-          anyOf:
-          - type: boolean
-          - type: "null"
-        login_count:
-          anyOf:
-          - type: integer
-            format: Int64
-          - type: "null"
-        last_login:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        logged_out_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: "null"
-        work_preferences:
-          anyOf:
-          - type: "null"
-          - type: array
-            items:
-              $ref: '#/components/schemas/PlaceOS.Model.User.WorktimePreference'
-        work_overrides:
-          anyOf:
-          - type: "null"
-          - type: object
-            additionalProperties:
-              $ref: '#/components/schemas/PlaceOS.Model.User.WorktimePreference'
-        authority_id:
-          anyOf:
-          - type: "null"
-          - type: string
-        photo_upload_id:
-          anyOf:
-          - type: "null"
-          - type: string
-        id:
-          anyOf:
-          - type: "null"
-          - type: string
     PlaceOS.Model.UserJWT.Permissions:
       type: string
       enum:
@@ -51264,6 +51093,8 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/PlaceOS.Model.Metadata.Interface'
+    -oArray-oPlaceOS.Api.OAuthApplications.PublicApplication-c-pArray-oPlaceOS.Model.DoorkeeperApplication-c-c:
+      type: array
     NamedTuple-ocommit_hash-u00003A-u000020String-c:
       type: object
       properties:

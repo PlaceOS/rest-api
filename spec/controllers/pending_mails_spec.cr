@@ -266,25 +266,32 @@ module PlaceOS::Api
         zone.destroy
       end
 
-      it "regular users only see their own authority and may not target another" do
-        local_auth = Model::Authority.find_by_domain("localhost").not_nil!
-        other_auth = other_authority
-
+      it "is restricted to support users" do
         svc = "svc-#{random_name}"
-        _, scoped_headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        mine = create_pending_mail(source_service: svc)
 
-        mine = create_pending_mail(authority: local_auth, source_service: svc)
-        theirs = create_pending_mail(authority: other_auth, source_service: svc)
+        _, user_headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        path = "#{PendingMails.base_route.rstrip('/')}?#{HTTP::Params.encode({"source_service" => svc})}"
+        client.get(path, headers: user_headers).status_code.should eq 403
 
-        ids = pending_mail_index_ids({"source_service" => svc}, scoped_headers)
-        ids.should contain(mine.id.to_s)
-        ids.should_not contain(theirs.id.to_s)
-
-        # explicitly targeting another authority is forbidden for non-support
-        path = "#{PendingMails.base_route.rstrip('/')}?#{HTTP::Params.encode({"authority_id" => other_auth.id.to_s})}"
-        client.get(path, headers: scoped_headers).status_code.should eq 403
+        _, support_headers = Spec::Authentication.authentication(sys_admin: false, support: true)
+        pending_mail_index_ids({"source_service" => svc}, support_headers).should contain(mine.id.to_s)
 
         mine.destroy
+      end
+
+      it "lets support target another authority" do
+        other_auth = other_authority
+        svc = "svc-#{random_name}"
+        local = create_pending_mail(source_service: svc)
+        theirs = create_pending_mail(authority: other_auth, source_service: svc)
+
+        _, support_headers = Spec::Authentication.authentication(sys_admin: false, support: true)
+        ids = pending_mail_index_ids({"source_service" => svc, "authority_id" => other_auth.id.to_s}, support_headers)
+        ids.should contain(theirs.id.to_s)
+        ids.should_not contain(local.id.to_s)
+
+        local.destroy
         theirs.destroy
         other_auth.destroy
       end
@@ -334,16 +341,25 @@ module PlaceOS::Api
         mail.destroy
       end
 
-      it "forbids a non-support user from viewing another authority's mail" do
-        auth = other_authority
-        mail = create_pending_mail(authority: auth)
+      it "forbids a non-support user, even for their own authority's mail" do
+        mail = create_pending_mail
         _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
 
         result = client.get("#{PendingMails.base_route}#{mail.id}", headers: headers)
         result.status_code.should eq 403
+        result.body.should_not contain(mail.id.to_s)
 
         mail.destroy
-        auth.destroy
+      end
+
+      it "allows a support user" do
+        mail = create_pending_mail
+        _, headers = Spec::Authentication.authentication(sys_admin: false, support: true)
+
+        result = client.get("#{PendingMails.base_route}#{mail.id}", headers: headers)
+        result.status_code.should eq 200
+
+        mail.destroy
       end
     end
 

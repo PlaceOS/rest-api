@@ -14,6 +14,10 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:destroy, :reject, :sent, :cleanup]
 
+    # Mail holds recipients, template args (visitor details, links) and
+    # attachment ids, so listing and viewing it is support / admin only.
+    before_action :check_support, only: [:index, :show]
+
     ###############################################################################################
 
     # `cleanup` operates on a whole authority (no record id); `index` lists.
@@ -31,13 +35,6 @@ module PlaceOS::Api
 
     # Permissions
     ###############################################################################################
-
-    # Non-support callers may only view mail belonging to their own authority.
-    @[AC::Route::Filter(:before_action, only: [:show])]
-    def check_show_access
-      return if user_support?
-      raise Error::Forbidden.new unless current_pending_mail.authority_id == current_user.authority_id
-    end
 
     # Gate a mutating action (destroy/reject/sent) on the "support" subsystem.
     # `required` is the permission bit the verb needs (Delete/Update); Manage
@@ -67,7 +64,7 @@ module PlaceOS::Api
     # list queued/processed mail
     @[AC::Route::GET("/", converters: {zones: ConvertStringArray})]
     def index(
-      @[AC::Param::Info(description: "only mail whose zones are anchored to this group; non-support callers need Read on the group", example: "group-uuid")]
+      @[AC::Param::Info(description: "only mail whose zones are anchored to this group", example: "group-uuid")]
       group_id : UUID? = nil,
       @[AC::Param::Info(description: "only mail referencing any of these zones", example: "zone-1234,zone-5678")]
       zones : Array(String)? = nil,
@@ -75,7 +72,7 @@ module PlaceOS::Api
       source_service : String? = nil,
       @[AC::Param::Info(description: "only mail with this external reference / correlation id", example: "booking-1234")]
       source_reference : String? = nil,
-      @[AC::Param::Info(description: "filter by authority (system admin / support only; regular users are scoped to their own authority)", example: "authority-1234")]
+      @[AC::Param::Info(description: "filter by authority", example: "authority-1234")]
       authority_id : String? = nil,
       @[AC::Param::Info(description: "only mail triggered by this user", example: "user-1234")]
       user_id : String? = nil,
@@ -95,22 +92,13 @@ module PlaceOS::Api
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::PendingMail.all
 
-      # Authority scoping: regular users are pinned to their own authority;
-      # only support/admin may target another (or all) authorities.
       if requested = authority_id
-        raise Error::Forbidden.new unless user_support?
         query = query.where(authority_id: requested)
-      elsif !user_support?
-        query = query.where(authority_id: current_user.authority_id.as(String))
       end
 
       # Group-anchor filter: resolve the group's zones first so we can
       # short-circuit on an empty set (and never run unconstrained).
       if group = group_id
-        unless user_support?
-          perms = group_memberships(current_user)[group]? || ::PlaceOS::Model::Permissions::None
-          raise Error::Forbidden.new unless perms.read?
-        end
         group_zone_ids = ::PlaceOS::Model::GroupZone.where(group_id: group).to_a.map(&.zone_id)
         if group_zone_ids.empty?
           set_collection_headers(0, ::PlaceOS::Model::PendingMail.table_name)
