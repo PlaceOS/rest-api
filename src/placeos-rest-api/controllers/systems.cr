@@ -657,6 +657,7 @@ module PlaceOS::Api
 
     # the websocket API endpoint
     # use this to interact with systems and modules efficiently
+    # Set `iface: true` on exec, bind, and unbind messages to address an interface
     @[AC::Route::WebSocket("/control")]
     def control(ws, fixed_device : Bool = false) : Nil
       Log.trace { "WebSocket API request" }

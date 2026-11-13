@@ -18,7 +18,7 @@ module PlaceOS::Api::WebSocket
     class_getter subscriptions : Driver::Proxy::Subscriptions = Driver::Proxy::Subscriptions.new
 
     # Local subscriptions
-    private getter bindings = {} of String => Driver::Subscriptions::Subscription
+    private getter bindings = {} of {String, String, Int32, String, Bool} => Driver::Subscriptions::Subscription
 
     # Caching
     private getter cache_lock = Mutex.new
@@ -107,21 +107,30 @@ module PlaceOS::Api::WebSocket
       index : Int32,
       name : String,
       args : Array(JSON::Any)?,
+      interface : Bool = false,
     )
       args = [] of JSON::Any if args.nil?
       Log.info { {message: "exec", args: args.to_json, user: @user.id} }
 
       security = elevate_security(system_id, @security_level)
 
-      response, response_code = Driver::Proxy::RemoteDriver.new(
-        sys_id: system_id,
+      arguments = {
+        sys_id:      system_id,
         module_name: module_name,
-        index: index,
-        discovery: @discovery,
-        user_id: user.id,
-      ) { |module_id|
+        index:       index,
+        discovery:   @discovery,
+        user_id:     user.id,
+      }
+      edge_id = ->(module_id : String) {
         ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
-      }.exec(
+      }
+      remote_driver = if interface
+                        driver = interface_driver(system_id, module_name, index)
+                        Driver::Proxy::RemoteDriver.new(**arguments, module_id: driver.id.as(String), &edge_id)
+                      else
+                        Driver::Proxy::RemoteDriver.new(**arguments, &edge_id)
+                      end
+      response, response_code = remote_driver.exec(
         security: security,
         function: name,
         args: args,
@@ -158,13 +167,17 @@ module PlaceOS::Api::WebSocket
       module_name : String,
       index : Int32,
       name : String,
+      interface : Bool = false,
     )
       Log.debug { "binding to module" }
       begin
         # Check if module previously bound
-        unless has_binding?(system_id, module_name, index, name)
-          return unless create_binding(request_id, system_id, module_name, index, name)
+        unless has_binding?(system_id, module_name, index, name, interface)
+          return unless create_binding(request_id, system_id, module_name, index, name, interface)
         end
+      rescue error : Driver::Proxy::RemoteDriver::Error
+        respond(error_response(request_id, error.error_code, error.message, error.response_code))
+        return
       rescue error
         Log.warn(exception: error) { "websocket binding could not find system" }
         respond(error_response(request_id, :module_not_found, "could not find module: sys=#{system_id} mod=#{module_name}"))
@@ -203,10 +216,11 @@ module PlaceOS::Api::WebSocket
       module_name : String,
       index : Int32,
       name : String,
+      interface : Bool = false,
     )
       Log.debug { "unbind module" }
 
-      subscription = delete_binding(system_id, module_name, index, name)
+      subscription = delete_binding(system_id, module_name, index, name, interface)
       self.class.subscriptions.unsubscribe(subscription) if subscription
 
       respond(Response.new(id: request_id, type: :success))
@@ -325,24 +339,64 @@ module PlaceOS::Api::WebSocket
       end
     end
 
+    # Resolve interfaces in system order without loading the driver runtime.
+    private def interface_driver(system_id : String, interface : String, index : Int32) : ::PlaceOS::Model::Module
+      if index > 0 && (system = ::PlaceOS::Model::ControlSystem.find?(system_id))
+        remaining = index
+        system.modules.each do |module_id|
+          metadata = Driver::Proxy::System.driver_metadata?(module_id)
+          next unless metadata && metadata.implements.includes?(interface)
+
+          remaining -= 1
+          next unless remaining.zero?
+          if mod = ::PlaceOS::Model::Module.find?(module_id)
+            return mod
+          end
+          break
+        end
+      end
+
+      raise Driver::Proxy::RemoteDriver::Error.new(
+        :module_not_found,
+        "could not find module: sys=#{system_id} iface=#{interface} index=#{index}",
+        system_id: system_id,
+        module_name: interface,
+        index: index,
+        response_code: 404,
+      )
+    end
+
     # Check for existing binding to a module
     #
-    def has_binding?(system_id, module_name, index, name)
-      bindings.has_key? Session.binding_key(system_id, module_name, index, name)
+    def has_binding?(system_id, module_name, index, name, interface = false)
+      bindings.has_key? Session.binding_key(system_id, module_name, index, name, interface)
     end
 
     # Create a binding to a module on the Session
     #
-    protected def create_binding(request_id, system_id, module_name, index, name) : Bool
-      key = Session.binding_key(system_id, module_name, index, name)
+    protected def create_binding(request_id, system_id, module_name, index, name, interface = false) : Bool
+      key = Session.binding_key(system_id, module_name, index, name, interface)
+      driver = interface_driver(system_id, module_name, index) if interface
+      resolved_name = driver.try(&.resolved_name) || module_name
 
-      if module_name.starts_with?("_") && !@user.is_support?
+      if resolved_name.starts_with?("_") && !@user.is_support?
         Log.warn { "websocket binding attempted to access privileged module" }
         respond error_response(request_id, :access_denied, "attempted to access protected module")
         return false
       end
 
-      if module_name == "_TRIGGER_"
+      if driver
+        bindings[key] = self.class.subscriptions.subscribe(driver.id.as(String), name) do |_, event|
+          notify_update(
+            request_id: request_id,
+            system_id: system_id,
+            module_name: module_name,
+            status: name,
+            index: index,
+            value: event
+          )
+        end
+      elsif module_name == "_TRIGGER_"
         # Ensure the trigger exists
         trig = ::PlaceOS::Model::TriggerInstance.find(name)
         unless trig.try(&.control_system_id) == system_id
@@ -381,8 +435,8 @@ module PlaceOS::Api::WebSocket
 
     # Create a binding to a module on the Session
     #
-    def delete_binding(system_id, module_name, index, name)
-      key = Session.binding_key(system_id, module_name, index, name)
+    def delete_binding(system_id, module_name, index, name, interface = false)
+      key = Session.binding_key(system_id, module_name, index, name, interface)
       bindings.delete key
     end
 
@@ -451,8 +505,8 @@ module PlaceOS::Api::WebSocket
     ###########################################################################
 
     # Index into module websocket sessions
-    def self.binding_key(system_id, module_name, index, name)
-      {system_id, module_name, index, name}.join('_')
+    def self.binding_key(system_id, module_name, index, name, interface = false)
+      {system_id, module_name, index, name, interface}
     end
 
     # Index into module_id cache
@@ -528,11 +582,11 @@ module PlaceOS::Api::WebSocket
       Log.context.set(**arguments.merge({ws_request_id: @request_id}))
 
       case request.command
-      in .bind?   then bind(**arguments)
-      in .unbind? then unbind(**arguments)
+      in .bind?   then bind(**arguments, interface: request.interface?)
+      in .unbind? then unbind(**arguments, interface: request.interface?)
       in .debug?  then debug(**arguments)
       in .ignore? then ignore(**arguments)
-      in .exec?   then exec(**arguments, args: request.args)
+      in .exec?   then exec(**arguments, args: request.args, interface: request.interface?)
       end
     end
   end

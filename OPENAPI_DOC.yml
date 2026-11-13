@@ -15498,7 +15498,9 @@ paths:
       summary: the websocket API endpoint
       description: 'the websocket API endpoint
 
-        use this to interact with systems and modules efficiently'
+        use this to interact with systems and modules efficiently
+
+        Set `iface: true` on exec, bind, and unbind messages to address an interface'
       tags:
       - Systems
       operationId: PlaceOS::Api::Systems_control

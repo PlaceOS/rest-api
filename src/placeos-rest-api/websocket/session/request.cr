@@ -20,6 +20,7 @@ struct PlaceOS::Api::WebSocket::Session::Request < PlaceOS::Api::WebSocket::Sess
     @name,
     @index = 1,
     @args = nil,
+    @interface = false,
   )
   end
 
@@ -33,6 +34,10 @@ struct PlaceOS::Api::WebSocket::Session::Request < PlaceOS::Api::WebSocket::Sess
   getter module_name : String
 
   getter index : Int32 = 1
+
+  # when true, assume module_name is an interface like `Interface::Sensor`
+  @[JSON::Field(key: "iface")]
+  getter? interface : Bool = false
 
   # Command
   @[JSON::Field(key: "cmd")]
