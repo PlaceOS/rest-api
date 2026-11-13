@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **websocket**: add support for binding to interfaces
 - **mcp**: describe the server for its MCP Server Card
 - **signage/playlists**: add playlist change history endpoint
 - **modules**: create a module and add it to a system in one request
