@@ -41,6 +41,9 @@ module PlaceOS::Api
       f = fixture = Spec::Tenancy.build
       child = Model::Generator.zone.tap(&.parent_id=(f.unowned_zone.id)).save!
       mod = Model::Generator.module(control_system: f.unowned_system).save!
+      f.unowned_system.modules = [mod.id.as(String)]
+      f.unowned_system.save!
+      Model::ControlSystem.find!(f.unowned_system.id.as(String)).modules.should contain(mod.id)
       operations = [{kind: "claim", resource_type: "zone", resource_ids: [f.unowned_zone.id], target_organisation_id: f.acadian.organisation.id}]
       preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
       preview.status_code.should eq 200
@@ -135,7 +138,7 @@ module PlaceOS::Api
     it "moves a domain with its exclusive estate while preserving identity and configuration" do
       f = fixture = Spec::Tenancy.build
       headers = Spec::Tenancy.headers(f.placeos.admin)
-      original_config = f.acadian.authority.config.to_json
+      original_config = JSON.parse(f.acadian.authority.config.to_json)
       operations = [{kind: "move_domain", resource_type: "authority", resource_ids: [f.acadian.authority.id], source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
       preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
       preview.status_code.should eq 200
@@ -145,7 +148,7 @@ module PlaceOS::Api
         body: {operations: operations, digest: plan["digest"].as_s, idempotency_key: UUID.random.to_s}.to_json).status_code.should eq 200
       moved = Model::Authority.find!(f.acadian.authority.id.as(String))
       moved.organisation_id.should eq f.ucla.organisation.id
-      moved.config.to_json.should eq original_config
+      JSON.parse(moved.config.to_json).should eq original_config
       moved.domain.should eq f.acadian.authority.domain
       Model::User.find!(f.acadian.user.id.as(String)).authority_id.should eq moved.id
       Model::Zone.find!(f.acadian.org_zone.id.as(String)).organisation_id.should eq f.ucla.organisation.id
@@ -169,7 +172,7 @@ module PlaceOS::Api
       f.ucla.organisation.config = {"label" => JSON::Any.new("target")}
       f.ucla.organisation.save!
       grant = Model::Generator.grant(f.ntt_staff.admin, "organisation", f.acadian.organisation.id.to_s, Model::Permissions::Read, expires_at: 2.hours.from_now).save!
-      expiry = grant.expires_at
+      expiry = Model::Grant.find!(grant.id.not_nil!).expires_at
       headers = Spec::Tenancy.headers(f.placeos.admin)
       operations = [{kind: "merge_organisations", source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
       preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
@@ -243,6 +246,9 @@ module PlaceOS::Api
       f = fixture = Spec::Tenancy.build
       edge = Model::Generator.edge(f.ucla.user).tap(&.organisation_id = f.ucla.organisation.id).save!
       mod = Model::Generator.module(control_system: f.unowned_system).tap(&.edge_id = edge.id).save!
+      f.unowned_system.modules = [mod.id.as(String)]
+      f.unowned_system.save!
+      Model::ControlSystem.find!(f.unowned_system.id.as(String)).modules.should contain(mod.id)
       headers = Spec::Tenancy.headers(f.placeos.admin)
       operations = [{kind: "claim", resource_type: "zone", resource_ids: [f.unowned_zone.id], target_organisation_id: f.acadian.organisation.id}]
       preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
