@@ -188,6 +188,33 @@ module PlaceOS::Api
       Model::Grant.where(user_id: f.ntt_staff.admin.id).count.should eq 2
     end
 
+    it "blocks zone moves that leave domain-owned assets or group anchors behind" do
+      f = fixture = Spec::Tenancy.build
+      zone = Model::Generator.zone.tap(&.organisation_id = f.acadian.organisation.id).save!
+      category = Model::Generator.asset_category(f.acadian.authority).save!
+      type = Model::Generator.asset_type(category).save!
+      asset = Model::Asset.new(asset_type_id: type.id, zone_id: zone.id).save!
+      group = Model::Generator.group(authority: f.acadian.authority).save!
+      anchor = Model::Generator.group_zone(group: group, zone: zone, permissions: Model::Permissions::Read).save!
+      operations = [{kind: "reassign", resource_type: "zone", resource_ids: [zone.id], source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      begin
+        preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+        preview.status_code.should eq 200
+        JSON.parse(preview.body)["blockers"].as_a.should_not be_empty
+        anchor.destroy
+        group.destroy
+        preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+        preview.status_code.should eq 200
+        JSON.parse(preview.body)["blockers"].as_a.should_not be_empty
+        Model::Zone.find!(zone.id.as(String)).organisation_id.should eq f.acadian.organisation.id
+      ensure
+        asset.destroy
+        type.destroy
+        category.destroy
+      end
+    end
+
     it "intersects read-only key scopes with inventory, preview and apply" do
       f = fixture = Spec::Tenancy.build
       key = Model::ApiKey.new(name: "Reconciliation read #{random_name}", permissions: Model::UserJWT::Permissions::Admin,
