@@ -95,12 +95,19 @@ module PlaceOS::Api
       mcp_watch_drain(events)
       mcp_watch_update(events, Driver::RedisStorage.new(f.acadian.mod.id.as(String)), 1)
       Driver::RedisStorage.new(f.acadian.system.id.as(String), "system")["#{f.acadian.mod.resolved_name}/1"] = f.ucla.mod.id.as(String)
+      # Core publishes this channel after changing its lookup hash. Updating
+      # the hash alone would leave the indirect watcher on the original module.
+      Driver::RedisStorage.with_redis &.publish(Driver::Subscriptions::SYSTEM_ORDER_UPDATE, f.acadian.system.id.as(String))
       mcp_watch_drain(events)
-      Driver::RedisStorage.new(f.ucla.mod.id.as(String))["authorisation_probe"] = 2
-      select
-      when events.receive
-        fail "an MCP system slot notified about a foreign runtime module"
-      when timeout(250.milliseconds)
+      # Publish across the remapping window so the assertion does not pass just
+      # because the Redis subscription was still moving to its new module.
+      5.times do |attempt|
+        Driver::RedisStorage.new(f.ucla.mod.id.as(String))["authorisation_probe"] = 2 + attempt
+        select
+        when events.receive
+          fail "an MCP system slot notified about a foreign runtime module"
+        when timeout(100.milliseconds)
+        end
       end
     end
   end
