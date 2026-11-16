@@ -34,14 +34,21 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return the chat messages associated with this chat id", example: "chats-xxxx")]
       id : String,
     ) : Array(NamedTuple(role: String, content: String?, timestamp: Time))
-      unless chat = ::PlaceOS::Model::Chat.find?(id)
-        Log.warn { {message: "Invalid chat id. Unable to find matching chat history", id: id, user: current_user.id} }
-        raise Error::NotFound.new("Invalid chat id: #{id}")
-      end
-
+      chat = own_chat!(id)
       chat.messages.to_a.select!(&.role.in?([Model::ChatMessage::Role::User, ::PlaceOS::Model::ChatMessage::Role::Assistant]))
         .map { |c| {role: c.role.to_s, content: c.content, timestamp: c.created_at} }
     end
+
+    # Resolved before the websocket upgrade so an unknown (or someone else's)
+    # chat is refused with a 404 rather than after the socket is open.
+    # Pinned to the primary: a chat created moments ago may not yet be on a
+    # lagging replica, which would 404 and spawn a duplicate chat.
+    @[AC::Route::Filter(:before_action, only: [:chat])]
+    def find_resume_chat(resume : String? = nil)
+      @resume_chat = on_primary { own_chat!(resume) } if resume
+    end
+
+    getter resume_chat : ::PlaceOS::Model::Chat? = nil
 
     # the websocket endpoint for ChatGPT chatbot
     @[AC::Route::WebSocket("/chat/:system_id")]
@@ -52,9 +59,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "To resume previous chat session. Provide session chat id", example: "chats-xxxx")]
       resume : String? = nil,
     ) : Nil
-      # Pin the resume lookup to the primary: a chat created moments ago may not
-      # yet be on a lagging replica, which would 404 and spawn a duplicate chat.
-      chat_manager.start_session(socket, (resume && on_primary { ::PlaceOS::Model::Chat.find!(resume.not_nil!) }) || nil, system_id)
+      chat_manager.start_session(socket, resume_chat, system_id)
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e
@@ -67,11 +72,19 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the id of the chat to delete", example: "chats-xxxx")]
       id : String,
     ) : Nil
-      unless chat = ::PlaceOS::Model::Chat.find?(id)
-        Log.warn { {message: "Invalid chat id. Unable to find matching chat record", id: id, user: current_user.id} }
+      own_chat!(id).destroy
+    end
+
+    # Chats hold the owner's history (and a system prompt with their contact
+    # details), so only the owner may read, resume or delete one. Someone
+    # else's chat is reported as missing rather than forbidden.
+    private def own_chat!(id : String) : ::PlaceOS::Model::Chat
+      chat = ::PlaceOS::Model::Chat.find?(id)
+      unless chat && chat.user_id == current_user.id
+        Log.warn { {message: "Invalid chat id. Unable to find matching chat for user", id: id, user: current_user.id} }
         raise Error::NotFound.new("Invalid chat id: #{id}")
       end
-      chat.destroy
+      chat
     end
 
     record Config, api_key : String, api_base : String?, max_tokens : Int32, api_model : String

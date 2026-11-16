@@ -113,6 +113,40 @@ module PlaceOS::Api
       end
     end
 
+    describe "client secrets" do
+      it "are hidden from regular and support users in the index" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        app = Model::Generator.doorkeeper_application(owner: authority).save!
+
+        {
+          {false, false},
+          {false, true},
+        }.each do |sys_admin, support|
+          _, headers = Spec::Authentication.authentication(sys_admin: sys_admin, support: support)
+          result = client.get(base, headers: headers)
+          result.status_code.should eq 200
+
+          apps = Array(Hash(String, JSON::Any)).from_json(result.body)
+          listed = apps.find! { |entry| entry["id"].as_i64 == app.id }
+          listed.has_key?("secret").should be_false
+          # still enough to start a sign in flow
+          listed["uid"].as_s.should eq app.uid
+          listed["redirect_uri"].as_s.should eq app.redirect_uri
+          result.body.should_not contain(app.secret)
+        end
+      end
+
+      it "are returned to admins" do
+        authority = Model::Authority.find_by_domain("localhost").not_nil!
+        app = Model::Generator.doorkeeper_application(owner: authority).save!
+
+        result = client.get(base, headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        apps = Array(Hash(String, JSON::Any)).from_json(result.body)
+        apps.find!(&.["id"].as_i64.==(app.id))["secret"].as_s.should eq app.secret
+      end
+    end
+
     describe "show / write actions remain admin-only" do
       it "rejects show for non-admin users" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!

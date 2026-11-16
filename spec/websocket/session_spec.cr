@@ -75,7 +75,7 @@ module PlaceOS::Api::WebSocket
           }
           ws.send Session::Request.new(**request).to_json
           wait_for_updates(updates, 1)
-          ws.send Session::Request.new(**request.merge({command: Session::Request::Command::Bind})).to_json
+          ws.send Session::Request.new(**request.merge({command: Session::Request::Command::Unbind})).to_json
           wait_for_updates(updates, 2)
         end
 
@@ -83,8 +83,8 @@ module PlaceOS::Api::WebSocket
         expected_meta = {sys: control_system.id, mod: mod.custom_name, index: 1, name: status_name}
         # Check all messages received
         updates.size.should eq 2
-        # Check all responses correct metadata
-        updates.all? { |v| v.metadata == expected_meta }.should be_true
+        # The bind response includes metadata; unbind is an acknowledgement.
+        updates.first.metadata.should eq expected_meta
         # Check for successful bind response
         updates.shift.type.should eq Session::Response::Type::Success
         # Check for successful unbind response
@@ -182,6 +182,134 @@ module PlaceOS::Api::WebSocket
         updates.size.should eq 1
         # Check for successful ignore response
         updates.shift.type.should eq Session::Response::Type::Success
+      end
+    end
+
+    describe "driver interfaces" do
+      it "parses iface and defaults to driver names for existing requests" do
+        request = %({"id":1,"sys":"sys-test","mod":"Interface::Sensor","cmd":"bind","name":"reading"})
+        Session::Request.from_json(request).interface?.should be_false
+        Session::Request.from_json(request.sub("}", %(,"iface":true}))).interface?.should be_true
+      end
+
+      it "executes the indexed matching module in system order and preserves request metadata" do
+        test_websocket_interfaces(Spec::Authentication.headers) do |ws, system, modules, updates|
+          modules[1..2].each_with_index do |mod, offset|
+            WebMock.stub(:post, /http:\/\/core:3000\/api\/core\/v1\/command\/#{mod.id}\/execute/)
+              .with(body: {"__exec__" => "read", "read" => [42]}.to_json)
+              .to_return(body: {"module_id" => mod.id}.to_json)
+            ws.send interface_request(system, :exec, index: offset + 1, args: [JSON::Any.new(42_i64)]).to_json
+            wait_for_updates(updates, offset + 1)
+            response = updates.last
+            response.type.should eq Session::Response::Type::Success
+            JSON.parse(response.value.not_nil!)["module_id"].as_s.should eq mod.id
+            response.metadata.should eq({sys: system.id, mod: "Interface::Sensor", index: offset + 1, name: "read"})
+          end
+        end
+      end
+
+      it "binds to the indexed interface and receives status updates" do
+        test_websocket_interfaces(Spec::Authentication.headers) do |ws, system, modules, updates|
+          request = interface_request(system, :bind, index: 2)
+          ws.send request.to_json
+          wait_for_updates(updates, 1)
+          updates.first.type.should eq Session::Response::Type::Success
+          # Repeated binds must share the same local binding.
+          ws.send request.to_json
+          wait_for_updates(updates, 2)
+          PlaceOS::Driver::RedisStorage.new(modules[2].id.as(String))["read"] = 123
+          wait_for_updates(updates, 3)
+          sleep 50.milliseconds
+          updates.size.should eq 3
+          updates.last.type.should eq Session::Response::Type::Notify
+          updates.last.value.should eq "123"
+          updates.all? { |response| response.metadata == {sys: system.id, mod: "Interface::Sensor", index: 2, name: "read"} }.should be_true
+        end
+      end
+
+      it "keeps interface bindings separate and unbinds after interface metadata disappears" do
+        test_websocket_interfaces(Spec::Authentication.headers) do |ws, system, modules, updates|
+          # The first module has the interface's name, but does not implement it.
+          ws.send interface_request(system, :bind, interface: false).to_json
+          wait_for_updates(updates, 1)
+          ws.send interface_request(system, :bind).to_json
+          wait_for_updates(updates, 2)
+          updates.all?(&.type.success?).should be_true
+          PlaceOS::Driver::RedisStorage.new(modules[1].id.as(String))["read"] = 11
+          wait_for_updates(updates, 3)
+          updates.last.value.should eq "11"
+
+          PlaceOS::Driver::RedisStorage.with_redis do |redis|
+            modules[1..2].each { |mod| redis.del("interface/#{mod.id}") }
+          end
+          ws.send interface_request(system, :unbind).to_json
+          wait_for_updates(updates, 4)
+          updates.last.type.should eq Session::Response::Type::Success
+          PlaceOS::Driver::RedisStorage.new(modules[1].id.as(String))["read"] = 22
+          PlaceOS::Driver::RedisStorage.new(modules[0].id.as(String))["read"] = 33
+          wait_for_updates(updates, 5)
+          sleep 50.milliseconds
+          updates.size.should eq 5
+          updates.last.value.should eq "33"
+        end
+      end
+
+      it "returns not found for unmatched interfaces and invalid indices on exec and bind" do
+        test_websocket_interfaces(Spec::Authentication.headers) do |ws, system, _, updates|
+          count = 0
+          [Session::Request::Command::Exec, Session::Request::Command::Bind].each do |command|
+            [{"MissingInterface", 1}, {"Interface::Sensor", 0}, {"Interface::Sensor", -1}, {"Interface::Sensor", 3}].each do |name, index|
+              ws.send interface_request(system, command, module_name: name, index: index).to_json
+              wait_for_updates(updates, count += 1)
+              response = updates.last
+              response.type.should eq Session::Response::Type::Error
+              response.error_code.should eq Session::Response::ErrorCode::ModuleNotFound
+              response.response_code.should eq 404
+            end
+          end
+        end
+      end
+
+      it "does not fall back to a matching driver name when iface is true" do
+        test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, system, mod, updates|
+          ws.send interface_request(system, :bind, module_name: mod.resolved_name).to_json
+          wait_for_updates(updates, 1)
+          updates.first.error_code.should eq Session::Response::ErrorCode::ModuleNotFound
+          updates.first.response_code.should eq 404
+        end
+      end
+
+      it "does not resolve interfaces from another system" do
+        test_websocket_interfaces(Spec::Authentication.headers) do |ws, _, _, updates|
+          other_system = PlaceOS::Model::Generator.control_system.save!
+          [Session::Request::Command::Exec, Session::Request::Command::Bind].each_with_index do |command, index|
+            ws.send interface_request(other_system, command).to_json
+            wait_for_updates(updates, index + 1)
+            updates.last.error_code.should eq Session::Response::ErrorCode::ModuleNotFound
+            updates.last.response_code.should eq 404
+          end
+          other_system.destroy
+        end
+      end
+
+      it "preserves function security for interface execution" do
+        headers = Spec::Authentication.headers(sys_admin: false, support: false)
+        test_websocket_interfaces(headers) do |ws, system, _, updates|
+          ws.send interface_request(system, :exec, name: "restricted").to_json
+          wait_for_updates(updates, 1)
+          updates.first.type.should eq Session::Response::Type::Error
+          updates.first.error_code.should eq Session::Response::ErrorCode::AccessDenied
+        end
+      end
+
+      it "preserves protected-module restrictions for interface binding" do
+        headers = Spec::Authentication.headers(sys_admin: false, support: false)
+        test_websocket_interfaces(headers, protected_module: true) do |ws, system, _, updates|
+          ws.send interface_request(system, :bind).to_json
+          wait_for_updates(updates, 1)
+          updates.first.type.should eq Session::Response::Type::Error
+          updates.first.error_code.should eq Session::Response::ErrorCode::AccessDenied
+        end
       end
     end
 
@@ -308,4 +436,54 @@ def test_websocket_exec(base, headers, &)
   mod.destroy
 
   {updates, control_system, mod}
+end
+
+# Deliberately use reverse lexical order and a nonmatching module first to
+# distinguish interface index from name index and Redis hash iteration order.
+def test_websocket_interfaces(headers, protected_module : Bool = false, &)
+  modules = ["Interface::Sensor", protected_module ? "_Sensor" : "ZSensor", "ASensor"].map do |name|
+    mod = PlaceOS::Model::Generator.module
+    mod.custom_name = name
+    mod.save!
+  end
+  system = PlaceOS::Model::Generator.control_system
+  system.modules = modules.map(&.id.as(String))
+  system.save!
+  lookups = modules.to_h { |mod| {"#{mod.resolved_name}/1", mod.id.as(String)} }
+  wait_for_module_lookups(system.id.as(String), lookups)
+
+  PlaceOS::Driver::RedisStorage.with_redis do |redis|
+    modules[1..2].each do |mod|
+      metadata = PlaceOS::Driver::DriverModel::Metadata.new(
+        interface: {"read" => {} of String => JSON::Any, "restricted" => {} of String => JSON::Any},
+        implements: ["Interface::Sensor"],
+        security: {"administrator" => ["restricted"]},
+      )
+      redis.set("interface/#{mod.id}", metadata.to_json)
+    end
+  end
+  updates = [] of PlaceOS::Api::WebSocket::Session::Response
+  on_message = ->(message : String) {
+    updates << PlaceOS::Api::WebSocket::Session::Response.from_json(message)
+  }
+  bind(PlaceOS::Api::Systems.base_route, headers, on_message) do |ws|
+    yield ws, system, modules, updates
+  end
+ensure
+  system.try(&.destroy)
+  modules.try(&.each(&.destroy))
+end
+
+def interface_request(system, command : PlaceOS::Api::WebSocket::Session::Request::Command,
+                      module_name = "Interface::Sensor", index = 1, name = "read", interface = true, args : Array(JSON::Any)? = nil)
+  PlaceOS::Api::WebSocket::Session::Request.new(
+    id: 123_i64,
+    system_id: system.id.as(String),
+    module_name: module_name,
+    command: command,
+    name: name,
+    index: index,
+    interface: interface,
+    args: args,
+  )
 end

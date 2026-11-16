@@ -6,6 +6,13 @@ module PlaceOS::Api
     # use influxdb path for any existing influx clients
     base "/api/v2"
 
+    # Queries run with the server's own InfluxDB credentials, so guest
+    # tokens (anonymous visitors) are refused. Any signed in user may query.
+    @[AC::Route::Filter(:before_action)]
+    def deny_guests
+      raise Error::Forbidden.new("guest tokens may not query flux") if user_token.guest_scope?
+    end
+
     # an influxDB proxy endpoint, route compatible with existing influxDB clients
     @[AC::Route::POST("/query", body: body)]
     def query(body : String)
