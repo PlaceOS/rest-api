@@ -76,6 +76,18 @@ module PlaceOS::Api::MCP
   # read after subscribing without missing a change. The driver subscription also
   # delivers an existing value once redis has registered the channel, which covers
   # changes made before then, so a resource with a value can be notified twice.
+  @@state_resource_tools : Hash(String, ActionController::MCPServer::Tool)? = nil
+  STATE_TOOLS_LOCK = Mutex.new
+
+  # Route metadata is immutable; generating source documentation belongs to
+  # the build, never a subscription request. No identity or permission is cached.
+  private def self.state_resource_tools : Hash(String, ActionController::MCPServer::Tool)
+    STATE_TOOLS_LOCK.synchronize do
+      @@state_resource_tools ||= ActionController::MCPServer.generate_description(docs: false).toolboxes.flat_map(&.tools)
+        .compact_map { |tool| tool.resource.try { |uri| {uri, tool} } }.to_h
+    end
+  end
+
   # Resource notifications outlive the request that opened their stream. Reuse
   # the resource route's complete authorisation on every update, so revocation,
   # stored API-key scopes and changed ownership apply to existing subscriptions.
@@ -84,7 +96,7 @@ module PlaceOS::Api::MCP
     values = variables.dup
     origin = HTTP::Request.new(request.method, request.resource, request.headers.dup)
     origin.remote_address = request.remote_address
-    tool = ActionController::MCPServer.generate_description.toolboxes.flat_map(&.tools).find! { |candidate| candidate.resource == template }
+    tool = state_resource_tools[template]
     invoker = ActionController::MCPServer::Invoker.new(ActionController::Composition.default.handler.route_handler)
     -> { invoker.readable?(tool, values, origin) }
   end
