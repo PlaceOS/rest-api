@@ -75,6 +75,15 @@ module PlaceOS::Api::WebSocket
         response = scope_response(responses, 9_i64)
         response.type.should eq Session::Response::Type::Error
         response.error_code.should eq Session::Response::ErrorCode::ModuleNotFound
+
+        f.acadian.system.modules = [f.acadian.mod.id.as(String)]
+        f.acadian.system.save!
+        wait_for_module_lookups(f.acadian.system.id.as(String), {"#{f.acadian.mod.resolved_name}/1" => f.acadian.mod.id.as(String)})
+        PgORM::Database.connection do |db|
+          db.exec("UPDATE mod SET control_system_id = $1 WHERE id = $2", args: [f.ntt_staff.system.id.as(String), f.acadian.mod.id.as(String)])
+        end
+        socket.send scope_request(10_i64, f.acadian.system, f.acadian.mod.resolved_name, :exec).to_json
+        scope_response(responses, 10_i64).error_code.should eq Session::Response::ErrorCode::ModuleNotFound
       end
     end
 
