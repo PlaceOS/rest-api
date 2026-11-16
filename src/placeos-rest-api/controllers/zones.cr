@@ -336,9 +336,37 @@ module PlaceOS::Api
     end
 
     # remove a zone and any children zones
+    private def validate_zone_deletion!
+      ids = [] of String
+      PgORM::Database.connection do |db|
+        db.query_each(<<-SQL, args: [current_zone.id]) do |row|
+          WITH RECURSIVE tree AS (
+            SELECT id FROM zone WHERE id = $1
+            UNION
+            SELECT z.id FROM zone z INNER JOIN tree ON z.parent_id = tree.id
+          ) SELECT id FROM tree
+          SQL
+          ids << row.read(String)
+        end
+      end
+      ::PlaceOS::Model::Zone.find_all(ids).each do |zone|
+        ensure_reach!(zone)
+        zone.systems.try &.each { |system| ensure_reach!(system) }
+        zone.trigger_instances.each do |instance|
+          system = instance.control_system || raise Error::NotFound.new("system not found")
+          ensure_reach!(system)
+        end
+        ::PlaceOS::Model::Asset.where("? = ANY(zones) OR zone_id = ?", zone.id, zone.id).each do |asset|
+          ensure_authority_reach!(asset.asset_type.try(&.category).try(&.authority_id), "asset")
+        end
+        ::PlaceOS::Model::PendingMail.where("? = ANY(zones)", zone.id).each { |mail| ensure_authority_reach!(mail.authority_id, "mail") }
+      end
+    end
+
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       zone_id = current_zone.id
+      validate_zone_deletion! if Utils::Tenancy.enforce?
       current_zone.destroy
       publish_metadata_change(zone_id.as(String), :destroy_all, {parent_id: zone_id})
     end

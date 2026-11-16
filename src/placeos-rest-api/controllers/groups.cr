@@ -118,8 +118,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Group)
-      authority_id = resource_authority!.id.as(String)
-      query = ::PlaceOS::Model::Group.where(authority_id: authority_id)
+      query = scope_resource_authorities(::PlaceOS::Model::Group.all)
 
       unless user_admin?
         ids = viewable_group_ids(current_user)
@@ -281,7 +280,7 @@ module PlaceOS::Api
       return [] of CurrentGroup if memberships.empty?
 
       query = ::PlaceOS::Model::Group.where(id: memberships.keys)
-      query = scope_authorities(query) if Utils::Tenancy.enforce?
+      query = scope_resource_authorities(query) if Utils::Tenancy.enforce?
       groups = query.to_a
       groups.compact_map do |g|
         gid = g.id

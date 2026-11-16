@@ -43,6 +43,14 @@ module PlaceOS::Api
           ensure_credential_management!(authority)
         end
       end
+      if type == "authority"
+        organisation_id = fields["organisation_id"]?.try(&.as_s?).try { |id| UUID.parse?(id) }
+        ensure_reach!(organisation_id, "authority", required: ::PlaceOS::Model::Permissions::Manage)
+        organisation = organisation_id.try { |id| ::PlaceOS::Model::Organisation.find?(id) }
+        if organisation.try(&.partner_staff) && !tenancy_policy.structural?(organisation_id)
+          raise Error::Forbidden.new("staff credential management requires structural access")
+        end
+      end
       if owner = fields["owner_id"]?.try(&.as_s?)
         ensure_authority_reach!(owner, "owner", required: ::PlaceOS::Model::Permissions::Read)
         ensure_credential_management!(owner)
@@ -76,7 +84,8 @@ module PlaceOS::Api
         end
       end
       if id = fields["control_system_id"]?.try(&.as_s?).try(&.presence)
-        ensure_reach!(::PlaceOS::Model::ControlSystem.find!(id), required: ::PlaceOS::Model::Permissions::Read)
+        required = type == "trig" ? ::PlaceOS::Model::Permissions::Manage : ::PlaceOS::Model::Permissions::Read
+        ensure_reach!(::PlaceOS::Model::ControlSystem.find!(id), required: required)
       end
       if id = fields["zone_id"]?.try(&.as_s?).try(&.presence)
         ensure_reach!(::PlaceOS::Model::Zone.find!(id), required: ::PlaceOS::Model::Permissions::Read)
@@ -166,12 +175,12 @@ module PlaceOS::Api
       query = query.where("created_at >= ?", Time.unix(period_start)) if period_start
       query = query.where("created_at < ?", Time.unix(period_end)) if period_end
 
-      paginate_sql(query, type: "history", limit: limit.clamp(0, 10_000), offset: offset.clamp(0, 1_000_000))
+      paginate_sql(query, type: "history", limit: limit.clamp(0, 10_000), offset: offset.clamp(0, 1_000_000)).map { |entry| history_view(entry) }
     end
 
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::History
-      current_history
+      history_view(current_history)
     end
 
     # Restores a deleted record from its change history, keeping its id.

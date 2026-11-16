@@ -33,13 +33,18 @@ module PlaceOS::Api
       auth_id : String? = nil,
     ) : Array(::PlaceOS::Model::Storage)
       if Utils::Tenancy.enforce?
-        if auth_id
-          ensure_authority_reach!(auth_id, "storage")
-          ::PlaceOS::Model::Storage.where(authority_id: auth_id).to_a
+        authority_id = requested_resource_authority_id
+        aliases = query_params.fetch_all("auth_id")
+        if aliases.size > 1 || aliases.first?.try(&.empty?) || (auth_id && authority_id && auth_id != authority_id)
+          raise Error::OrganisationSelection.new("provide one consistent authority_id or auth_id", "authority_invalid")
+        end
+        if selected = auth_id || authority_id
+          ensure_authority_reach!(selected, "storage")
+          ::PlaceOS::Model::Storage.where(authority_id: selected).to_a
         else
           shared = ::PlaceOS::Model::Storage.where(authority_id: nil).to_a
           if query_params["organisation_id"]?
-            scope_authorities(::PlaceOS::Model::Storage.all).to_a + shared
+            scope_resource_authorities(::PlaceOS::Model::Storage.all).to_a + shared
           else
             shared
           end

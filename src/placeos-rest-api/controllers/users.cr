@@ -46,8 +46,8 @@ module PlaceOS::Api
 
       if Utils::Tenancy.enforce? && ordering.includes?(:id)
         id_lookup = lookup.starts_with?("user-") ? lookup : "user-#{lookup}"
-        if found = ::PlaceOS::Model::User.find?(id_lookup)
-          authority_for_resource!(found.authority_id, "user")
+        if by_id = ::PlaceOS::Model::User.find?(id_lookup)
+          authority_for_resource!(by_id.authority_id, "user")
         end
       end
       authority = resource_authority!.id.as(String)
@@ -214,7 +214,6 @@ module PlaceOS::Api
 
       if user_admin?
         new_user.authority ||= resource_authority!
-        ensure_privilege_fields!(new_user.authority_id, JSON.parse(body))
         # Admin attributes (sys_admin, support, groups, login_name, ...) may
         # only be set by admins — support-subsystem creators would otherwise
         # be able to mint sys-admins.
@@ -227,6 +226,7 @@ module PlaceOS::Api
         new_user.authority = resource_authority!
       end
 
+      ensure_privilege_fields!(new_user.authority_id, JSON.parse(body))
       raise Error::ModelValidation.new(new_user.errors) unless new_user.save
       user_details(new_user, admin_view: user_support?)
     end

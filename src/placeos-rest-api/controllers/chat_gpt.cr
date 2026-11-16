@@ -11,7 +11,7 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:chat, :delete]
 
-    @[AC::Route::Filter(:before_action)]
+    @[AC::Route::Filter(:before_action, only: [:chat])]
     def check_authority
       unless @authority = resource_authority
         Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }

@@ -109,10 +109,10 @@ module PlaceOS::Api
       # Callers only see assets belonging to their own authority (via
       # asset_type → category); legacy NULL-authority categories stay visible
       # (see `confirm_authority`).
-      authority_id = resource_authority!.id
+      authority_filter, authority_ids = resource_authority_filter("ac.authority_id", shared: !Utils::Tenancy.enforce?)
       query = query.where(
-        "EXISTS (SELECT 1 FROM asset_type at JOIN asset_category ac ON ac.id = at.category_id WHERE at.id = asset.asset_type_id AND (ac.authority_id = ? OR (ac.authority_id IS NULL AND #{!Utils::Tenancy.enforce?})))",
-        authority_id
+        "EXISTS (SELECT 1 FROM asset_type at JOIN asset_category ac ON ac.id = at.category_id WHERE at.id = asset.asset_type_id AND #{authority_filter})",
+        args: authority_ids
       )
 
       if zone_id

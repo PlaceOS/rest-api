@@ -47,7 +47,7 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::AlertDashboard.all
 
       if Utils::Tenancy.enforce?
-        query = scope_authorities(query)
+        query = scope_resource_authorities(query)
         ensure_authority_reach!(authority_id, "dashboard") if authority_id
       end
       if authority_id

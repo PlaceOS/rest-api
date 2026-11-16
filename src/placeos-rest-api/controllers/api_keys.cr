@@ -54,9 +54,9 @@ module PlaceOS::Api
       getter x_api_key : String?
 
       getter user : ::PlaceOS::Model::User::AdminResponse?
-      getter authority : ::PlaceOS::Model::Authority?
+      getter authority : Domains::DomainView?
 
-      def initialize(key : ::PlaceOS::Model::ApiKey)
+      def initialize(key : ::PlaceOS::Model::ApiKey, redact_authority : Bool = false)
         @id = key.id
         @name = key.name
         @description = key.description
@@ -71,11 +71,15 @@ module PlaceOS::Api
         # not the model `PublicResponse`: its raw `Model::User` serialises
         # the password digest and SSO tokens
         @user = key.user.try(&.to_admin_struct)
-        @authority = key.authority
+        @authority = key.authority.try { |authority| redact_authority ? Domains::ReadOnlyDomain.new(authority) : authority }
       end
     end
 
     ###############################################################################################
+
+    private def key_response(key : ::PlaceOS::Model::ApiKey) : Response
+      Response.new(key, redact_authority: !may_manage_authority?(key.authority_id))
+    end
 
     # returns a list of the API keys associated with the provided domain, otherwise all domains
     @[AC::Route::GET("/")]
@@ -91,13 +95,13 @@ module PlaceOS::Api
         query = query.where(authority_id: authority)
       end
 
-      paginate_search(query, ::PlaceOS::Model::ApiKey.table_name).map { |key| Response.new(key) }
+      paginate_search(query, ::PlaceOS::Model::ApiKey.table_name).map { |key| key_response(key) }
     end
 
     # returns the requested API key details
     @[AC::Route::GET("/:id")]
     def show : Response
-      Response.new(current_api_key)
+      key_response(current_api_key)
     end
 
     # updates an API key name, description user or scopes
@@ -117,7 +121,7 @@ module PlaceOS::Api
         raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:user_id, "user must belong to the key's original domain")])
       end
       raise Error::ModelValidation.new(current.errors) unless current.save
-      Response.new(current)
+      key_response(current)
     end
 
     # create a new API key
@@ -129,7 +133,7 @@ module PlaceOS::Api
         ensure_credential_management!(owner_authority)
       end
       raise Error::ModelValidation.new(api_key.errors) unless api_key.save
-      Response.new(api_key)
+      key_response(api_key)
     end
 
     # remove an API key

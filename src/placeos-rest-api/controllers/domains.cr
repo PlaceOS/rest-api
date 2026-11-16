@@ -102,7 +102,7 @@ module PlaceOS::Api
       domain : ::PlaceOS::Model::Authority,
       @[AC::Param::Info(description: "the selected organisation; ownership cannot be changed while tenancy is enforced", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
       organisation_id : UUID? = nil,
-    ) : ::PlaceOS::Model::Authority
+    ) : DomainView
       current = current_domain
       if domain.internals_assigned? || domain.domain_assigned? || domain.email_domains_assigned? || domain.login_url_assigned? || domain.logout_url_assigned?
         ensure_credential_management!(current.id)
@@ -113,7 +113,7 @@ module PlaceOS::Api
         current.organisation_id = organisation_id
       end
       raise Error::ModelValidation.new(current.errors) unless current.save
-      current
+      domain_view(current)
     end
 
     # add a new domain. Organisation admins create domains in their own

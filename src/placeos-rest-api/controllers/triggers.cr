@@ -120,6 +120,10 @@ module PlaceOS::Api
     private def scoped_instances(trigger : ::PlaceOS::Model::Trigger) : Array(::PlaceOS::Model::TriggerInstance)
       trigger.trigger_instances.to_a.select do |instance|
         !Utils::Tenancy.enforce? || ::PlaceOS::Model::ControlSystem.find?(instance.control_system_id).try { |system| in_reach?(system.organisation_id, ::PlaceOS::Model::Permissions::Read) }
+      end.tap do |instances|
+        if Utils::Tenancy.enforce? && !tenancy_policy.permits?(selected_organisation_id, ::PlaceOS::Model::Permissions::Manage)
+          instances.each(&.hide_secret)
+        end
       end
     end
 

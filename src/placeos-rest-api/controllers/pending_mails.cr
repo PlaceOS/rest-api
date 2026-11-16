@@ -95,7 +95,7 @@ module PlaceOS::Api
       send_at_after : Time? = nil,
     ) : Array(::PlaceOS::Model::PendingMail)
       # PG full-text search (PPT-2644)
-      query = scope_authorities(::PlaceOS::Model::PendingMail.all)
+      query = Utils::Tenancy.enforce? ? scope_resource_authorities(::PlaceOS::Model::PendingMail.all) : ::PlaceOS::Model::PendingMail.all
 
       if requested = authority_id
         ensure_authority_reach!(requested, "mail")

@@ -94,9 +94,7 @@ module PlaceOS::Api
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupUser)
       # Constrain to the caller's authority.
-      authority_id = resource_authority!.id.as(String)
-      authority_group_ids = ::PlaceOS::Model::Group
-        .where(authority_id: authority_id)
+      authority_group_ids = scope_resource_authorities(::PlaceOS::Model::Group.all)
         .to_a
         .map { |g| g.id.as(UUID) }
       return [] of ::PlaceOS::Model::GroupUser if authority_group_ids.empty?

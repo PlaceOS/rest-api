@@ -34,6 +34,10 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:show_job, :cancel, :resolve])]
     def find_current_job(id : UUID)
+      if Utils::Tenancy.enforce?
+        row = ::PlaceOS::Model::SignageAIJob.find!(id)
+        authority_for_resource!(row.authority_id, "job")
+      end
       Log.context.set(map_ai_job: id.to_s)
       job = authority_job(id, authority.id.as(String))
       raise Error::NotFound.new("no such job") unless job.kind.map_edit?

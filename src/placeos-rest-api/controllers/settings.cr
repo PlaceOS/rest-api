@@ -42,6 +42,7 @@ module PlaceOS::Api
     def can_modify?(setting)
       parent_id = setting.parent_id.as(String)
       ensure_parent_reach!(parent_id)
+      ensure_parent_reach!(parent_id, required: ::PlaceOS::Model::Permissions::Manage) if Utils::Tenancy.enforce? && !setting.encryption_level.none?
       # driver settings are shared by every organisation
       check_cluster_admin if parent_id.starts_with?(::PlaceOS::Model::Driver.table_name)
       return if user_admin?
@@ -102,7 +103,7 @@ module PlaceOS::Api
         # Directly search for model's settings
         parent_settings = ::PlaceOS::Model::Settings.for_parent(parents)
         # Decrypt for the user
-        parent_settings.each &.decrypt_for!(current_user)
+        parent_settings.each { |setting| setting.decrypt_for!(settings_reader(setting.parent_id.as(String))) }
         parent_settings
       else
         raise Error::Forbidden.new unless user_support?
@@ -122,7 +123,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::Settings
       can_view?(current_settings.parent_id.as(String))
-      current_settings.decrypt_for!(current_user)
+      current_settings.decrypt_for!(settings_reader(current_settings.parent_id.as(String)))
     end
 
     # udpate a setting
@@ -137,7 +138,7 @@ module PlaceOS::Api
       can_modify?(current)
 
       raise Error::ModelValidation.new(current.errors) unless current.save
-      current.decrypt_for!(current_user)
+      current.decrypt_for!(settings_reader(current.parent_id.as(String)))
     end
 
     # add a new setting
@@ -146,7 +147,7 @@ module PlaceOS::Api
       can_modify?(setting)
       setting.modified_by = current_user
       raise Error::ModelValidation.new(setting.errors) unless setting.save
-      setting.decrypt_for!(current_user)
+      setting.decrypt_for!(settings_reader(setting.parent_id.as(String)))
     end
 
     # remove a setting

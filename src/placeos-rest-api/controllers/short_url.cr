@@ -65,8 +65,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Shortener)
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::Shortener.all
-        .where(authority_id: authority.id.as(String))
+      query = scope_resource_authorities(::PlaceOS::Model::Shortener.all)
       paginate_search(query, ::PlaceOS::Model::Shortener.table_name)
     end
 

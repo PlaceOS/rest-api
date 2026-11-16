@@ -178,12 +178,18 @@ module PlaceOS::Api
     def may_manage_authority?(authority_id : String?) : Bool
       return true unless Utils::Tenancy.enforce?
       authority = authority_id.try { |id| ::PlaceOS::Model::Authority.find?(id) }
-      !authority.nil? && tenancy_policy.permits?(authority.organisation_id, ::PlaceOS::Model::Permissions::Manage, authority.id)
+      return false unless authority
+      organisation = authority.organisation
+      # Staff credentials can inherit partner or cluster reach. A narrow
+      # grant must never manufacture an identity with that wider reach.
+      return false if organisation.try(&.partner_staff) && !tenancy_policy.structural?(authority.organisation_id)
+      tenancy_policy.permits?(authority.organisation_id, ::PlaceOS::Model::Permissions::Manage, authority.id)
     end
 
     def ensure_credential_management!(authority_id : String?)
       return unless Utils::Tenancy.enforce?
       ensure_authority_reach!(authority_id, "credentials", required: ::PlaceOS::Model::Permissions::Manage)
+      raise Error::Forbidden.new("staff credential management requires structural access") unless may_manage_authority?(authority_id)
     end
 
     def in_reach?(organisation_id : UUID?, required : ::PlaceOS::Model::Permissions = tenancy_permission) : Bool
@@ -248,12 +254,12 @@ module PlaceOS::Api
       owners.first? || organisation_for_new_row
     end
 
-    def ensure_parent_reach!(parent_id : String) : Nil
+    def ensure_parent_reach!(parent_id : String, required : ::PlaceOS::Model::Permissions = tenancy_permission) : Nil
       case parent_id
-      when .starts_with?("zone-")   then ensure_reach!(::PlaceOS::Model::Zone.find!(parent_id))
-      when .starts_with?("sys-")    then ensure_reach!(::PlaceOS::Model::ControlSystem.find!(parent_id))
-      when .starts_with?("mod-")    then ensure_reach!(::PlaceOS::Model::Module.find!(parent_id))
-      when .starts_with?("user-")   then ensure_authority_reach!(::PlaceOS::Model::User.find!(parent_id).authority_id, "user")
+      when .starts_with?("zone-")   then ensure_reach!(::PlaceOS::Model::Zone.find!(parent_id), required: required)
+      when .starts_with?("sys-")    then ensure_reach!(::PlaceOS::Model::ControlSystem.find!(parent_id), required: required)
+      when .starts_with?("mod-")    then ensure_reach!(::PlaceOS::Model::Module.find!(parent_id), required: required)
+      when .starts_with?("user-")   then ensure_authority_reach!(::PlaceOS::Model::User.find!(parent_id).authority_id, "user", required: required)
       when .starts_with?("driver-") then check_cluster_admin unless request.method.in?({"GET", "HEAD"})
       else                               ensure_reach!(nil, "parent")
       end
@@ -276,6 +282,33 @@ module PlaceOS::Api
       else
         requested || current_organisation.try(&.id)
       end
+    end
+
+    def settings_reader(parent_id : String) : ::PlaceOS::Model::User | ::PlaceOS::Model::UserJWT
+      return current_user unless Utils::Tenancy.enforce?
+      may_decrypt = if parent_id.starts_with?("driver-")
+                      accessible_tenancy.cluster?
+                    elsif parent_id.starts_with?("user-")
+                      may_manage_authority?(::PlaceOS::Model::User.find!(parent_id).authority_id)
+                    else
+                      tenancy_policy.permits?(selected_organisation_id, ::PlaceOS::Model::Permissions::Manage)
+                    end
+      return current_user if may_decrypt
+      token = user_token
+      ::PlaceOS::Model::UserJWT.new(
+        iss: token.iss, iat: token.iat, exp: token.exp, domain: token.domain, id: token.id, scope: token.scope,
+        user: ::PlaceOS::Model::UserJWT::Metadata.new(name: token.user.name, email: token.user.email, roles: token.user.roles),
+      )
+    end
+
+    def collated_settings_for(model : ::PlaceOS::Model::ControlSystem | ::PlaceOS::Model::Module)
+      hierarchy = model.settings_hierarchy.reverse!
+      hierarchy.each do |setting|
+        parent_id = setting.parent_id.as(String)
+        ensure_parent_reach!(parent_id, required: ::PlaceOS::Model::Permissions::Read)
+        setting.decrypt_for!(settings_reader(parent_id))
+      end
+      hierarchy
     end
 
     # Capture destinations and enforcement before a background publication.

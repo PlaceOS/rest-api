@@ -78,12 +78,12 @@ module PlaceOS::Api
                   .order(created_at: :desc, id: :desc)
               end
 
-      paginate_sql(scope_history(query), type: "group_history", limit: limit, offset: offset)
+      paginate_sql(scope_history(query), type: "group_history", limit: limit, offset: offset).map { |entry| history_view(entry) }
     end
 
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::History
-      current_history
+      history_view(current_history)
     end
   end
 end

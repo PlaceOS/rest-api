@@ -209,7 +209,7 @@ module PlaceOS::Api
                 end
 
       authority = Utils::Tenancy.enforce? ? resource_authority! : current_authority.not_nil!
-      if Utils::Tenancy.enforce? && channel.split('/').any? { |part| part.in?({".", ".."}) }
+      if Utils::Tenancy.enforce? && channel.split('/').any?(&.in?({".", ".."}))
         raise Error::OrganisationSelection.new("channel must not contain path traversal", "invalid_channel")
       end
       scoped_channel = channel.split('/').reject(&.empty?).join('/')

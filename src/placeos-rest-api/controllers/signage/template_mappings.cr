@@ -210,8 +210,9 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)
+      owner_filter, authority_ids = resource_authority_filter
       query = ::PlaceOS::Model::SignageTemplate::SystemTemplate
-        .where("template_id IN (SELECT id FROM signage_template WHERE authority_id = ?)", authority.id.as(String))
+        .where("template_id IN (SELECT id FROM signage_template WHERE #{owner_filter})", args: authority_ids)
 
       unless user_support?
         # templates readable via group links

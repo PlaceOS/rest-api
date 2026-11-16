@@ -156,7 +156,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Playlist::Item)
-      query = ::PlaceOS::Model::Playlist::Item.where(authority_id: authority.id.as(String))
+      query = scope_resource_authorities(::PlaceOS::Model::Playlist::Item.all)
 
       scope = accessible_group_scope(group_id)
       unless scope.nil?
@@ -202,16 +202,16 @@ module PlaceOS::Api
       # optional group scope is a subquery against the junction table, keyed
       # on the bounded `group_id = ANY($2)` array.
       sql = String.build do |str|
-        str << "SELECT DISTINCT unnest(tags) AS tag FROM playlist_items WHERE authority_id = $1"
+        str << "SELECT DISTINCT unnest(tags) AS tag FROM playlist_items WHERE authority_id = ANY($1::text[])"
         str << " AND id IN (SELECT playlist_item_id FROM group_playlist_items WHERE group_id = ANY($2::uuid[]))" unless scope.nil?
         str << " ORDER BY tag"
       end
 
       PgORM::Database.connection do |db|
         if scope.nil?
-          db.query_all(sql, args: [authority.id.as(String)], as: String)
+          db.query_all(sql, args: [resource_authority_ids], as: String)
         else
-          db.query_all(sql, args: [authority.id.as(String), scope.map(&.to_s)], as: String)
+          db.query_all(sql, args: [resource_authority_ids, scope.map(&.to_s)], as: String)
         end
       end
     end
@@ -361,7 +361,7 @@ module PlaceOS::Api
       # Aggregate in SQL — item ids are never materialised. `DISTINCT` in the
       # unnest subquery guards against duplicate tags on a single item.
       sql = String.build do |str|
-        str << "SELECT t.tag, COUNT(*)::int FROM playlist_items i, LATERAL (SELECT DISTINCT unnest(i.tags) AS tag) t WHERE i.authority_id = $1"
+        str << "SELECT t.tag, COUNT(*)::int FROM playlist_items i, LATERAL (SELECT DISTINCT unnest(i.tags) AS tag) t WHERE i.authority_id = ANY($1::text[])"
         str << " AND i.id IN (SELECT playlist_item_id FROM group_playlist_items WHERE group_id = ANY($2::uuid[]))" unless scope.nil?
         str << " GROUP BY t.tag ORDER BY t.tag"
       end
@@ -373,9 +373,9 @@ module PlaceOS::Api
 
       PgORM::Database.connection do |db|
         if scope.nil?
-          db.query_each(sql, args: [authority.id.as(String)], &read_counts)
+          db.query_each(sql, args: [resource_authority_ids], &read_counts)
         else
-          db.query_each(sql, args: [authority.id.as(String), scope.map(&.to_s)], &read_counts)
+          db.query_each(sql, args: [resource_authority_ids, scope.map(&.to_s)], &read_counts)
         end
       end
       counts

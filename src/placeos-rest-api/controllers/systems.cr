@@ -385,10 +385,10 @@ module PlaceOS::Api
 
       if complete
         sys = current_control_system
-        sys.zone_data_details = scope_organisations(::PlaceOS::Model::Zone.where(id: current_control_system.zones), required: ::PlaceOS::Model::Permissions::Read).to_a
+        sys.zone_data_details = current_control_system.zones.empty? ? [] of Model::Zone : scope_organisations(::PlaceOS::Model::Zone.where(id: current_control_system.zones), required: ::PlaceOS::Model::Permissions::Read).to_a
 
         # extend the module details with the driver details
-        modules = scope_organisations(::PlaceOS::Model::Module.where(id: current_control_system.modules), required: ::PlaceOS::Model::Permissions::Read).to_a
+        modules = current_control_system.modules.empty? ? [] of Model::Module : scope_organisations(::PlaceOS::Model::Module.where(id: current_control_system.modules), required: ::PlaceOS::Model::Permissions::Read).to_a
         drivers = Model::Driver.find_all modules.map(&.driver_id.as(String)).uniq!
         modules.select! do |mod|
           d_id = mod.driver_id.as(String)
@@ -462,6 +462,13 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:sys_id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       cs_id = current_control_system.id
+      if Utils::Tenancy.enforce?
+        validate_module_references!(current_control_system)
+        current_control_system.modules.each do |id|
+          ::PlaceOS::Model::ControlSystem.by_module_id(id).each { |system| ensure_reach!(system) }
+        end
+        current_control_system.system_triggers.each { |trigger| ensure_reach!(trigger) }
+      end
       current_control_system.destroy
       publish_metadata_change(cs_id.as(String), :destroy_all, {parent_id: cs_id})
     end
@@ -499,7 +506,7 @@ module PlaceOS::Api
     # Receive the collated settings for a system
     @[AC::Route::GET("/:sys_id/settings")]
     def settings : Array(::PlaceOS::Model::Settings)
-      Api::Settings.collated_settings(current_user, current_control_system)
+      collated_settings_for(current_control_system)
     end
 
     # Adds the module to the system if it doesn't already exist
@@ -563,7 +570,13 @@ module PlaceOS::Api
     protected def self.module_running_state(control_system : ::PlaceOS::Model::ControlSystem, running : Bool, single_occurrence : Bool = true)
       modules = single_occurrence ? control_system.modules_with_single_occurrence.map(&.id) : control_system.modules
       return if modules.empty?
-      ::PlaceOS::Model::Module.where(id: modules, ignore_startstop: false).update_all(running: running)
+      query = ::PlaceOS::Model::Module.where(id: modules, ignore_startstop: false)
+      if Utils::Tenancy.enforce?
+        owner = control_system.organisation_id
+        return unless owner
+        query = query.where(organisation_id: owner)
+      end
+      query.update_all(running: running)
     end
 
     # Driver Metadata, State and Status
@@ -582,14 +595,13 @@ module PlaceOS::Api
       module_name, index = RemoteDriver.get_parts(module_slug)
       Log.context.set(module_name: module_name, index: index, method: method)
 
-      remote_driver = RemoteDriver.new(
-        sys_id: sys_id,
-        module_name: module_name,
-        index: index,
-        user_id: current_user.id,
-      ) { |module_id|
-        ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
-      }
+      edge_id = ->(module_id : String) { ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String) }
+      remote_driver = if Utils::Tenancy.enforce?
+                        approved = approved_runtime_module!(sys_id, module_name, index)
+                        RemoteDriver.new(module_id: approved.id.as(String), sys_id: sys_id, module_name: module_name, index: index, user_id: current_user.id, &edge_id)
+                      else
+                        RemoteDriver.new(sys_id: sys_id, module_name: module_name, index: index, user_id: current_user.id, &edge_id)
+                      end
 
       response_text, status_code = remote_driver.exec(
         security: Utils::Tenancy.enforce? ? tenancy_policy.system_security(sys_id) : driver_clearance(user_token),
@@ -599,6 +611,8 @@ module PlaceOS::Api
       )
       response.headers["Content-Type"] = "application/json"
       render text: response_text, status: status_code
+    rescue error : Error
+      raise error
     rescue e : RemoteDriver::Error
       handle_execute_error(e)
     rescue e
@@ -608,9 +622,12 @@ module PlaceOS::Api
     # Look-up a module types in a system, returning a count of each type
     @[AC::Route::GET("/:sys_id/types")]
     def types(sys_id : String) : Hash(String, Int32)
-      ::PlaceOS::Model::Module
-        .in_control_system(sys_id)
-        .tally_by(&.resolved_name)
+      modules = ::PlaceOS::Model::Module.in_control_system(sys_id)
+      if Utils::Tenancy.enforce?
+        owner = ::PlaceOS::Model::ControlSystem.find!(sys_id).organisation_id
+        modules.select! { |mod| !owner.nil? && mod.organisation_id == owner }
+      end
+      modules.tally_by(&.resolved_name)
     end
 
     # Returns the state of an associated module
@@ -621,6 +638,9 @@ module PlaceOS::Api
       module_slug : String,
     ) : Hash(String, String)
       module_name, index = RemoteDriver.get_parts(module_slug)
+      if Utils::Tenancy.enforce?
+        return Modules.module_state(approved_runtime_module!(sys_id, module_name, index))
+      end
       self.class.module_state(sys_id, module_name, index) || {} of String => String
     end
 
@@ -636,7 +656,11 @@ module PlaceOS::Api
       key : String,
     ) : JSON::Any
       module_name, index = RemoteDriver.get_parts(module_slug)
-      module_id = ::PlaceOS::Driver::Proxy::System.module_id?(system_id: sys_id, module_name: module_name, index: index)
+      module_id = if Utils::Tenancy.enforce?
+                    approved_runtime_module!(sys_id, module_name, index).id
+                  else
+                    ::PlaceOS::Driver::Proxy::System.module_id?(system_id: sys_id, module_name: module_name, index: index)
+                  end
       # `null` when the module or the key doesn't exist
       JSON.parse(module_id.try { |id| Driver::RedisStorage.new(id)[key]? } || "null")
     end
@@ -654,11 +678,16 @@ module PlaceOS::Api
       module_slug : String,
     ) : Hash(String, FunctionDetails)
       module_name, index = RemoteDriver.get_parts(module_slug)
-      metadata = ::PlaceOS::Driver::Proxy::System.driver_metadata?(
-        system_id: sys_id,
-        module_name: module_name,
-        index: index,
-      )
+      metadata = if Utils::Tenancy.enforce?
+                   approved = approved_runtime_module!(sys_id, module_name, index)
+                   ::PlaceOS::Driver::Proxy::System.driver_metadata?(approved.id.as(String))
+                 else
+                   ::PlaceOS::Driver::Proxy::System.driver_metadata?(
+                     system_id: sys_id,
+                     module_name: module_name,
+                     index: index,
+                   )
+                 end
 
       unless metadata
         message = "metadata not found for #{module_slug} on #{sys_id}"
@@ -690,7 +719,40 @@ module PlaceOS::Api
       end
     end
 
+    private def approved_runtime_module!(sys_id : String, module_name : String, index : Int32) : ::PlaceOS::Model::Module
+      mod = self.class.approved_runtime_module?(sys_id, module_name, index)
+      raise Error::NotFound.new("module not found") unless mod
+      ensure_reach!(mod)
+      mod
+    end
+
+    # Runtime aliases are caches, so approve the ordered database membership first.
+    def self.approved_runtime_module?(sys_id : String, module_name : String, index : Int32) : ::PlaceOS::Model::Module?
+      return if index < 1
+      system = ::PlaceOS::Model::ControlSystem.find?(sys_id)
+      return unless system && system.organisation_id
+      remaining = index
+      system.modules.each do |module_id|
+        mod = ::PlaceOS::Model::Module.find?(module_id)
+        next unless mod && mod.resolved_name == module_name
+        remaining -= 1
+        next unless remaining.zero?
+        return unless mod.organisation_id == system.organisation_id
+        if parent_id = mod.control_system_id.presence
+          parent = ::PlaceOS::Model::ControlSystem.find?(parent_id)
+          return unless parent && parent.organisation_id == system.organisation_id && parent.modules.includes?(module_id)
+        end
+        runtime_id = ::PlaceOS::Driver::Proxy::System.module_id?(sys_id, module_name, index)
+        return if runtime_id && runtime_id != module_id
+        return mod
+      end
+      nil
+    end
+
     def self.module_state(sys_id : String, module_name : String, index : Int32) : Hash(String, String)?
+      if Utils::Tenancy.enforce?
+        return approved_runtime_module?(sys_id, module_name, index).try { |mod| Modules.module_state(mod) }
+      end
       # Look up module's id for module on system
       module_id = ::PlaceOS::Driver::Proxy::System.module_id?(
         system_id: sys_id,
@@ -739,12 +801,12 @@ module PlaceOS::Api
 
     # Create a core client for given module id
     def self.core_for(module_id : String, request_id : String? = nil) : Core::Client
-      Core::Client.new(uri: self.locate_module(module_id), request_id: request_id)
+      Core::Client.new(uri: locate_module(module_id), request_id: request_id)
     end
 
     # Create a core client and yield it to a block
     def self.core_for(module_id : String, request_id : String? = nil, & : Core::Client -> V) forall V
-      Core::Client.client(uri: self.locate_module(module_id), request_id: request_id) do |client|
+      Core::Client.client(uri: locate_module(module_id), request_id: request_id) do |client|
         yield client
       end
     end

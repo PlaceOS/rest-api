@@ -14,8 +14,26 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
+    @purchase_order_scope_ids : Array(String)? = nil
+
     @[AC::Route::Filter(:before_action)]
     private def confirm_access
+      if Utils::Tenancy.enforce? && action_name == :index
+        ids = resource_authority_ids
+        unless user_support?
+          ids = ids.select do |id|
+            authority = ::PlaceOS::Model::Authority.find!(id)
+            if zone_id = authority.config["org_zone"]?.try(&.as_s?)
+              support_subsystem_grants?([zone_id], ::PlaceOS::Model::Permissions::Read) || check_access(current_user.groups, [zone_id]).can_manage?
+            else
+              false
+            end
+          end
+        end
+        @purchase_order_scope_ids = ids
+        head :forbidden if ids.empty?
+        return
+      end
       return if user_support?
 
       authority = resource_authority!
@@ -61,7 +79,12 @@ module PlaceOS::Api
       # invoice_number. The table has no name column so order by PO number
       # for a deterministic listing (Elasticsearch had no explicit sort here).
       query = ::PlaceOS::Model::AssetPurchaseOrder.all
-      query = query.where(authority_id: resource_authority!.id)
+      if Utils::Tenancy.enforce?
+        ids = @purchase_order_scope_ids || resource_authority_ids
+        query = ids.empty? ? query.where("1 = ?", 0) : query.where(authority_id: ids)
+      else
+        query = query.where(authority_id: resource_authority!.id)
+      end
       paginate_search(
         query,
         ::PlaceOS::Model::AssetPurchaseOrder.table_name,

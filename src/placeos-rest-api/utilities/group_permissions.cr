@@ -156,8 +156,9 @@ module PlaceOS::Api
     def ensure_group_access!(group_id : UUID, required : ::PlaceOS::Model::Permissions) : ::PlaceOS::Model::Group
       group = ::PlaceOS::Model::Group.find?(group_id)
       raise Error::NotFound.new("group #{group_id} not found") if group.nil?
-      if self.responds_to?(:ensure_resource_authority!) && Utils::Tenancy.enforce?
-        self.ensure_resource_authority!(group.authority_id, "group", required: required) # ameba:disable Style/RedundantSelf
+      context = self
+      if context.responds_to?(:ensure_resource_authority!) && Utils::Tenancy.enforce?
+        context.ensure_resource_authority!(group.authority_id, "group", required: required)
       else
         raise Error::NotFound.new("group #{group_id} not found") unless group.authority_id == current_authority.as(::PlaceOS::Model::Authority).id
       end
@@ -233,8 +234,9 @@ module PlaceOS::Api
     # Named with a `support_` prefix to avoid clashing with controllers that
     # define their own `org_zone_id` (e.g. `modules.cr`).
     def support_org_zone_id : String?
-      authority = if self.responds_to?(:resource_authority!)
-                    self.resource_authority! # ameba:disable Style/RedundantSelf
+      context = self
+      authority = if context.responds_to?(:resource_authority!)
+                    context.resource_authority!
                   else
                     current_authority.as(::PlaceOS::Model::Authority)
                   end

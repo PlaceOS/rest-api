@@ -65,14 +65,11 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "only return plugins of this type", example: "widget")]
       plugin_type : ::PlaceOS::Model::SignagePlugin::PluginType? = nil,
     ) : Array(::PlaceOS::Model::SignagePlugin)
-      authority_id = authority.id.as(String)
-
       # PG full-text search (PPT-2644)
       # this domain's plugins OR shared plugins (no authority) — SQL expresses
       # the OR-with-NULL directly, unlike the Elasticsearch should-clause
       # encoding this replaces
-      query = ::PlaceOS::Model::SignagePlugin.all
-        .where("(authority_id = ? OR authority_id IS NULL)", authority_id)
+      query = scope_resource_authorities(::PlaceOS::Model::SignagePlugin.all, shared: true)
 
       unless enabled.nil?
         query = query.where(enabled: enabled)

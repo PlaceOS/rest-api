@@ -74,8 +74,8 @@ module PlaceOS::Api::Utils::Tenancy
           when ::PlaceOS::Model::Grant::SCOPE_ORGANISATION
             UUID.parse?(grant.scope_id).try { |id| ids << id }
           when ::PlaceOS::Model::Grant::SCOPE_PARTNER
-            if id = UUID.parse?(grant.scope_id)
-              ::PlaceOS::Model::Organisation.where(partner_id: id).each { |org| org.id.try { |oid| ids << oid } }
+            if partner_id = UUID.parse?(grant.scope_id)
+              ::PlaceOS::Model::Organisation.where(partner_id: partner_id).each { |org| org.id.try { |oid| ids << oid } }
             end
           when ::PlaceOS::Model::Grant::SCOPE_AUTHORITY
             ::PlaceOS::Model::Authority.find?(grant.scope_id).try(&.organisation_id).try { |id| ids << id }

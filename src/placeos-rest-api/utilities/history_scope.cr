@@ -4,6 +4,30 @@ module PlaceOS::Api
   # Resolve recorded ownership before pagination, including records which
   # have been deleted. Current ownership wins over older delete snapshots.
   module Utils::HistoryScope
+    # Mask old records too: their snapshots may predate model-level redaction.
+    def history_view(entry : ::PlaceOS::Model::History) : ::PlaceOS::Model::History
+      redacted = {% begin %}
+        case entry.resource_type
+        {% for model in ::PlaceOS::Model::History::Tracked.includers %}
+          when {{ model }}.table_name then {{ model }}.history_redacted
+        {% end %}
+        else [] of String
+        end
+      {% end %}
+      redacted = redacted + ["webhook_secret"] if entry.resource_type == "trig"
+      unless redacted.empty?
+        diff = entry.diff.as_h.dup
+        redacted.each do |field|
+          diff[field] = JSON::Any.new([::PlaceOS::Model::History::Tracked::REDACTED, ::PlaceOS::Model::History::Tracked::REDACTED]) if diff.has_key?(field)
+        end
+        entry.diff = JSON::Any.new(diff)
+        if snapshot = entry.snapshot.try(&.as_h?)
+          entry.snapshot = JSON::Any.new(snapshot.reject { |field, _| redacted.includes?(field) })
+        end
+      end
+      entry
+    end
+
     def platform_history? : Bool
       !Utils::Tenancy.enforce? || (self.class.name == "PlaceOS::Api::History" && accessible_tenancy.cluster? && !query_params["organisation_id"]?)
     end

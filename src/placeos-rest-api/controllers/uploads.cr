@@ -13,7 +13,7 @@ module PlaceOS::Api
 
     base "/api/engine/v2/uploads"
 
-    @[AC::Route::Filter(:before_action, except: [:get_link, :download_proxy_file_contents, :download_simple_route, :edit, :update, :finished, :destroy])]
+    @[AC::Route::Filter(:before_action, except: [:index, :get_link, :download_proxy_file_contents, :download_simple_route, :edit, :update, :finished, :destroy])]
     def check_authority
       unless @authority = resource_authority
         Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
@@ -114,25 +114,29 @@ module PlaceOS::Api
         end
       end
 
-      # 1. Prepare table name and storage
+      # Resolve every selected authority's default before pagination, including shared providers.
       table_name = ::PlaceOS::Model::Upload.table_name
-      storage = if storage_id
-                  # Validate that the storage exists and belongs to this authority
-                  unless found_storage = ::PlaceOS::Model::Storage.find?(storage_id)
-                    raise Error::NotFound.new("Storage not found: #{storage_id}")
-                  end
-                  unless found_storage.authority_id == authority.id || found_storage.authority_id.nil?
-                    raise Error::Forbidden.new("Storage does not belong to this authority")
-                  end
-                  found_storage
-                else
-                  ::PlaceOS::Model::Storage.storage_or_default(authority.id)
-                end
-
-      # 2. Build conditions and bind params
-      conditions = ["u.storage_id = $1"]
+      authority_ids = resource_authority_ids
+      if authority_ids.empty?
+        set_collection_headers(0, table_name)
+        return [] of ::PlaceOS::Model::Upload
+      end
+      storages = if storage_id
+                   found = ::PlaceOS::Model::Storage.find?(storage_id) || raise Error::NotFound.new("Storage not found: #{storage_id}")
+                   if found.authority_id && !authority_ids.includes?(found.authority_id)
+                     raise Error::NotFound.new("Storage not found: #{storage_id}") if Utils::Tenancy.enforce?
+                     raise Error::Forbidden.new("Storage does not belong to this authority")
+                   end
+                   [found]
+                 else
+                   authority_ids.map { |id| ::PlaceOS::Model::Storage.storage_or_default(id) }.uniq { |entry| entry.id }
+                 end
       params = [] of String | Int32
-      params << storage.id.as(String)
+      storage_placeholders = storages.map do |entry|
+        params << entry.id.as(String)
+        "$#{params.size}"
+      end
+      conditions = ["u.storage_id IN (#{storage_placeholders.join(", ")})"]
 
       # 2a. Optional filename search
       if file_search
@@ -151,8 +155,11 @@ module PlaceOS::Api
       end
 
       if Utils::Tenancy.enforce?
-        conditions << "COALESCE(u.object_options->>'authority_id', (SELECT authority_id FROM storages WHERE id = u.storage_id), (SELECT authority_id FROM \"user\" WHERE id = u.uploaded_by)) = $#{params.size + 1}"
-        params << authority.id.as(String)
+        owner_placeholders = authority_ids.map do |id|
+          params << id
+          "$#{params.size}"
+        end
+        conditions << "COALESCE(u.object_options->>'authority_id', (SELECT authority_id FROM storages WHERE id = u.storage_id), (SELECT authority_id FROM \"user\" WHERE id = u.uploaded_by)) IN (#{owner_placeholders.join(", ")})"
       end
       where_clause = "WHERE " + conditions.join(" AND ")
 

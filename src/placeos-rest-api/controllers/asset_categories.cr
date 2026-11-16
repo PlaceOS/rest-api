@@ -65,8 +65,7 @@ module PlaceOS::Api
       hidden : Bool? = nil,
     ) : Array(::PlaceOS::Model::AssetCategory)
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::AssetCategory.all
-      query = query.where("authority_id = ? OR (authority_id IS NULL AND #{!Utils::Tenancy.enforce?})", resource_authority!.id)
+      query = scope_resource_authorities(::PlaceOS::Model::AssetCategory.all, shared: !Utils::Tenancy.enforce?)
 
       # NOTE:: the Elasticsearch implementation silently skipped this filter
       # when `hidden=false` (Crystal falsy), contradicting the documented

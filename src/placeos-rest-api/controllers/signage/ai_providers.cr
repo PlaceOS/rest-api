@@ -25,6 +25,10 @@ module PlaceOS::Api
     def find_current_provider(id : UUID)
       Log.context.set(signage_ai_provider: id.to_s)
       row = ::PlaceOS::Model::SignageAIProvider.find!(id)
+      if row.authority_id.nil? && read_only_action?
+        @current_provider = row
+        return
+      end
 
       # A row belongs to one domain, and the admin flag on a JWT is per domain,
       # so without this an administrator of one customer could read, change,
@@ -94,20 +98,8 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "include the shared fallback row", example: "true")]
       include_shared : Bool = true,
     ) : Array(ProviderJSON)
-      domain = resource_authority.try(&.id)
-      rows = if domain.nil?
-               [] of ::PlaceOS::Model::SignageAIProvider
-             else
-               # `available_for` is what a generate uses, so it filters to
-               # enabled rows. This is the admin list: a row somebody switched
-               # off still has to be visible, or it can never be switched back on.
-               own = ::PlaceOS::Model::SignageAIProvider.where(authority_id: domain).to_a
-               if include_shared
-                 own + ::PlaceOS::Model::SignageAIProvider.where(authority_id: nil).to_a
-               else
-                 own
-               end
-             end
+      rows = scope_resource_authorities(::PlaceOS::Model::SignageAIProvider.all).to_a
+      rows += ::PlaceOS::Model::SignageAIProvider.where(authority_id: nil).to_a if include_shared
 
       rows.map(&.as_json)
     end

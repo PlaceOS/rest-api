@@ -45,6 +45,10 @@ module PlaceOS::Api
     getter? secret_visible : Bool = false
 
     private def secret_visible_on?(zones : Array(String)) : Bool
+      if Utils::Tenancy.enforce?
+        return false unless tenancy_policy.permits?(selected_organisation_id, ::PlaceOS::Model::Permissions::Manage)
+        return user_support? || support_subsystem_grants?(zones, ::PlaceOS::Model::Permissions::Manage)
+      end
       user_support? || support_subsystem_grants?(zones, ::PlaceOS::Model::Permissions::Read)
     end
 
@@ -64,6 +68,7 @@ module PlaceOS::Api
       # instance must actually belong to it — 404 (not 403) so ids from other
       # systems are indistinguishable from unknown ones.
       raise Error::NotFound.new("no trigger #{id} in system #{sys_id}") unless trig.control_system_id == sys_id
+      validate_instance_references!(trig) if Utils::Tenancy.enforce?
       @current_sys_trig = trig
     end
 
@@ -176,6 +181,7 @@ module PlaceOS::Api
           current.playlists = ::PlaceOS::Model::Playlist.find_all(playlists).map(&.id.as(String))
         end
       end
+      validate_instance_references!(current) if Utils::Tenancy.enforce?
       raise Error::ModelValidation.new(current.errors) unless current.save
       render_system_trigger(current)
     end
@@ -191,6 +197,7 @@ module PlaceOS::Api
       if (playlists = trig_inst.playlists) && !playlists.empty?
         trig_inst.playlists = ::PlaceOS::Model::Playlist.find_all(playlists).map(&.id.as(String))
       end
+      validate_instance_references!(trig_inst) if Utils::Tenancy.enforce?
       raise Error::ModelValidation.new(trig_inst.errors) unless trig_inst.save
       render_system_trigger(trig_inst)
     end
@@ -199,6 +206,14 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:trig_id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       current_sys_trig.destroy # Expires the cache in after callback
+    end
+
+    private def validate_instance_references!(instance : ::PlaceOS::Model::TriggerInstance)
+      trigger = ::PlaceOS::Model::Trigger.find!(instance.trigger_id)
+      ensure_reach!(trigger, required: ::PlaceOS::Model::Permissions::Read) if trigger.control_system_id
+      instance.playlists.try &.each do |id|
+        ensure_authority_reach!(::PlaceOS::Model::Playlist.find!(id).authority_id, "playlist", required: ::PlaceOS::Model::Permissions::Read)
+      end
     end
 
     # Helpers
@@ -210,6 +225,8 @@ module PlaceOS::Api
 
     # extend the ControlSystem model to handle our return values
     class ::PlaceOS::Model::TriggerInstance
+      history_redact :webhook_secret
+
       property name : String? = nil
       @[JSON::Field(key: "control_system")]
       property control_system_details : Api::SystemTriggers::ControlSystemDetails? = nil

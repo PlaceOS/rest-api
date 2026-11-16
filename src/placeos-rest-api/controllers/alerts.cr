@@ -48,7 +48,7 @@ module PlaceOS::Api
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::Alert.all
       if Utils::Tenancy.enforce?
-        dashboards = scope_authorities(::PlaceOS::Model::AlertDashboard.all).to_a.compact_map(&.id)
+        dashboards = scope_resource_authorities(::PlaceOS::Model::AlertDashboard.all).to_a.compact_map(&.id)
         if dashboards.empty?
           set_collection_headers(0, ::PlaceOS::Model::Alert.table_name)
           return [] of ::PlaceOS::Model::Alert

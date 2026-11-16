@@ -80,9 +80,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupInvitation)
-      authority_id = resource_authority!.id.as(String)
-      authority_group_ids = ::PlaceOS::Model::Group
-        .where(authority_id: authority_id)
+      authority_group_ids = scope_resource_authorities(::PlaceOS::Model::Group.all)
         .to_a
         .map { |g| g.id.as(UUID) }
       return [] of ::PlaceOS::Model::GroupInvitation if authority_group_ids.empty?

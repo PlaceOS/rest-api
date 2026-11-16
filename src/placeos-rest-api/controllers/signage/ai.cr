@@ -34,6 +34,10 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:show_job, :cancel, :claim])]
     def find_current_job(id : UUID)
+      if Utils::Tenancy.enforce?
+        row = ::PlaceOS::Model::SignageAIJob.find!(id)
+        authority_for_resource!(row.authority_id, "job")
+      end
       Log.context.set(signage_ai_job: id.to_s)
       @current_job = authority_job(id, authority.id.as(String))
     end

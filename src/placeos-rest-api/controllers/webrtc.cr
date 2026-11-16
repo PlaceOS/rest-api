@@ -29,8 +29,10 @@ module PlaceOS::Api
                  res
                end
 
-      # ensure the system is public
-      raise Error::NotFound.new("could not find room #{system_id}") unless system.public
+      # Public room access remains bound to the request domain.
+      authority = current_authority
+      visible = !Utils::Tenancy.enforce? || (authority && authority.organisation_id && authority.organisation_id == system.organisation_id)
+      raise Error::NotFound.new("could not find room #{system_id}") unless system.public && visible
 
       Log.context.set(control_system_id: system.id.not_nil!)
       @current_control_system = system
@@ -123,6 +125,12 @@ module PlaceOS::Api
         meta = ::PlaceOS::Model::Metadata.build_metadata(zone_id, "bindings")
         if payload = meta["bindings"]?.try(&.details)
           if chat_room = payload["chat_room"]?.try(&.as_s?)
+            if Utils::Tenancy.enforce?
+              destination = ::PlaceOS::Model::ControlSystem.find?(chat_room)
+              unless destination && destination.organisation_id == authority.organisation_id
+                raise Error::NotFound.new("chat room not found")
+              end
+            end
             chat_system = chat_room
             break
           end
@@ -176,7 +184,7 @@ module PlaceOS::Api
     # Obtain a list of the connected users in chat session provided
     @[AC::Route::GET("/members/:session_id")]
     def members(session_id : String) : Array(String)
-      MANAGER.member_list(session_id)
+      MANAGER.member_list(session_id, chat_authority_id)
     end
 
     # for authorised users to move people from one chat to another
@@ -190,7 +198,7 @@ module PlaceOS::Api
       session_id : String? = nil,
       body : JSON::Any? = nil,
     ) : Bool?
-      result = MANAGER.transfer(user_id, session_id, body.try &.to_json)
+      result = MANAGER.transfer(user_id, session_id, body.try(&.to_json), authority_id: chat_authority_id)
       case result
       in .signal_sent?
         nil
@@ -229,6 +237,10 @@ module PlaceOS::Api
     def index : Array(::PlaceOS::Model::ControlSystem)
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::ControlSystem.where(public: true)
+      if Utils::Tenancy.enforce?
+        owner = current_authority.try(&.organisation_id)
+        query = owner ? query.where(organisation_id: owner) : query.where("1 = ?", 0)
+      end
 
       if zone_id = current_authority.not_nil!.internals["webrtc_zone"]?.try(&.as_s?)
         query = query.where("? = ANY(zones)", zone_id)
@@ -251,7 +263,15 @@ module PlaceOS::Api
       # https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer
       ICE_CONFIG[auth_id] = authority.internals["webrtc_ice"]?.try(&.to_json) || WEBRTC_DEFAULT_ICE_CONFIG
 
-      MANAGER.handle_session(websocket, request_id, user_token.id, auth_id)
+      authorize = if Utils::Tenancy.enforce?
+                    policy = Utils::Tenancy::Policy.new(user_token, auth_id, authority.organisation_id, api_key.try(&.id))
+                    -> { policy.valid? && policy.scope_access?({"web_rtc", "guest"}, Model::UserJWT::Scope::Access::Read) }
+                  end
+      MANAGER.handle_session(websocket, request_id, user_token.id, auth_id, authorize: authorize)
+    end
+
+    private def chat_authority_id : String?
+      Utils::Tenancy.enforce? ? current_authority.not_nil!.id.as(String) : nil
     end
   end
 end

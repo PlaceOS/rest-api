@@ -78,8 +78,13 @@ module PlaceOS::Api
       # Callers only see asset types belonging to their own authority (via the
       # category); legacy NULL-authority categories stay visible (see
       # `confirm_authority`).
-      args << resource_authority!.id
-      where_clauses << "EXISTS (SELECT 1 FROM asset_category ac WHERE ac.id = at.category_id AND (ac.authority_id = $#{args.size} OR (ac.authority_id IS NULL AND #{!Utils::Tenancy.enforce?})))"
+      placeholders = resource_authority_ids.map do |id|
+        args << id
+        "$#{args.size}"
+      end
+      owner_filter = placeholders.empty? ? "1 = 0" : "ac.authority_id IN (#{placeholders.join(", ")})"
+      owner_filter = "(#{owner_filter} OR ac.authority_id IS NULL)" unless Utils::Tenancy.enforce?
+      where_clauses << "EXISTS (SELECT 1 FROM asset_category ac WHERE ac.id = at.category_id AND #{owner_filter})"
 
       if brand
         args << brand
