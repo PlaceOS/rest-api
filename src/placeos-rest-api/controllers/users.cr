@@ -286,7 +286,7 @@ module PlaceOS::Api
     end
 
     private def with_organisation_admin_lock(target : ::PlaceOS::Model::User, & : ::PlaceOS::Model::User -> T) : T forall T
-      return yield target unless Utils::Tenancy.enforce? && !accessible_tenancy.cluster?
+      return yield target if !Utils::Tenancy.enforce? || accessible_tenancy.cluster?
       owner = target.authority.try(&.organisation_id)
       return yield target unless owner
       result = nil.as(T?)

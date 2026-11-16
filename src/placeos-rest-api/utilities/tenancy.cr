@@ -11,7 +11,16 @@ module PlaceOS::Api
   # resource gates and queries use the selection, while discovery uses reach.
   module Utils::Tenancy
     Log = ::Log.for("tenancy")
-    class_property? enforce : Bool = PLACE_TENANCY_ENFORCE
+    @@enforce : Bool = PLACE_TENANCY_ENFORCE
+
+    def self.enforce? : Bool
+      @@enforce
+    end
+
+    def self.enforce=(value : Bool)
+      @@enforce = value
+      ::PlaceOS::Model::OrganisationScopedName.enforce = value
+    end
 
     enum Reach
       Cluster
