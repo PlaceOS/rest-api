@@ -1,6 +1,18 @@
 require "./helper"
 
 module PlaceOS::Api
+  private def self.mcp_watch_start(template : String, variables : Hash(String, String), request : HTTP::Request, events : Channel(Nil)) : Proc(Nil)
+    stop = nil.as(Proc(Nil)?)
+    elapsed = Time.measure do
+      stop = ActionController::MCPServer.watchers[template].call(variables, request, -> { events.send(nil) })
+    end
+    elapsed.should be < 5.seconds
+    stop.not_nil!
+  rescue error
+    stop.try(&.call)
+    raise error
+  end
+
   private def self.mcp_watch_drain(events : Channel(Nil))
     loop do
       select
@@ -49,7 +61,7 @@ module PlaceOS::Api
         end
         events = Channel(Nil).new(32)
         request = HTTP::Request.new("POST", MCP::PATH, Spec::Tenancy.headers(f.ucla.admin))
-        stop_watch = ActionController::MCPServer.watchers[template].call(variables, request, -> { events.send(nil) })
+        stop_watch = mcp_watch_start(template, variables, request, events)
         mcp_watch_drain(events)
         storage = Driver::RedisStorage.new(f.acadian.mod.id.as(String))
         mcp_watch_update(events, storage, 1)
@@ -72,7 +84,7 @@ module PlaceOS::Api
       variables = {"id" => f.acadian.mod.id.as(String), "key" => "authorisation_probe", "organisation_id" => f.acadian.organisation.id.to_s}
       events = Channel(Nil).new(32)
       request = HTTP::Request.new("POST", MCP::PATH, headers)
-      stop_watch = ActionController::MCPServer.watchers["placeos://modules/{id}/state/{key}{?organisation_id}"].call(variables, request, -> { events.send(nil) })
+      stop_watch = mcp_watch_start("placeos://modules/{id}/state/{key}{?organisation_id}", variables, request, events)
       mcp_watch_drain(events)
       storage = Driver::RedisStorage.new(f.acadian.mod.id.as(String))
       mcp_watch_update(events, storage, 1)
@@ -100,7 +112,7 @@ module PlaceOS::Api
       variables = {"sys_id" => f.acadian.system.id.as(String), "module_slug" => f.acadian.mod.resolved_name, "key" => "authorisation_probe", "organisation_id" => f.acadian.organisation.id.to_s}
       events = Channel(Nil).new(32)
       request = HTTP::Request.new("POST", MCP::PATH, Spec::Tenancy.headers(f.acadian.admin))
-      stop_watch = ActionController::MCPServer.watchers["placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}"].call(variables, request, -> { events.send(nil) })
+      stop_watch = mcp_watch_start("placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}", variables, request, events)
       mcp_watch_drain(events)
       mcp_watch_update(events, Driver::RedisStorage.new(f.acadian.mod.id.as(String)), 1)
       Driver::RedisStorage.new(f.acadian.system.id.as(String), "system")["#{f.acadian.mod.resolved_name}/1"] = f.ucla.mod.id.as(String)
