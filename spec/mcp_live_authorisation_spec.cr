@@ -63,7 +63,7 @@ module PlaceOS::Api
       end
     end
 
-    it "rechecks a revoked key before notifying an existing module subscription" do
+    it "rechecks stored key read scopes and revocation before module notifications" do
       f = fixture = Spec::Tenancy.build
       key = Model::ApiKey.new(name: "MCP subscription #{random_name}", permissions: Model::UserJWT::Permissions::Admin)
       key.user = f.acadian.admin
@@ -76,8 +76,17 @@ module PlaceOS::Api
       mcp_watch_drain(events)
       storage = Driver::RedisStorage.new(f.acadian.mod.id.as(String))
       mcp_watch_update(events, storage, 1)
-      key.destroy
+      key.update_fields(scopes: [Model::UserJWT::Scope.new("users", Model::UserJWT::Scope::Access::Read)])
       storage["authorisation_probe"] = 2
+      select
+      when events.receive
+        fail "a key without module read scope still received an MCP resource notification"
+      when timeout(250.milliseconds)
+      end
+      key.update_fields(scopes: [Model::UserJWT::Scope::PUBLIC])
+      mcp_watch_update(events, storage, 3)
+      key.destroy
+      storage["authorisation_probe"] = 4
       select
       when events.receive
         fail "a revoked key still received an MCP resource notification"
