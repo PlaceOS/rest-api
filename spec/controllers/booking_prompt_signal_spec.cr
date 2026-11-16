@@ -69,6 +69,24 @@ module PlaceOS::Api
       client.post("#{Root.base_route}signal?#{params}", headers: headers, body: {id: "another-event", check_in: false}.to_json).status_code.should eq 403
     end
 
+    it "rejects malformed booking prompt payloads before publishing to the legacy channel" do
+      f = fixture = Spec::Tenancy.build
+      path = "#{f.acadian.system.id}/guest/bookings/prompted"
+      messages = Channel(String).new(8)
+      subscriptions = subs = Driver::Subscriptions.new
+      subs.channel(path) { |_, body| messages.send(body) }
+      headers = prompt_signal_headers(f.acadian.authority, ["invited-event", f.acadian.system.id.as(String)])
+      params = HTTP::Params{"channel" => path}
+      ["{", {id: "invited-event"}.to_json, {id: "invited-event", check_in: "yes"}.to_json].each do |body|
+        client.post("#{Root.base_route}signal?#{params}", headers: headers, body: body).status_code.should eq 400
+      end
+      select
+      when messages.receive
+        fail "a malformed payload reached the booking helper"
+      when timeout(100.milliseconds)
+      end
+    end
+
     it "does not accept foreign room capabilities on the authenticated guest domain" do
       f = fixture = Spec::Tenancy.build
       path = "#{f.ucla.system.id}/guest/bookings/prompted"
