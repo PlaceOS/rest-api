@@ -151,7 +151,7 @@ module PlaceOS::Api::WebSocket
     end
 
     private def debug_module_in_scope?(system_id : String, module_id : String) : Bool
-      return true if @authorizer.nil?
+      return true if @authorizer.nil? && @module_debug_authorizer.nil?
       mod = ::PlaceOS::Model::Module.find?(module_id)
       return false unless mod && owner_in_scope?(mod.organisation_id)
       if parent_id = mod.control_system_id.presence

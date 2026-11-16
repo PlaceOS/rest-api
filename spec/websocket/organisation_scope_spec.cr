@@ -180,9 +180,12 @@ module PlaceOS::Api::WebSocket
       f = fixture = Spec::Tenancy.build
       f.acadian.system.update_fields(modules: [] of String)
       f.acadian.mod.update_fields(control_system_id: nil)
+      Model::ControlSystem.find!(f.acadian.system.id.as(String)).modules.should be_empty
+      Model::Module.find!(f.acadian.mod.id.as(String)).control_system_id.should be_nil
       scoped_socket(f.acadian.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
         socket.send Session::Request.new(id: 35_i64, system_id: f.acadian.system.id.as(String), module_name: f.acadian.mod.id.as(String), command: :debug, name: "spoofed").to_json
-        scope_response(responses, 35_i64).error_code.should eq Session::Response::ErrorCode::AccessDenied
+        spoofed = scope_response(responses, 35_i64)
+        spoofed.error_code.should eq(Session::Response::ErrorCode::AccessDenied), spoofed.to_json
         socket.send Session::Request.new(id: 36_i64, system_id: "", module_name: f.ucla.mod.id.as(String), command: :debug, name: "foreign").to_json
         response = scope_response(responses, 36_i64)
         response.type.should eq Session::Response::Type::Error
