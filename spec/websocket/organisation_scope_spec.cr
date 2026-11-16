@@ -35,6 +35,15 @@ module PlaceOS::Api::WebSocket
     Session::Request.new(id: id, system_id: system.id.as(String), module_name: mod, command: command, name: name)
   end
 
+  private def self.detach_debug_module(system : Model::ControlSystem, mod : Model::Module)
+    PgORM::Database.connection do |db|
+      db.exec("UPDATE sys SET modules = '{}'::text[] WHERE id = $1", args: [system.id.as(String)])
+      db.exec("UPDATE mod SET control_system_id = NULL WHERE id = $1", args: [mod.id.as(String)])
+    end
+    Model::ControlSystem.find!(system.id.as(String)).modules.should be_empty
+    Model::Module.find!(mod.id.as(String)).control_system_id.should be_nil
+  end
+
   describe "organisation-scoped websocket sessions" do
     fixture = nil.as(Spec::Tenancy::Fixture?)
     before_each { Utils::Tenancy.enforce = true }
@@ -151,8 +160,7 @@ module PlaceOS::Api::WebSocket
 
     it "preserves standalone owned module debugging with module-id or empty system metadata" do
       f = fixture = Spec::Tenancy.build
-      f.acadian.system.update_fields(modules: [] of String)
-      f.acadian.mod.update_fields(control_system_id: nil)
+      detach_debug_module(f.acadian.system, f.acadian.mod)
       scoped_socket(f.acadian.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
         [f.acadian.mod.id.as(String), ""].each_with_index do |system_id, offset|
           request_id = 31_i64 + offset
@@ -164,8 +172,7 @@ module PlaceOS::Api::WebSocket
 
     it "authorises standalone debug against live module ownership and grant permission" do
       f = fixture = Spec::Tenancy.build
-      f.acadian.system.update_fields(modules: [] of String)
-      f.acadian.mod.update_fields(control_system_id: nil)
+      detach_debug_module(f.acadian.system, f.acadian.mod)
       grant = Model::Generator.grant(f.ucla.admin, "organisation", f.acadian.organisation.id.to_s, Model::Permissions::Read | Model::Permissions::Operate).save!
       scoped_socket(f.ucla.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
         socket.send Session::Request.new(id: 33_i64, system_id: "", module_name: f.acadian.mod.id.as(String), command: :debug, name: "standalone").to_json
@@ -178,10 +185,7 @@ module PlaceOS::Api::WebSocket
 
     it "does not attach a standalone debugger to a spoofed real system or a foreign module" do
       f = fixture = Spec::Tenancy.build
-      f.acadian.system.update_fields(modules: [] of String)
-      f.acadian.mod.update_fields(control_system_id: nil)
-      Model::ControlSystem.find!(f.acadian.system.id.as(String)).modules.should be_empty
-      Model::Module.find!(f.acadian.mod.id.as(String)).control_system_id.should be_nil
+      detach_debug_module(f.acadian.system, f.acadian.mod)
       scoped_socket(f.acadian.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
         socket.send Session::Request.new(id: 35_i64, system_id: f.acadian.system.id.as(String), module_name: f.acadian.mod.id.as(String), command: :debug, name: "spoofed").to_json
         spoofed = scope_response(responses, 35_i64)

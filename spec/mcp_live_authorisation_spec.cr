@@ -88,14 +88,18 @@ module PlaceOS::Api
       mcp_watch_drain(events)
       storage = Driver::RedisStorage.new(f.acadian.mod.id.as(String))
       mcp_watch_update(events, storage, 1)
-      key.update_fields(scopes: [Model::UserJWT::Scope.new("users", Model::UserJWT::Scope::Access::Read)])
+      key.scopes = [Model::UserJWT::Scope.new("users", Model::UserJWT::Scope::Access::Read)]
+      key.save!
+      Model::ApiKey.find!(key.id.as(String)).scopes.should eq key.scopes
       storage["authorisation_probe"] = 2
       select
       when events.receive
         fail "a key without module read scope still received an MCP resource notification"
       when timeout(250.milliseconds)
       end
-      key.update_fields(scopes: [Model::UserJWT::Scope::PUBLIC])
+      key.scopes = [Model::UserJWT::Scope::PUBLIC]
+      key.save!
+      Model::ApiKey.find!(key.id.as(String)).scopes.should eq key.scopes
       mcp_watch_update(events, storage, 3)
       key.destroy
       storage["authorisation_probe"] = 4
