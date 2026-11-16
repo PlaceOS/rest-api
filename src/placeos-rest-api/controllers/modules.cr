@@ -20,7 +20,9 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
+    generate_scope_check "control"
     before_action :can_read, only: [:index, :show]
+    before_action :can_read_control, only: [:state, :state_lookup, :state_value]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [

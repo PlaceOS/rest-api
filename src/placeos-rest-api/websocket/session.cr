@@ -746,7 +746,11 @@ module PlaceOS::Api::WebSocket
       if request.command.debug? && @module_debug_authorizer
         mod = ::PlaceOS::Model::Module.find?(request.module_name)
         unless mod && owner_in_scope?(mod.organisation_id)
-          respond error_response(request.id, :module_not_found, "module outside selection", 404)
+          if system_in_reach?(request.system_id)
+            respond error_response(request.id, :access_denied, "attempted to debug a module without access", 403)
+          else
+            respond error_response(request.id, :module_not_found, "module outside selection", 404)
+          end
           return
         end
         debug(**arguments)
