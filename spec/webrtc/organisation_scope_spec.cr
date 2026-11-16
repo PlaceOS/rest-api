@@ -53,6 +53,31 @@ module PlaceOS::Api
       client.get("#{WebRTC.base_route}room/#{f.acadian.system.id}", headers: headers).status_code.should eq 200
     end
 
+    it "resolves duplicate room permalinks within the authenticated domain owner" do
+      f = fixture = Spec::Tenancy.build
+      code = "room-#{random_name}"
+      [f.acadian.system, f.ucla.system].each do |system|
+        system.update_fields(public: true, code: code)
+      end
+      [f.acadian, f.ucla].each do |home|
+        response = client.get("#{WebRTC.base_route}room/#{code}", headers: HTTP::Headers{"Host" => home.authority.domain})
+        response.status_code.should eq 200
+        JSON.parse(response.body)["system"]["id"].as_s.should eq home.system.id.as(String)
+      end
+    end
+
+    it "does not let a foreign or private room with the same code hide an owned public room" do
+      f = fixture = Spec::Tenancy.build
+      code = "room-#{random_name}"
+      f.ucla.system.update_fields(public: true, code: code)
+      f.acadian.system.update_fields(public: false, code: code)
+      headers = HTTP::Headers{"Host" => f.ucla.authority.domain}
+      response = client.get("#{WebRTC.base_route}room/#{code}", headers: headers)
+      response.status_code.should eq 200
+      JSON.parse(response.body)["system"]["id"].as_s.should eq f.ucla.system.id.as(String)
+      client.get("#{WebRTC.base_route}room/#{code}", headers: HTTP::Headers{"Host" => f.acadian.authority.domain}).status_code.should eq 404
+    end
+
     it "isolates the same client session id in two domains" do
       f = fixture = Spec::Tenancy.build
       shared_session = UUID.random.to_s

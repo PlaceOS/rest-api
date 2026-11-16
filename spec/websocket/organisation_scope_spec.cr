@@ -149,6 +149,47 @@ module PlaceOS::Api::WebSocket
       end
     end
 
+    it "preserves standalone owned module debugging with module-id or empty system metadata" do
+      f = fixture = Spec::Tenancy.build
+      f.acadian.system.update_fields(modules: [] of String)
+      f.acadian.mod.update_fields(control_system_id: nil)
+      scoped_socket(f.acadian.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
+        [f.acadian.mod.id.as(String), ""].each_with_index do |system_id, offset|
+          request_id = 31_i64 + offset
+          socket.send Session::Request.new(id: request_id, system_id: system_id, module_name: f.acadian.mod.id.as(String), command: :debug, name: "standalone").to_json
+          scope_response(responses, request_id).type.should eq Session::Response::Type::Success
+        end
+      end
+    end
+
+    it "authorises standalone debug against live module ownership and grant permission" do
+      f = fixture = Spec::Tenancy.build
+      f.acadian.system.update_fields(modules: [] of String)
+      f.acadian.mod.update_fields(control_system_id: nil)
+      grant = Model::Generator.grant(f.ucla.admin, "organisation", f.acadian.organisation.id.to_s, Model::Permissions::Read | Model::Permissions::Operate).save!
+      scoped_socket(f.ucla.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
+        socket.send Session::Request.new(id: 33_i64, system_id: "", module_name: f.acadian.mod.id.as(String), command: :debug, name: "standalone").to_json
+        scope_response(responses, 33_i64).type.should eq Session::Response::Type::Success
+        grant.destroy
+        socket.send Session::Request.new(id: 34_i64, system_id: "", module_name: f.acadian.mod.id.as(String), command: :debug, name: "revoked").to_json
+        scope_response(responses, 34_i64).error_code.should eq Session::Response::ErrorCode::AccessDenied
+      end
+    end
+
+    it "does not attach a standalone debugger to a spoofed real system or a foreign module" do
+      f = fixture = Spec::Tenancy.build
+      f.acadian.system.update_fields(modules: [] of String)
+      f.acadian.mod.update_fields(control_system_id: nil)
+      scoped_socket(f.acadian.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
+        socket.send Session::Request.new(id: 35_i64, system_id: f.acadian.system.id.as(String), module_name: f.acadian.mod.id.as(String), command: :debug, name: "spoofed").to_json
+        scope_response(responses, 35_i64).error_code.should eq Session::Response::ErrorCode::AccessDenied
+        socket.send Session::Request.new(id: 36_i64, system_id: "", module_name: f.ucla.mod.id.as(String), command: :debug, name: "foreign").to_json
+        response = scope_response(responses, 36_i64)
+        response.type.should eq Session::Response::Type::Error
+        response.response_code.should eq 404
+      end
+    end
+
     it "does not ignore a revoked API key because its scope includes guest" do
       f = fixture = Spec::Tenancy.build
       key = Model::ApiKey.new(name: "Guest-marked key #{random_name}", scopes: [Model::UserJWT::Scope::PUBLIC, Model::UserJWT::Scope::GUEST])
