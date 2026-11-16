@@ -438,5 +438,36 @@ module PlaceOS::Api
         end
       end
     end
+    it "summarises existing destination grant reach and safe principal samples" do
+      f = fixture = Spec::Tenancy.build
+      Model::Generator.grant(f.ntt_staff.user, "organisation", f.ucla.organisation.id.to_s, Model::Permissions::Read).save!
+      operations = [{kind: "merge_organisations", source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
+      preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
+      preview.status_code.should eq 200
+      plan = JSON.parse(preview.body)
+      plan["target_grant_effects"]?.should_not be_nil
+      effects = plan["target_grant_effects"].as_a
+      effects.find! { |effect| effect["scope_id"].as_s == f.ucla.organisation.id.to_s }["grants_affected"].as_i.should eq 1
+      access = plan["access_changes"].as_a.first
+      access["user_sample"].as_a.map(&.as_s).should contain(f.acadian.admin.id)
+      access["active_administrators"].as_i.should eq 1
+      access["sample_complete"].as_bool.should be_true
+      preview.body.should_not contain("password_digest")
+      preview.body.should_not contain("access_token")
+    end
+
+    it "keeps ordinary user login activity out of an ownership fingerprint" do
+      f = fixture = Spec::Tenancy.build
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      operations = [{kind: "move_domain", resource_type: "authority", resource_ids: [f.acadian.authority.id], source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
+      preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+      preview.status_code.should eq 200
+      f.acadian.user.login_count += 1
+      f.acadian.user.last_login = Time.utc
+      f.acadian.user.save!
+      response = client.post("#{base}/apply", headers: headers,
+        body: {operations: operations, digest: JSON.parse(preview.body)["digest"].as_s, idempotency_key: UUID.random.to_s}.to_json)
+      response.status_code.should eq 200
+    end
   end
 end
