@@ -116,8 +116,9 @@ module PlaceOS::Api
 
     it "does not dispatch a foreign system corruptly referencing the authorised zone" do
       f = prepare.call
+      f.ucla.mod.update_fields(custom_name: f.acadian.mod.resolved_name)
       f.ucla.system.update_fields(zones: f.ucla.system.zones + [f.acadian.building.id.as(String)])
-      wait_for_module_lookups(f.ucla.system.id.as(String), {"#{f.ucla.mod.resolved_name}/1" => f.ucla.mod.id.as(String)})
+      wait_for_module_lookups(f.ucla.system.id.as(String), {"#{f.acadian.mod.resolved_name}/1" => f.ucla.mod.id.as(String)})
       zone_exec_interface(f.ucla.mod)
       path = "#{Zones.base_route}#{f.acadian.building.id}/exec/#{f.acadian.mod.resolved_name}/ordinary"
       response = client.post(path, headers: Spec::Tenancy.headers(f.acadian.admin), body: "[]")
