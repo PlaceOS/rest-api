@@ -136,6 +136,10 @@ module PlaceOS::Api::WebSocket
               found
             end
       return unless mod && system.modules.includes?(mod.id.to_s) && mod.organisation_id == system.organisation_id
+      if parent_id = mod.control_system_id.presence
+        parent = ::PlaceOS::Model::ControlSystem.find?(parent_id)
+        return unless parent && parent.organisation_id == system.organisation_id && parent.modules.includes?(mod.id.as(String))
+      end
       unless interface
         runtime_id = Driver::Proxy::System.module_id?(system_id, module_name, index)
         return if runtime_id && runtime_id != mod.id
