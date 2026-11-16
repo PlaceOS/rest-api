@@ -773,6 +773,10 @@ module PlaceOS::Api
     def control(ws, fixed_device : Bool = false) : Nil
       Log.trace { "WebSocket API request" }
       Log.context.set(fixed_device: fixed_device)
+      debug_authorizer = if Utils::Tenancy.enforce?
+                           policy = tenancy_policy
+                           ->(module_id : String) { policy.module_debug_access?(module_id) }
+                         end
       Systems.session_manager.create_session(
         ws: ws,
         request_id: request_id,
@@ -780,6 +784,7 @@ module PlaceOS::Api
         organisation_ids: tenancy.organisation_ids,
         authorizer: Utils::Tenancy.enforce? ? socket_tenancy_authorizer : nil,
         security_authorizer: Utils::Tenancy.enforce? ? socket_tenancy_security : nil,
+        module_debug_authorizer: debug_authorizer,
       )
     end
 

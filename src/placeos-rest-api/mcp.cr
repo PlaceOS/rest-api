@@ -21,8 +21,8 @@ module PlaceOS::Api::MCP
     with their permissions. List results are paginated: follow the `Link` header (or use
     `X-Total-Count`) to fetch more.
 
-    Ordinary users default to their own organisation. Partner and management staff
-    first list organisations, then pass organisation_id on each resource tool call.
+    Every role defaults to the organisation that owns the authenticated domain.
+    To select another accessible organisation, pass organisation_id on each tool call.
     The same optional query variable selects an organisation in resource URIs.
     Staff API continues to use its domain and is not affected by this selection.
 
@@ -76,20 +76,35 @@ module PlaceOS::Api::MCP
   # read after subscribing without missing a change. The driver subscription also
   # delivers an existing value once redis has registered the channel, which covers
   # changes made before then, so a resource with a value can be notified twice.
+  # Resource notifications outlive the request that opened their stream. Reuse
+  # the resource route's complete authorisation on every update, so revocation,
+  # stored API-key scopes and changed ownership apply to existing subscriptions.
+  private def self.state_authorizer(template : String, variables : Hash(String, String), request : HTTP::Request) : Proc(Bool)
+    return -> { true } unless Utils::Tenancy.enforce?
+    values = variables.dup
+    origin = HTTP::Request.new(request.method, request.resource, request.headers.dup)
+    origin.remote_address = request.remote_address
+    tool = ActionController::MCPServer.generate_description.toolboxes.flat_map(&.tools).find! { |candidate| candidate.resource == template }
+    invoker = ActionController::MCPServer::Invoker.new(ActionController::Composition.default.handler.route_handler)
+    -> { invoker.readable?(tool, values, origin) }
+  end
+
   def self.watch_state : Nil
-    ActionController::MCPServer.watch("placeos://modules/{id}/state/{key}{?organisation_id}") do |variables, _request, changed|
+    ActionController::MCPServer.watch("placeos://modules/{id}/state/{key}{?organisation_id}") do |variables, request, changed|
+      authorize = state_authorizer("placeos://modules/{id}/state/{key}{?organisation_id}", variables, request)
       subscriptions = WebSocket::Session.subscriptions
-      subscription = subscriptions.subscribe(variables["id"], variables["key"]) { |_, _| changed.call }
-      changed.call
+      subscription = subscriptions.subscribe(variables["id"], variables["key"]) { |_, _| changed.call if authorize.call }
+      changed.call if authorize.call
       -> { subscriptions.unsubscribe(subscription); nil }
     end
 
     # follows the module if another is assigned to the system's module slot
-    ActionController::MCPServer.watch("placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}") do |variables, _request, changed|
+    ActionController::MCPServer.watch("placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}") do |variables, request, changed|
+      authorize = state_authorizer("placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}", variables, request)
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(variables["module_slug"])
       subscriptions = WebSocket::Session.subscriptions
-      subscription = subscriptions.subscribe(variables["sys_id"], module_name, index, variables["key"]) { |_, _| changed.call }
-      changed.call
+      subscription = subscriptions.subscribe(variables["sys_id"], module_name, index, variables["key"]) { |_, _| changed.call if authorize.call }
+      changed.call if authorize.call
       -> { subscriptions.unsubscribe(subscription); nil }
     end
   end

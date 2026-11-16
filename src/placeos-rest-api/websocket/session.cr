@@ -47,6 +47,7 @@ module PlaceOS::Api::WebSocket
       @organisation_ids : Set(UUID)? = nil,
       @authorizer : Proc(String, ::PlaceOS::Model::Permissions, Bool)? = nil,
       @security_authorizer : Proc(String, Driver::Proxy::RemoteDriver::Clearance)? = nil,
+      @module_debug_authorizer : Proc(String, Bool)? = nil,
     )
       # Register event handlers
       ws.on_message do |message|
@@ -151,12 +152,23 @@ module PlaceOS::Api::WebSocket
 
     private def debug_module_in_scope?(system_id : String, module_id : String) : Bool
       return true if @authorizer.nil?
-      system = ::PlaceOS::Model::ControlSystem.find?(system_id)
       mod = ::PlaceOS::Model::Module.find?(module_id)
-      !!(system && owner_in_scope?(system.organisation_id) && mod && system.modules.includes?(module_id) && mod.organisation_id == system.organisation_id)
+      return false unless mod && owner_in_scope?(mod.organisation_id)
+      if parent_id = mod.control_system_id.presence
+        parent = ::PlaceOS::Model::ControlSystem.find?(parent_id)
+        return false unless parent && parent.organisation_id == mod.organisation_id && parent.modules.includes?(module_id)
+      end
+      # Standalone debugging has always used a module id (or empty string)
+      # as location metadata. An explicit real system must actually contain it.
+      return true if system_id.empty? || system_id == module_id
+      system = ::PlaceOS::Model::ControlSystem.find?(system_id)
+      !!(system && owner_in_scope?(system.organisation_id) && system.modules.includes?(module_id) && mod.organisation_id == system.organisation_id)
     end
 
     private def debug_allowed?(system_id : String, module_id : String) : Bool
+      if authorize = @module_debug_authorizer
+        return authorize.call(module_id)
+      end
       return Utils::ModuleDebugAccess.allowed?(user, module_id) unless @authorizer
       clearance = scoped_security(system_id)
       return true if clearance.admin? || clearance.support?
@@ -184,6 +196,9 @@ module PlaceOS::Api::WebSocket
         ),
       )
       Utils::ModuleDebugAccess.allowed?(scoped_user, module_id)
+    rescue error
+      Log.warn(exception: error) { "websocket debug authorisation could not be verified" }
+      false
     end
 
     protected def elevate_security(system_id : String, default : Driver::Proxy::RemoteDriver::Clearance) : Driver::Proxy::RemoteDriver::Clearance
@@ -390,7 +405,8 @@ module PlaceOS::Api::WebSocket
       if !existing_socket || existing_socket.closed?
         ws = Utils::ModuleLogs.open(module_id: module_name, sys_id: system_id, user_id: user.id, discovery: @discovery) do |level, message|
           required = ::PlaceOS::Model::Permissions::Read | ::PlaceOS::Model::Permissions::Operate
-          next unless scope_permitted?(system_id, required) && debug_module_in_scope?(system_id, module_name) && debug_allowed?(system_id, module_name)
+          next unless @module_debug_authorizer || scope_permitted?(system_id, required)
+          next unless debug_module_in_scope?(system_id, module_name) && debug_allowed?(system_id, module_name)
           respond(
             Response.new(
               id: request_id,
@@ -724,6 +740,18 @@ module PlaceOS::Api::WebSocket
         name:        request.name,
       }
       Log.context.set(**arguments.merge({ws_request_id: @request_id}))
+
+      # Debug is addressed by module id, including modules without a system.
+      # Its live module policy replaces the system gate, never an ownership check.
+      if request.command.debug? && @module_debug_authorizer
+        mod = ::PlaceOS::Model::Module.find?(request.module_name)
+        unless mod && owner_in_scope?(mod.organisation_id)
+          respond error_response(request.id, :module_not_found, "module outside selection", 404)
+          return
+        end
+        debug(**arguments)
+        return
+      end
 
       # Cleanup remains possible after permission revocation.
       unless request.command.unbind? || request.command.ignore?

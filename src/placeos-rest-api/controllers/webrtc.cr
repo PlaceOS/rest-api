@@ -24,7 +24,13 @@ module PlaceOS::Api
       system = if system_id.starts_with? "sys-"
                  ::PlaceOS::Model::ControlSystem.find!(system_id)
                else
-                 res = ::PlaceOS::Model::ControlSystem.where(code: system_id).first?
+                 query = ::PlaceOS::Model::ControlSystem.where(code: system_id)
+                 if Utils::Tenancy.enforce?
+                   owner = current_authority.try(&.organisation_id)
+                   raise Error::NotFound.new("could not find room #{system_id}") unless owner
+                   query = query.where(organisation_id: owner, public: true)
+                 end
+                 res = query.first?
                  raise Error::NotFound.new("could not find room #{system_id}") unless res
                  res
                end
