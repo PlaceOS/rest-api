@@ -443,6 +443,11 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       can_modify?(current_module)
+      if Utils::Tenancy.enforce?
+        ::PlaceOS::Model::ControlSystem.where("? = ANY(modules)", current_module.id.as(String)).each do |system|
+          ensure_reach!(system)
+        end
+      end
       current_module.destroy
     end
 

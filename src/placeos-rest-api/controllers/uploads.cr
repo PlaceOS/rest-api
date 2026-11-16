@@ -129,7 +129,7 @@ module PlaceOS::Api
                    end
                    [found]
                  else
-                   authority_ids.map { |id| ::PlaceOS::Model::Storage.storage_or_default(id) }.uniq { |entry| entry.id }
+                   authority_ids.map { |id| ::PlaceOS::Model::Storage.storage_or_default(id) }.uniq!(&.id)
                  end
       params = [] of String | Int32
       storage_placeholders = storages.map do |entry|
