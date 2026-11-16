@@ -53,8 +53,6 @@ module PlaceOS::Api
         organisation = ::PlaceOS::Model::Organisation.find?(id)
         raise Error::NotFound.new("organisation not found") unless organisation && accessible_tenancy.includes?(id)
         id
-      elsif Utils::Tenancy.enforce? && !resolved_tenancy.reach.organisation?
-        raise Error::OrganisationSelection.new("select an organisation using organisation_id", "organisation_required")
       else
         current_organisation.try(&.id)
       end
@@ -115,7 +113,7 @@ module PlaceOS::Api
       case action_name
       when :logs
         ::PlaceOS::Model::Permissions::Read | ::PlaceOS::Model::Permissions::Operate
-      when :execute, :start, :stop, :load, :ping, :signal
+      when :execute, :zone_execute, :start, :stop, :load, :ping, :signal
         ::PlaceOS::Model::Permissions::Operate
       when :settings, :edit, :update_media, :reorder, :schedule_media, :update_schedule, :rename_tag, :remove_tag, :cancel, :claim, :resolve
         ::PlaceOS::Model::Permissions::Update

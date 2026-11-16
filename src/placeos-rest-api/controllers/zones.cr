@@ -15,11 +15,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :trigger_instances]
-    before_action :can_write, only: [:create, :update, :destroy, :remove]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :zone_execute]
 
     # Restrict zone trigger listing to admin/support — `:trigger_instances`
     # (GET /zones/:id/triggers) exposes internal automation/driver state.
-    before_action :check_support, only: [:zone_execute, :trigger_instances]
+    before_action :check_support, only: [:trigger_instances]
 
     # Response helpers
     ###############################################################################################
@@ -43,6 +43,14 @@ module PlaceOS::Api
     end
 
     getter! current_zone : ::PlaceOS::Model::Zone
+
+    @[AC::Route::Filter(:before_action, only: [:zone_execute])]
+    def check_zone_execution_permissions
+      return check_support unless Utils::Tenancy.enforce?
+      # The reach gate already verified an explicit delegated Operate grant.
+      return unless tenancy_policy.structural?(current_zone.organisation_id)
+      ensure_support_access!([current_zone.id.as(String)], ::PlaceOS::Model::Permissions::Operate)
+    end
 
     @[AC::Route::Filter(:before_action, only: [:update, :create], body: :zone_update)]
     def parse_update_zone(@zone_update : ::PlaceOS::Model::Zone)
@@ -414,21 +422,31 @@ module PlaceOS::Api
       method : String,
     ) : ZoneExecResponse
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
+      scoped = Utils::Tenancy.enforce?
+      owner = current_zone.organisation_id
+      clearance = scoped ? tenancy_policy.resource_security(owner) : driver_clearance(user_token)
 
       results = Promise.map(current_zone.systems) do |system|
         system_id = system.id.as(String)
         Log.context.set(system_id: system_id, module_name: module_name, index: index)
         begin
-          remote_driver = Driver::Proxy::RemoteDriver.new(
-            sys_id: system_id,
-            module_name: module_name,
-            index: index
-          ) { |module_id|
-            ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
-          }
+          # Authorisation belongs to the addressed zone. These checks validate
+          # ownership and runtime references, without requiring descendant grants.
+          approved = if scoped
+                       next {system_id, ExecStatus::Failure} unless owner && system.organisation_id == owner
+                       mod = Systems.approved_runtime_module?(system_id, module_name, index)
+                       next {system_id, ExecStatus::Missing} unless mod && mod.organisation_id == owner
+                       mod
+                     end
+          edge_id = ->(module_id : String) { ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String) }
+          remote_driver = if approved
+                            Driver::Proxy::RemoteDriver.new(module_id: approved.id.as(String), sys_id: system_id, module_name: module_name, index: index, &edge_id)
+                          else
+                            Driver::Proxy::RemoteDriver.new(sys_id: system_id, module_name: module_name, index: index, &edge_id)
+                          end
 
           output, status_code = remote_driver.exec(
-            security: driver_clearance(user_token),
+            security: clearance,
             function: method,
             args: args,
             request_id: request_id,

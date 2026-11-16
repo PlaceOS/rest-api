@@ -40,12 +40,13 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 With `PLACE_TENANCY_ENFORCE=true`, REST requests operate in one organisation.
 Existing users of a single organisation keep their Host, credentials, paths and
-request bodies: omitting `organisation_id` selects their home organisation, even
-when they hold grants to other organisations. This flag remains off by default
+request bodies: omitting `organisation_id` selects the authenticated domain's
+owner for every role, including partner and management staff, even when grants
+provide access to other organisations. This flag remains off by default
 until ownership data has been reconciled.
 
-Partner and management staff with structural access must first discover an
-organisation and pass its ID on resource requests:
+Partner and management staff discover organisations and pass an explicit ID
+when viewing resources outside their authenticated domain's organisation:
 
 ```http
 GET /api/engine/v2/organisations/current
@@ -56,8 +57,8 @@ GET /api/engine/v2/systems/<system-id>?organisation_id=<organisation-uuid>
 
 Discovery returns minimal selector records. `/organisations/current` includes
 `selection_required` and `selected_organisation_id`. Selection is per request;
-login Host and token authority stay fixed. Missing required selection returns
-400 with `code: organisation_required`; malformed or repeated selectors return
+login Host and token authority stay fixed. A domain without ownership reaches
+no estate and requires reconciliation. Malformed or repeated selectors return
 400, inaccessible resources return 404, and missing operation rights return 403.
 Selection intersects grants and OAuth/API-key scopes; it does not grant access.
 Authority grants remain restricted to that domain and exact permission bits.
@@ -87,3 +88,12 @@ branch dependency until PlaceOS/models#332 is released, then update the pin to
 that release. Enable enforcement on a test cluster and run the unchanged home
 request, partner selector, delegated-permission and socket regression checks
 before production rollout.
+
+Zone-wide execution authorises Operate on the addressed zone and intersects
+OAuth/API-key write scopes. It validates target ownership and runtime aliases
+without requiring separate operation grants on each system or module.
+
+The legacy booking prompt channel remains available for the existing driver
+only after checking the addressed system owner and both invited system/event
+capabilities. Other signals remain domain-scoped under enforcement. Driver
+subscription updates are tracked separately and are not required for this bridge.

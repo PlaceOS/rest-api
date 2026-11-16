@@ -80,18 +80,14 @@ module PlaceOS::Api
       organisations = scope.organisation_ids.try do |ids|
         ids.empty? ? [] of Summary : ::PlaceOS::Model::Organisation.find_all(ids.to_a).order("name, id").map { |org| Summary.new(org) }.to_a
       end
-      selected = if query_params["organisation_id"]?
-                   selected_organisation_id
-                 elsif scope.reach.organisation?
-                   current_organisation.try(&.id)
-                 end
+      selected = selected_organisation_id
       CurrentReach.new(
         reach: scope.reach.to_s.downcase,
         enforcing: Utils::Tenancy.enforce?,
         organisation: scope.organisation.try { |org| Summary.new(org) },
         partner: scope.partner.try { |partner| PartnerSummary.new(partner) },
         organisations: organisations,
-        selection_required: Utils::Tenancy.enforce? && !scope.reach.organisation?,
+        selection_required: Utils::Tenancy.enforce? && selected.nil?,
         selected_organisation_id: selected,
       )
     end
