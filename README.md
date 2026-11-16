@@ -97,3 +97,56 @@ The legacy booking prompt channel remains available for the existing driver
 only after checking the addressed system owner and both invited system/event
 capabilities. Other signals remain domain-scoped under enforcement. Driver
 subscription updates are tracked separately and are not required for this bridge.
+
+## Ownership reconciliation
+
+Cluster administrators can repair legacy ownership through
+`/api/engine/v2/reconciliation`, including while enforcement is disabled. These
+routes require a live management-domain administrator and intersect OAuth and
+API-key scopes. Partner administrators and delegated organisation managers cannot
+use them. Inventory, preview and receipts require read access to `reconciliation`
+or `organisations`; apply requires write access.
+
+1. `GET /reconciliation` lists unowned resources and conflicting references. Use
+   `resource_type`, `resource_id`, `limit` and `offset` to review the findings.
+2. `POST /reconciliation/preview` accepts an `operations` array and returns the
+   complete ownership changes, blockers, access effects and a digest. Preview
+   does not write data. Resolve every blocker and review the access effects.
+3. `POST /reconciliation/apply` submits the same operations and digest with a
+   caller-chosen `idempotency_key`. Apply rechecks the administrator, ownership
+   and references under database locks. A stale preview returns 409. All resource,
+   history and receipt writes commit together; retrying the same request returns
+   its existing receipt. Reusing the key for a different plan returns 409.
+4. `GET /reconciliation/<receipt-id>` retrieves the durable review and result.
+
+For example, claim an unowned zone tree and its dependent systems, modules and
+trigger instances into an existing organisation:
+
+```json
+{
+  "operations": [{
+    "kind": "claim",
+    "resource_type": "zone",
+    "resource_ids": ["zone-1234"],
+    "target_organisation_id": "00000000-0000-0000-0000-000000000001"
+  }]
+}
+```
+
+`reassign` and `move_zone_tree` also require the reviewed
+`source_organisation_id`. `move_domain` uses `resource_type: "authority"` and
+moves the domain together with its estate. This first version permits domain
+moves only when the source organisation has one domain; a multi-domain estate
+requires prior separation or an explicit `merge_organisations` operation with
+source and target IDs. Organisation merges retain the source organisation and
+its configuration. Grant collisions and changes between customer, partner-staff
+and management scopes require separate resolution; apply never combines grant
+permission masks or extends their expiry.
+
+Normal resource APIs remain scoped to their selected organisation. Reconciliation
+does not enable enforcement or change login domains, calendar credentials or
+driver configuration. Keep enforcement disabled through the upgrade and repair
+ambiguous ownership before enabling it. With enforcement disabled, legacy global
+name validation is retained. Enforced organisation-local names can collide across
+organisations; resolve those collisions before returning to global-name mode or
+an older binary.
