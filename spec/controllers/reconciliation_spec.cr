@@ -9,8 +9,8 @@ module PlaceOS::Api
       Utils::Tenancy.enforce = false
       if f = fixture
         PgORM::Database.connection do |db|
-          exists = db.query_one("SELECT to_regclass('tenancy_reconciliations') IS NOT NULL", &.read(Bool))
-          db.exec("DELETE FROM tenancy_reconciliations WHERE actor_id = $1", f.placeos.admin.id.as(String)) if exists
+          exists = db.query_one("SELECT to_regclass('tenancy_reconciliations') IS NOT NULL", args: [] of PgORM::Value, &.read(Bool))
+          db.exec("DELETE FROM tenancy_reconciliations WHERE actor_id = $1", args: [f.placeos.admin.id.as(String)]) if exists
         end
         Spec::Tenancy.teardown(f)
         fixture = nil
@@ -69,7 +69,7 @@ module PlaceOS::Api
       replay.status_code.should eq 200
       JSON.parse(replay.body).should eq JSON.parse(applied.body)
       PgORM::Database.connection do |db|
-        db.query_one("SELECT count(*) FROM tenancy_reconciliations WHERE actor_id = $1", f.placeos.admin.id.as(String), &.read(Int64)).should eq 1
+        db.query_one("SELECT count(*) FROM tenancy_reconciliations WHERE actor_id = $1", args: [f.placeos.admin.id.as(String)], &.read(Int64)).should eq 1
       end
       changed_key_use = {operations: [] of String, digest: digest, idempotency_key: JSON.parse(body)["idempotency_key"].as_s}.to_json
       client.post("#{base}/apply", headers: headers, body: changed_key_use).status_code.should eq 409
