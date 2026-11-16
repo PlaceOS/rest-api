@@ -110,6 +110,22 @@ module PlaceOS::Api
       end
     end
 
+    it "accepts either storage authority selector and rejects conflicting or repeated selectors" do
+      f, other = build.call
+      Model::Generator.storage(authority_id: f.acadian.authority.id).save!
+      selected = Model::Generator.storage(authority_id: other.id).save!
+      headers = Spec::Tenancy.headers(f.ntt_staff.admin)
+      suffix = "?organisation_id=#{f.acadian.organisation.id}"
+      ["authority_id", "auth_id"].each do |parameter|
+        response = client.get("#{Storages.base_route}#{suffix}&#{parameter}=#{other.id}", headers: headers)
+        response.status_code.should eq 200
+        Spec::Tenancy.ids(response.body).should eq [selected.id]
+      end
+      client.get("#{Storages.base_route}#{suffix}&authority_id=#{other.id}&auth_id=#{f.acadian.authority.id}", headers: headers).status_code.should eq 400
+      client.get("#{Storages.base_route}#{suffix}&authority_id=#{other.id}&authority_id=#{other.id}", headers: headers).status_code.should eq 400
+      client.get("#{Storages.base_route}#{suffix}&auth_id=#{other.id}&auth_id=#{other.id}", headers: headers).status_code.should eq 400
+    end
+
     it "aggregates media tags across selected domains without sibling organisation tags" do
       f, other = build.call
       Model::Generator.item(authority: f.acadian.authority).tap(&.tags = Set{"common", "first-domain"}).save!
