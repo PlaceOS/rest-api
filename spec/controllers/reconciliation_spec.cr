@@ -61,13 +61,23 @@ module PlaceOS::Api
       preview.status_code.should eq 200
       digest = JSON.parse(preview.body)["digest"].as_s
       body = {operations: operations, digest: digest, idempotency_key: UUID.random.to_s}.to_json
-      applied = client.post("#{base}/apply", headers: headers, body: body)
+      responses = Channel(HTTP::Client::Response).new(2)
+      2.times do
+        spawn { responses.send(ActionController::SpecHelper.client.post("#{base}/apply", headers: headers, body: body)) }
+      end
+      applied = responses.receive
+      duplicate = responses.receive
       applied.status_code.should eq 200
+      duplicate.status_code.should eq 200
+      JSON.parse(duplicate.body).should eq JSON.parse(applied.body)
       Model::Zone.find!(f.unowned_zone.id.as(String)).organisation_id.should eq f.acadian.organisation.id
       Model::ControlSystem.find!(f.unowned_system.id.as(String)).organisation_id.should eq f.acadian.organisation.id
       replay = client.post("#{base}/apply", headers: headers, body: body)
       replay.status_code.should eq 200
       JSON.parse(replay.body).should eq JSON.parse(applied.body)
+      receipt = client.get("#{base}/#{JSON.parse(applied.body)["id"].as_s}", headers: headers)
+      receipt.status_code.should eq 200
+      JSON.parse(receipt.body)["actor_id"].as_s.should eq f.placeos.admin.id
       PgORM::Database.connection do |db|
         db.query_one("SELECT count(*) FROM tenancy_reconciliations WHERE actor_id = $1", args: [f.placeos.admin.id.as(String)], &.read(Int64)).should eq 1
       end
