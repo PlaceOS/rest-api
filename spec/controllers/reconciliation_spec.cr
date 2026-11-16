@@ -239,5 +239,204 @@ module PlaceOS::Api
       client.post("#{base}/apply", headers: headers,
         body: {operations: operations, digest: JSON.parse(preview.body)["digest"].as_s, idempotency_key: UUID.random.to_s}.to_json).status_code.should eq 403
     end
+    it "blocks modules on foreign edges" do
+      f = fixture = Spec::Tenancy.build
+      edge = Model::Generator.edge(f.ucla.user).tap(&.organisation_id = f.ucla.organisation.id).save!
+      mod = Model::Generator.module(control_system: f.unowned_system).tap(&.edge_id = edge.id).save!
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      operations = [{kind: "claim", resource_type: "zone", resource_ids: [f.unowned_zone.id], target_organisation_id: f.acadian.organisation.id}]
+      preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+      preview.status_code.should eq 200
+      JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("reference_owner")
+    ensure
+      mod.try(&.destroy)
+      edge.try(&.destroy)
+    end
+
+    it "checks incoming modules when claiming an edge" do
+      f = fixture = Spec::Tenancy.build
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      edge = Model::Generator.edge(f.acadian.user).save!
+      f.ucla.mod.edge_id = edge.id
+      f.ucla.mod.save!
+      begin
+        operations = [{kind: "claim", resource_type: "edge", resource_ids: [edge.id], target_organisation_id: f.acadian.organisation.id}]
+        preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+        JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("reference_owner")
+      ensure
+        f.ucla.mod.edge_id = nil
+        f.ucla.mod.save!
+        edge.destroy
+      end
+    end
+
+    it "blocks system moves that strand trigger-instance zone references" do
+      f = fixture = Spec::Tenancy.build
+      system = Model::Generator.control_system.tap(&.organisation_id = f.acadian.organisation.id).save!
+      trigger = Model::Generator.trigger(system).tap(&.organisation_id = f.acadian.organisation.id).save!
+      instance = Model::Generator.trigger_instance(trigger, f.acadian.org_zone, system).save!
+      begin
+        operations = [{kind: "reassign", resource_type: "sys", resource_ids: [system.id], source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
+        preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
+        preview.status_code.should eq 200
+        JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("reference_owner")
+      ensure
+        instance.destroy
+      end
+    end
+
+    it "checks incoming trigger instances when a trigger definition moves" do
+      f = fixture = Spec::Tenancy.build
+      trigger = Model::Generator.trigger.tap(&.organisation_id = f.acadian.organisation.id).save!
+      instance = Model::Generator.trigger_instance(trigger, f.acadian.org_zone, f.acadian.system).save!
+      begin
+        operations = [{kind: "reassign", resource_type: "trigger", resource_ids: [trigger.id], source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
+        preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
+        JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("reference_owner")
+      ensure
+        instance.destroy
+      end
+    end
+
+    it "checks a trigger instance's definition when its zone moves" do
+      f = fixture = Spec::Tenancy.build
+      trigger = Model::Generator.trigger(f.ucla.system).tap(&.organisation_id = f.ucla.organisation.id).save!
+      instance = Model::Generator.trigger_instance(trigger, f.unowned_zone, f.acadian.system).save!
+      begin
+        operations = [{kind: "claim", resource_type: "zone", resource_ids: [f.unowned_zone.id], target_organisation_id: f.acadian.organisation.id}]
+        preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
+        JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("reference_owner")
+      ensure
+        instance.destroy
+      end
+    end
+
+    it "blocks ambiguous merge chains" do
+      f = fixture = Spec::Tenancy.build
+      target = Model::Generator.organisation.save!
+      operations = [
+        {kind: "merge_organisations", source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id},
+        {kind: "merge_organisations", source_organisation_id: f.ucla.organisation.id, target_organisation_id: target.id},
+      ]
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+      JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("merge_overlap")
+    end
+
+    it "detects grants colliding across two merge sources" do
+      f = fixture = Spec::Tenancy.build
+      target = Model::Generator.organisation.save!
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      Model::Generator.grant(f.ntt_staff.admin, "organisation", f.acadian.organisation.id.to_s, Model::Permissions::Read).save!
+      Model::Generator.grant(f.ntt_staff.admin, "organisation", f.ucla.organisation.id.to_s, Model::Permissions::Operate).save!
+      operations = [
+        {kind: "merge_organisations", source_organisation_id: f.acadian.organisation.id, target_organisation_id: target.id},
+        {kind: "merge_organisations", source_organisation_id: f.ucla.organisation.id, target_organisation_id: target.id},
+      ]
+      preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+      JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("grant_collision")
+    end
+
+    it "bounds referrer snapshots even when a plan changes only one tree" do
+      f = fixture = Spec::Tenancy.build
+      PgORM::Database.connection do |db|
+        db.exec(<<-SQL, args: [f.acadian.authority.id.as(String), f.acadian.user.id.as(String), f.unowned_zone.id.as(String)])
+          INSERT INTO pending_mail (id, authority_id, user_id, zones, created_at, updated_at)
+          SELECT uuidv7(), $1, $2, ARRAY[$3]::text[], now(), now() FROM generate_series(1, 5001)
+          SQL
+      end
+      begin
+        operations = [{kind: "claim", resource_type: "zone", resource_ids: [f.unowned_zone.id], target_organisation_id: f.acadian.organisation.id}]
+        preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
+        preview.status_code.should eq 400
+        preview.body.should contain("plan_too_large")
+      ensure
+        PgORM::Database.connection(&.exec("DELETE FROM pending_mail WHERE authority_id = $1", args: [f.acadian.authority.id.as(String)]))
+      end
+    end
+
+    it "keeps edge heartbeats out of the reviewed security fingerprint" do
+      f = fixture = Spec::Tenancy.build
+      edge = Model::Generator.edge(f.acadian.user).save!
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      operations = [{kind: "claim", resource_type: "edge", resource_ids: [edge.id], target_organisation_id: f.acadian.organisation.id}]
+      begin
+        preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+        JSON.parse(preview.body)["blockers"].as_a.should be_empty
+        edge.online = !edge.online
+        edge.last_seen = Time.utc
+        edge.save!
+        response = client.post("#{base}/apply", headers: headers,
+          body: {operations: operations, digest: JSON.parse(preview.body)["digest"].as_s, idempotency_key: UUID.random.to_s}.to_json)
+        response.status_code.should eq 200
+      ensure
+        edge.destroy
+      end
+    end
+
+    it "holds referrer membership stable during apply" do
+      f = fixture = Spec::Tenancy.build
+      group = Model::Generator.group(authority: f.ucla.authority).save!
+      operations = [Utils::Reconciliation::Operation.new("claim", "zone", [f.unowned_zone.id.as(String)], target_organisation_id: f.acadian.organisation.id)]
+      preview = Utils::Reconciliation.preview(operations)
+      calls = 0
+      begin
+        Utils::Reconciliation.apply(operations, preview.digest, UUID.random.to_s, f.placeos.admin.id.as(String), f.placeos.authority.id.as(String), nil) do
+          calls += 1
+          if calls == 2
+            blocked = Channel(Bool).new(1)
+            spawn do
+              PgORM::Database.transaction do |tx|
+                tx.connection.exec("SET LOCAL lock_timeout = '150ms'", args: [] of String)
+                tx.connection.exec(<<-SQL, args: [group.id.to_s, f.unowned_zone.id.as(String)])
+                  INSERT INTO group_zones (group_id, zone_id, created_at, updated_at)
+                  VALUES ($1::uuid, $2, now(), now())
+                  SQL
+              end
+              blocked.send(false)
+            rescue error : PQ::PQError
+              blocked.send(error.field_message(:code) == "55P03")
+            rescue
+              blocked.send(false)
+            end
+            blocked.receive.should be_true
+          end
+          nil
+        end
+      ensure
+        group.destroy
+      end
+    end
+
+    it "rolls back ownership, history and receipts on a real late SQL failure" do
+      f = fixture = Spec::Tenancy.build
+      operations = [Utils::Reconciliation::Operation.new("claim", "zone", [f.unowned_zone.id.as(String)], target_organisation_id: f.acadian.organisation.id)]
+      preview = Utils::Reconciliation.preview(operations)
+      history_before = Model::History.where(resource_id: [f.unowned_zone.id, f.unowned_system.id]).count
+      key = UUID.random.to_s
+      PgORM::Database.connection do |db|
+        db.exec(<<-SQL, args: [] of String)
+          CREATE FUNCTION reconciliation_receipt_failure_spec() RETURNS trigger LANGUAGE plpgsql AS $$
+          BEGIN RAISE EXCEPTION 'receipt insertion failed'; END; $$
+          SQL
+        db.exec("CREATE TRIGGER reconciliation_receipt_failure_spec BEFORE INSERT ON tenancy_reconciliations FOR EACH ROW EXECUTE FUNCTION reconciliation_receipt_failure_spec()", args: [] of String)
+      end
+      begin
+        expect_raises(PQ::PQError, /receipt insertion failed/) do
+          Utils::Reconciliation.apply(operations, preview.digest, key, f.placeos.admin.id.as(String), f.placeos.authority.id.as(String), nil) { }
+        end
+        Model::Zone.find!(f.unowned_zone.id.as(String)).organisation_id.should be_nil
+        Model::ControlSystem.find!(f.unowned_system.id.as(String)).organisation_id.should be_nil
+        Model::History.where(resource_id: [f.unowned_zone.id, f.unowned_system.id]).count.should eq history_before
+        PgORM::Database.connection do |db|
+          db.query_one("SELECT count(*) FROM tenancy_reconciliations WHERE idempotency_key = $1", args: [key], &.read(Int64)).should eq 0
+        end
+      ensure
+        PgORM::Database.connection do |db|
+          db.exec("DROP TRIGGER IF EXISTS reconciliation_receipt_failure_spec ON tenancy_reconciliations", args: [] of String)
+          db.exec("DROP FUNCTION IF EXISTS reconciliation_receipt_failure_spec()", args: [] of String)
+        end
+      end
+    end
   end
 end
