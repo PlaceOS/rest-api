@@ -45,22 +45,60 @@ module PlaceOS::Api
       selection_get("#{Zones.base_route}#{f.acadian.building.id}", f.acadian.admin).status_code.should eq 200
     end
 
-    it "requires partner staff to select an organisation for estate lists and details" do
+    it "defaults partner and management staff to their authenticated domain's organisation for lists and details" do
       f = build.call.not_nil!
-      [Zones.base_route, "#{Zones.base_route}#{f.acadian.org_zone.id}", Systems.base_route, Modules.base_route].each do |path|
-        result = selection_get(path, f.ntt_staff.admin)
-        result.status_code.should eq 400
-        JSON.parse(result.body)["code"].as_s.should eq "organisation_required"
+      [f.ntt_staff, f.placeos].each do |home|
+        [home.admin, home.support].each do |user|
+          {
+            Zones.base_route   => [home.org_zone.id.as(String), home.building.id.as(String)],
+            Systems.base_route => [home.system.id.as(String)],
+            Modules.base_route => [home.mod.id.as(String)],
+          }.each do |path, expected|
+            result = selection_get("#{path}?limit=500", user)
+            result.status_code.should eq 200
+            Spec::Tenancy.ids(result.body).sort!.should eq expected.sort
+          end
+        end
+        [home.admin, home.support, home.user].each do |user|
+          selection_get("#{Zones.base_route}#{home.building.id}", user).status_code.should eq 200
+          selection_get("#{Zones.base_route}#{f.acadian.building.id}", user).status_code.should eq 404
+        end
       end
     end
 
-    it "requires management staff to select an organisation for estate requests" do
+    it "reports the home selection without requiring a selector for every role" do
       f = build.call.not_nil!
-      result = selection_get(Zones.base_route, f.placeos.admin)
-      result.status_code.should eq 400
-      JSON.parse(result.body)["code"].as_s.should eq "organisation_required"
+      [f.acadian, f.ntt_staff, f.placeos].each do |home|
+        [home.admin, home.support, home.user].each do |user|
+          result = selection_get("#{Organisations.base_route}current", user)
+          result.status_code.should eq 200
+          current = JSON.parse(result.body)
+          current["selection_required"].as_bool.should be_false
+          current["selected_organisation_id"].as_s.should eq home.organisation.id.to_s
+          current["organisation"]["id"].as_s.should eq home.organisation.id.to_s
+        end
+      end
+      selected = selection_get("#{Organisations.base_route}current?organisation_id=#{f.acadian.organisation.id}", f.ntt_staff.admin)
+      selected.status_code.should eq 200
+      JSON.parse(selected.body)["selected_organisation_id"].as_s.should eq f.acadian.organisation.id.to_s
+      JSON.parse(selected.body)["organisation"]["id"].as_s.should eq f.ntt_staff.organisation.id.to_s
       selection_get(Brokers.base_route, f.placeos.admin).status_code.should eq 200
-      selection_get("#{Organisations.base_route}current", f.placeos.admin).status_code.should eq 200
+    end
+
+    it "keeps staff API keys and newly added grants from changing the domain-owner default" do
+      f = build.call.not_nil!
+      [f.ntt_staff, f.placeos].each do |home|
+        Model::Generator.grant(home.admin, "organisation", f.ucla.organisation.id.to_s).save!
+        key = Model::ApiKey.new(name: "Domain default #{random_name}", permissions: Model::UserJWT::Permissions::Admin)
+        key.user = home.admin
+        key.save!
+        headers = HTTP::Headers{"Host" => home.authority.domain, "Content-Type" => "application/json", "X-API-Key" => key.x_api_key.not_nil!}
+        result = client.get("#{Zones.base_route}?limit=500", headers: headers)
+        result.status_code.should eq 200
+        Spec::Tenancy.ids(result.body).sort!.should eq [home.org_zone.id.as(String), home.building.id.as(String)].sort
+        client.get("#{Zones.base_route}#{f.ucla.building.id}", headers: headers).status_code.should eq 404
+        client.get("#{Zones.base_route}#{f.ucla.building.id}?organisation_id=#{f.ucla.organisation.id}", headers: headers).status_code.should eq 200
+      end
     end
 
     it "rejects malformed, duplicate and inaccessible selectors consistently" do
