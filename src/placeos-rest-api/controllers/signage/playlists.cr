@@ -35,6 +35,7 @@ module PlaceOS::Api
       @current_playlist = playlist = ::PlaceOS::Model::Playlist.find!(id)
 
       # ensure the current user has access
+      authority_for_resource!(playlist.authority_id, "playlist") if Utils::Tenancy.enforce?
       raise Error::Forbidden.new unless authority.id == playlist.authority_id
     end
 
@@ -46,7 +47,7 @@ module PlaceOS::Api
 
     getter! playlist_update : ::PlaceOS::Model::Playlist
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -213,6 +214,9 @@ module PlaceOS::Api
       playlist = playlist_update
       playlist.authority_id = authority.id
 
+      if Utils::Tenancy.enforce? && group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
+      end
       unless user_support?
         raise Error::Forbidden.new("group_id required") if group_id.nil?
         perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None

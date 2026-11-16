@@ -30,7 +30,7 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     @[AC::Route::Filter(:before_action, only: [:show_job, :cancel, :resolve])]
     def find_current_job(id : UUID)
@@ -456,6 +456,7 @@ module PlaceOS::Api
     private def markup_upload(upload_id : String) : ::PlaceOS::Model::Upload
       upload = ::PlaceOS::Model::Upload.find?(upload_id)
       raise Error::NotFound.new("no such upload") if upload.nil?
+      ensure_upload_reach!(upload, required: ::PlaceOS::Model::Permissions::Read)
       raise Error::ImageGen::Permission.new("that image is not yours") unless upload.uploaded_by == current_user.id
       if upload.file_size > SIGNAGE_AI_MAX_IMAGE_BYTES
         raise Error::ImageGen::Permission.new("that image is larger than #{SIGNAGE_AI_MAX_IMAGE_BYTES // (1024 * 1024)}MB")

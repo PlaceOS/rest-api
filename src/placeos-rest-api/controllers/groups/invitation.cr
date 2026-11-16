@@ -25,6 +25,9 @@ module PlaceOS::Api
     def find_current_invitation(id : UUID)
       Log.context.set(invitation_id: id.to_s)
       @current_invitation = ::PlaceOS::Model::GroupInvitation.find!(id)
+      if Utils::Tenancy.enforce?
+        authority_for_resource!(::PlaceOS::Model::Group.find!(current_invitation.group_id).authority_id, "group")
+      end
     end
 
     getter! current_invitation : ::PlaceOS::Model::GroupInvitation
@@ -77,7 +80,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupInvitation)
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+      authority_id = resource_authority!.id.as(String)
       authority_group_ids = ::PlaceOS::Model::Group
         .where(authority_id: authority_id)
         .to_a
@@ -87,6 +90,7 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::GroupInvitation.where(group_id: authority_group_ids)
 
       if group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
         unless user_admin?
           group = ::PlaceOS::Model::Group.find!(group_id)
           ensure_manage!(current_user, group)
@@ -114,6 +118,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/", body: :payload, status_code: HTTP::Status::CREATED)]
     def create(payload : InvitationCreatePayload) : InvitationCreatedResponse
       group = ::PlaceOS::Model::Group.find!(UUID.new(payload.group_id))
+      authority_for_resource!(group.authority_id, "group") if Utils::Tenancy.enforce?
       ensure_manage!(current_user, group) unless user_admin?
 
       perms = ::PlaceOS::Model::Permissions.new(payload.permissions)

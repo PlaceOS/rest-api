@@ -87,10 +87,10 @@ module PlaceOS::Api
       client = MCPResourcesClient.new(Spec::Authentication.headers)
       result = client.request("resources/templates/list")["result"]
       templates = result["resourceTemplates"].as_a.map(&.["uriTemplate"].as_s)
-      templates.should contain "placeos://modules/{id}/state"
-      templates.should contain "placeos://modules/{id}/state/{key}"
-      templates.should contain "placeos://systems/{sys_id}/{module_slug}/{key}"
-      templates.should contain "placeos://modules/{id}/logs{?seconds,level}"
+      templates.should contain "placeos://modules/{id}/state{?organisation_id}"
+      templates.should contain "placeos://modules/{id}/state/{key}{?organisation_id}"
+      templates.should contain "placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}"
+      templates.should contain "placeos://modules/{id}/logs{?seconds,level,organisation_id}"
 
       discovered = client.request("server/discover")["result"]
       discovered["capabilities"]["resources"]["subscribe"].should be_true

@@ -46,6 +46,7 @@ module PlaceOS::Api
       @current_template = template
 
       # ensure the current user has access
+      authority_for_resource!(template.authority_id, "template") if Utils::Tenancy.enforce?
       raise Error::Forbidden.new unless authority.id == template.authority_id
     end
 
@@ -57,7 +58,7 @@ module PlaceOS::Api
 
     getter! template_update : ::PlaceOS::Model::SignageTemplate
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -332,6 +333,9 @@ module PlaceOS::Api
       template = template_update
       template.authority_id = authority.id.as(String)
 
+      if Utils::Tenancy.enforce? && group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
+      end
       unless user_support?
         raise Error::Forbidden.new("group_id required") if group_id.nil?
         perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None

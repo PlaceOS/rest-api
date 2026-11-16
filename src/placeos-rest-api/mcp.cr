@@ -21,6 +21,11 @@ module PlaceOS::Api::MCP
     with their permissions. List results are paginated: follow the `Link` header (or use
     `X-Total-Count`) to fetch more.
 
+    Ordinary users default to their own organisation. Partner and management staff
+    first list organisations, then pass organisation_id on each resource tool call.
+    The same optional query variable selects an organisation in resource URIs.
+    Staff API continues to use its domain and is not affected by this selection.
+
     Module state and debug logs are also resources (see resources/templates/list):
     placeos://modules/{id}/state/{key} and placeos://systems/{sys_id}/{module_slug}/{key}
     can be subscribed to for changes, placeos://modules/{id}/logs{?seconds,level} captures a module's
@@ -72,7 +77,7 @@ module PlaceOS::Api::MCP
   # delivers an existing value once redis has registered the channel, which covers
   # changes made before then, so a resource with a value can be notified twice.
   def self.watch_state : Nil
-    ActionController::MCPServer.watch("placeos://modules/{id}/state/{key}") do |variables, _request, changed|
+    ActionController::MCPServer.watch("placeos://modules/{id}/state/{key}{?organisation_id}") do |variables, _request, changed|
       subscriptions = WebSocket::Session.subscriptions
       subscription = subscriptions.subscribe(variables["id"], variables["key"]) { |_, _| changed.call }
       changed.call
@@ -80,7 +85,7 @@ module PlaceOS::Api::MCP
     end
 
     # follows the module if another is assigned to the system's module slot
-    ActionController::MCPServer.watch("placeos://systems/{sys_id}/{module_slug}/{key}") do |variables, _request, changed|
+    ActionController::MCPServer.watch("placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}") do |variables, _request, changed|
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(variables["module_slug"])
       subscriptions = WebSocket::Session.subscriptions
       subscription = subscriptions.subscribe(variables["sys_id"], module_name, index, variables["key"]) { |_, _| changed.call }

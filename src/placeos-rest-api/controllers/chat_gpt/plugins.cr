@@ -21,7 +21,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action)]
     def check_authority
-      unless @authority = current_authority
+      unless @authority = resource_authority
         Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
         raise Error::Unauthorized.new "authority not found"
       end
@@ -31,6 +31,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action)]
     def find_control_system
       @control_system = ::PlaceOS::Model::ControlSystem.find!(system_id)
+      ensure_reach!(control_system)
     end
 
     getter! authority : ::PlaceOS::Model::Authority?

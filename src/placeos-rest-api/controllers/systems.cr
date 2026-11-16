@@ -28,7 +28,16 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :remove_module, :start, :stop]
 
     before_action :can_read_control, only: [:types, :functions, :state, :state_lookup]
-    before_action :can_write_control, only: [:control, :execute]
+    before_action :can_write_control, only: [:execute]
+    before_action :can_open_control, only: [:control]
+
+    # Each websocket command applies its own read/write scope check.
+    protected def can_open_control
+      allowed = {Access::Read, Access::Write}.any? do |access|
+        Utils::Scopes.can_scope_access?(user_token, ROUTE_RESOURCE, access) || Utils::Scopes.can_scope_access?(user_token, "control", access)
+      end
+      raise Error::Forbidden.new("control access required") unless allowed
+    end
 
     ###############################################################################################
 
@@ -56,6 +65,8 @@ module PlaceOS::Api
     def check_lazy_reach(sys_id : String)
       if system = ::PlaceOS::Model::ControlSystem.find?(sys_id)
         ensure_reach!(system)
+      elsif Utils::Tenancy.enforce?
+        raise Error::NotFound.new("system not found")
       end
     end
 
@@ -374,10 +385,10 @@ module PlaceOS::Api
 
       if complete
         sys = current_control_system
-        sys.zone_data_details = ::PlaceOS::Model::Zone.find_all(current_control_system.zones).to_a
+        sys.zone_data_details = scope_organisations(::PlaceOS::Model::Zone.where(id: current_control_system.zones), required: ::PlaceOS::Model::Permissions::Read).to_a
 
         # extend the module details with the driver details
-        modules = ::PlaceOS::Model::Module.find_all(current_control_system.modules).to_a
+        modules = scope_organisations(::PlaceOS::Model::Module.where(id: current_control_system.modules), required: ::PlaceOS::Model::Permissions::Read).to_a
         drivers = Model::Driver.find_all modules.map(&.driver_id.as(String)).uniq!
         modules.select! do |mod|
           d_id = mod.driver_id.as(String)
@@ -423,6 +434,7 @@ module PlaceOS::Api
         end
         current.organisation_id ||= owner
       end
+      validate_module_references!(current)
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -433,8 +445,17 @@ module PlaceOS::Api
     def create : ::PlaceOS::Model::ControlSystem
       sys = control_system_update
       sys.organisation_id = organisation_for_zones(sys.zones)
+      validate_module_references!(sys)
       raise Error::ModelValidation.new(sys.errors) unless sys.save
       sys
+    end
+
+    private def validate_module_references!(system : ::PlaceOS::Model::ControlSystem)
+      return unless Utils::Tenancy.enforce?
+      system.modules.each do |id|
+        mod = ::PlaceOS::Model::Module.find!(id)
+        ensure_reach!(mod)
+      end
     end
 
     # removes a system, also destroys all the modules in the system that are not in any other systems
@@ -442,7 +463,7 @@ module PlaceOS::Api
     def destroy : Nil
       cs_id = current_control_system.id
       current_control_system.destroy
-      spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: cs_id}) }
+      publish_metadata_change(cs_id.as(String), :destroy_all, {parent_id: cs_id})
     end
 
     # Return all zones for this system
@@ -457,9 +478,10 @@ module PlaceOS::Api
       documents = if current_control_system.zones.empty?
                     [] of ::PlaceOS::Model::Zone
                   else
-                    ::PlaceOS::Model::Zone.find_all(current_control_system.zones).to_a
+                    scope_organisations(::PlaceOS::Model::Zone.where(id: current_control_system.zones), required: ::PlaceOS::Model::Permissions::Read).to_a
                   end
 
+      documents = documents.select { |zone| in_reach?(zone.organisation_id, ::PlaceOS::Model::Permissions::Read) } if Utils::Tenancy.enforce?
       set_collection_headers(documents.size, ::PlaceOS::Model::Zone.table_name)
 
       documents
@@ -570,7 +592,7 @@ module PlaceOS::Api
       }
 
       response_text, status_code = remote_driver.exec(
-        security: driver_clearance(user_token),
+        security: Utils::Tenancy.enforce? ? tenancy_policy.system_security(sys_id) : driver_clearance(user_token),
         function: method,
         args: args,
         request_id: request_id,
@@ -604,7 +626,7 @@ module PlaceOS::Api
 
     # Returns the state lookup for a given key on a module.
     # Subscribe to the resource to be notified when the value changes
-    @[AC::MCP(resource: "placeos://systems/{sys_id}/{module_slug}/{key}", mime_type: "application/json", subscribe: true, cache_ttl: 0)]
+    @[AC::MCP(resource: "placeos://systems/{sys_id}/{module_slug}/{key}{?organisation_id}", mime_type: "application/json", subscribe: true, cache_ttl: 0)]
     @[AC::Route::GET("/:sys_id/:module_slug/:key")]
     def state_lookup(
       sys_id : String,
@@ -694,6 +716,8 @@ module PlaceOS::Api
         request_id: request_id,
         user: user_token,
         organisation_ids: tenancy.organisation_ids,
+        authorizer: Utils::Tenancy.enforce? ? socket_tenancy_authorizer : nil,
+        security_authorizer: Utils::Tenancy.enforce? ? socket_tenancy_security : nil,
       )
     end
 

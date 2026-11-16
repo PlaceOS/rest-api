@@ -40,6 +40,7 @@ module PlaceOS::Api
       @current_item = item = ::PlaceOS::Model::Playlist::Item.find!(id)
 
       # ensure the current user has access
+      authority_for_resource!(item.authority_id, "item") if Utils::Tenancy.enforce?
       raise Error::Forbidden.new unless authority.id == item.authority_id
     end
 
@@ -51,7 +52,7 @@ module PlaceOS::Api
 
     getter! item_update : ::PlaceOS::Model::Playlist::Item
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -444,6 +445,7 @@ module PlaceOS::Api
     def thumbnail
       raise Error::NotFound.new("no thumbnail associated") unless current_item.thumbnail_id
       current_upload = current_item.thumbnail.as(::PlaceOS::Model::Upload)
+      ensure_upload_reach!(current_upload)
 
       unless storage = current_upload.storage
         Log.warn { {message: "upload object associated storage not found", upload_id: current_upload.id, authority: authority.id, user: current_user.id} }
@@ -456,6 +458,16 @@ module PlaceOS::Api
       redirect_to object_url, status: :see_other
     end
 
+    private def check_item_references(item : ::PlaceOS::Model::Playlist::Item)
+      return unless Utils::Tenancy.enforce?
+      [item.media_id, item.thumbnail_id].compact.each do |id|
+        ensure_upload_reach!(::PlaceOS::Model::Upload.find!(id))
+      end
+      if id = item.plugin_id
+        ensure_resource_authority!(::PlaceOS::Model::SignagePlugin.find!(id).authority_id, "plugin", shared: true, required: ::PlaceOS::Model::Permissions::Read)
+      end
+    end
+
     # update the details of a media item
     @[AC::Route::PATCH("/:id")]
     @[AC::Route::PUT("/:id")]
@@ -464,6 +476,7 @@ module PlaceOS::Api
       current = current_item
       current.assign_attributes(item)
       current.authority_id = authority.id
+      check_item_references(current)
       PgORM::Database.transaction do |_tx|
         raise Error::ModelValidation.new(current.errors) unless current.save
         touch_media_references!(current.id.as(String))
@@ -482,7 +495,11 @@ module PlaceOS::Api
     ) : ::PlaceOS::Model::Playlist::Item
       item = item_update
       item.authority_id = authority.id
+      check_item_references(item)
 
+      if Utils::Tenancy.enforce? && group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
+      end
       unless user_support?
         raise Error::Forbidden.new("group_id required") if group_id.nil?
         perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None

@@ -6,6 +6,14 @@ module PlaceOS::Api
       super(message)
     end
 
+    class OrganisationSelection < Error
+      getter code : String
+
+      def initialize(message : String, @code : String)
+        super(message)
+      end
+    end
+
     class Unauthorized < Error
     end
 

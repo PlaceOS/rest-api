@@ -94,6 +94,10 @@ module PlaceOS::Api
     def update(edge : ::PlaceOS::Model::Edge) : ::PlaceOS::Model::Edge
       current = current_edge
       current.assign_attributes(edge)
+      if current.user_id
+        owner = ::PlaceOS::Model::User.find!(current.user_id.as(String))
+        ensure_authority_reach!(owner.authority_id, "user")
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end

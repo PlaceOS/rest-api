@@ -44,7 +44,13 @@ module PlaceOS::Api
                    {:id, :login_name, :staff_id}
                  end
 
-      authority = current_user.authority_id.as(String)
+      if Utils::Tenancy.enforce? && ordering.includes?(:id)
+        id_lookup = lookup.starts_with?("user-") ? lookup : "user-#{lookup}"
+        if found = ::PlaceOS::Model::User.find?(id_lookup)
+          authority_for_resource!(found.authority_id, "user")
+        end
+      end
+      authority = resource_authority!.id.as(String)
 
       ordering.each.compact_map { |id_type|
         case id_type
@@ -69,7 +75,7 @@ module PlaceOS::Api
         # reach. 404 (not 403) so foreign ids are indistinguishable from
         # unknown ones.
         raise PgORM::Error::RecordNotFound.new unless user_admin? || found.authority_id == authority
-        ensure_authority_reach!(found.authority_id, "user") unless found.authority_id == authority
+        ensure_authority_reach!(found.authority_id, "user")
         Log.context.set(user_id: found.id)
         @user = found
       end
@@ -128,7 +134,7 @@ module PlaceOS::Api
     end
 
     protected def get_user_token(user : Model::User) : AccessToken
-      authority = current_authority
+      authority = user.authority
       raise Error::NotFound.new("no valid authority") unless authority
 
       user.resource_token(authority)
@@ -169,13 +175,13 @@ module PlaceOS::Api
       # Elasticsearch phrase match; the user table's search_vector tokenizes
       # email addresses on [@._] and also keeps the whole address as a
       # lexeme, so `q` passes straight through `paginate_search`
-      query = ::PlaceOS::Model::User.all
+      query = scope_authorities(::PlaceOS::Model::User.all)
 
       query = query.where(deleted: false) unless include_deleted
 
       if !user_admin?
         # regular users can only see their own domain
-        query = query.where(authority_id: current_user.authority_id.as(String))
+        query = query.where(authority_id: resource_authority!.id.as(String))
       elsif authority = authority_id
         ensure_authority_reach!(authority, "domain")
         query = query.where(authority_id: authority)
@@ -207,16 +213,18 @@ module PlaceOS::Api
       new_user = ::PlaceOS::Model::User.from_json(body)
 
       if user_admin?
+        new_user.authority ||= resource_authority!
+        ensure_privilege_fields!(new_user.authority_id, JSON.parse(body))
         # Admin attributes (sys_admin, support, groups, login_name, ...) may
         # only be set by admins — support-subsystem creators would otherwise
         # be able to mint sys-admins.
         new_user.assign_admin_attributes_from_json(body)
         # allow sys-admins to create users on other domains within reach
-        new_user.authority ||= current_authority.as(::PlaceOS::Model::Authority)
+        new_user.authority ||= resource_authority!
         ensure_authority_reach!(new_user.authority_id, "domain")
       else
         # non-admins always create users in their own authority
-        new_user.authority = current_authority.as(::PlaceOS::Model::Authority)
+        new_user.authority = resource_authority!
       end
 
       raise Error::ModelValidation.new(new_user.errors) unless new_user.save
@@ -234,13 +242,26 @@ module PlaceOS::Api
       # (the users themselves should not have access to these)
       body = new_user.to_json
       the_user = user
+      original_authority = the_user.authority_id
+      ensure_privilege_fields!(original_authority, new_user)
       if user_admin?
         the_user.assign_admin_attributes_from_json(body)
       end
       the_user.assign_attributes_from_json(body)
+      ensure_authority_reach!(the_user.authority_id, "user")
+      if Utils::Tenancy.enforce? && the_user.authority_id != original_authority
+        raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:authority_id, "user ownership cannot be changed")])
+      end
 
       raise Error::ModelValidation.new(the_user.errors) unless the_user.save
       user_details(the_user, admin_view: user_support? || the_user.id == current_user.id)
+    end
+
+    private def ensure_privilege_fields!(authority_id : String?, attributes : JSON::Any)
+      if fields = attributes.as_h?
+        protected_fields = {"password", "sys_admin", "support", "groups", "login_name", "staff_id", "card_number"}
+        ensure_credential_management!(authority_id) if protected_fields.any? { |field| fields.has_key?(field) }
+      end
     end
 
     # Destroy user, revoke authentication.
@@ -248,14 +269,15 @@ module PlaceOS::Api
     def destroy(
       force_removal : Bool = false,
     ) : Nil
-      if !force_removal && current_authority.try &.internals["soft_delete"]? == true
+      if !force_removal && user.authority.try &.internals["soft_delete"]? == true
         user.deleted = true
         raise Error::ModelValidation.new(user.errors) unless user.save
       else
         ensure_organisation_admin_remains!(user)
-        user_id = user.id
+        user_id = user.id.as(String)
+        authority_id = user.authority_id.as(String)
         user.destroy
-        spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: user_id}) }
+        publish_metadata_change(user_id, :destroy_all, {parent_id: user_id}, [authority_id])
       end
     end
 
@@ -263,7 +285,7 @@ module PlaceOS::Api
     # Cluster admins may, which is how a whole domain gets torn down.
     protected def ensure_organisation_admin_remains!(target : ::PlaceOS::Model::User) : Nil
       return unless target.sys_admin
-      return if tenancy.cluster?
+      return if accessible_tenancy.cluster?
       organisation_id = ::PlaceOS::Model::Authority.find?(target.authority_id.as(String)).try(&.organisation_id)
       return unless organisation_id
       remaining = ::PlaceOS::Model::User

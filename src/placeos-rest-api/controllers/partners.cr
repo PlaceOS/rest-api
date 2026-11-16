@@ -23,7 +23,7 @@ module PlaceOS::Api
     def find_current_partner(id : UUID)
       Log.context.set(partner_id: id.to_s)
       partner = ::PlaceOS::Model::Partner.find!(id)
-      unless tenancy.cluster? || tenancy.partner.try(&.id) == partner.id
+      unless accessible_tenancy.cluster? || accessible_tenancy.partner.try(&.id) == partner.id
         log_would_refuse("partner outside reach")
         raise Error::NotFound.new("partner not found") if Utils::Tenancy.enforce?
       end
@@ -38,8 +38,8 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Partner)
       query = ::PlaceOS::Model::Partner.all
-      unless tenancy.cluster?
-        own = tenancy.partner.try(&.id)
+      unless accessible_tenancy.cluster?
+        own = accessible_tenancy.partner.try(&.id)
         query = own ? query.where(id: own) : query.where("1 = ?", 0)
       end
       paginate_search(query, ::PlaceOS::Model::Partner.table_name)

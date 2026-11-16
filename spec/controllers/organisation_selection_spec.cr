@@ -122,7 +122,7 @@ module PlaceOS::Api
       result = selection_get("#{Organisations.base_route}?limit=500", f.ucla.user)
       result.status_code.should eq 200
       organisations = JSON.parse(result.body).as_a
-      organisations.map(&.["id"].as_s).sort.should eq [f.ucla.organisation.id.to_s, f.acadian.organisation.id.to_s].sort
+      organisations.map(&.["id"].as_s).sort!.should eq [f.ucla.organisation.id.to_s, f.acadian.organisation.id.to_s].sort
       organisations.each do |organisation|
         organisation["config"]?.should be_nil
         organisation["payer"]?.should be_nil
@@ -185,6 +185,54 @@ module PlaceOS::Api
       selection_get(path, f.ucla.admin).status_code.should eq 404
       Model::Generator.grant(f.ucla.admin, "organisation", f.acadian.organisation.id.to_s, expires_at: 1.minute.ago).save!
       selection_get(path, f.ucla.admin).status_code.should eq 404
+    end
+
+    it "keeps public guest token issuance domain-bound and unauthenticated under enforcement" do
+      f = build.call.not_nil!
+      f.acadian.system.public = true
+      f.acadian.system.save!
+      f.acadian.authority.internals_will_change!
+      f.acadian.authority.internals["recaptcha_skip"] = JSON::Any.new(true)
+      f.acadian.authority.save!
+      result = client.post("#{PublicEvents.base_route}guest_token/#{f.acadian.system.id}",
+        headers: HTTP::Headers{"Host" => f.acadian.authority.domain, "Content-Type" => "application/json"},
+        body: {captcha: "skip", name: "Guest", email: "guest@external.test"}.to_json)
+
+      # An absent JWT_SECRET disables issuance, but organisation enforcement
+      # must not turn this public route into an authenticated resource route.
+      result.status_code.should eq(PublicEvents::JWT_SECRET ? 200 : 503)
+    end
+
+    it "preserves invited guests' home-domain public events without allowing foreign organisation selection" do
+      f = build.call.not_nil!
+      f.acadian.system.public = true
+      f.acadian.system.save!
+      token = Model::UserJWT.new(
+        iss: Model::UserJWT::ISSUER,
+        iat: 5.minutes.ago,
+        exp: 1.hour.from_now,
+        domain: f.acadian.authority.domain,
+        id: f.acadian.user.id.as(String),
+        user: Model::UserJWT::Metadata.new(name: "Invited guest", email: "guest@external.test",
+          permissions: Model::UserJWT::Permissions::User, roles: [f.acadian.system.id.as(String)]),
+        scope: [Model::UserJWT::Scope::GUEST],
+      )
+      headers = HTTP::Headers{"Host" => f.acadian.authority.domain, "Content-Type" => "application/json", "Authorization" => "Bearer #{token.encode}"}
+      path = "#{PublicEvents.base_route}#{f.acadian.system.id}/events"
+      result = client.get(path, headers: headers)
+      result.status_code.should eq 200
+      JSON.parse(result.body).as_a.should be_empty
+      client.get("#{path}?organisation_id=#{f.ucla.organisation.id}", headers: headers).status_code.should eq 404
+    end
+
+    it "keeps discovery restricted to real reach even when resource enforcement is disabled" do
+      f = build.call.not_nil!
+      Utils::Tenancy.enforce = false
+      result = selection_get("#{Organisations.base_route}?limit=500", f.acadian.user)
+      result.status_code.should eq 200
+      Spec::Tenancy.ids(result.body).should eq [f.acadian.organisation.id.to_s]
+      selection_get("#{Organisations.base_route}#{f.acadian.organisation.id}", f.acadian.user).status_code.should eq 200
+      selection_get("#{Organisations.base_route}#{f.ucla.organisation.id}", f.acadian.user).status_code.should eq 404
     end
 
     it "retains legacy request behaviour when enforcement is disabled" do

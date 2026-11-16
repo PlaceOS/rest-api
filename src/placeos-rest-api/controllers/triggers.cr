@@ -51,7 +51,7 @@ module PlaceOS::Api
         ensure_reach!(organisation_id, "organisation")
         query = query.where("(control_system_id IS NULL OR organisation_id = ?::uuid)", organisation_id.to_s)
       end
-      if ids = tenancy.organisation_ids
+      if ids = permitted_organisation_ids
         list = ids.to_a.map(&.to_s)
         query = if list.empty?
                   query.where("control_system_id IS NULL", [] of String)
@@ -75,7 +75,7 @@ module PlaceOS::Api
       include_instances : Bool? = nil,
     ) : ::PlaceOS::Model::Trigger
       trig = current_trigger
-      trig.trigger_instances_details = trig.trigger_instances.to_a if include_instances
+      trig.trigger_instances_details = scoped_instances(trig) if include_instances
       trig
     end
 
@@ -84,7 +84,15 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :trig)]
     def update(trig : ::PlaceOS::Model::Trigger) : ::PlaceOS::Model::Trigger
       current = current_trigger
+      original_system = current.control_system_id
       current.assign_attributes(trig)
+      if Utils::Tenancy.enforce?
+        if system_id = current.control_system_id
+          ensure_reach!(::PlaceOS::Model::ControlSystem.find!(system_id))
+        elsif original_system
+          raise Error::Forbidden.new("a bound trigger cannot become a shared template")
+        end
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -109,10 +117,16 @@ module PlaceOS::Api
       current_trigger.destroy # expires the cache in after callback
     end
 
+    private def scoped_instances(trigger : ::PlaceOS::Model::Trigger) : Array(::PlaceOS::Model::TriggerInstance)
+      trigger.trigger_instances.to_a.select do |instance|
+        !Utils::Tenancy.enforce? || ::PlaceOS::Model::ControlSystem.find?(instance.control_system_id).try { |system| in_reach?(system.organisation_id, ::PlaceOS::Model::Permissions::Read) }
+      end
+    end
+
     # Get instances of a trigger, how many systems are using a trigger
     @[AC::Route::GET("/:id/instances")]
     def instances : Array(::PlaceOS::Model::TriggerInstance)
-      instances = current_trigger.trigger_instances.to_a
+      instances = scoped_instances(current_trigger)
       set_collection_headers(instances.size, ::PlaceOS::Model::TriggerInstance.table_name)
       instances
     end

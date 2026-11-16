@@ -105,7 +105,17 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :api_key)]
     def update(api_key : ::PlaceOS::Model::ApiKey) : Response
       current = current_api_key
+      original_authority = current.authority_id
       current.assign_attributes(api_key)
+      owner = ::PlaceOS::Model::User.find!(current.user_id.as(String))
+      ensure_authority_reach!(owner.authority_id, "user")
+      ensure_authority_reach!(current.authority_id, "domain")
+      if api_key.permissions_assigned? || api_key.scopes_assigned? || api_key.user_id_assigned? || api_key.authority_id_assigned?
+        ensure_credential_management!(original_authority)
+      end
+      if Utils::Tenancy.enforce? && (current.authority_id != original_authority || owner.authority_id != original_authority)
+        raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:user_id, "user must belong to the key's original domain")])
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       Response.new(current)
     end
@@ -114,7 +124,9 @@ module PlaceOS::Api
     @[AC::Route::POST("/", body: :api_key, status_code: HTTP::Status::CREATED)]
     def create(api_key : ::PlaceOS::Model::ApiKey) : Response
       if user_id = api_key.user_id
-        ensure_authority_reach!(::PlaceOS::Model::User.find!(user_id).authority_id, "user")
+        owner_authority = ::PlaceOS::Model::User.find!(user_id).authority_id
+        ensure_authority_reach!(owner_authority, "user")
+        ensure_credential_management!(owner_authority)
       end
       raise Error::ModelValidation.new(api_key.errors) unless api_key.save
       Response.new(api_key)

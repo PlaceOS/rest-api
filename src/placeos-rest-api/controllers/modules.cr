@@ -94,7 +94,12 @@ module PlaceOS::Api
     # `GroupPermissions#module_debug_access?`
     @[AC::Route::Filter(:before_action, only: [:logs])]
     def check_debug_permissions
-      raise Error::Forbidden.new unless module_debug_access?(current_module.id.as(String))
+      allowed = if Utils::Tenancy.enforce?
+                  tenancy_policy.module_debug_access?(current_module.id.as(String))
+                else
+                  module_debug_access?(current_module.id.as(String))
+                end
+      raise Error::Forbidden.new unless allowed
     end
 
     @[AC::Route::Filter(:before_action, only: [:settings])]
@@ -191,6 +196,7 @@ module PlaceOS::Api
         ensure_reach!(cs)
         # Include subset of association data with results
         results = ::PlaceOS::Model::Module.find_all(cs.modules).compact_map do |mod|
+          next unless in_reach?(mod.organisation_id)
           next if (driver = mod.driver).nil?
 
           # Most human readable module data is contained in driver
@@ -282,8 +288,8 @@ module PlaceOS::Api
       control_system_ids = search_results.compact_map(&.control_system_id).uniq!
       drivers = Model::Driver.find_all search_results.map(&.driver_id.as(String)).uniq!
 
-      control_systems = Model::ControlSystem.find_all(control_system_ids).to_a
-      zones = Model::Zone.find_all(control_systems.flat_map(&.zones)).to_a
+      control_systems = scope_organisations(Model::ControlSystem.where(id: control_system_ids), required: ::PlaceOS::Model::Permissions::Read).to_a
+      zones = scope_organisations(Model::Zone.where(id: control_systems.flat_map(&.zones)), required: ::PlaceOS::Model::Permissions::Read).to_a
 
       search_results.compact_map do |d|
         sys_id = d.control_system_id
@@ -369,6 +375,10 @@ module PlaceOS::Api
       current = current_module
       can_modify?(current)
       current.assign_attributes(mod)
+      if Utils::Tenancy.enforce? && (system_id = current.control_system_id.presence)
+        system = ::PlaceOS::Model::ControlSystem.find!(system_id)
+        ensure_reach!(system)
+      end
       can_modify?(current)
 
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -491,7 +501,7 @@ module PlaceOS::Api
       ) { |module_id|
         ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
       }.exec(
-        security: driver_clearance(user_token),
+        security: Utils::Tenancy.enforce? ? tenancy_policy.resource_security(current_module.organisation_id) : driver_clearance(user_token),
         function: method,
         args: args,
         request_id: request_id,
@@ -519,7 +529,7 @@ module PlaceOS::Api
     end
 
     # Dumps the complete status state of the module, key values are serialised JSON
-    @[AC::MCP(resource: "placeos://modules/{id}/state", mime_type: "application/json", cache_ttl: 0)]
+    @[AC::MCP(resource: "placeos://modules/{id}/state{?organisation_id}", mime_type: "application/json", cache_ttl: 0)]
     @[AC::Route::GET("/:id/state")]
     def state : Hash(String, String)
       self.class.module_state(current_module)
@@ -527,7 +537,7 @@ module PlaceOS::Api
 
     # Returns the value of the requested status variable as JSON, `null` when it isn't set.
     # Subscribe to the resource to be notified when the value changes
-    @[AC::MCP(resource: "placeos://modules/{id}/state/{key}", mime_type: "application/json", subscribe: true, cache_ttl: 0)]
+    @[AC::MCP(resource: "placeos://modules/{id}/state/{key}{?organisation_id}", mime_type: "application/json", subscribe: true, cache_ttl: 0)]
     @[AC::Route::GET("/:id/state/:key/value")]
     def state_value(
       @[AC::Param::Info(description: "the name of the status variable", example: "power")]
@@ -553,7 +563,7 @@ module PlaceOS::Api
     # `<time> <LEVEL> <message>`. Over HTTP the lines are streamed as they arrive.
     # MCP clients receive them once the capture ends, so capturing for more than a
     # minute may not work with all clients. The output is limited to 3 MiB.
-    @[AC::MCP(resource: "placeos://modules/{id}/logs{?seconds,level}", mime_type: "text/plain", long_running: true, max_bytes: 3_145_728, cache_ttl: 0)]
+    @[AC::MCP(resource: "placeos://modules/{id}/logs{?seconds,level,organisation_id}", mime_type: "text/plain", long_running: true, max_bytes: 3_145_728, cache_ttl: 0)]
     @[AC::Route::GET("/:id/logs")]
     def logs(
       @[AC::Param::Info(description: "how long to capture logs for, in seconds, up to 129600 (36 hours)", example: "30")]
@@ -568,7 +578,12 @@ module PlaceOS::Api
       severity = ::Log::Severity.parse?(level)
       raise AC::Route::Param::ValueError.new("must be one of trace, debug, info, notice, warn, error or fatal", "level") if severity.nil? || severity.none?
 
-      capture = Utils::ModuleLogCapture.new(response, severity)
+      module_id = current_module.id.as(String)
+      authorize = if Utils::Tenancy.enforce?
+                    policy = tenancy_policy
+                    -> { policy.module_debug_access?(module_id) }
+                  end
+      capture = Utils::ModuleLogCapture.new(response, severity, authorize: authorize)
       socket = begin
         Utils::ModuleLogs.open(module_id: current_module.id.as(String), user_id: user_token.id, request_id: request_id) do |message_level, message|
           capture.write(message_level, message)

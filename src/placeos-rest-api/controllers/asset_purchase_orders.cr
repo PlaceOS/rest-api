@@ -18,7 +18,7 @@ module PlaceOS::Api
     private def confirm_access
       return if user_support?
 
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         # "support" subsystem: Read on the org zone for GET (index/show),
@@ -40,6 +40,7 @@ module PlaceOS::Api
       Log.context.set(asset_purchase_order_id: id)
       # Find will raise a 404 (not found) if there is an error
       @current_asset_purchase_order = ::PlaceOS::Model::AssetPurchaseOrder.find!(id)
+      authority_for_resource!(current_asset_purchase_order.authority_id, "asset purchase order") if Utils::Tenancy.enforce?
     end
 
     getter! current_asset_purchase_order : ::PlaceOS::Model::AssetPurchaseOrder
@@ -47,7 +48,7 @@ module PlaceOS::Api
     # 404 unless the purchase order belongs to the caller's authority, for admin and support users too.
     @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
     private def confirm_authority
-      return if current_asset_purchase_order.authority_id == current_authority.as(::PlaceOS::Model::Authority).id
+      return if current_asset_purchase_order.authority_id == resource_authority!.id
       raise Error::NotFound.new("asset purchase order #{current_asset_purchase_order.id} not found")
     end
 
@@ -60,7 +61,7 @@ module PlaceOS::Api
       # invoice_number. The table has no name column so order by PO number
       # for a deterministic listing (Elasticsearch had no explicit sort here).
       query = ::PlaceOS::Model::AssetPurchaseOrder.all
-      query = query.where(authority_id: current_authority.as(::PlaceOS::Model::Authority).id)
+      query = query.where(authority_id: resource_authority!.id)
       paginate_search(
         query,
         ::PlaceOS::Model::AssetPurchaseOrder.table_name,
@@ -89,7 +90,7 @@ module PlaceOS::Api
     # Create an asset purchase order.
     @[AC::Route::POST("/", body: :asset_purchase_order, status_code: HTTP::Status::CREATED)]
     def create(asset_purchase_order : ::PlaceOS::Model::AssetPurchaseOrder) : ::PlaceOS::Model::AssetPurchaseOrder
-      asset_purchase_order.authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+      asset_purchase_order.authority_id = resource_authority!.id
       raise Error::ModelValidation.new(asset_purchase_order.errors) unless asset_purchase_order.save
       asset_purchase_order
     end

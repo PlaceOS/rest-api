@@ -11,6 +11,7 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action)]
     def deny_guests
       raise Error::Forbidden.new("guest tokens may not query flux") if user_token.guest_scope?
+      check_cluster_admin if Utils::Tenancy.enforce?
     end
 
     # an influxDB proxy endpoint, route compatible with existing influxDB clients

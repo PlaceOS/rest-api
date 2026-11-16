@@ -35,6 +35,7 @@ module PlaceOS::Api
     def find_current_group_user(user_id : String, group_id : UUID)
       Log.context.set(user_id: user_id, group_id: group_id.to_s)
       @current_group_user = ::PlaceOS::Model::GroupUser.find!({user_id, group_id})
+      check_group_user_scope(current_group_user)
     end
 
     getter! current_group_user : ::PlaceOS::Model::GroupUser
@@ -44,6 +45,13 @@ module PlaceOS::Api
     end
 
     getter! group_user_update : ::PlaceOS::Model::GroupUser
+
+    private def check_group_user_scope(row : ::PlaceOS::Model::GroupUser)
+      return unless Utils::Tenancy.enforce?
+      group = ::PlaceOS::Model::Group.find!(row.group_id)
+      authority_for_resource!(group.authority_id, "group")
+      ensure_resource_authority!(::PlaceOS::Model::User.find!(row.user_id).authority_id, "user")
+    end
 
     # Permission gates
     ###############################################################################################
@@ -60,6 +68,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:create])]
     def check_create_permissions
+      check_group_user_scope(group_user_update)
       return if user_admin?
       group = ::PlaceOS::Model::Group.find!(group_user_update.group_id)
       ensure_manage!(current_user, group)
@@ -85,7 +94,7 @@ module PlaceOS::Api
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupUser)
       # Constrain to the caller's authority.
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+      authority_id = resource_authority!.id.as(String)
       authority_group_ids = ::PlaceOS::Model::Group
         .where(authority_id: authority_id)
         .to_a
@@ -97,12 +106,16 @@ module PlaceOS::Api
       if user_id == "me"
         query = query.where(user_id: current_user.id.as(String))
       elsif user_id
+        if Utils::Tenancy.enforce?
+          ensure_resource_authority!(::PlaceOS::Model::User.find!(user_id).authority_id, "user")
+        end
         # Only sys_admin can look up other users.
         raise Error::Forbidden.new unless user_admin? || user_id == current_user.id
         query = query.where(user_id: user_id)
       end
 
       if group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
         unless user_admin?
           group = ::PlaceOS::Model::Group.find!(group_id)
           # Non-Manager: allow only if asking about their own entries.

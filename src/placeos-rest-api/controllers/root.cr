@@ -208,7 +208,14 @@ module PlaceOS::Api
                   ""
                 end
 
-      [Path["placeos/"].join(channel).to_s, Path["placeos/#{current_authority.not_nil!.id}/"].join(channel).to_s].each do |path|
+      authority = Utils::Tenancy.enforce? ? resource_authority! : current_authority.not_nil!
+      if Utils::Tenancy.enforce? && channel.split('/').any? { |part| part.in?({".", ".."}) }
+        raise Error::OrganisationSelection.new("channel must not contain path traversal", "invalid_channel")
+      end
+      scoped_channel = channel.split('/').reject(&.empty?).join('/')
+      paths = [Path["placeos/#{authority.id}/"].join(scoped_channel).to_s]
+      paths << Path["placeos/"].join(channel).to_s unless Utils::Tenancy.enforce?
+      paths.each do |path|
         # path = Path["placeos/#{current_authority.not_nil!.id}/"].join(channel).to_s
         Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
         ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)

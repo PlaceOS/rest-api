@@ -32,6 +32,7 @@ module PlaceOS::Api
       # grab all the playlists and templates associated with the display and
       # fingerprint them to check if anything has changed
       system = ::PlaceOS::Model::ControlSystem.find!(system_id)
+      ensure_reach!(system)
       playlist_map = system.all_playlists
       template_mappings = signage_template_mappings(system)
       etag, last_updated = signage_fingerprint(system, playlist_map, template_mappings)
@@ -438,30 +439,51 @@ module PlaceOS::Api
       end
 
       # items from other domains are indistinguishable from missing ones
-      authority = current_authority
       item = ::PlaceOS::Model::Playlist::Item.find?(item_id)
-      unless authority && item && item.authority_id == authority.id
+      raise Error::NotFound.new("media item not found: #{item_id}") unless item
+      authority = if anonymous || !Utils::Tenancy.enforce?
+                    current_authority
+                  else
+                    authority_for_resource!(item.authority_id, "media item")
+                  end
+      unless authority && item.authority_id == authority.id
         raise Error::NotFound.new("media item not found: #{item_id}")
       end
       system = ::PlaceOS::Model::ControlSystem.find?(system_id) || raise Error::NotFound.new("system not found: #{system_id}")
+      if Utils::Tenancy.enforce?
+        if anonymous
+          unless authority.organisation_id && system.organisation_id == authority.organisation_id
+            raise Error::NotFound.new("system not found: #{system_id}")
+          end
+        else
+          ensure_reach!(system)
+        end
+      end
 
       case item.media_type
       in .image?
         upload = item.media || raise Error::NotFound.new("media item #{item_id} is missing its upload")
-        static_upload(upload, anonymous)
+        static_upload(upload, anonymous, authority.id)
       in .external_image?
         uri = item.media_uri.presence || raise Error::NotFound.new("media item #{item_id} is missing its URI")
         file_name = File.basename(URI.parse(uri).path)
         StaticMedia.new(uri, file_name, 0_i64, uri, item.updated_at)
       in .webpage?
-        static_upload(webpage_capture(item, capture_viewport(system, item), authority, expires_after.minutes), anonymous)
+        static_upload(webpage_capture(item, capture_viewport(system, item), authority, expires_after.minutes), anonymous, authority.id)
       in .video?, .plugin?
         raise Error::NotAcceptable.new("#{item.media_type.to_s.downcase} media can't be displayed on a static device")
       end
     end
 
     # a temporary link to the upload, respecting its access restrictions
-    private def static_upload(upload : ::PlaceOS::Model::Upload, anonymous : Bool) : StaticMedia
+    private def static_upload(upload : ::PlaceOS::Model::Upload, anonymous : Bool, authority_id : String?) : StaticMedia
+      if Utils::Tenancy.enforce?
+        if anonymous
+          raise Error::NotFound.new("upload not found") unless upload_authority_id(upload) == authority_id
+        else
+          ensure_upload_reach!(upload)
+        end
+      end
       unless upload.public || upload.permissions.none?
         raise Error::Forbidden.new("media is restricted") if anonymous
         upload.permissions.admin? ? check_admin : check_support
@@ -559,8 +581,9 @@ module PlaceOS::Api
         uploaded_by: STATIC_UPLOADER,
         uploaded_email: "#{STATIC_UPLOADER}@#{authority.domain}",
         file_name: file_name,
-        object_key: ObjectStore.object_key(request.hostname, file_name),
+        object_key: ObjectStore.object_key(Utils::Tenancy.enforce? ? authority.domain : request.hostname, file_name),
         tags: [Uploads::SCREENSHOT_TAG, STATIC_TAG],
+        authority_id: authority.id,
       )
     end
 

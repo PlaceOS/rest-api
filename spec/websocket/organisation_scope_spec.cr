@@ -81,6 +81,7 @@ module PlaceOS::Api::WebSocket
     it "rechecks grants on an already open socket" do
       f = fixture = Spec::Tenancy.build
       grant = Model::Grant.new(user_id: f.ucla.admin.id.as(String), scope_type: "organisation", scope_id: f.acadian.organisation.id.to_s, permissions: Model::Permissions::Read.to_i).save!
+      wait_for_module_lookups(f.acadian.system.id.as(String), {"#{f.acadian.mod.resolved_name}/1" => f.acadian.mod.id.as(String)})
       scoped_socket(f.ucla.admin, f.acadian.organisation.id.as(UUID)) do |socket, responses|
         socket.send scope_request(3_i64, f.acadian.system, f.acadian.mod.resolved_name, :bind).to_json
         scope_response(responses, 3_i64).type.should eq Session::Response::Type::Success
@@ -95,6 +96,7 @@ module PlaceOS::Api::WebSocket
     it "allows read-only OAuth scopes to bind while refusing execution on the same socket" do
       f = fixture = Spec::Tenancy.build
       scopes = [Model::UserJWT::Scope.new("control", Model::UserJWT::Scope::Access::Read)]
+      wait_for_module_lookups(f.acadian.system.id.as(String), {"#{f.acadian.mod.resolved_name}/1" => f.acadian.mod.id.as(String)})
       scoped_socket(f.acadian.admin, f.acadian.organisation.id.as(UUID), scopes) do |socket, responses|
         socket.send scope_request(6_i64, f.acadian.system, f.acadian.mod.resolved_name, :bind).to_json
         scope_response(responses, 6_i64).type.should eq Session::Response::Type::Success
@@ -124,9 +126,9 @@ module PlaceOS::Api::WebSocket
         end
         grant.destroy
         storage["live_scope"] = 200
-        deadline = Time.monotonic + 500.milliseconds
+        deadline = Time.instant + 500.milliseconds
         loop do
-          remaining = deadline - Time.monotonic
+          remaining = deadline - Time.instant
           break if remaining <= Time::Span.zero
           select
           when response = responses.receive
@@ -136,6 +138,30 @@ module PlaceOS::Api::WebSocket
           end
         end
       end
+    end
+
+    it "does not ignore a revoked API key because its scope includes guest" do
+      f = fixture = Spec::Tenancy.build
+      key = Model::ApiKey.new(name: "Guest-marked key #{random_name}", scopes: [Model::UserJWT::Scope::PUBLIC, Model::UserJWT::Scope::GUEST])
+      key.user = f.acadian.admin
+      key.save!
+      policy = Utils::Tenancy::Policy.new(key.build_jwt, f.acadian.authority.id.as(String), f.acadian.organisation.id, key.id.as(String))
+      policy.system_access?(f.acadian.system.id.as(String), Model::Permissions::Read).should be_true
+      key.destroy
+      policy.system_access?(f.acadian.system.id.as(String), Model::Permissions::Read).should be_false
+    end
+
+    it "uses an API key's real lifetime rather than its synthetic JWT expiry" do
+      f = fixture = Spec::Tenancy.build
+      key = Model::ApiKey.new(name: "Persistent key #{random_name}")
+      key.user = f.acadian.admin
+      key.save!
+      original = key.build_jwt
+      token = Model::UserJWT.new(iss: original.iss, iat: original.iat, exp: 1.second.ago, domain: original.domain, id: original.id, user: original.user, scope: original.scope)
+      policy = Utils::Tenancy::Policy.new(token, f.acadian.authority.id.as(String), f.acadian.organisation.id, key.id.as(String))
+      policy.system_access?(f.acadian.system.id.as(String), Model::Permissions::Read).should be_true
+      key.destroy
+      policy.system_access?(f.acadian.system.id.as(String), Model::Permissions::Read).should be_false
     end
 
     it "does not turn a read grant into execution through the caller's home admin flag" do

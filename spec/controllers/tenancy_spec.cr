@@ -1,10 +1,12 @@
 require "../helper"
 
-private def tenancy_get(path, user)
+private def tenancy_get(path, user, organisation_id : UUID? = nil)
+  path = "#{path}#{path.includes?('?') ? '&' : '?'}organisation_id=#{organisation_id}" if organisation_id
   client.get(path, headers: PlaceOS::Api::Spec::Tenancy.headers(user))
 end
 
-private def tenancy_post(path, user, body)
+private def tenancy_post(path, user, body, organisation_id : UUID? = nil)
+  path = "#{path}#{path.includes?('?') ? '&' : '?'}organisation_id=#{organisation_id}" if organisation_id
   client.post(path, headers: PlaceOS::Api::Spec::Tenancy.headers(user), body: body.to_json)
 end
 
@@ -54,14 +56,14 @@ module PlaceOS::Api
         zones.should_not contain(f.ucla.org_zone.id)
         zones.should_not contain(f.unowned_zone.id)
 
-        partner_zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.ntt_staff.support).body)
+        partner_zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.ntt_staff.support, f.acadian.organisation.id).body)
         partner_zones.should contain(f.acadian.org_zone.id)
-        partner_zones.should contain(f.ntt_staff.org_zone.id)
+        partner_zones.should_not contain(f.ntt_staff.org_zone.id)
         partner_zones.should_not contain(f.ucla.org_zone.id)
 
-        cluster_zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.placeos.admin).body)
+        cluster_zones = Spec::Tenancy.ids(tenancy_get("#{Zones.base_route}?limit=500", f.placeos.admin, f.ucla.organisation.id).body)
         cluster_zones.should contain(f.ucla.org_zone.id)
-        cluster_zones.should contain(f.unowned_zone.id)
+        cluster_zones.should_not contain(f.unowned_zone.id)
 
         systems = Spec::Tenancy.ids(tenancy_get("#{Systems.base_route}?limit=500", f.ucla.admin).body)
         systems.should eq [f.ucla.system.id]
@@ -82,12 +84,12 @@ module PlaceOS::Api
         tenancy_get("#{Zones.base_route}#{f.unowned_zone.id}", f.acadian.admin).status_code.should eq 404
 
         # partner staff reach their client, not a stranger
-        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ntt_staff.admin).status_code.should eq 200
-        tenancy_get("#{Zones.base_route}#{f.ucla.org_zone.id}", f.ntt_staff.admin).status_code.should eq 404
+        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ntt_staff.admin, f.acadian.organisation.id).status_code.should eq 200
+        tenancy_get("#{Zones.base_route}#{f.ucla.org_zone.id}", f.ntt_staff.admin, f.acadian.organisation.id).status_code.should eq 404
 
-        # cluster admins reach everything, unowned rows included
-        tenancy_get("#{Zones.base_route}#{f.ucla.org_zone.id}", f.placeos.admin).status_code.should eq 200
-        tenancy_get("#{Zones.base_route}#{f.unowned_zone.id}", f.placeos.admin).status_code.should eq 200
+        # Management staff select the target organisation; unowned estate is reserved for explicit claiming.
+        tenancy_get("#{Zones.base_route}#{f.ucla.org_zone.id}", f.placeos.admin, f.ucla.organisation.id).status_code.should eq 200
+        tenancy_get("#{Zones.base_route}#{f.unowned_zone.id}", f.placeos.admin, f.ucla.organisation.id).status_code.should eq 404
       end
 
       it "narrows a list to one organisation on request" do
@@ -134,7 +136,7 @@ module PlaceOS::Api
         named.status_code.should eq 201
         JSON.parse(named.body)["organisation_id"].to_s.should eq f.ucla.organisation.id.to_s
 
-        client.post("#{Zones.base_route}?organisation_id=#{f.ucla.organisation.id}", headers: Spec::Tenancy.headers(f.acadian.admin), body: {name: "Not mine #{random_name}"}.to_json).status_code.should eq 403
+        client.post("#{Zones.base_route}?organisation_id=#{f.ucla.organisation.id}", headers: Spec::Tenancy.headers(f.acadian.admin), body: {name: "Not mine #{random_name}"}.to_json).status_code.should eq 404
       end
 
       it "owns new systems through their zones and refuses mixed zones" do
@@ -146,8 +148,8 @@ module PlaceOS::Api
 
         tenancy_post(Systems.base_route, f.acadian.admin, {name: "Room #{random_name}", zones: [f.ucla.building.id]}).status_code.should eq 404
 
-        mixed = tenancy_post(Systems.base_route, f.placeos.admin, {name: "Room #{random_name}", zones: [f.acadian.building.id, f.ucla.building.id]})
-        mixed.status_code.should eq 422
+        mixed = tenancy_post(Systems.base_route, f.placeos.admin, {name: "Room #{random_name}", zones: [f.acadian.building.id, f.ucla.building.id]}, f.acadian.organisation.id)
+        mixed.status_code.should eq 404
       end
 
       it "keeps modules inside the system's organisation" do
@@ -178,7 +180,7 @@ module PlaceOS::Api
         JSON.parse(staff.body)["organisation_id"].to_s.should eq f.ucla.organisation.id.to_s
 
         moved = client.patch("#{Domains.base_route}#{f.acadian.authority.id}?organisation_id=#{f.ucla.organisation.id}", headers: Spec::Tenancy.headers(f.acadian.admin), body: {name: "renamed"}.to_json)
-        moved.status_code.should eq 403
+        moved.status_code.should eq 404
       end
 
       it "lists users within reach only" do
@@ -191,7 +193,7 @@ module PlaceOS::Api
         tenancy_get("#{Users.base_route}?authority_id=#{f.ucla.authority.id}", f.acadian.admin).status_code.should eq 404
         tenancy_get("#{Users.base_route}#{f.ucla.user.id}", f.acadian.admin).status_code.should eq 404
 
-        partner_users = Spec::Tenancy.ids(tenancy_get("#{Users.base_route}?limit=500", f.ntt_staff.admin).body)
+        partner_users = Spec::Tenancy.ids(tenancy_get("#{Users.base_route}?limit=500", f.ntt_staff.admin, f.acadian.organisation.id).body)
         partner_users.should contain(f.acadian.user.id)
         partner_users.should_not contain(f.ucla.user.id)
       end
@@ -206,7 +208,7 @@ module PlaceOS::Api
         second = Model::Generator.user(f.acadian.authority, admin: true).save!
         client.delete("#{Users.base_route}#{second.id}", headers: Spec::Tenancy.headers(f.acadian.admin)).status_code.should eq 202
 
-        client.delete("#{Users.base_route}#{f.acadian.admin.id}", headers: Spec::Tenancy.headers(f.placeos.admin)).status_code.should eq 202
+        client.delete("#{Users.base_route}#{f.acadian.admin.id}?organisation_id=#{f.acadian.organisation.id}", headers: Spec::Tenancy.headers(f.placeos.admin)).status_code.should eq 202
       end
     end
 
@@ -219,7 +221,7 @@ module PlaceOS::Api
 
         template = tenancy_post(Triggers.base_route, f.acadian.admin, {name: "Template #{random_name}"})
         template.status_code.should eq 403
-        template = tenancy_post(Triggers.base_route, f.placeos.admin, {name: "Template #{random_name}"})
+        template = tenancy_post(Triggers.base_route, f.placeos.admin, {name: "Template #{random_name}"}, f.placeos.organisation.id)
         template.status_code.should eq 201
 
         # templates are readable by every organisation
@@ -234,12 +236,12 @@ module PlaceOS::Api
     end
 
     describe "routes added since the reach enforcement" do
-      it "keeps change history and the source resync to cluster admins" do
+      it "scopes change history to the organisation while keeping source resync cluster-only" do
         f = build.call.not_nil!
 
-        tenancy_get(History.base_route, f.acadian.admin).status_code.should eq 403
-        tenancy_get(History.base_route, f.placeos.admin).status_code.should eq 200
-        tenancy_post(File.join(History.base_route, "undelete?resource_type=zone&resource_id=#{f.ucla.org_zone.id}"), f.acadian.admin, nil).status_code.should eq 403
+        tenancy_get(History.base_route, f.acadian.admin).status_code.should eq 200
+        tenancy_get(History.base_route, f.placeos.admin, f.acadian.organisation.id).status_code.should eq 200
+        tenancy_post(File.join(History.base_route, "undelete?resource_type=zone&resource_id=#{f.ucla.org_zone.id}"), f.acadian.admin, nil).status_code.should eq 404
 
         tenancy_post("/api/engine/v2/source/resync", f.acadian.admin, nil).status_code.should eq 403
         tenancy_get("/api/engine/v2/source/resync", f.acadian.admin).status_code.should eq 403
@@ -274,21 +276,22 @@ module PlaceOS::Api
         client.patch("#{Organisations.base_route}#{f.acadian.organisation.id}", headers: Spec::Tenancy.headers(f.acadian.admin), body: {name: "renamed"}.to_json).status_code.should eq 403
       end
 
-      it "widens reach through live grants" do
+      it "allows explicit selection through live grants without changing the home default" do
         f = build.call.not_nil!
 
         tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin).status_code.should eq 404
 
         granted = tenancy_post(Grants.base_route, f.placeos.admin, {user_id: f.ucla.admin.id, scope_type: "organisation", scope_id: f.acadian.organisation.id.to_s, permissions: 1})
         granted.status_code.should eq 201
-        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin).status_code.should eq 200
+        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin).status_code.should eq 404
+        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin, f.acadian.organisation.id).status_code.should eq 200
 
         client.delete("#{Grants.base_route}#{JSON.parse(granted.body)["id"]}", headers: Spec::Tenancy.headers(f.placeos.admin)).status_code.should eq 202
-        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin).status_code.should eq 404
+        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin, f.acadian.organisation.id).status_code.should eq 404
 
         expired = tenancy_post(Grants.base_route, f.placeos.admin, {user_id: f.ucla.admin.id, scope_type: "organisation", scope_id: f.acadian.organisation.id.to_s, permissions: 1, expires_at: 1.hour.ago})
         expired.status_code.should eq 201
-        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin).status_code.should eq 404
+        tenancy_get("#{Zones.base_route}#{f.acadian.org_zone.id}", f.ucla.admin, f.acadian.organisation.id).status_code.should eq 404
 
         # an organisation admin may grant into their own organisation but not a stranger's
         tenancy_post(Grants.base_route, f.acadian.admin, {user_id: f.ucla.support.id, scope_type: "organisation", scope_id: f.acadian.organisation.id.to_s}).status_code.should eq 201

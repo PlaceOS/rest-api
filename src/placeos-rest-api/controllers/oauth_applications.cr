@@ -76,7 +76,7 @@ module PlaceOS::Api
         end
       else
         # Regular user: force the authority to the caller's own.
-        own_authority = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+        own_authority = resource_authority!.id.as(String)
         query = query.where(owner_id: own_authority)
 
         # Subsystem gating: a regular user always sees the "common" apps
@@ -100,13 +100,14 @@ module PlaceOS::Api
 
       apps = paginate_search(query, ::PlaceOS::Model::DoorkeeperApplication.table_name)
       # Only admins (who can already show / edit apps) see client secrets.
-      user_admin? ? apps : apps.map { |app| PublicApplication.new(app) }
+      include_secrets = user_admin? && apps.all? { |app| may_manage_authority?(app.owner_id) }
+      include_secrets ? apps : apps.map { |app| PublicApplication.new(app) }
     end
 
     # show the details of the applications
     @[AC::Route::GET("/:id")]
-    def show : ::PlaceOS::Model::DoorkeeperApplication
-      current_app
+    def show : ::PlaceOS::Model::DoorkeeperApplication | PublicApplication
+      may_manage_authority?(current_app.owner_id) ? current_app : PublicApplication.new(current_app)
     end
 
     # udpate an application
@@ -114,7 +115,15 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :app)]
     def update(app : ::PlaceOS::Model::DoorkeeperApplication) : ::PlaceOS::Model::DoorkeeperApplication
       current = current_app
+      original_owner = current.owner_id
       current.assign_attributes(app)
+      ensure_authority_reach!(current.owner_id, "application")
+      if app.scopes_assigned? || app.redirect_uri_assigned? || app.confidential_assigned? || app.skip_authorization_assigned? || app.secret_assigned? || app.uid_assigned?
+        ensure_credential_management!(original_owner)
+      end
+      if Utils::Tenancy.enforce? && current.owner_id != original_owner
+        raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:owner_id, "application ownership cannot be changed")])
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -123,6 +132,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/", body: :app, status_code: HTTP::Status::CREATED)]
     def create(app : ::PlaceOS::Model::DoorkeeperApplication) : ::PlaceOS::Model::DoorkeeperApplication
       ensure_authority_reach!(app.owner_id, "domain")
+      ensure_credential_management!(app.owner_id)
       raise Error::ModelValidation.new(app.errors) unless app.save
       app
     end

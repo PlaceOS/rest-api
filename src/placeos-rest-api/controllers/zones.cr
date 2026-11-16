@@ -273,7 +273,7 @@ module PlaceOS::Api
     # returns unique zone tags
     @[AC::Route::GET("/tags")]
     def tags : Array(String)
-      ids = tenancy.organisation_ids
+      ids = permitted_organisation_ids
       return [] of String if ids && ids.empty?
       unique_tags = PgORM::Database.connection do |db|
         if ids
@@ -340,7 +340,7 @@ module PlaceOS::Api
     def destroy : Nil
       zone_id = current_zone.id
       current_zone.destroy
-      spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: zone_id}) }
+      publish_metadata_change(zone_id.as(String), :destroy_all, {parent_id: zone_id})
     end
 
     # return metadata associcated with the selected zone

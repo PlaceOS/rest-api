@@ -32,6 +32,7 @@ module PlaceOS::Api
     def find_current_group_zone(group_id : UUID, zone_id : String)
       Log.context.set(group_id: group_id.to_s, zone_id: zone_id)
       @current_group_zone = ::PlaceOS::Model::GroupZone.find!({group_id, zone_id})
+      check_group_zone_scope(current_group_zone)
     end
 
     getter! current_group_zone : ::PlaceOS::Model::GroupZone
@@ -41,6 +42,13 @@ module PlaceOS::Api
     end
 
     getter! group_zone_update : ::PlaceOS::Model::GroupZone
+
+    private def check_group_zone_scope(row : ::PlaceOS::Model::GroupZone)
+      return unless Utils::Tenancy.enforce?
+      group = ::PlaceOS::Model::Group.find!(row.group_id)
+      authority_for_resource!(group.authority_id, "group")
+      ensure_reach!(::PlaceOS::Model::Zone.find!(row.zone_id))
+    end
 
     # Permission gates
     ###############################################################################################
@@ -54,6 +62,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:create])]
     def check_create_permissions
+      check_group_zone_scope(group_zone_update)
       return if user_admin?
       group = ::PlaceOS::Model::Group.find!(group_zone_update.group_id)
       ensure_manage!(current_user, group)
@@ -79,7 +88,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::GroupZone)
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+      authority_id = resource_authority!.id.as(String)
       authority_group_ids = ::PlaceOS::Model::Group
         .where(authority_id: authority_id)
         .to_a
@@ -89,6 +98,7 @@ module PlaceOS::Api
       query = ::PlaceOS::Model::GroupZone.where(group_id: authority_group_ids)
 
       if group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
         unless user_admin?
           group = ::PlaceOS::Model::Group.find!(group_id)
           ensure_member!(current_user, group)
@@ -102,7 +112,10 @@ module PlaceOS::Api
         end
       end
 
-      query = query.where(zone_id: zone_id) if zone_id
+      if zone_id
+        ensure_reach!(::PlaceOS::Model::Zone.find!(zone_id)) if Utils::Tenancy.enforce?
+        query = query.where(zone_id: zone_id)
+      end
       results = paginate_sql(query, type: "group_zones", limit: limit, offset: offset)
       hydrate_index(results)
       results

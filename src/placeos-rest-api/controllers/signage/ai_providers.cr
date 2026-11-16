@@ -31,7 +31,10 @@ module PlaceOS::Api
       # delete and spend against another customer's provider by guessing an id.
       # The shared fallback row (no authority) is readable by everyone and
       # writable by nobody through this route.
-      unless row.authority_id == current_authority.try(&.id)
+      if Utils::Tenancy.enforce? && row.authority_id
+        authority_for_resource!(row.authority_id, "provider")
+      end
+      unless row.authority_id == resource_authority.try(&.id)
         raise Error::NotFound.new("no such provider") unless row.authority_id.nil? && read_only_action?
       end
 
@@ -91,7 +94,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "include the shared fallback row", example: "true")]
       include_shared : Bool = true,
     ) : Array(ProviderJSON)
-      domain = current_authority.try(&.id)
+      domain = resource_authority.try(&.id)
       rows = if domain.nil?
                [] of ::PlaceOS::Model::SignageAIProvider
              else
@@ -132,7 +135,7 @@ module PlaceOS::Api
 
       # the caller's own domain, whatever the body says: a domain administrator
       # cannot create a row that belongs to somebody else
-      row.authority_id = current_authority.try(&.id)
+      row.authority_id = resource_authority.try(&.id)
       apply_optional(row, params)
 
       raise Error::ModelValidation.new(row.errors) unless row.save

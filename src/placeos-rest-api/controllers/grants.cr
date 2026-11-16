@@ -32,8 +32,8 @@ module PlaceOS::Api
     # into their own organisation and its domains; partner admins request
     # rather than self-grant
     protected def ensure_scope_reach!(scope_type : String, scope_id : String) : Nil
-      return if tenancy.cluster?
-      own = tenancy.organisation_id
+      return if accessible_tenancy.cluster?
+      own = accessible_tenancy.organisation_id
       allowed = case scope_type
                 when ::PlaceOS::Model::Grant::SCOPE_ORGANISATION
                   own && own.to_s == scope_id

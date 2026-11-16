@@ -15,6 +15,8 @@ module PlaceOS::Api
     skip_action :authorize!, only: [:azure_admin_consent_callback, :flow_status]
     skip_action :set_user_id, only: [:azure_admin_consent_callback, :flow_status]
 
+    generate_scope_check("domains")
+    before_action :can_write_domains, only: [:index]
     before_action :check_admin, only: [:index]
 
     @[AC::Route::Filter(:before_action)]
@@ -36,6 +38,7 @@ module PlaceOS::Api
     def index(id : String) : NamedTuple(url: String)
       authority = ::PlaceOS::Model::Authority.find!(id)
       ensure_reach!(authority)
+      ensure_credential_management!(authority.id)
       update_app_redirect_uri
       callback_url = URI.encode_www_form(redirect_url)
       # Not the authority id. `state` comes back from Microsoft through the

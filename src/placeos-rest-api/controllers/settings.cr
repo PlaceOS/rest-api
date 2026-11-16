@@ -54,7 +54,7 @@ module PlaceOS::Api
 
     def check_access_level(parent_id : String, admin_required : Bool)
       # find the org zone
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
@@ -164,6 +164,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Settings)
+      can_view?(current_settings.parent_id.as(String))
       history = current_settings.history(offset: offset, limit: limit).to_a
 
       total = current_settings.history_count

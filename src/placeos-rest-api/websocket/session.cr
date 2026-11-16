@@ -45,6 +45,8 @@ module PlaceOS::Api::WebSocket
       @user : ::PlaceOS::Model::UserJWT,
       @discovery : Clustering::Discovery = RemoteDriver.default_discovery,
       @organisation_ids : Set(UUID)? = nil,
+      @authorizer : Proc(String, ::PlaceOS::Model::Permissions, Bool)? = nil,
+      @security_authorizer : Proc(String, Driver::Proxy::RemoteDriver::Clearance)? = nil,
     )
       # Register event handlers
       ws.on_message do |message|
@@ -77,16 +79,107 @@ module PlaceOS::Api::WebSocket
     # WebSocket API Handlers
     ##############################################################################
 
-    # True when the system is inside the session's reach. Unknown systems are
-    # left to the existing lookups, which answer with the module-not-found
-    # error the clients already handle.
+    # The selected organisation is immutable for the life of the socket.
     protected def system_in_reach?(system_id : String) : Bool
       ids = organisation_ids
       return true if ids.nil?
       system = ::PlaceOS::Model::ControlSystem.find?(system_id)
-      return true if system.nil?
-      owner = system.organisation_id
-      !owner.nil? && ids.includes?(owner)
+      return false if system.nil?
+      owner_in_scope?(system.organisation_id)
+    end
+
+    private def owner_in_scope?(owner : UUID?) : Bool
+      ids = organisation_ids
+      ids.nil? || (!owner.nil? && ids.includes?(owner))
+    end
+
+    private def scope_permitted?(system_id : String, required : ::PlaceOS::Model::Permissions) : Bool
+      authorizer = @authorizer
+      authorizer.nil? || authorizer.call(system_id, required)
+    rescue error
+      Log.warn(exception: error) { "websocket authorisation could not be verified" }
+      false
+    end
+
+    private def scoped_security(system_id : String) : Driver::Proxy::RemoteDriver::Clearance
+      authorizer = @security_authorizer
+      authorizer ? authorizer.call(system_id) : @security_level
+    rescue error
+      Log.warn(exception: error) { "websocket clearance could not be verified" }
+      Driver::Proxy::RemoteDriver::Clearance::User
+    end
+
+    # Validate the current database ownership, not a possibly stale Redis lookup.
+    private def module_in_scope?(system_id : String, module_name : String, index : Int32, interface : Bool = false, triggers : Bool = true) : Bool
+      return true if @authorizer.nil?
+      return true if triggers && !interface && module_name == "_TRIGGER_"
+      !scoped_module(system_id, module_name, index, interface).nil?
+    end
+
+    private def scoped_module(system_id : String, module_name : String, index : Int32, interface : Bool = false) : ::PlaceOS::Model::Module?
+      return unless index > 0
+      system = ::PlaceOS::Model::ControlSystem.find?(system_id)
+      return unless system && owner_in_scope?(system.organisation_id)
+      mod = if interface
+              interface_driver(system_id, module_name, index)
+            else
+              remaining = index
+              found = nil.as(::PlaceOS::Model::Module?)
+              system.modules.each do |module_id|
+                candidate = ::PlaceOS::Model::Module.find?(module_id)
+                next unless candidate && candidate.resolved_name == module_name
+                remaining -= 1
+                next unless remaining.zero?
+                found = candidate
+                break
+              end
+              found
+            end
+      return unless mod && system.modules.includes?(mod.id.to_s) && mod.organisation_id == system.organisation_id
+      unless interface
+        runtime_id = Driver::Proxy::System.module_id?(system_id, module_name, index)
+        return if runtime_id && runtime_id != mod.id
+      end
+      mod
+    rescue Driver::Proxy::RemoteDriver::Error
+      nil
+    end
+
+    private def debug_module_in_scope?(system_id : String, module_id : String) : Bool
+      return true if @authorizer.nil?
+      system = ::PlaceOS::Model::ControlSystem.find?(system_id)
+      mod = ::PlaceOS::Model::Module.find?(module_id)
+      !!(system && owner_in_scope?(system.organisation_id) && mod && system.modules.includes?(module_id) && mod.organisation_id == system.organisation_id)
+    end
+
+    private def debug_allowed?(system_id : String, module_id : String) : Bool
+      return Utils::ModuleDebugAccess.allowed?(user, module_id) unless @authorizer
+      clearance = scoped_security(system_id)
+      return true if clearance.admin? || clearance.support?
+
+      # A live cross-organisation Read|Operate grant was checked on the frame.
+      # Home-organisation users still need the existing module/group access.
+      authority = ::PlaceOS::Model::Authority.find_by_domain(user.domain)
+      system = ::PlaceOS::Model::ControlSystem.find?(system_id)
+      if authority && system && authority.organisation_id != system.organisation_id
+        return true
+      end
+      metadata = user.user
+      scoped_user = ::PlaceOS::Model::UserJWT.new(
+        iss: user.iss,
+        iat: user.iat,
+        exp: user.exp,
+        domain: user.domain,
+        id: user.id,
+        scope: user.scope,
+        user: ::PlaceOS::Model::UserJWT::Metadata.new(
+          name: metadata.name,
+          email: metadata.email,
+          permissions: ::PlaceOS::Model::UserJWT::Permissions::User,
+          roles: metadata.roles,
+        ),
+      )
+      Utils::ModuleDebugAccess.allowed?(scoped_user, module_id)
     end
 
     protected def elevate_security(system_id : String, default : Driver::Proxy::RemoteDriver::Clearance) : Driver::Proxy::RemoteDriver::Clearance
@@ -101,7 +194,12 @@ module PlaceOS::Api::WebSocket
       zones = system.zones
       return default unless zones.includes?(org_zone_id)
 
-      access = check_access(user.user.roles, zones)
+      groups = if @authorizer && !user.guest_scope?
+                 ::PlaceOS::Model::User.find?(user.id).try(&.groups) || [] of String
+               else
+                 user.user.roles
+               end
+      access = check_access(groups, zones)
       case access
       in .deny?
         raise "you have been denied access to this system"
@@ -128,7 +226,7 @@ module PlaceOS::Api::WebSocket
       args = [] of JSON::Any if args.nil?
       Log.info { {message: "exec", args: args.to_json, user: @user.id} }
 
-      security = elevate_security(system_id, @security_level)
+      security = elevate_security(system_id, scoped_security(system_id))
 
       arguments = {
         sys_id:      system_id,
@@ -140,8 +238,16 @@ module PlaceOS::Api::WebSocket
       edge_id = ->(module_id : String) {
         ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
       }
-      remote_driver = if interface
-                        driver = interface_driver(system_id, module_name, index)
+      driver = if @authorizer
+                 scoped_module(system_id, module_name, index, interface)
+               elsif interface
+                 interface_driver(system_id, module_name, index)
+               end
+      if @authorizer && driver.nil?
+        respond error_response(request_id, :module_not_found, "could not find module: sys=#{system_id} mod=#{module_name}", 404)
+        return
+      end
+      remote_driver = if driver
                         Driver::Proxy::RemoteDriver.new(**arguments, module_id: driver.id.as(String), &edge_id)
                       else
                         Driver::Proxy::RemoteDriver.new(**arguments, &edge_id)
@@ -168,10 +274,12 @@ module PlaceOS::Api::WebSocket
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message, e.response_code))
     rescue e
-      Log.error(exception: e) { {
-        message: "failed to execute request",
-        error:   e.message,
-      } }
+      Log.error(exception: e) do
+        {
+          message: "failed to execute request",
+          error:   e.message,
+        }
+      end
       respond(error_response(request_id, :unexpected_failure, "failed to execute request"))
     end
 
@@ -217,10 +325,12 @@ module PlaceOS::Api::WebSocket
       )
       respond(response)
     rescue e
-      Log.error(exception: e) { {
-        message: "failed to bind",
-        error:   e.message,
-      } }
+      Log.error(exception: e) do
+        {
+          message: "failed to bind",
+          error:   e.message,
+        }
+      end
       respond(error_response(request_id, :unexpected_failure, "failed to bind"))
     end
 
@@ -243,10 +353,12 @@ module PlaceOS::Api::WebSocket
     rescue e : Driver::Proxy::RemoteDriver::Error
       respond(error_response(request_id, e.error_code, e.message))
     rescue e
-      Log.error(exception: e) { {
-        message: "failed to unbind",
-        error:   e.message,
-      } }
+      Log.error(exception: e) do
+        {
+          message: "failed to unbind",
+          error:   e.message,
+        }
+      end
       respond(error_response(request_id, :unexpected_failure, "failed to unbind"))
     end
 
@@ -263,7 +375,7 @@ module PlaceOS::Api::WebSocket
     )
       # NOTE: In the interest of saving a redis lookup, the frontend passes
       #       the module_id, rather than name.
-      unless Utils::ModuleDebugAccess.allowed?(user, module_name)
+      unless debug_allowed?(system_id, module_name) && debug_module_in_scope?(system_id, module_name)
         Log.warn { {message: "websocket debug attempted without access", module_id: module_name} }
         respond error_response(request_id, :access_denied, "attempted to debug a module without access", 403)
         return
@@ -273,6 +385,8 @@ module PlaceOS::Api::WebSocket
 
       if !existing_socket || existing_socket.closed?
         ws = Utils::ModuleLogs.open(module_id: module_name, sys_id: system_id, user_id: user.id, discovery: @discovery) do |level, message|
+          required = ::PlaceOS::Model::Permissions::Read | ::PlaceOS::Model::Permissions::Operate
+          next unless scope_permitted?(system_id, required) && debug_module_in_scope?(system_id, module_name) && debug_allowed?(system_id, module_name)
           respond(
             Response.new(
               id: request_id,
@@ -395,7 +509,8 @@ module PlaceOS::Api::WebSocket
       driver = interface_driver(system_id, module_name, index) if interface
       resolved_name = driver.try(&.resolved_name) || module_name
 
-      if resolved_name.starts_with?("_") && !@user.is_support?
+      clearance = scoped_security(system_id)
+      if resolved_name.starts_with?("_") && !(clearance.admin? || clearance.support?)
         Log.warn { "websocket binding attempted to access privileged module" }
         respond error_response(request_id, :access_denied, "attempted to access protected module")
         return false
@@ -409,7 +524,8 @@ module PlaceOS::Api::WebSocket
             module_name: module_name,
             status: name,
             index: index,
-            value: event
+            value: event,
+            interface: interface,
           )
         end
       elsif module_name == "_TRIGGER_"
@@ -429,7 +545,8 @@ module PlaceOS::Api::WebSocket
             module_name: module_name,
             status: name,
             index: index,
-            value: event
+            value: event,
+            interface: interface,
           )
         end
       else
@@ -441,7 +558,8 @@ module PlaceOS::Api::WebSocket
             module_name: module_name,
             status: name,
             index: index,
-            value: event
+            value: event,
+            interface: interface,
           )
         end
       end
@@ -461,7 +579,13 @@ module PlaceOS::Api::WebSocket
 
     # Parse an update from a subscription and pass to listener
     #
-    def notify_update(value, request_id, system_id, module_name, index, status)
+    def notify_update(value, request_id, system_id, module_name, index, status, interface : Bool = false)
+      return unless scope_permitted?(system_id, ::PlaceOS::Model::Permissions::Read)
+      return unless module_in_scope?(system_id, module_name, index, interface)
+      if @authorizer && module_name == "_TRIGGER_"
+        trigger = ::PlaceOS::Model::TriggerInstance.find?(status)
+        return unless trigger && trigger.control_system_id == system_id
+      end
       respond(Response.new(
         id: request_id,
         type: :notify,
@@ -597,10 +721,26 @@ module PlaceOS::Api::WebSocket
       }
       Log.context.set(**arguments.merge({ws_request_id: @request_id}))
 
-      unless system_in_reach?(request.system_id)
-        Log.warn { {message: "tenancy refused", reason: "system outside reach", system_id: request.system_id, user: @user.id} }
-        respond error_response(request.id, :module_not_found, "could not find module: sys=#{request.system_id} mod=#{request.module_name}")
-        return
+      # Cleanup remains possible after permission revocation.
+      unless request.command.unbind? || request.command.ignore?
+        unless system_in_reach?(request.system_id)
+          Log.warn { {message: "tenancy refused", reason: "system outside selection", system_id: request.system_id, user: @user.id} }
+          respond error_response(request.id, :module_not_found, "could not find module: sys=#{request.system_id} mod=#{request.module_name}", 404)
+          return
+        end
+        required = case request.command
+                   when .exec?  then ::PlaceOS::Model::Permissions::Operate
+                   when .debug? then ::PlaceOS::Model::Permissions::Read | ::PlaceOS::Model::Permissions::Operate
+                   else              ::PlaceOS::Model::Permissions::Read
+                   end
+        unless scope_permitted?(request.system_id, required)
+          respond error_response(request.id, :access_denied, "system access denied", 403)
+          return
+        end
+        unless request.command.debug? || module_in_scope?(request.system_id, request.module_name, request.index, request.interface?, triggers: request.command.bind?)
+          respond error_response(request.id, :module_not_found, "could not find module: sys=#{request.system_id} mod=#{request.module_name}", 404)
+          return
+        end
       end
 
       case request.command

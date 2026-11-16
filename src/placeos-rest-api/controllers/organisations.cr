@@ -14,7 +14,6 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show, :current]
     before_action :can_write, only: [:create, :update, :destroy, :claim]
 
-    before_action :check_support, only: [:index, :show]
     before_action :check_cluster_admin, only: [:create, :update, :destroy, :claim]
 
     ###############################################################################################
@@ -23,7 +22,7 @@ module PlaceOS::Api
     def find_current_organisation(id : UUID)
       Log.context.set(organisation_id: id.to_s)
       organisation = ::PlaceOS::Model::Organisation.find!(id)
-      ensure_reach!(organisation.id, "organisation")
+      ensure_discoverable_organisation!(organisation.id)
       @current_organisation_row = organisation
     end
 
@@ -31,51 +30,91 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    # What the caller can reach: the level, their own organisation and partner,
-    # and the organisations in reach. Backoffice reads this once at login.
+    # Minimal selector records; billing and private configuration stay in
+    # the administrative write responses, not discovery.
+    struct Summary
+      include JSON::Serializable
+      include YAML::Serializable
+
+      getter id : UUID?
+      getter name : String
+      getter partner_id : UUID?
+      getter? partner_staff : Bool
+
+      def initialize(organisation : ::PlaceOS::Model::Organisation)
+        @id = organisation.id
+        @name = organisation.name
+        @partner_id = organisation.partner_id
+        @partner_staff = organisation.partner_staff
+      end
+    end
+
+    struct PartnerSummary
+      include JSON::Serializable
+      include YAML::Serializable
+
+      getter id : UUID?
+      getter name : String
+
+      def initialize(partner : ::PlaceOS::Model::Partner)
+        @id = partner.id
+        @name = partner.name
+      end
+    end
+
     record CurrentReach,
       reach : String,
       enforcing : Bool,
-      organisation : ::PlaceOS::Model::Organisation?,
-      partner : ::PlaceOS::Model::Partner?,
-      organisations : Array(::PlaceOS::Model::Organisation)? do
+      organisation : Summary?,
+      partner : PartnerSummary?,
+      organisations : Array(Summary)?,
+      selection_required : Bool,
+      selected_organisation_id : UUID? do
       include JSON::Serializable
     end
 
+    # Describe the caller's home organisation and accessible organisations.
     @[AC::Route::GET("/current")]
     def current : CurrentReach
-      scope = tenancy
+      scope = resolved_tenancy
       organisations = scope.organisation_ids.try do |ids|
-        ids.empty? ? [] of ::PlaceOS::Model::Organisation : ::PlaceOS::Model::Organisation.find_all(ids.to_a).to_a
+        ids.empty? ? [] of Summary : ::PlaceOS::Model::Organisation.find_all(ids.to_a).order("name, id").map { |org| Summary.new(org) }.to_a
       end
+      selected = if query_params["organisation_id"]?
+                   selected_organisation_id
+                 elsif scope.reach.organisation?
+                   current_organisation.try(&.id)
+                 end
       CurrentReach.new(
         reach: scope.reach.to_s.downcase,
         enforcing: Utils::Tenancy.enforce?,
-        organisation: scope.organisation,
-        partner: scope.partner,
+        organisation: scope.organisation.try { |org| Summary.new(org) },
+        partner: scope.partner.try { |partner| PartnerSummary.new(partner) },
         organisations: organisations,
+        selection_required: Utils::Tenancy.enforce? && !scope.reach.organisation?,
+        selected_organisation_id: selected,
       )
     end
 
-    # list the organisations in reach
+    # List accessible organisations for the REST organisation selector.
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "only organisations under this partner", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
       partner_id : UUID? = nil,
-    ) : Array(::PlaceOS::Model::Organisation)
+    ) : Array(Summary)
       query = ::PlaceOS::Model::Organisation.all
       query = query.where(partner_id: partner_id) if partner_id
-      ids = tenancy.organisation_ids
-      if ids
+      if ids = resolved_tenancy.organisation_ids
         list = ids.to_a.map(&.to_s)
         query = list.empty? ? query.where("1 = ?", 0) : query.where("id = ANY(ARRAY[#{list.join(", ") { "?" }}]::uuid[])", list)
       end
-      paginate_search(query, ::PlaceOS::Model::Organisation.table_name)
+      paginate_search(query, ::PlaceOS::Model::Organisation.table_name).map { |org| Summary.new(org) }
     end
 
+    # Get an accessible organisation's selector details.
     @[AC::Route::GET("/:id")]
-    def show : ::PlaceOS::Model::Organisation
-      current_organisation_row
+    def show : Summary
+      Summary.new(current_organisation_row)
     end
 
     # `payer` and `partner_staff` are not mass-assignable, so they travel as

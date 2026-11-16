@@ -20,6 +20,8 @@ module PlaceOS::Api
       Log.context.set(storage_id: id)
       # Find will raise a 404 (not found) if there is an error
       @current_storage = ::PlaceOS::Model::Storage.find!(id)
+      ensure_resource_authority!(current_storage.authority_id, "storage", shared: true)
+      authority_for_resource!(current_storage.authority_id, "storage") if Utils::Tenancy.enforce? && current_storage.authority_id
     end
 
     getter! current_storage : ::PlaceOS::Model::Storage
@@ -30,7 +32,21 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "return storages which are in the authority provided", example: "auth-1234")]
       auth_id : String? = nil,
     ) : Array(::PlaceOS::Model::Storage)
-      ::PlaceOS::Model::Storage.where(authority_id: auth_id).all.to_a
+      if Utils::Tenancy.enforce?
+        if auth_id
+          ensure_authority_reach!(auth_id, "storage")
+          ::PlaceOS::Model::Storage.where(authority_id: auth_id).to_a
+        else
+          shared = ::PlaceOS::Model::Storage.where(authority_id: nil).to_a
+          if query_params["organisation_id"]?
+            scope_authorities(::PlaceOS::Model::Storage.all).to_a + shared
+          else
+            shared
+          end
+        end
+      else
+        ::PlaceOS::Model::Storage.where(authority_id: auth_id).all.to_a
+      end
     end
 
     # returns the details of a Storage
@@ -44,7 +60,13 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :storage)]
     def update(storage : ::PlaceOS::Model::Storage) : ::PlaceOS::Model::Storage
       current = current_storage
+      owner = current.authority_id
+      if Utils::Tenancy.enforce? && (requested = storage.authority_id) && requested != owner
+        ensure_resource_authority!(requested, "storage")
+        raise Error::Forbidden.new("storage ownership cannot be reassigned")
+      end
       current.assign_attributes(storage)
+      current.authority_id = owner if Utils::Tenancy.enforce?
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -52,6 +74,10 @@ module PlaceOS::Api
     # adds a new storage
     @[AC::Route::POST("/", body: :storage, status_code: HTTP::Status::CREATED)]
     def create(storage : ::PlaceOS::Model::Storage) : ::PlaceOS::Model::Storage
+      if Utils::Tenancy.enforce?
+        storage.authority_id ||= resource_authority!.id
+        ensure_resource_authority!(storage.authority_id, "storage")
+      end
       raise Error::ModelValidation.new(storage.errors) unless storage.save
       storage
     end

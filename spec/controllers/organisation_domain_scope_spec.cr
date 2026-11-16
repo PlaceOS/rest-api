@@ -19,6 +19,12 @@ module PlaceOS::Api
         global_storages.clear
       end
       if f = fixture
+        authorities = [f.ntt_staff.authority.id, f.acadian.authority.id, f.ucla.authority.id].compact
+        storage_ids = Model::Storage.where(authority_id: authorities).to_a.compact_map(&.id)
+        unless storage_ids.empty?
+          Model::Upload.where(storage_id: storage_ids).delete_all
+          Model::Storage.where(id: storage_ids).delete_all
+        end
         Spec::Tenancy.teardown(f)
         fixture = nil
       end
@@ -77,6 +83,21 @@ module PlaceOS::Api
       Model::AssetType.find!(type.id.as(String)).category_id.should eq home.id
     end
 
+    it "rolls back a bulk asset create when a later asset refers to another organisation" do
+      f = build.call.not_nil!
+      own_category = Model::Generator.asset_category(f.ntt_staff.authority).save!
+      own_type = Model::Generator.asset_type(own_category).save!
+      foreign_category = Model::Generator.asset_category(f.acadian.authority).save!
+      foreign_type = Model::Generator.asset_type(foreign_category).save!
+      order = Model::Generator.asset_purchase_order(f.ntt_staff.authority).save!
+      first = Model::Asset.new(asset_type_id: own_type.id, purchase_order_id: order.id, zone_id: f.ntt_staff.building.id)
+      second = Model::Asset.new(asset_type_id: foreign_type.id, purchase_order_id: order.id, zone_id: f.acadian.building.id)
+      result = client.post("#{Assets.base_route}bulk?organisation_id=#{f.ntt_staff.organisation.id}",
+        headers: Spec::Tenancy.headers(f.ntt_staff.admin), body: [first, second].to_json)
+      result.status_code.should eq 404
+      Model::Asset.where(asset_type_id: own_type.id).count.should eq 0
+    end
+
     it "lists groups in the selected domain and conceals sibling group ids" do
       f = build.call.not_nil!
       target = Model::Generator.group(authority: f.acadian.authority).save!
@@ -87,6 +108,16 @@ module PlaceOS::Api
       Spec::Tenancy.ids(result.body).should contain(target.id.to_s)
       Spec::Tenancy.ids(result.body).should_not contain(home.id.to_s)
       domain_scope_get("#{Groups.base_route}#{home.id}#{suffix}", f.ntt_staff.admin).status_code.should eq 404
+    end
+
+    it "preserves a name-only group PATCH without an authority field" do
+      f = build.call.not_nil!
+      group = Model::Generator.group(authority: f.acadian.authority).save!
+      result = client.patch("#{Groups.base_route}#{group.id}", headers: Spec::Tenancy.headers(f.acadian.admin), body: {name: "Renamed without authority"}.to_json)
+      result.status_code.should eq 200
+      updated = Model::Group.find!(group.id.as(UUID))
+      updated.name.should eq "Renamed without authority"
+      updated.authority_id.should eq f.acadian.authority.id
     end
 
     it "reads the selected customer's signage playlist" do
@@ -178,6 +209,42 @@ module PlaceOS::Api
         headers: Spec::Tenancy.headers(f.ntt_staff.admin), body: payload)
       second.status_code.should eq 200
       JSON.parse(second.body)["upload_id"].as_s.should_not eq first_id
+    end
+
+    it "does not let a read-only upload OAuth scope sign a new upload" do
+      f = build.call.not_nil!
+      headers = Spec::Tenancy.headers(f.acadian.admin)
+      token = Model::UserJWT.decode(headers["Authorization"].split(' ').last)
+      scopes = [Model::UserJWT::Scope.new("uploads", Model::UserJWT::Scope::Access::Read)]
+      headers["Authorization"] = "Bearer #{Model::UserJWT.new(iss: token.iss, iat: token.iat, exp: token.exp, domain: token.domain, id: token.id, user: token.user, scope: scopes).encode}"
+      result = client.post(Uploads.base_route, headers: headers,
+        body: {file_name: "read-only.png", file_size: 50, file_id: "checksum", file_mime: "image/png"}.to_json)
+      result.status_code.should eq 403
+    end
+
+    it "does not send a brand-logo upload from another organisation to the image vendor" do
+      f = build.call.not_nil!
+      storage = Model::Generator.storage(authority_id: f.acadian.authority.id).save!
+      foreign_storage = Model::Generator.storage(authority_id: f.ucla.authority.id).save!
+      Model::Generator.signage_ai_provider(authority: f.acadian.authority, name: "selected-#{random_name}", is_default: true).save!
+      source = Model::Generator.upload(f.ntt_staff.admin, storage.id, file_name: "source.png").save!
+      logo = Model::Generator.upload(f.ucla.admin, foreign_storage.id, file_name: "foreign-logo.png").save!
+      Model::Metadata.new(parent_id: f.acadian.org_zone.id, name: "signage_ai", details: JSON.parse({logo_upload_id: logo.id}.to_json)).save!
+      HttpMocks.signage_ai_vendor
+      HttpMocks.signage_ai_storage
+      headers = Spec::Tenancy.headers(f.ntt_staff.admin)
+      result = client.post("#{SignageAI.base_route}/edit?organisation_id=#{f.acadian.organisation.id}", headers: headers,
+        body: {prompt: "make it warmer", candidates: 1, include_logo: true, source_upload_id: source.id}.to_json)
+      result.status_code.should eq 202
+      job_id = UUID.new(JSON.parse(result.body)["id"].as_s)
+      job = Model::SignageAIJob.find!(job_id)
+      100.times do
+        break if job.final?
+        sleep 100.milliseconds
+        job = Model::SignageAIJob.find!(job_id)
+      end
+      job.final?.should be_true
+      job.upload_ids.should_not contain(logo.id)
     end
 
     it "requires an explicit domain when a selected foreign organisation has several authorities" do
