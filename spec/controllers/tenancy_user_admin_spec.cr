@@ -30,8 +30,9 @@ module PlaceOS::Api
       Spec::Tenancy.ids(home.body).should eq [f.ucla.user.id]
       headers = Spec::Tenancy.headers(f.ucla.admin)
       token = Model::UserJWT.decode(headers["Authorization"].split(' ').last)
-      headers["Authorization"] = "Bearer #{Model::UserJWT.new(iss: token.iss, iat: token.iat, exp: token.exp, domain: token.domain, id: token.id, user: token.user,
-                                             scope: [Model::UserJWT::Scope.new("users", Model::UserJWT::Scope::Access::Write)]).encode}"
+      limited = Model::UserJWT.new(iss: token.iss, iat: token.iat, exp: token.exp, domain: token.domain, id: token.id, user: token.user,
+        scope: [Model::UserJWT::Scope.new("users", Model::UserJWT::Scope::Access::Write)])
+      headers["Authorization"] = "Bearer #{limited.encode}"
       client.get("#{Users.base_route}metadata/search?#{query}", headers: headers).status_code.should eq 403
     end
 
