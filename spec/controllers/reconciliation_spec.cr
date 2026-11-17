@@ -509,5 +509,18 @@ module PlaceOS::Api
         body: {operations: operations, digest: JSON.parse(preview.body)["digest"].as_s, idempotency_key: UUID.random.to_s}.to_json)
       response.status_code.should eq 200
     end
+    it "invalidates a reviewed move when the domain login identity changes" do
+      f = fixture = Spec::Tenancy.build
+      headers = Spec::Tenancy.headers(f.placeos.admin)
+      operations = [{kind: "move_domain", resource_type: "authority", resource_ids: [f.acadian.authority.id], source_organisation_id: f.acadian.organisation.id, target_organisation_id: f.ucla.organisation.id}]
+      preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
+      preview.status_code.should eq 200
+      f.acadian.authority.domain = "renamed-#{UUID.random}.test"
+      f.acadian.authority.save!
+      response = client.post("#{base}/apply", headers: headers,
+        body: {operations: operations, digest: JSON.parse(preview.body)["digest"].as_s, idempotency_key: UUID.random.to_s}.to_json)
+      response.status_code.should eq 409
+      Model::Authority.find!(f.acadian.authority.id.as(String)).organisation_id.should eq f.acadian.organisation.id
+    end
   end
 end
