@@ -22,7 +22,11 @@ module PlaceOS::Api
       def find_current_auth(id : String)
         Log.context.set({{auth_type.id.underscore}}_id: id)
         # Find will raise a 404 (not found) if there is an error
-        @current_auth = ::PlaceOS::Model::{{auth_type.id}}Authentication.find!(id)
+        auth = ::PlaceOS::Model::{{auth_type.id}}Authentication.find!(id)
+        ensure_authority_reach!(auth.authority_id, "authentication")
+        ensure_credential_management!(auth.authority_id)
+        ensure_credential_management!(auth.authority_id)
+        @current_auth = auth
       end
 
       getter! current_auth : ::PlaceOS::Model::{{auth_type.id}}Authentication
@@ -36,9 +40,10 @@ module PlaceOS::Api
         authority_id : String? = nil,
       ) : Array(::PlaceOS::Model::{{auth_type.id}}Authentication)
         # PG full-text search (PPT-2644)
-        query = ::PlaceOS::Model::{{auth_type.id}}Authentication.all
+        query = scope_authorities(::PlaceOS::Model::{{auth_type.id}}Authentication.all, required: Utils::Tenancy.enforce? ? ::PlaceOS::Model::Permissions::Manage : tenancy_permission)
 
         if authority = authority_id
+          ensure_authority_reach!(authority, "domain")
           query = query.where(authority_id: authority)
         end
 
@@ -56,7 +61,13 @@ module PlaceOS::Api
       @[AC::Route::PUT("/:id", body: :auth)]
       def update(auth : ::PlaceOS::Model::{{auth_type.id}}Authentication) : ::PlaceOS::Model::{{auth_type.id}}Authentication
         current = current_auth
+        owner = current.authority_id
         current.assign_attributes(auth)
+        ensure_authority_reach!(current.authority_id, "authentication")
+        ensure_credential_management!(current.authority_id)
+        if Utils::Tenancy.enforce? && current.authority_id != owner
+          raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:authority_id, "authentication ownership cannot be changed")])
+        end
         raise Error::ModelValidation.new(current.errors) unless current.save
         current
       end
@@ -64,6 +75,8 @@ module PlaceOS::Api
       # creates a new authentication method
       @[AC::Route::POST("/", body: :auth, status_code: HTTP::Status::CREATED)]
       def create(auth : ::PlaceOS::Model::{{auth_type.id}}Authentication) : ::PlaceOS::Model::{{auth_type.id}}Authentication
+        ensure_authority_reach!(auth.authority_id, "domain")
+        ensure_credential_management!(auth.authority_id)
         raise Error::ModelValidation.new(auth.errors) unless auth.save
         auth
       end

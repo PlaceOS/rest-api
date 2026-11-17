@@ -21,6 +21,7 @@ module PlaceOS::Api::WebSocket
           results = test_websocket_api(Systems.base_route, Spec::Authentication.headers) do |ws, control_system, mod, updates|
             # Create a storage proxy
             driver_proxy = PlaceOS::Driver::RedisStorage.new mod.id.as(String)
+            driver_proxy[status_name] = 0
 
             ws.send Session::Request.new(
               id: rand(10).to_i64,
@@ -29,15 +30,15 @@ module PlaceOS::Api::WebSocket
               name: status_name,
               command: Session::Request::Command::Bind,
             ).to_json
-            # Gate each publish on the prior message arriving. The bind Success
-            # confirms the redis subscription is live before we publish (pub/sub
-            # has no replay), and waiting between publishes guarantees order and
-            # that no notify is dropped before the assertions run.
-            wait_for_updates(updates, 1)
-            driver_proxy[status_name] = 1
+            # Wait for both the bind acknowledgement and the initial snapshot.
+            # Publishing before that snapshot arrives can deliver the first
+            # value as both the snapshot and a live update.
             wait_for_updates(updates, 2)
-            driver_proxy[status_name] = 2
+            updates.compact_map(&.value.try &.to_i).should eq [0]
+            driver_proxy[status_name] = 1
             wait_for_updates(updates, 3)
+            driver_proxy[status_name] = 2
+            wait_for_updates(updates, 4)
           end
 
           updates, control_system, mod = results
@@ -51,12 +52,12 @@ module PlaceOS::Api::WebSocket
           }
 
           # Check for successful bind response
-          updates.first.type.should eq Session::Response::Type::Success
+          updates.count(&.type.success?).should eq 1
           # Check all responses correct metadata
           updates.all? { |v| v.metadata == expected_meta }.should be_true
           # Check all messages received
-          updates.size.should eq 3 # Check for status variable updates
-          updates[1..2].compact_map(&.value.try &.to_i).should eq [1, 2]
+          updates.size.should eq 4 # Initial snapshot and both live updates
+          updates.compact_map(&.value.try &.to_i).should eq [0, 1, 2]
         end
       end
 
@@ -260,7 +261,8 @@ module PlaceOS::Api::WebSocket
           [Session::Request::Command::Exec, Session::Request::Command::Bind].each do |command|
             [{"MissingInterface", 1}, {"Interface::Sensor", 0}, {"Interface::Sensor", -1}, {"Interface::Sensor", 3}].each do |name, index|
               ws.send interface_request(system, command, module_name: name, index: index).to_json
-              wait_for_updates(updates, count += 1)
+              count += 1
+              wait_for_updates(updates, count)
               response = updates.last
               response.type.should eq Session::Response::Type::Error
               response.error_code.should eq Session::Response::ErrorCode::ModuleNotFound

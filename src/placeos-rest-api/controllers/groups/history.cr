@@ -25,6 +25,7 @@ module PlaceOS::Api
       Log.context.set(group_history_id: id.to_s)
       history = ::PlaceOS::Model::History.find!(id)
       raise Error::NotFound.new("not a group history entry") unless history.resource_type.in?(RESOURCE_TYPES)
+      ensure_history_reach!(history)
       @current_history = history
     end
 
@@ -55,6 +56,13 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the starting offset of the result set, used to implement pagination")]
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::History)
+      if Utils::Tenancy.enforce? && group_id
+        if group = ::PlaceOS::Model::Group.find?(group_id)
+          ensure_resource_authority!(group.authority_id, "group")
+        elsif scope_history(::PlaceOS::Model::History.correlated(group_id.to_s)).count == 0
+          raise Error::NotFound.new("group not found")
+        end
+      end
       unless user_admin?
         # Non-admin must scope to a specific group they manage.
         raise Error::Forbidden.new("group_id is required") unless group_id
@@ -70,12 +78,12 @@ module PlaceOS::Api
                   .order(created_at: :desc, id: :desc)
               end
 
-      paginate_sql(query, type: "group_history", limit: limit, offset: offset)
+      paginate_sql(scope_history(query), type: "group_history", limit: limit, offset: offset).map { |entry| history_view(entry) }
     end
 
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::History
-      current_history
+      history_view(current_history)
     end
   end
 end

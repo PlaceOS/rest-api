@@ -39,6 +39,11 @@ module PlaceOS::Api
         raise Error::NotFound.new
       end
 
+      if action_name == :show
+        system = trigger_instance.control_system
+        raise Error::NotFound.new("system not found") unless system
+        ensure_reach!(system)
+      end
       Log.context.set(trigger_id: trigger.id)
 
       @current_trigger_instance = trigger_instance

@@ -23,6 +23,9 @@ module PlaceOS::Api
 
     before_action :can_write_guest, only: [:signal]
 
+    # resyncing source's MQTT state is cluster infrastructure
+    before_action :check_cluster_admin, only: [:source_resync, :source_resync_status]
+
     # Healthcheck
     ###############################################################################################
 
@@ -187,6 +190,10 @@ module PlaceOS::Api
       ::PlaceOS::Model::Version.from_json(response.body)
     end
 
+    record BookingPrompt, id : String, check_in : Bool do
+      include JSON::Serializable
+    end
+
     # Can be used in a similar manner to a webhook for drivers
     # pushes arbitrary data to channels in redis
     @[AC::Route::POST("/signal")]
@@ -205,7 +212,36 @@ module PlaceOS::Api
                   ""
                 end
 
-      [Path["placeos/"].join(channel).to_s, Path["placeos/#{current_authority.not_nil!.id}/"].join(channel).to_s].each do |path|
+      authority = Utils::Tenancy.enforce? ? resource_authority! : current_authority.not_nil!
+      if Utils::Tenancy.enforce? && channel.split('/').any?(&.in?({".", ".."}))
+        raise Error::OrganisationSelection.new("channel must not contain path traversal", "invalid_channel")
+      end
+      scoped_channel = channel.split('/').reject(&.empty?).join('/')
+      paths = [Path["placeos/#{authority.id}/"].join(scoped_channel).to_s]
+      if Utils::Tenancy.enforce?
+        # BookingCheckInHelper still consumes this exact resource-bound channel.
+        # Preserve it only after validating both ownership and guest capability.
+        parts = scoped_channel.split('/')
+        if parts.size == 4 && parts[1..] == ["guest", "bookings", "prompted"]
+          system = ::PlaceOS::Model::ControlSystem.find!(parts[0])
+          ensure_reach!(system, required: ::PlaceOS::Model::Permissions::Operate)
+          prompt = begin
+            BookingPrompt.from_json(payload)
+          rescue JSON::ParseException
+            raise Error::OrganisationSelection.new("booking prompt requires an id and boolean check_in", "invalid_signal")
+          end
+          if user_token.guest_scope?
+            roles = user_token.user.roles
+            unless roles.includes?(parts[0]) && roles.includes?(prompt.id)
+              raise Error::Forbidden.new("booking prompt requires the invited system and event")
+            end
+          end
+          paths << "placeos/#{scoped_channel}"
+        end
+      else
+        paths << Path["placeos/"].join(channel).to_s
+      end
+      paths.each do |path|
         # path = Path["placeos/#{current_authority.not_nil!.id}/"].join(channel).to_s
         Log.info { "signalling #{path} with #{payload.bytesize} bytes" }
         ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload)

@@ -60,8 +60,7 @@ module PlaceOS::Api
     # caller's own unless `mine` is false, which needs support.
     def recent_ai_jobs(kinds : Array(::PlaceOS::Model::SignageAIJob::Kind), mine : Bool)
       labels = kinds.map { |entry| ::PlaceOS::Model::SignageAIJob.kind_label(entry) }
-      query = ::PlaceOS::Model::SignageAIJob
-        .where(authority_id: authority.id.as(String))
+      query = scope_resource_authorities(::PlaceOS::Model::SignageAIJob.all)
         .where("kind IN (#{labels.map { "?" }.join(", ")})", args: labels.map(&.as(::PgORM::Value)))
       if mine
         query = query.where(user_id: current_user.id.as(String))

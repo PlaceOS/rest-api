@@ -24,7 +24,12 @@ module PlaceOS::Api
       @current_url = url = ::PlaceOS::Model::Shortener.find!(id)
 
       # ensure the current user has access
-      raise Error::Forbidden.new unless authority.id == url.authority_id
+      if request.path.ends_with?("/redirect")
+        raise Error::Forbidden.new unless current_authority.try(&.id) == url.authority_id
+      else
+        authority_for_resource!(url.authority_id, "short URL") if Utils::Tenancy.enforce?
+        raise Error::Forbidden.new unless authority.id == url.authority_id
+      end
     end
 
     getter! current_url : ::PlaceOS::Model::Shortener
@@ -35,7 +40,7 @@ module PlaceOS::Api
 
     getter! url_update : ::PlaceOS::Model::Shortener
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -60,8 +65,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Shortener)
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::Shortener.all
-        .where(authority_id: authority.id.as(String))
+      query = scope_resource_authorities(::PlaceOS::Model::Shortener.all)
       paginate_search(query, ::PlaceOS::Model::Shortener.table_name)
     end
 

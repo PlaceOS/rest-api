@@ -12,6 +12,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :check_admin
+    before_action :check_cluster_admin
     before_action :can_read, only: [:nodes, :show]
     before_action :can_write, only: [:destroy]
 

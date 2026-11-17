@@ -29,6 +29,10 @@ module PlaceOS::Api
       raise Error::NotFound.new("invalid pending mail id: #{id}") if uuid.nil?
       # Find will raise a 404 (not found) if there is an error
       @current_pending_mail = ::PlaceOS::Model::PendingMail.find!(uuid)
+      if Utils::Tenancy.enforce?
+        required = action_name.in?({:reject, :sent}) ? ::PlaceOS::Model::Permissions::Update : tenancy_permission
+        authority_for_resource!(current_pending_mail.authority_id, "mail", required: required)
+      end
     end
 
     getter! current_pending_mail : ::PlaceOS::Model::PendingMail
@@ -43,10 +47,11 @@ module PlaceOS::Api
     # support-subsystem reach on ANY of the mail's zones. Mail with no zones
     # is admin/support only.
     private def confirm_mutate(required : ::PlaceOS::Model::Permissions)
+      ensure_resource_authority!(current_pending_mail.authority_id, "mail", required: required)
       return if user_support?
 
       mail = current_pending_mail
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
 
       # Legacy zone-based access (org_zone + the mail's zones).
       if org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
@@ -90,9 +95,10 @@ module PlaceOS::Api
       send_at_after : Time? = nil,
     ) : Array(::PlaceOS::Model::PendingMail)
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::PendingMail.all
+      query = Utils::Tenancy.enforce? ? scope_resource_authorities(::PlaceOS::Model::PendingMail.all) : ::PlaceOS::Model::PendingMail.all
 
       if requested = authority_id
+        ensure_authority_reach!(requested, "mail")
         query = query.where(authority_id: requested)
       end
 
@@ -215,7 +221,8 @@ module PlaceOS::Api
       authority_id : String? = nil,
     ) : Nil
       check_support
-      target = authority_id || current_user.authority_id.as(String)
+      target = authority_id || resource_authority!.id.as(String)
+      ensure_authority_reach!(target, "mail")
       ::PlaceOS::Model::PendingMail
         .where(authority_id: target)
         .where("(rejected_at IS NOT NULL OR sent_at IS NOT NULL OR (expiry IS NOT NULL AND expiry < ?))", Time.utc)

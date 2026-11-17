@@ -35,6 +35,7 @@ module PlaceOS::Api
       @current_playlist = playlist = ::PlaceOS::Model::Playlist.find!(id)
 
       # ensure the current user has access
+      authority_for_resource!(playlist.authority_id, "playlist") if Utils::Tenancy.enforce?
       raise Error::Forbidden.new unless authority.id == playlist.authority_id
     end
 
@@ -46,7 +47,7 @@ module PlaceOS::Api
 
     getter! playlist_update : ::PlaceOS::Model::Playlist
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -123,7 +124,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Playlist)
-      query = ::PlaceOS::Model::Playlist.where(authority_id: authority.id.as(String))
+      query = scope_resource_authorities(::PlaceOS::Model::Playlist.all)
 
       if group_id
         unless user_support?
@@ -213,6 +214,9 @@ module PlaceOS::Api
       playlist = playlist_update
       playlist.authority_id = authority.id
 
+      if Utils::Tenancy.enforce? && group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
+      end
       unless user_support?
         raise Error::Forbidden.new("group_id required") if group_id.nil?
         perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
@@ -582,6 +586,7 @@ module PlaceOS::Api
     # the caller is a member of it or one of its ancestors.
     private def validate_approval_group!(group_id : UUID) : ::PlaceOS::Model::Group
       group = ::PlaceOS::Model::Group.find?(group_id)
+      authority_for_resource!(group.authority_id, "group") if Utils::Tenancy.enforce? && group
       raise Error::NotFound.new("group not found") if group.nil? || group.authority_id != authority.id
       return group if user_support?
       raise Error::Forbidden.new("not a member of the group") if group_memberships(current_user)[group_id]?.nil?

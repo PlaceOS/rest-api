@@ -32,6 +32,7 @@ module PlaceOS::Api
     ###############################################################################################
 
     def can_view?(parent_id)
+      ensure_parent_reach!(parent_id)
       return if user_support?
       # "support" subsystem: Read on the parent's zones.
       return if support_subsystem_grants?(support_zones_for_parent(parent_id), ::PlaceOS::Model::Permissions::Read)
@@ -39,9 +40,13 @@ module PlaceOS::Api
     end
 
     def can_modify?(setting)
+      parent_id = setting.parent_id.as(String)
+      ensure_parent_reach!(parent_id)
+      ensure_parent_reach!(parent_id, required: ::PlaceOS::Model::Permissions::Manage) if Utils::Tenancy.enforce? && !setting.encryption_level.none?
+      # driver settings are shared by every organisation
+      check_cluster_admin if parent_id.starts_with?(::PlaceOS::Model::Driver.table_name)
       return if user_admin?
       raise Error::Forbidden.new("can only modify unencrypted settings") unless setting.encryption_level.none?
-      parent_id = setting.parent_id.as(String)
       # "support" subsystem: the verb's bit on the parent's zones. A
       # parent with no derivable zones (e.g. a driver) stays admin-only.
       return if support_subsystem_grants?(support_zones_for_parent(parent_id), verb_permission)
@@ -50,7 +55,7 @@ module PlaceOS::Api
 
     def check_access_level(parent_id : String, admin_required : Bool)
       # find the org zone
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 
@@ -98,10 +103,12 @@ module PlaceOS::Api
         # Directly search for model's settings
         parent_settings = ::PlaceOS::Model::Settings.for_parent(parents)
         # Decrypt for the user
-        parent_settings.each &.decrypt_for!(current_user)
+        parent_settings.each { |setting| setting.decrypt_for!(settings_reader(setting.parent_id.as(String))) }
         parent_settings
       else
         raise Error::Forbidden.new unless user_support?
+        # the unscoped list spans every organisation
+        check_cluster_admin
 
         # PG full-text search (PPT-2644): `q` matches the settings keys (and
         # id) — the settings body itself is deliberately not searchable.
@@ -116,7 +123,7 @@ module PlaceOS::Api
     @[AC::Route::GET("/:id")]
     def show : ::PlaceOS::Model::Settings
       can_view?(current_settings.parent_id.as(String))
-      current_settings.decrypt_for!(current_user)
+      current_settings.decrypt_for!(settings_reader(current_settings.parent_id.as(String)))
     end
 
     # udpate a setting
@@ -131,7 +138,7 @@ module PlaceOS::Api
       can_modify?(current)
 
       raise Error::ModelValidation.new(current.errors) unless current.save
-      current.decrypt_for!(current_user)
+      current.decrypt_for!(settings_reader(current.parent_id.as(String)))
     end
 
     # add a new setting
@@ -140,7 +147,7 @@ module PlaceOS::Api
       can_modify?(setting)
       setting.modified_by = current_user
       raise Error::ModelValidation.new(setting.errors) unless setting.save
-      setting.decrypt_for!(current_user)
+      setting.decrypt_for!(settings_reader(setting.parent_id.as(String)))
     end
 
     # remove a setting
@@ -158,6 +165,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the starting offset of the result set. Used to implement pagination")]
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Settings)
+      can_view?(current_settings.parent_id.as(String))
       history = current_settings.history(offset: offset, limit: limit).to_a
 
       total = current_settings.history_count

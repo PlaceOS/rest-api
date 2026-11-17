@@ -33,8 +33,9 @@ module PlaceOS::Api
       object_key : String,
       public : Bool = false,
       tags : Array(String) = [] of String,
+      authority_id : String? = nil,
     ) : ::PlaceOS::Model::Upload
-      put(bytes, mime, storage, user.id.as(String), user.email.to_s, file_name, object_key, public, tags)
+      put(bytes, mime, storage, user.id.as(String), user.email.to_s, file_name, object_key, public, tags, authority_id)
     end
 
     def self.put(
@@ -47,6 +48,7 @@ module PlaceOS::Api
       object_key : String,
       public : Bool = false,
       tags : Array(String) = [] of String,
+      authority_id : String? = nil,
     ) : ::PlaceOS::Model::Upload
       md5 = Digest::MD5.base64digest(bytes)
       visibility = public ? "public" : "private"
@@ -67,6 +69,8 @@ module PlaceOS::Api
         },
         tags: tags,
       )
+      owner = authority_id || storage.authority_id || ::PlaceOS::Model::User.find?(uploaded_by).try(&.authority_id)
+      upload.object_options["authority_id"] = JSON::Any.new(owner) if owner
       raise Error::BadGateway.new("could not record the upload") unless upload.save
 
       signature = signer_for(storage).sign_upload(

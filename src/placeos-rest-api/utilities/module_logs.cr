@@ -24,9 +24,9 @@ module PlaceOS::Api
         module_name: module_id,
         discovery: discovery,
         user_id: user_id,
-      ) { |id|
+      ) do |id|
         ::PlaceOS::Model::Module.find!(id).edge_id.as(String)
-      }
+      end
 
       socket = driver.debug(request_id)
       socket.on_message do |message|
@@ -75,7 +75,8 @@ module PlaceOS::Api
     TRUNCATED = "[truncated: the 3 MiB limit was reached]\n"
 
     # how often progress is reported to MCP clients
-    PROGRESS_INTERVAL = 5.seconds
+    PROGRESS_INTERVAL      = 5.seconds
+    AUTHORIZATION_INTERVAL = 1.second
 
     getter bytes_written : Int64 = 0_i64
     getter? finished : Bool = false
@@ -83,7 +84,12 @@ module PlaceOS::Api
     @lock = Mutex.new
     @stop = Channel(Nil).new(1)
 
-    def initialize(@output : IO, @level : ::Log::Severity = ::Log::Severity::Debug, @max_bytes : Int64 = MAX_BYTES.to_i64)
+    def initialize(
+      @output : IO,
+      @level : ::Log::Severity = ::Log::Severity::Debug,
+      @max_bytes : Int64 = MAX_BYTES.to_i64,
+      @authorize : Proc(Bool)? = nil,
+    )
     end
 
     # writes the message, if it's at or above the level
@@ -92,6 +98,10 @@ module PlaceOS::Api
       line = "#{Time.utc.to_rfc3339(fraction_digits: 3)} #{severity.label} #{message}\n"
       @lock.synchronize do
         return if @finished
+        unless authorized?
+          stop
+          return
+        end
         if @bytes_written + line.bytesize + TRUNCATED.bytesize > @max_bytes
           @output << TRUNCATED
           @output.flush
@@ -110,23 +120,43 @@ module PlaceOS::Api
     # waits until the period elapses or the capture finishes, reporting progress
     def wait(period : Time::Span, context : ActionController::MCPServer::RequestContext? = nil) : Nil
       started = Time.instant
+      last_progress = started
       deadline = started + period
       cancelled = context.try(&.done) || Channel(Nil).new
 
       loop do
+        break if @finished
+        unless authorized?
+          stop
+          break
+        end
         remaining = deadline - Time.instant
         break if remaining <= Time::Span.zero
 
+        interval = {remaining, PROGRESS_INTERVAL}.min
+        interval = {interval, AUTHORIZATION_INTERVAL}.min if @authorize
         select
         when @stop.receive
           break
         when cancelled.receive?
           break
-        when timeout({remaining, PROGRESS_INTERVAL}.min)
-          context.try &.progress((Time.instant - started).total_seconds.to_i, period.total_seconds.to_i)
+        when timeout(interval)
+          now = Time.instant
+          if now - last_progress >= PROGRESS_INTERVAL || now >= deadline
+            context.try &.progress((now - started).total_seconds.to_i, period.total_seconds.to_i)
+            last_progress = now
+          end
         end
       end
       @lock.synchronize { @finished = true }
+    end
+
+    private def authorized? : Bool
+      authorize = @authorize
+      authorize.nil? || authorize.call
+    rescue error
+      Log.warn(exception: error) { "module log permission could not be verified" }
+      false
     end
 
     # ends the capture, i.e. when the debug socket closes

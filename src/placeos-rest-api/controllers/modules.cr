@@ -20,7 +20,9 @@ module PlaceOS::Api
     # Scopes
     ###############################################################################################
 
+    generate_scope_check "control"
     before_action :can_read, only: [:index, :show]
+    before_action :can_read_control, only: [:state, :state_lookup, :state_value]
     before_action :can_write, only: [:create, :update, :destroy, :remove]
 
     before_action :check_admin, except: [
@@ -39,7 +41,9 @@ module PlaceOS::Api
     def find_current_module(id : String)
       Log.context.set(module_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_module = ::PlaceOS::Model::Module.find!(id)
+      mod = ::PlaceOS::Model::Module.find!(id)
+      ensure_reach!(mod)
+      @current_module = mod
     end
 
     getter! current_module : ::PlaceOS::Model::Module
@@ -92,7 +96,12 @@ module PlaceOS::Api
     # `GroupPermissions#module_debug_access?`
     @[AC::Route::Filter(:before_action, only: [:logs])]
     def check_debug_permissions
-      raise Error::Forbidden.new unless module_debug_access?(current_module.id.as(String))
+      allowed = if Utils::Tenancy.enforce?
+                  tenancy_policy.module_debug_access?(current_module.id.as(String))
+                else
+                  module_debug_access?(current_module.id.as(String))
+                end
+      raise Error::Forbidden.new unless allowed
     end
 
     @[AC::Route::Filter(:before_action, only: [:settings])]
@@ -111,7 +120,9 @@ module PlaceOS::Api
       org_zone = support_org_zone_id
 
       if control_system_id
-        zones = ::PlaceOS::Model::ControlSystem.find!(control_system_id).zones
+        system = ::PlaceOS::Model::ControlSystem.find!(control_system_id)
+        ensure_reach!(system)
+        zones = system.zones
         # "support" subsystem: Read on the system's zones.
         return if support_subsystem_grants?(zones, ::PlaceOS::Model::Permissions::Read)
         # legacy org_zone path: the system must include the org_zone and the
@@ -178,12 +189,16 @@ module PlaceOS::Api
       no_logic : Bool = false,
       @[AC::Param::Info(description: "return only running modules", example: "true")]
       running : Bool? = nil,
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(::PlaceOS::Model::Module)
       # if a system id is present we query the database directly
       if control_system_id
         cs = ::PlaceOS::Model::ControlSystem.find!(control_system_id)
+        ensure_reach!(cs)
         # Include subset of association data with results
         results = ::PlaceOS::Model::Module.find_all(cs.modules).compact_map do |mod|
+          next unless in_reach?(mod.organisation_id)
           next if (driver = mod.driver).nil?
 
           # Most human readable module data is contained in driver
@@ -197,10 +212,8 @@ module PlaceOS::Api
       end
 
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::Module.all
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Module.all), organisation_id)
 
-      # TODO:: we can remove this once there is a tenant_id field on modules
-      # which will make this much simpler to filter
       if scope_zones = module_scope_zones
         # we only want to show modules in use by systems within these zones
         no_logic = true
@@ -209,7 +222,7 @@ module PlaceOS::Api
         # 1. grab all the module ids in systems whose zones overlap scope_zones
         # 2. select distinct module ids which are not logic modules (99)
         placeholders = (1..scope_zones.size).map { |i| "$#{i}" }.join(", ")
-        sql_query = %[
+        sql_query = <<-SQL
           WITH matching_rows AS (
             SELECT unnest(modules) AS module_id
             FROM sys
@@ -220,7 +233,7 @@ module PlaceOS::Api
           FROM matching_rows m
           JOIN mod ON m.module_id = mod.id
           WHERE mod.role <> 99;
-        ]
+          SQL
 
         module_ids = PgORM::Database.connection do |conn|
           conn.query_one(sql_query, args: scope_zones.map(&.as(PgORM::Value)), &.read(Array(String)?))
@@ -277,8 +290,9 @@ module PlaceOS::Api
       control_system_ids = search_results.compact_map(&.control_system_id).uniq!
       drivers = Model::Driver.find_all search_results.map(&.driver_id.as(String)).uniq!
 
-      control_systems = Model::ControlSystem.find_all(control_system_ids).to_a
-      zones = Model::Zone.find_all(control_systems.flat_map(&.zones)).to_a
+      control_systems = control_system_ids.empty? ? [] of Model::ControlSystem : scope_organisations(Model::ControlSystem.where(id: control_system_ids), required: ::PlaceOS::Model::Permissions::Read).to_a
+      zone_ids = control_systems.flat_map(&.zones)
+      zones = zone_ids.empty? ? [] of Model::Zone : scope_organisations(Model::Zone.where(id: zone_ids), required: ::PlaceOS::Model::Permissions::Read).to_a
 
       search_results.compact_map do |d|
         sys_id = d.control_system_id
@@ -291,8 +305,6 @@ module PlaceOS::Api
         # to display the inherited settings
         sys_field = if sys
                       ControlSystemDetails.new(sys.name, sys.zones.compact_map { |zid| zones.find { |zone| zone.id == zid } })
-                    else
-                      nil
                     end
 
         d.control_system_details = sys_field
@@ -364,6 +376,10 @@ module PlaceOS::Api
       current = current_module
       can_modify?(current)
       current.assign_attributes(mod)
+      if Utils::Tenancy.enforce? && (system_id = current.control_system_id.presence)
+        system = ::PlaceOS::Model::ControlSystem.find!(system_id)
+        ensure_reach!(system)
+      end
       can_modify?(current)
 
       raise Error::ModelValidation.new(current.errors) unless current.save
@@ -380,6 +396,8 @@ module PlaceOS::Api
       mod : ::PlaceOS::Model::Module,
       @[AC::Param::Info(description: "add the new module to this control system", example: "sys-1234")]
       system_id : String? = nil,
+      @[AC::Param::Info(description: "the organisation that owns a module not bound to a system (cluster admins only)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : ::PlaceOS::Model::Module
       if system_id
         # only logic modules have a parent system, and they're added to it by an `after_create` callback
@@ -391,6 +409,13 @@ module PlaceOS::Api
       end
 
       can_modify?(mod)
+      mod.organisation_id = if cs_id = mod.control_system_id
+                              system = ::PlaceOS::Model::ControlSystem.find!(cs_id)
+                              ensure_reach!(system)
+                              system.organisation_id
+                            else
+                              organisation_for_new_row(organisation_id)
+                            end
       raise Error::ModelValidation.new(mod.errors) unless mod.save
       mod
     end
@@ -399,6 +424,9 @@ module PlaceOS::Api
     # adding it to the system doesn't leave an orphaned module behind.
     private def create_in_system(mod : ::PlaceOS::Model::Module, system_id : String) : ::PlaceOS::Model::Module
       sys = ::PlaceOS::Model::ControlSystem.find!(system_id)
+      # a new module belongs to the organisation of the system it's created in
+      ensure_reach!(sys)
+      mod.organisation_id = sys.organisation_id
 
       # the module isn't in any system yet, so the target system's zones are the only ones that apply.
       # Adding to the system requires the same access as `PUT /systems/:sys_id/module/:module_id`
@@ -417,18 +445,24 @@ module PlaceOS::Api
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       can_modify?(current_module)
+      if Utils::Tenancy.enforce?
+        ::PlaceOS::Model::ControlSystem.where("? = ANY(modules)", current_module.id.as(String)).each do |system|
+          ensure_reach!(system)
+        end
+      end
       current_module.destroy
     end
 
     # Receive the collated settings for a module
     @[AC::Route::GET("/:id/settings")]
     def settings : Array(::PlaceOS::Model::Settings)
-      Api::Settings.collated_settings(current_user, current_module)
+      collated_settings_for(current_module)
     end
 
     # Starts a module
     @[AC::Route::POST("/:id/start")]
     def start : Nil
+      ensure_runtime_parent!
       return if current_module.running == true
       ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Operate)
       current_module.update_fields(running: true)
@@ -443,6 +477,7 @@ module PlaceOS::Api
     # Stops a module
     @[AC::Route::POST("/:id/stop")]
     def stop : Nil
+      ensure_runtime_parent!
       return unless current_module.running
       ensure_support_access!(zones_for_module(current_module), ::PlaceOS::Model::Permissions::Operate)
       current_module.update_fields(running: false)
@@ -464,17 +499,19 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "the arguments we want to provide to the method")]
       args : Array(JSON::Any),
     ) : Nil
+      ensure_runtime_parent!
       sys_id = current_module.control_system_id || ""
 
-      result, status_code = Driver::Proxy::RemoteDriver.new(
+      remote_driver = Driver::Proxy::RemoteDriver.new(
         module_id: id,
         sys_id: sys_id,
         module_name: current_module.name,
         user_id: current_user.id,
-      ) { |module_id|
+      ) do |module_id|
         ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
-      }.exec(
-        security: driver_clearance(user_token),
+      end
+      result, status_code = remote_driver.exec(
+        security: Utils::Tenancy.enforce? ? tenancy_policy.resource_security(current_module.organisation_id) : driver_clearance(user_token),
         function: method,
         args: args,
         request_id: request_id,
@@ -483,16 +520,20 @@ module PlaceOS::Api
       # customise the response based on the execute results
       response.content_type = "application/json"
       render text: result, status: status_code
+    rescue error : Error
+      raise error
     rescue e : Driver::Proxy::RemoteDriver::Error
       handle_execute_error(e)
     rescue e
-      Log.error(exception: e) { {
-        message:     "core execute request failed",
-        sys_id:      sys_id,
-        module_id:   id,
-        module_name: current_module.name,
-        method:      method,
-      } }
+      Log.error(exception: e) do
+        {
+          message:     "core execute request failed",
+          sys_id:      sys_id,
+          module_id:   id,
+          module_name: current_module.name,
+          method:      method,
+        }
+      end
 
       if Api.production?
         render_error(HTTP::Status::INTERNAL_SERVER_ERROR, e.message)
@@ -501,8 +542,19 @@ module PlaceOS::Api
       end
     end
 
+    private def ensure_runtime_parent! : Nil
+      return unless Utils::Tenancy.enforce?
+      parent_id = current_module.control_system_id.presence
+      return unless parent_id
+      parent = ::PlaceOS::Model::ControlSystem.find?(parent_id)
+      unless parent && parent.organisation_id == current_module.organisation_id && parent.modules.includes?(current_module.id.as(String))
+        raise Error::NotFound.new("module parent not found")
+      end
+      ensure_reach!(parent, required: ::PlaceOS::Model::Permissions::Operate)
+    end
+
     # Dumps the complete status state of the module, key values are serialised JSON
-    @[AC::MCP(resource: "placeos://modules/{id}/state", mime_type: "application/json", cache_ttl: 0)]
+    @[AC::MCP(resource: "placeos://modules/{id}/state{?organisation_id}", mime_type: "application/json", cache_ttl: 0)]
     @[AC::Route::GET("/:id/state")]
     def state : Hash(String, String)
       self.class.module_state(current_module)
@@ -510,7 +562,7 @@ module PlaceOS::Api
 
     # Returns the value of the requested status variable as JSON, `null` when it isn't set.
     # Subscribe to the resource to be notified when the value changes
-    @[AC::MCP(resource: "placeos://modules/{id}/state/{key}", mime_type: "application/json", subscribe: true, cache_ttl: 0)]
+    @[AC::MCP(resource: "placeos://modules/{id}/state/{key}{?organisation_id}", mime_type: "application/json", subscribe: true, cache_ttl: 0)]
     @[AC::Route::GET("/:id/state/:key/value")]
     def state_value(
       @[AC::Param::Info(description: "the name of the status variable", example: "power")]
@@ -536,7 +588,7 @@ module PlaceOS::Api
     # `<time> <LEVEL> <message>`. Over HTTP the lines are streamed as they arrive.
     # MCP clients receive them once the capture ends, so capturing for more than a
     # minute may not work with all clients. The output is limited to 3 MiB.
-    @[AC::MCP(resource: "placeos://modules/{id}/logs{?seconds,level}", mime_type: "text/plain", long_running: true, max_bytes: 3_145_728, cache_ttl: 0)]
+    @[AC::MCP(resource: "placeos://modules/{id}/logs{?seconds,level,organisation_id}", mime_type: "text/plain", long_running: true, max_bytes: 3_145_728, cache_ttl: 0)]
     @[AC::Route::GET("/:id/logs")]
     def logs(
       @[AC::Param::Info(description: "how long to capture logs for, in seconds, up to 129600 (36 hours)", example: "30")]
@@ -551,7 +603,12 @@ module PlaceOS::Api
       severity = ::Log::Severity.parse?(level)
       raise AC::Route::Param::ValueError.new("must be one of trace, debug, info, notice, warn, error or fatal", "level") if severity.nil? || severity.none?
 
-      capture = Utils::ModuleLogCapture.new(response, severity)
+      module_id = current_module.id.as(String)
+      authorize = if Utils::Tenancy.enforce?
+                    policy = tenancy_policy
+                    -> { policy.module_debug_access?(module_id) }
+                  end
+      capture = Utils::ModuleLogCapture.new(response, severity, authorize: authorize)
       socket = begin
         Utils::ModuleLogs.open(module_id: current_module.id.as(String), user_id: user_token.id, request_id: request_id) do |message_level, message|
           capture.write(message_level, message)
@@ -632,7 +689,7 @@ module PlaceOS::Api
     # Use consistent hashing to determine the location of the module
     def self.locate_module(module_id : String) : String?
       node = RemoteDriver.default_discovery.find?(module_id)
-      return nil unless node
+      return unless node
       node.to_s
     end
   end

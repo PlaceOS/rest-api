@@ -25,13 +25,20 @@ module PlaceOS::Api
     def find_current_provider(id : UUID)
       Log.context.set(signage_ai_provider: id.to_s)
       row = ::PlaceOS::Model::SignageAIProvider.find!(id)
+      if row.authority_id.nil? && read_only_action?
+        @current_provider = row
+        return
+      end
 
       # A row belongs to one domain, and the admin flag on a JWT is per domain,
       # so without this an administrator of one customer could read, change,
       # delete and spend against another customer's provider by guessing an id.
       # The shared fallback row (no authority) is readable by everyone and
       # writable by nobody through this route.
-      unless row.authority_id == current_authority.try(&.id)
+      if Utils::Tenancy.enforce? && row.authority_id
+        authority_for_resource!(row.authority_id, "provider")
+      end
+      unless row.authority_id == resource_authority.try(&.id)
         raise Error::NotFound.new("no such provider") unless row.authority_id.nil? && read_only_action?
       end
 
@@ -91,20 +98,8 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "include the shared fallback row", example: "true")]
       include_shared : Bool = true,
     ) : Array(ProviderJSON)
-      domain = current_authority.try(&.id)
-      rows = if domain.nil?
-               [] of ::PlaceOS::Model::SignageAIProvider
-             else
-               # `available_for` is what a generate uses, so it filters to
-               # enabled rows. This is the admin list: a row somebody switched
-               # off still has to be visible, or it can never be switched back on.
-               own = ::PlaceOS::Model::SignageAIProvider.where(authority_id: domain).to_a
-               if include_shared
-                 own + ::PlaceOS::Model::SignageAIProvider.where(authority_id: nil).to_a
-               else
-                 own
-               end
-             end
+      rows = scope_resource_authorities(::PlaceOS::Model::SignageAIProvider.all).to_a
+      rows += ::PlaceOS::Model::SignageAIProvider.where(authority_id: nil).to_a if include_shared
 
       rows.map(&.as_json)
     end
@@ -132,7 +127,7 @@ module PlaceOS::Api
 
       # the caller's own domain, whatever the body says: a domain administrator
       # cannot create a row that belongs to somebody else
-      row.authority_id = current_authority.try(&.id)
+      row.authority_id = resource_authority.try(&.id)
       apply_optional(row, params)
 
       raise Error::ModelValidation.new(row.errors) unless row.save
