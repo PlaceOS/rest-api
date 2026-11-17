@@ -245,7 +245,8 @@ module PlaceOS::Api
     it "blocks modules on foreign edges" do
       f = fixture = Spec::Tenancy.build
       edge = Model::Generator.edge(f.ucla.user).tap(&.organisation_id = f.ucla.organisation.id).save!
-      mod = Model::Generator.module(control_system: f.unowned_system).tap(&.edge_id = edge.id).save!
+      driver = Model::Generator.driver(role: Model::Driver::Role::Device).save!
+      mod = Model::Generator.module(driver: driver).tap(&.edge_id = edge.id).save!
       f.unowned_system.modules = [mod.id.as(String)]
       f.unowned_system.save!
       Model::ControlSystem.find!(f.unowned_system.id.as(String)).modules.should contain(mod.id)
@@ -263,15 +264,22 @@ module PlaceOS::Api
       f = fixture = Spec::Tenancy.build
       headers = Spec::Tenancy.headers(f.placeos.admin)
       edge = Model::Generator.edge(f.acadian.user).save!
-      f.ucla.mod.edge_id = edge.id
-      f.ucla.mod.save!
+      driver = Model::Generator.driver(role: Model::Driver::Role::Device).save!
+      incoming = Model::Generator.module(driver: driver).tap do |mod|
+        mod.organisation_id = f.ucla.organisation.id
+        mod.edge_id = edge.id
+      end.save!
+      f.ucla.system.modules = f.ucla.system.modules + [incoming.id.as(String)]
+      f.ucla.system.save!
+      Model::ControlSystem.find!(f.ucla.system.id.as(String)).modules.should contain(incoming.id)
       begin
         operations = [{kind: "claim", resource_type: "edge", resource_ids: [edge.id], target_organisation_id: f.acadian.organisation.id}]
         preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
         JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("reference_owner")
       ensure
-        f.ucla.mod.edge_id = nil
-        f.ucla.mod.save!
+        f.ucla.system.modules = f.ucla.system.modules.reject { |id| id == incoming.id }
+        f.ucla.system.save!
+        incoming.destroy
         edge.destroy
       end
     end
