@@ -460,6 +460,32 @@ module PlaceOS::Api
       access["sample_complete"].as_bool.should be_true
       preview.body.should_not contain("password_digest")
       preview.body.should_not contain("access_token")
+      operations = [{kind: "claim", resource_type: "zone", resource_ids: [f.unowned_zone.id], target_organisation_id: f.ucla.organisation.id}]
+      preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
+      effects = JSON.parse(preview.body)["target_grant_effects"].as_a
+      effects.find! { |effect| effect["scope_id"].as_s == f.ucla.organisation.id.to_s }["grants_affected"].as_i.should eq 1
+    end
+
+    it "blocks missing or foreign edge credentials while preserving the edge principal" do
+      f = fixture = Spec::Tenancy.build
+      edge = Model::Generator.edge(f.acadian.user).save!
+      original_key = edge.api_key_id
+      other = Model::ApiKey.new(name: "Reconciliation foreign #{random_name}")
+      other.user = f.ucla.user
+      other.save!
+      operations = [{kind: "claim", resource_type: "edge", resource_ids: [edge.id], target_organisation_id: f.acadian.organisation.id}]
+      begin
+        [other.id.as(String), "missing-key-#{UUID.random}"].each do |key_id|
+          PgORM::Database.connection(&.exec("UPDATE edge SET api_key_id = $1 WHERE id = $2", args: [key_id, edge.id.as(String)]))
+          preview = client.post("#{base}/preview", headers: Spec::Tenancy.headers(f.placeos.admin), body: {operations: operations}.to_json)
+          preview.status_code.should eq 200
+          JSON.parse(preview.body)["blockers"].as_a.map(&.["code"].as_s).should contain("reference_owner")
+        end
+      ensure
+        PgORM::Database.connection(&.exec("UPDATE edge SET api_key_id = $1 WHERE id = $2", args: [original_key, edge.id.as(String)]))
+        edge.destroy
+        other.destroy
+      end
     end
 
     it "keeps ordinary user login activity out of an ownership fingerprint" do
