@@ -178,7 +178,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action)]
     def resolve_organisation_context(
-      @[AC::Param::Info(description: "organisation selected for this REST request; ordinary callers default to their home organisation", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      @[AC::Param::Info(description: "organisation selected for this REST request; all roles default to the authenticated domain owner when omitted", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
       organisation_id : UUID? = nil,
       @[AC::Param::Info(description: "target domain when an organisation has multiple domains", example: "auth-12345")]
       authority_id : String? = nil,

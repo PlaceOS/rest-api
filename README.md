@@ -119,6 +119,14 @@ or `organisations`; apply requires write access.
    its existing receipt. Reusing the key for a different plan returns 409.
 4. `GET /reconciliation/<receipt-id>` retrieves the durable review and result.
 
+Plans accept up to 50 operations and 500 explicit IDs per operation. The reviewed
+snapshot is bounded to 5,000 rows and 16 MiB, with bounded reference fields;
+oversized plans return `plan_too_large` (422). Split repairs into smaller plans
+where possible. A domain or merge whose required snapshot exceeds the limit
+cannot be applied through this version of the API. Access summaries contain
+counts and samples of up to 20 principal IDs, with `sample_complete` indicating
+whether the sample is exhaustive; receipts never contain credential secrets.
+
 For example, claim an unowned zone tree and its dependent systems, modules and
 trigger instances into an existing organisation:
 
