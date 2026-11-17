@@ -3,8 +3,32 @@ require "digest/sha256"
 module PlaceOS::Api::Utils
   # Explicit platform ownership maintenance; ordinary resource CRUD stays scoped.
   class Reconciliation
-    OWNED = %w[authority zone sys mod trigger edge broker]
-    NAMED = %w[zone sys edge broker]
+    OWNED           = %w[authority zone sys mod trigger edge broker]
+    NAMED           = %w[zone sys edge broker]
+    MAX_ROWS        =   5000
+    MAX_FIELD_BYTES = 65_536
+    SAMPLE_SIZE     =     20
+    SNAPSHOT_FIELDS = {
+      "authority"      => %w[id organisation_id domain config],
+      "zone"           => %w[id organisation_id name parent_id],
+      "sys"            => %w[id organisation_id name zones modules],
+      "mod"            => %w[id organisation_id control_system_id edge_id],
+      "trigger"        => %w[id organisation_id control_system_id],
+      "edge"           => %w[id organisation_id name user_id api_key_id],
+      "broker"         => %w[id organisation_id name],
+      "organisations"  => %w[id partner_id partner_staff],
+      "partners"       => %w[id management],
+      "user"           => %w[id authority_id sys_admin support deleted groups],
+      "api_key"        => %w[id user_id authority_id permissions scopes expires_at],
+      "grants"         => %w[id user_id scope_type scope_id permissions expires_at],
+      "groups"         => %w[id authority_id parent_id subsystems],
+      "group_zones"    => %w[group_id zone_id permissions deny],
+      "pending_mail"   => %w[id authority_id zones],
+      "asset"          => %w[id asset_type_id zone_id zones],
+      "asset_type"     => %w[id category_id],
+      "asset_category" => %w[id authority_id],
+      "trig"           => %w[id control_system_id trigger_id zone_id],
+    }
 
     record Operation, kind : String, resource_type : String? = nil,
       resource_ids : Array(String) = [] of String,
@@ -22,7 +46,9 @@ module PlaceOS::Api::Utils
     end
 
     record AccessChange, authority_id : String, source_organisation_id : String?, target_organisation_id : String,
-      users_affected : Int32, api_keys_affected : Int32 do
+      users_affected : Int32, api_keys_affected : Int32,
+      user_sample : Array(String), api_key_sample : Array(String), active_administrators : Int32,
+      active_support : Int32, sample_complete : Bool do
       include JSON::Serializable
     end
 
@@ -31,14 +57,20 @@ module PlaceOS::Api::Utils
       include JSON::Serializable
     end
 
+    record TargetGrantEffect, scope_type : String, scope_id : String, grants_affected : Int32,
+      user_sample : Array(String), sample_complete : Bool do
+      include JSON::Serializable
+    end
+
     record Preview, digest : String, operations : Array(Operation), changes : Array(Change),
       blockers : Array(Blocker), retained_organisations : Array(String),
-      access_changes : Array(AccessChange), grant_changes : Array(GrantChange), warnings : Array(String) do
+      access_changes : Array(AccessChange), grant_changes : Array(GrantChange), warnings : Array(String),
+      target_grant_effects : Array(TargetGrantEffect) do
       include JSON::Serializable
     end
 
     record Result, id : String, digest : String, changes : Array(Change), retained_organisations : Array(String),
-      access_changes : Array(AccessChange), grant_changes : Array(GrantChange) do
+      access_changes : Array(AccessChange), grant_changes : Array(GrantChange), target_grant_effects : Array(TargetGrantEffect) do
       include JSON::Serializable
     end
 
@@ -86,7 +118,7 @@ module PlaceOS::Api::Utils
         end
         # Array references have no FK locks. Prevent new memberships while
         # checking the preview and applying its bounded dependency closure.
-        db.exec(%(LOCK TABLE authority, zone, sys, mod, "trigger", edge, broker, grants, organisations, partners, "user", api_key IN SHARE ROW EXCLUSIVE MODE), args: [] of String)
+        db.exec(%(LOCK TABLE authority, zone, sys, mod, "trigger", edge, broker, grants, organisations, partners, "user", api_key, groups, group_zones, pending_mail, asset, asset_type, asset_category, trig IN SHARE ROW EXCLUSIVE MODE), args: [] of String)
         authorize.call
         current = Builder.new(operations).build
         raise Error::Conflict.new("ownership or references changed; obtain a new preview") unless current.digest == digest
@@ -96,16 +128,15 @@ module PlaceOS::Api::Utils
           ::PlaceOS::Model::History.record_change(change.resource_type, change.resource_id, "update",
             diff: {"organisation_id" => JSON::Any.new([JSON::Any.new(change.source_organisation_id), JSON::Any.new(change.target_organisation_id)])})
         end
-        operations.select(&.kind.==("merge_organisations")).each do |op|
-          db.exec("UPDATE grants SET scope_id = $1 WHERE scope_type = 'organisation' AND scope_id = $2",
-            args: [op.target_organisation_id.to_s, op.source_organisation_id.to_s])
-        end
         current.grant_changes.each do |grant|
+          updated = db.exec("UPDATE grants SET scope_id = $1 WHERE id = $2::uuid AND scope_type = 'organisation' AND scope_id = $3",
+            args: [grant.target_scope_id, grant.grant_id, grant.source_scope_id])
+          raise Error::Conflict.new("reviewed grant changed; obtain a new preview") unless updated.rows_affected == 1
           ::PlaceOS::Model::History.record_change("grants", grant.grant_id, "update", correlation_id: grant.target_scope_id,
             diff: {"scope_id" => JSON::Any.new([JSON::Any.new(grant.source_scope_id), JSON::Any.new(grant.target_scope_id)])})
         end
         id = db.query_one("SELECT uuidv7()::text", args: [] of String, &.read(String))
-        value = Result.new(id, digest, current.changes, current.retained_organisations, current.access_changes, current.grant_changes)
+        value = Result.new(id, digest, current.changes, current.retained_organisations, current.access_changes, current.grant_changes, current.target_grant_effects)
         # No source organisation is deleted: its name/configuration remain
         # available for review, even after all ownership has been consolidated.
         db.exec(<<-SQL, args: [id, actor_id, authority_id, api_key_id, key, digest, current.to_json, value.to_json])
@@ -125,6 +156,10 @@ module PlaceOS::Api::Utils
       @retained = [] of String
       @access = {} of String => AccessChange
       @grants = {} of String => GrantChange
+      @target_grants = {} of String => TargetGrantEffect
+      @queries = {} of String => Array(JSON::Any)
+      @observed_rows = 0
+      @snapshot_bytes = 0
 
       def initialize(@operations : Array(Operation))
       end
@@ -133,8 +168,10 @@ module PlaceOS::Api::Utils
         if @operations.empty? || @operations.size > 50
           raise Error::OrganisationSelection.new("provide between one and 50 reconciliation operations", "invalid_operations")
         end
+        validate_merge_graph
         @operations.each { |operation| expand(operation) }
-        raise Error::OrganisationSelection.new("reconciliation exceeds 5000 rows; split the plan", "plan_too_large") if @changes.size > 5000
+        collect_target_grant_effects
+        validate_grant_collisions
         validate_references
         validate_names
         validate_administrators
@@ -149,15 +186,60 @@ module PlaceOS::Api::Utils
                    else
                      ["Review changed home-organisation and grant reach across the combined estate before applying."]
                    end
-        Preview.new(digest, @operations, changes, blockers, @retained.uniq.sort!, access, grants, warnings)
+        Preview.new(digest, @operations, changes, blockers, @retained.uniq.sort!, access, grants, warnings,
+          @target_grants.values.sort_by! { |effect| {effect.scope_type, effect.scope_id} })
+      end
+
+      private def oversized! : NoReturn
+        raise Error::OrganisationSelection.new("reconciliation snapshot exceeds its bounds; split the plan", "plan_too_large")
+      end
+
+      # Never load credentials, large descriptions, or unbounded reference arrays.
+      private def projection(table : String) : String
+        overflow = [] of String
+        pairs = SNAPSHOT_FIELDS[table].map do |column|
+          expression = case column
+                       when "zones", "modules"
+                         too_large = "COALESCE(cardinality(r.#{column}) > #{MAX_ROWS} OR octet_length(r.#{column}::text) > #{MAX_FIELD_BYTES}, false)"
+                         overflow << too_large
+                         "CASE WHEN #{too_large} THEN '[]'::jsonb ELSE to_jsonb(r.#{column}) END"
+                       when "scopes", "groups", "subsystems"
+                         too_large = "COALESCE(octet_length(r.#{column}::text) > #{MAX_FIELD_BYTES}, false)"
+                         overflow << too_large
+                         "CASE WHEN #{too_large} THEN '[]'::jsonb ELSE to_jsonb(r.#{column}) END"
+                       when "config"
+                         too_large = "COALESCE(octet_length(r.config->>'org_zone') > 4096, false)"
+                         overflow << too_large
+                         "jsonb_build_object('org_zone', CASE WHEN NOT (#{too_large}) AND jsonb_typeof(r.config->'org_zone') = 'string' THEN r.config->'org_zone' ELSE NULL END)"
+                       when "name"
+                         overflow << "COALESCE(octet_length(r.name) > 4096, false)"
+                         "left(r.name, 4096)"
+                       else
+                         "r.#{column}"
+                       end
+          "'#{column}', #{expression}"
+        end
+        too_large = overflow.empty? ? "false" : overflow.join(" OR ")
+        "jsonb_build_object(#{pairs.join(", ")}, '_overflow', #{too_large})::text"
       end
 
       private def observe(table : String, where : String = "TRUE", args : Array(String) = [] of String) : Array(JSON::Any)
+        key = Reconciliation.canonical(JSON.parse({table: table, where: where, args: args}.to_json))
+        if cached = @queries[key]?
+          return cached
+        end
+        oversized! if @queries.size >= MAX_ROWS
         records = [] of JSON::Any
         order = table == "group_zones" ? "r.group_id, r.zone_id" : "r.id::text"
+        remaining = MAX_ROWS - @observed_rows
         PgORM::Database.connection do |db|
-          db.query_each(%(SELECT to_jsonb(r)::text FROM "#{table}" r WHERE #{where} ORDER BY #{order}), args: args) do |rs|
-            value = JSON.parse(rs.read(String))
+          db.query_each(%(SELECT #{projection(table)} FROM "#{table}" r WHERE #{where} ORDER BY #{order} LIMIT #{remaining + 1}), args: args) do |rs|
+            encoded = rs.read(String)
+            @observed_rows += 1
+            @snapshot_bytes += encoded.bytesize
+            oversized! if @observed_rows > MAX_ROWS || @snapshot_bytes > 16 * 1024 * 1024
+            value = JSON.parse(encoded)
+            oversized! if value["_overflow"].as_bool
             if id = value["id"]?.try(&.as_s?)
               @rows["#{table}/#{id}"] = value
             end
@@ -165,11 +247,49 @@ module PlaceOS::Api::Utils
           end
         end
         @observations << JSON.parse({table: table, where: where, args: args, rows: records}.to_json)
-        records
+        @queries[key] = records
       end
 
       private def row(table : String, id : String) : JSON::Any?
+        if cached = @rows["#{table}/#{id}"]?
+          return cached
+        end
         observe(table, "r.id::text = $1", [id]).first?
+      end
+
+      private def validate_merge_graph
+        merges = @operations.select(&.kind.==("merge_organisations"))
+        sources = merges.compact_map(&.source_organisation_id)
+        merges.each do |op|
+          if sources.count(op.source_organisation_id) > 1 || sources.includes?(op.target_organisation_id)
+            block("merge_overlap", "organisations", op.source_organisation_id.try(&.to_s), "merge sources must be distinct and cannot also be destinations")
+          end
+        end
+      end
+
+      private def collect_target_grant_effects
+        @changes.values.map(&.target_organisation_id).uniq!.each do |id|
+          next unless target = row("organisations", id)
+          scopes = [{"organisation", id}]
+          if partner = field(target, "partner_id")
+            row("partners", partner)
+            scopes << {"partner", partner}
+          end
+          scopes.each do |type, scope_id|
+            held = observe("grants", "r.scope_type = $1 AND r.scope_id = $2", [type, scope_id])
+            users = held.map(&.["user_id"].as_s).uniq!.sort!
+            @target_grants["#{type}/#{scope_id}"] = TargetGrantEffect.new(type, scope_id, held.size, users.first(SAMPLE_SIZE), users.size <= SAMPLE_SIZE)
+          end
+        end
+      end
+
+      private def validate_grant_collisions
+        held = @rows.select { |key, grant| key.starts_with?("grants/") && grant["scope_type"].as_s == "organisation" }.values
+        held.group_by { |grant| {grant["user_id"].as_s, @grants[grant["id"].as_s]?.try(&.target_scope_id) || grant["scope_id"].as_s} }.each_value do |group|
+          if group.size > 1
+            block("grant_collision", "grants", group.first["id"].as_s, "resolve final grant permissions and expiry explicitly before merging")
+          end
+        end
       end
 
       private def field(value : JSON::Any, key : String) : String?
@@ -181,7 +301,9 @@ module PlaceOS::Api::Utils
       end
 
       private def ids(value : JSON::Any, key : String) : Array(String)
-        value[key]?.try(&.as_a?).try(&.map(&.as_s)) || [] of String
+        values = value[key]?.try(&.as_a?) || [] of JSON::Any
+        oversized! if values.size > MAX_ROWS
+        values.map(&.as_s)
       end
 
       private def planned_owner(table : String, value : JSON::Any) : String?
@@ -203,6 +325,7 @@ module PlaceOS::Api::Utils
         if existing = @changes["#{table}/#{id}"]?
           block("conflicting_operations", table, id, "operations assign different owners") if existing.target_organisation_id != target
         else
+          oversized! if @changes.size >= MAX_ROWS
           @changes["#{table}/#{id}"] = Change.new(table, id, actual, target)
         end
       end
@@ -306,7 +429,7 @@ module PlaceOS::Api::Utils
           r.id IN (WITH RECURSIVE tree AS (
             SELECT id FROM zone WHERE id = $1
             UNION SELECT z.id FROM zone z JOIN tree t ON z.parent_id = t.id
-          ) SELECT id FROM tree)
+          ) SELECT id FROM tree LIMIT #{MAX_ROWS + 1})
           SQL
         if tree.empty?
           block("resource_missing", "zone", root, "zone tree does not exist")
@@ -354,7 +477,11 @@ module PlaceOS::Api::Utils
             compatible_reference("zone", root, target, change)
             users = observe("user", "r.authority_id = $1", [id])
             keys = observe("api_key", "r.authority_id = $1", [id])
-            @access[id] = AccessChange.new(id, change.source_organisation_id, target, users.size, keys.size)
+            active = users.reject { |user| user["deleted"].as_bool? == true }
+            @access[id] = AccessChange.new(id, change.source_organisation_id, target, users.size, keys.size,
+              users.map(&.["id"].as_s).sort!.first(SAMPLE_SIZE), keys.map(&.["id"].as_s).sort!.first(SAMPLE_SIZE),
+              active.count { |user| user["sys_admin"].as_bool? == true }, active.count { |user| user["support"].as_bool? == true },
+              users.size <= SAMPLE_SIZE && keys.size <= SAMPLE_SIZE)
           when "zone"
             compatible_reference("zone", field(value, "parent_id"), target, change)
             observe("zone", "r.parent_id = $1", [id]).each { |child| compatible_reference("zone", child["id"].as_s, target, change) }
@@ -379,23 +506,51 @@ module PlaceOS::Api::Utils
                 block("unknown_asset_owner", "zone", id, "resolve asset ownership before moving this zone")
               end
             end
-            observe("trig", "r.zone_id = $1", [id]).each { |instance| compatible_reference("sys", field(instance, "control_system_id"), target, change) }
+            observe("trig", "r.zone_id = $1", [id]).each { |instance| validate_instance(instance, target, change) }
           when "sys"
             ids(value, "zones").each { |zone_id| compatible_reference("zone", zone_id, target, change) }
             ids(value, "modules").each { |module_id| compatible_reference("mod", module_id, target, change) }
             observe("mod", "r.control_system_id = $1", [id]).each { |mod| compatible_reference("mod", mod["id"].as_s, target, change) }
             observe("trigger", "r.control_system_id = $1", [id]).each { |trigger| compatible_reference("trigger", trigger["id"].as_s, target, change) }
+            observe("trig", "r.control_system_id = $1", [id]).each { |instance| validate_instance(instance, target, change) }
           when "mod"
             compatible_reference("sys", field(value, "control_system_id"), target, change)
+            compatible_reference("edge", field(value, "edge_id"), target, change)
             observe("sys", "$1 = ANY(r.modules)", [id]).each { |sys| compatible_reference("sys", sys["id"].as_s, target, change) }
           when "trigger"
             compatible_reference("sys", field(value, "control_system_id"), target, change)
+            observe("trig", "r.trigger_id = $1", [id]).each { |instance| validate_instance(instance, target, change) }
           when "edge"
+            observe("mod", "r.edge_id = $1", [id]).each { |mod| compatible_reference("mod", mod["id"].as_s, target, change) }
             if user_id = field(value, "user_id")
               user = row("user", user_id)
               compatible_reference("authority", user.try { |item| field(item, "authority_id") }, target, change)
               block("missing_reference", table, id, "edge user does not exist") unless user
+              key = field(value, "api_key_id").try { |key_id| row("api_key", key_id) }
+              user_authority = user.try { |principal| field(principal, "authority_id") }
+              if key && user_authority && field(key, "user_id") == user_id && field(key, "authority_id") == user_authority
+                compatible_reference("authority", user_authority, target, change)
+              else
+                block("reference_owner", table, id, "edge credential is missing or belongs to another principal")
+              end
+            else
+              block("reference_owner", table, id, "edge principal is missing")
             end
+          end
+        end
+      end
+
+      private def validate_instance(instance : JSON::Any, target : String, change : Change)
+        %w[control_system_id trigger_id].each do |key|
+          block("reference_owner", change.resource_type, change.resource_id, "trigger instance has a missing required reference") unless field(instance, key)
+        end
+        compatible_reference("sys", field(instance, "control_system_id"), target, change)
+        compatible_reference("zone", field(instance, "zone_id"), target, change)
+        if id = field(instance, "trigger_id")
+          trigger = row("trigger", id)
+          # Unowned, unscoped trigger definitions are intentional shared templates.
+          unless trigger && owner(trigger).nil? && field(trigger, "control_system_id").nil?
+            compatible_reference("trigger", id, target, change)
           end
         end
       end
