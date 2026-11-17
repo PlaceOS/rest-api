@@ -20,16 +20,18 @@ module PlaceOS::Api
     it "exposes unowned inventory only to live structural cluster administrators" do
       f = fixture = Spec::Tenancy.build
       path = "#{base}?resource_type=zone&resource_id=#{f.unowned_zone.id}"
-      result = client.get(path, headers: Spec::Tenancy.headers(f.placeos.admin))
-      result.status_code.should eq 200
-      items = JSON.parse(result.body).as_a
-      items.map(&.["resource_id"].as_s).should contain(f.unowned_zone.id)
-      result.headers["X-Total-Count"].should eq "1"
-      [f.placeos.support, f.ntt_staff.admin, f.acadian.admin, f.ucla.user].each do |actor|
-        client.get(path, headers: Spec::Tenancy.headers(actor)).status_code.should eq 403
-      end
       Model::Generator.grant(f.ucla.admin, "organisation", f.placeos.organisation.id.to_s, Model::Permissions::Manage).save!
-      client.get(path, headers: Spec::Tenancy.headers(f.ucla.admin)).status_code.should eq 403
+      [false, true].each do |enforce|
+        Utils::Tenancy.enforce = enforce
+        result = client.get(path, headers: Spec::Tenancy.headers(f.placeos.admin))
+        result.status_code.should eq 200
+        items = JSON.parse(result.body).as_a
+        items.map(&.["resource_id"].as_s).should contain(f.unowned_zone.id)
+        result.headers["X-Total-Count"].should eq "1"
+        [f.placeos.support, f.ntt_staff.admin, f.acadian.admin, f.ucla.user, f.ucla.admin].each do |actor|
+          client.get(path, headers: Spec::Tenancy.headers(actor)).status_code.should eq 403
+        end
+      end
       stale = Spec::Tenancy.headers(f.placeos.admin)
       f.placeos.admin.sys_admin = false
       f.placeos.admin.support = true
@@ -56,8 +58,9 @@ module PlaceOS::Api
       Model::Module.find!(mod.id.as(String)).organisation_id.should be_nil
     end
 
-    it "applies an exact preview atomically and replays its durable idempotency result" do
+    it "applies an exact preview before enforcement and replays its durable idempotency result" do
       f = fixture = Spec::Tenancy.build
+      Utils::Tenancy.enforce = false
       headers = Spec::Tenancy.headers(f.placeos.admin)
       operations = [{kind: "claim", resource_type: "zone", resource_ids: [f.unowned_zone.id], target_organisation_id: f.acadian.organisation.id}]
       preview = client.post("#{base}/preview", headers: headers, body: {operations: operations}.to_json)
