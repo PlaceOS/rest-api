@@ -45160,13 +45160,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45193,13 +45193,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45281,8 +45281,8 @@ components:
           format: Int64
         expires_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         x_api_key:
           anyOf:
@@ -45308,13 +45308,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45340,8 +45340,8 @@ components:
           - type: string
         expires_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         ttl:
           anyOf:
@@ -45394,13 +45394,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45431,13 +45431,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         purchase_order_number:
           anyOf:
@@ -45484,13 +45484,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45527,13 +45527,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         identifier:
           anyOf:
@@ -45638,13 +45638,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45696,13 +45696,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45792,13 +45792,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -45873,13 +45873,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         auth_type:
           anyOf:
@@ -45976,13 +45976,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         summary:
           anyOf:
@@ -46077,13 +46077,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -46132,13 +46132,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -46217,13 +46217,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         modified_by_id:
           anyOf:
@@ -46264,13 +46264,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         ip:
           anyOf:
@@ -46340,8 +46340,8 @@ components:
           - type: "null"
         error_timestamp:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         launch_on_execute:
           anyOf:
@@ -46399,13 +46399,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -46545,8 +46545,8 @@ components:
           - type: "null"
         signage_last_seen:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         playlist_item_id:
           anyOf:
@@ -46635,13 +46635,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -46809,13 +46809,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -46835,8 +46835,8 @@ components:
           - type: string
         last_seen:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         online:
           anyOf:
@@ -46864,11 +46864,11 @@ components:
       type: object
       properties:
         created_at:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
         updated_at:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
         name:
           type: string
         description:
@@ -46877,8 +46877,8 @@ components:
           type: string
         last_seen:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         online:
           type: boolean
@@ -47224,8 +47224,8 @@ components:
           - type: "null"
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
     PlaceOS.Model.GroupInvitation:
       type: object
@@ -47680,13 +47680,13 @@ components:
           - type: "null"
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
     PlaceOS.Model.PendingMail:
       type: object
@@ -47844,13 +47844,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -48000,13 +48000,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -48029,13 +48029,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -48073,13 +48073,13 @@ components:
           - type: "null"
         valid_from:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         valid_until:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         authority_id:
           anyOf:
@@ -48429,13 +48429,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -48528,13 +48528,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -48608,13 +48608,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         user_id:
           anyOf:
@@ -48673,13 +48673,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         playlist_id:
           anyOf:
@@ -48722,13 +48722,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -48970,13 +48970,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         storage_type:
           anyOf:
@@ -49031,13 +49031,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         enabled:
           anyOf:
@@ -49161,13 +49161,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         name:
           anyOf:
@@ -49227,13 +49227,13 @@ components:
       properties:
         created_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         updated_at:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         uploaded_email:
           anyOf:
@@ -49440,8 +49440,8 @@ components:
       type: object
       properties:
         created_at:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
         name:
           type: string
         nickname:
@@ -49524,8 +49524,8 @@ components:
           format: Int64
         last_login:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         work_preferences:
           type: array
@@ -49580,8 +49580,8 @@ components:
       type: object
       properties:
         created_at:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
         name:
           type: string
         nickname:
@@ -49664,8 +49664,8 @@ components:
           format: Int64
         last_login:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         work_preferences:
           type: array
@@ -49703,8 +49703,8 @@ components:
       type: object
       properties:
         created_at:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
         name:
           type: string
         nickname:
@@ -49767,8 +49767,8 @@ components:
           format: Int64
         last_login:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         work_preferences:
           type: array
@@ -49804,8 +49804,8 @@ components:
       type: object
       properties:
         created_at:
-          type: string
-          format: date-time
+          type: integer
+          format: Int64
         name:
           type: string
         nickname:
@@ -49868,8 +49868,8 @@ components:
           format: Int64
         last_login:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         work_preferences:
           type: array
@@ -50634,8 +50634,8 @@ components:
           - type: "null"
         time:
           anyOf:
-          - type: string
-            format: date-time
+          - type: integer
+            format: Int64
           - type: "null"
         cron:
           anyOf:
