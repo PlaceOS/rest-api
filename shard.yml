@@ -1,5 +1,5 @@
 name: placeos-rest-api
-version: 2.0.0
+version: 2.0.1
 crystal: ">= 1.1.1"
 
 targets:
@@ -15,6 +15,12 @@ dependencies:
   # Data validation library
   active-model:
     github: spider-gazelle/active-model
+    version: ">= 4.7.2"
+
+  # OpenAPI schema generation
+  json-schema:
+    github: spider-gazelle/json-schema
+    version: ">= 2.1.2"
 
   # Email validations
   CrystalEmail:
@@ -58,7 +64,7 @@ dependencies:
   # Database view
   placeos-models:
     github: placeos/models
-    version: ">= 9.122"
+    version: ">= 9.123.6"
 
   # An abstraction over Fibers
   promise:
