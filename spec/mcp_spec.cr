@@ -73,6 +73,32 @@ module PlaceOS::Api
       open_session.call(api_key)
     end
 
+    it "includes the driver debugging workflow in the initialization instructions" do
+      headers = mcp_headers.call(Spec::Authentication.headers)
+      response = rpc.call(headers, "initialize", initialize_params)
+      response.status_code.should eq 200
+
+      instructions = JSON.parse(response.body)["result"]["instructions"].as_s
+      instructions.should contain "https://github.com/place-labs/ai-env-drivers"
+      instructions.should contain "CLAUDE.md or AGENTS.md"
+      instructions.should contain "driver_id"
+      instructions.should contain "repository_id"
+      instructions.should contain "Read the driver source at its current commit"
+      instructions.should contain "while the capture runs"
+      instructions.should contain "changing a comment"
+      instructions.should contain "repositories_details"
+      instructions.should contain "drivers/place/staff_api.cr"
+      instructions.should contain "This check compiles the driver if needed and can take 3 minutes or more"
+      instructions.should contain "If it times out, retry the same check until it succeeds"
+      instructions.should contain "drivers_update"
+      instructions.should contain "10 seconds for the module to load the new code"
+
+      toolbox = call_tool.call(headers, "open_toolbox", {"name" => JSON::Any.new("repositories")})
+      details = toolbox["structuredContent"]["tools"].as_a.find! { |tool| tool["name"].as_s == "repositories_details" }
+      details["proxy"].as_s.should eq "call_tool"
+      details["inputSchema"]["required"].as_a.map(&.as_s).to_set.should eq Set{"id", "driver", "commit"}
+    end
+
     it "lists the API resources as toolboxes, excluding the unsuitable controllers" do
       _, credentials = Spec::Authentication.authentication
       headers = open_session.call(credentials)
