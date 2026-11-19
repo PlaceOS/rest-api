@@ -85,6 +85,10 @@ module PlaceOS::Api
       instructions.should contain "repository_id"
       instructions.should contain "Read the driver source at its current commit"
       instructions.should contain "while the capture runs"
+      instructions.should contain "To read the full state by module ID"
+      instructions.should contain "systems_state"
+      instructions.should contain "sys-FYADMGGYSm"
+      instructions.should contain "System_1"
       instructions.should contain "changing a comment"
       instructions.should contain "repositories_details"
       instructions.should contain "drivers/place/staff_api.cr"
@@ -93,8 +97,13 @@ module PlaceOS::Api
       instructions.should contain "drivers_update"
       instructions.should contain "10 seconds for the module to load the new code"
 
-      toolbox = call_tool.call(headers, "open_toolbox", {"name" => JSON::Any.new("repositories")})
-      details = toolbox["structuredContent"]["tools"].as_a.find! { |tool| tool["name"].as_s == "repositories_details" }
+      systems = call_tool.call(headers, "open_toolbox", {"name" => JSON::Any.new("systems")})
+      state = systems["structuredContent"]["tools"].as_a.find! { |tool| tool["name"].as_s == "systems_state" }
+      state["proxy"].as_s.should eq "call_read_only"
+      state["inputSchema"]["required"].as_a.map(&.as_s).to_set.should eq Set{"sys_id", "module_slug"}
+
+      repositories = call_tool.call(headers, "open_toolbox", {"name" => JSON::Any.new("repositories")})
+      details = repositories["structuredContent"]["tools"].as_a.find! { |tool| tool["name"].as_s == "repositories_details" }
       details["proxy"].as_s.should eq "call_tool"
       details["inputSchema"]["required"].as_a.map(&.as_s).to_set.should eq Set{"id", "driver", "commit"}
     end

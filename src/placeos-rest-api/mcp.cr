@@ -36,11 +36,21 @@ module PlaceOS::Api::MCP
     and source file. See CLAUDE.md or AGENTS.md at
     https://github.com/place-labs/ai-env-drivers for development and testing guidance.
 
-    To debug a module live, start a log capture in a subagent and execute the
-    relevant function while the capture runs. Clone the driver's repository,
-    edit and test the driver, then commit and push the changes so PlaceOS can
-    fetch them. If you only changed a required file or library, make a small edit
-    to the driver source, such as changing a comment, so the commit is selectable.
+    During live debugging, compare the module's state before and after running
+    a function. Start a log capture in a subagent and execute the function
+    while the capture runs. To read the full state by module ID, use resources/read with
+    placeos://modules/{id}/state. To read it by system ID and module slug, open
+    the systems toolbox and pass an argument object like this to call_read_only.
+
+    {
+      "name": "systems_state",
+      "arguments": {"sys_id": "sys-FYADMGGYSm", "module_slug": "System_1"}
+    }
+
+    Clone the driver's repository, edit and test the driver, then commit and push
+    the changes so PlaceOS can fetch them. If you only changed a required file or
+    library, make a small edit to the driver source, such as changing a comment,
+    so the commit is selectable.
 
     Before updating the driver, open the repositories toolbox with open_toolbox.
     Run repositories_details through call_tool with arguments like these.
