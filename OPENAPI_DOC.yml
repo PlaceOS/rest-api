@@ -23708,7 +23708,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         "200":
           description: OK
@@ -23810,7 +23811,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         "200":
           description: OK
@@ -23906,7 +23908,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         "202":
           description: Accepted
@@ -24004,7 +24007,8 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          type: integer
+          format: Int64
       responses:
         "200":
           description: OK
@@ -45223,11 +45227,20 @@ components:
           - $ref: '#/components/schemas/PlaceOS.Model.Trigger.Conditions'
         severity:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Alert.Severity'
+          - enum:
+            - low
+            - medium
+            - high
+            - critical
+            type: string
           - type: "null"
         alert_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Alert.AlertType'
+          - enum:
+            - threshold
+            - status
+            - custom
+            type: string
           - type: "null"
         debounce_period:
           anyOf:
@@ -45260,7 +45273,7 @@ components:
         scopes:
           type: array
           items:
-            type: object
+            type: string
         permissions:
           anyOf:
           - $ref: '#/components/schemas/PlaceOS.Model.UserJWT.Permissions'
@@ -45329,10 +45342,15 @@ components:
           - type: "null"
           - type: array
             items:
-              type: object
+              type: string
         permissions:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.UserJWT.Permissions'
+          - enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            type: integer
           - type: "null"
         secret:
           anyOf:
@@ -45378,7 +45396,7 @@ components:
         scope:
           type: array
           items:
-            type: object
+            type: string
         u:
           $ref: '#/components/schemas/PlaceOS.Model.UserJWT.Metadata'
       required:
@@ -45449,7 +45467,7 @@ components:
           - type: string
         supplier_details:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         purchase_date:
           anyOf:
@@ -45518,6 +45536,12 @@ components:
           anyOf:
           - type: "null"
           - type: string
+        asset_count:
+          anyOf:
+          - type: integer
+            format: Int64
+          - type: "null"
+          readOnly: true
         id:
           anyOf:
           - type: "null"
@@ -45545,7 +45569,7 @@ components:
           - type: string
         other_data:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         barcode:
           anyOf:
@@ -45557,7 +45581,7 @@ components:
           - type: string
         client_ids:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         map_id:
           anyOf:
@@ -45883,7 +45907,11 @@ components:
           - type: "null"
         auth_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Broker.AuthType'
+          - enum:
+            - 0
+            - 1
+            - 2
+            type: integer
           - type: "null"
         name:
           anyOf:
@@ -46034,7 +46062,7 @@ components:
         id:
           type: string
         uri:
-          type: object
+          type: string
         load:
           anyOf:
           - $ref: '#/components/schemas/PlaceOS.Core.Client.Load'
@@ -46109,14 +46137,12 @@ components:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         config:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         email_domains:
           anyOf:
           - type: "null"
@@ -46150,8 +46176,9 @@ components:
           - type: string
         json_schema:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
+          description: Schema data. JSON objects are encoded as JSON strings in responses.
         default_uri:
           anyOf:
           - type: "null"
@@ -46163,11 +46190,22 @@ components:
           - type: "null"
         role:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Driver.Role'
+          - enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 99
+            type: integer
           - type: "null"
         alert_level:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Alert.Severity'
+          - enum:
+            - low
+            - medium
+            - high
+            - critical
+            type: string
           - type: "null"
           description: the default alert level for stagehand issues
         file_name:
@@ -46235,7 +46273,12 @@ components:
           - type: string
         encryption_level:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Encryption.Level'
+          - enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            type: integer
           - type: "null"
         settings_string:
           anyOf:
@@ -46249,7 +46292,12 @@ components:
               type: string
         parent_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Settings.ParentType'
+          - enum:
+            - control_system
+            - driver
+            - module
+            - zone
+            type: string
           - type: "null"
         parent_id:
           anyOf:
@@ -46307,11 +46355,22 @@ components:
           - type: string
         role:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Driver.Role'
+          - enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 99
+            type: integer
           - type: "null"
         alert_level:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Alert.Severity'
+          - enum:
+            - low
+            - medium
+            - high
+            - critical
+            type: string
           - type: "null"
           description: the alert level for stagehand issues
         connected:
@@ -46473,7 +46532,7 @@ components:
               type: string
         timezone:
           anyOf:
-          - type: object
+          - type: string
           - type: "null"
         support_url:
           anyOf:
@@ -46521,7 +46580,12 @@ components:
               type: string
         orientation:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Orientation'
+          - enum:
+            - unspecified
+            - landscape
+            - portrait
+            - square
+            type: string
           - type: "null"
         sign_height:
           anyOf:
@@ -46556,8 +46620,7 @@ components:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         remove_zones:
           anyOf:
           - type: "null"
@@ -46689,7 +46752,7 @@ components:
           - type: string
         timezone:
           anyOf:
-          - type: object
+          - type: string
           - type: "null"
         triggers:
           anyOf:
@@ -46755,8 +46818,7 @@ components:
           type: string
         description:
           type: string
-        details:
-          type: object
+        details: {}
         parent_id:
           anyOf:
           - type: "null"
@@ -46794,8 +46856,7 @@ components:
           format: Int32
         params:
           type: object
-          additionalProperties:
-            type: object
+          additionalProperties: {}
         order:
           type: array
           items:
@@ -46936,8 +46997,7 @@ components:
           type: array
           items:
             type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
       required:
       - edge_id
       - total_modules
@@ -47089,8 +47149,7 @@ components:
           - type: object
             additionalProperties:
               type: object
-              additionalProperties:
-                type: object
+              additionalProperties: {}
         authority_id:
           anyOf:
           - type: "null"
@@ -47204,11 +47263,11 @@ components:
               type: string
         diff:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         snapshot:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         user_id:
           anyOf:
@@ -47220,7 +47279,7 @@ components:
           - type: string
         context:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         created_at:
           anyOf:
@@ -47405,7 +47464,7 @@ components:
           type: string
         context:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         markup_upload_id:
           anyOf:
@@ -47479,27 +47538,25 @@ components:
           - type: string
         ops:
           type: array
-          items:
-            type: object
+          items: {}
         server_issues:
           type: object
           additionalProperties:
             type: string
         questions:
           type: array
-          items:
-            type: object
+          items: {}
         usage:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         repair:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         resolution:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         error_kind:
           anyOf:
@@ -47556,7 +47613,7 @@ components:
             type: string
         reasons:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         saved_upload_id:
           anyOf:
@@ -47894,7 +47951,10 @@ components:
           - type: string
         repo_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Repository.Type'
+          - enum:
+            - driver
+            - interface
+            type: string
           - type: "null"
         root_path:
           anyOf:
@@ -48018,7 +48078,7 @@ components:
           - type: string
         schema:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         id:
           anyOf:
@@ -48229,8 +48289,7 @@ components:
           - type: string
         images:
           type: array
-          items:
-            type: object
+          items: {}
         error_kind:
           anyOf:
           - type: "null"
@@ -48359,7 +48418,7 @@ components:
           - type: string
         credentials:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
         endpoint:
           anyOf:
@@ -48393,7 +48452,7 @@ components:
           - type: "null"
         quotas:
           anyOf:
-          - type: object
+          - {}
           - type: "null"
       description: 'What a client may send. `credentials` is a JSON object whose shape
         depends
@@ -48472,15 +48531,34 @@ components:
           - type: "null"
         animation:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Animation'
+          - enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            type: integer
           - type: "null"
         media_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Item.MediaType'
+          - enum:
+            - image
+            - video
+            - plugin
+            - webpage
+            - external_image
+            type: string
           - type: "null"
         orientation:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Orientation'
+          - enum:
+            - unspecified
+            - landscape
+            - portrait
+            - square
+            type: string
           - type: "null"
         media_uri:
           anyOf:
@@ -48502,8 +48580,7 @@ components:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         play_count:
           anyOf:
           - type: integer
@@ -48519,6 +48596,20 @@ components:
           - type: integer
             format: Int64
           - type: "null"
+        shared_with:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              $ref: '#/components/schemas/PlaceOS.Model.Group'
+          readOnly: true
+        playlists:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              $ref: '#/components/schemas/PlaceOS.Model.Playlist'
+          readOnly: true
         id:
           anyOf:
           - type: "null"
@@ -48550,7 +48641,12 @@ components:
           - type: string
         orientation:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Orientation'
+          - enum:
+            - unspecified
+            - landscape
+            - portrait
+            - square
+            type: string
           - type: "null"
         play_count:
           anyOf:
@@ -48564,7 +48660,15 @@ components:
           - type: "null"
         default_animation:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Animation'
+          - enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 4
+            - 5
+            - 6
+            type: integer
           - type: "null"
         random:
           anyOf:
@@ -48599,6 +48703,13 @@ components:
           - type: array
             items:
               $ref: '#/components/schemas/PlaceOS.Model.Playlist.Schedule'
+        shared_with:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              $ref: '#/components/schemas/PlaceOS.Model.Group'
+          readOnly: true
         id:
           anyOf:
           - type: "null"
@@ -48664,6 +48775,20 @@ components:
           anyOf:
           - type: "null"
           - type: string
+        media:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              $ref: '#/components/schemas/PlaceOS.Model.Playlist.Item'
+          readOnly: true
+        schedules:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              $ref: '#/components/schemas/PlaceOS.Model.Playlist.ItemSchedule'
+          readOnly: true
         id:
           anyOf:
           - type: "null"
@@ -48695,6 +48820,11 @@ components:
           - type: array
             items:
               $ref: '#/components/schemas/PlaceOS.Model.Playlist.Schedule'
+        media:
+          anyOf:
+          - type: "null"
+          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Item'
+          readOnly: true
         id:
           anyOf:
           - type: "null"
@@ -48744,11 +48874,18 @@ components:
           - type: string
         playback_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.SignagePlugin.PlaybackType'
+          - enum:
+            - static
+            - interactive
+            - playsthrough
+            type: string
           - type: "null"
         plugin_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.SignagePlugin.PluginType'
+          - enum:
+            - plugin
+            - widget
+            type: string
           - type: "null"
         authority_id:
           anyOf:
@@ -48762,14 +48899,12 @@ components:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         defaults:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         id:
           anyOf:
           - type: "null"
@@ -48809,6 +48944,11 @@ components:
           anyOf:
           - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Schedule'
           - type: "null"
+        template_details:
+          anyOf:
+          - type: "null"
+          - $ref: '#/components/schemas/PlaceOS.Model.SignageTemplate'
+          readOnly: true
     PlaceOS.Model.SignageTemplate:
       type: object
       properties:
@@ -48893,6 +49033,18 @@ components:
           - type: string
             format: uuid
           - type: "null"
+        background_media:
+          anyOf:
+          - type: "null"
+          - $ref: '#/components/schemas/PlaceOS.Model.Playlist.Item'
+          readOnly: true
+        shared_with:
+          anyOf:
+          - type: "null"
+          - type: array
+            items:
+              $ref: '#/components/schemas/PlaceOS.Model.Group'
+          readOnly: true
     PlaceOS.Api.SignageTemplates.Approver:
       type: object
       properties:
@@ -48980,7 +49132,11 @@ components:
           - type: "null"
         storage_type:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Storage.Type'
+          - enum:
+            - s3
+            - azure
+            - google
+            type: string
           - type: "null"
         bucket_name:
           anyOf:
@@ -49276,14 +49432,17 @@ components:
           - type: "null"
         permissions:
           anyOf:
-          - $ref: '#/components/schemas/PlaceOS.Model.Upload.Permissions'
+          - enum:
+            - none
+            - admin
+            - support
+            type: string
           - type: "null"
         object_options:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         resumable_id:
           anyOf:
           - type: "null"
@@ -49303,8 +49462,7 @@ components:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
         upload_complete:
           anyOf:
           - type: boolean
@@ -49547,6 +49705,10 @@ components:
           anyOf:
           - type: "null"
           - type: string
+        associated_metadata:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PlaceOS.Model.Metadata.Interface'
         subsystem_access:
           type: array
           items:
@@ -49563,6 +49725,7 @@ components:
       - login_count
       - work_preferences
       - work_overrides
+      - associated_metadata
       - subsystem_access
     PlaceOS.Model.User.ResourceToken:
       type: object
@@ -49790,6 +49953,10 @@ components:
           anyOf:
           - type: "null"
           - type: string
+        associated_metadata:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PlaceOS.Model.Metadata.Interface'
       required:
       - created_at
       - name
@@ -49800,6 +49967,7 @@ components:
       - login_count
       - work_preferences
       - work_overrides
+      - associated_metadata
     PlaceOS.Model.User.PublicResponse:
       type: object
       properties:
@@ -50114,19 +50282,6 @@ components:
           - type: array
             items:
               $ref: '#/components/schemas/PlaceOS.Model.Trigger.Conditions.TimeDependent'
-    PlaceOS.Model.Alert.Severity:
-      type: string
-      enum:
-      - low
-      - medium
-      - high
-      - critical
-    PlaceOS.Model.Alert.AlertType:
-      type: string
-      enum:
-      - threshold
-      - status
-      - custom
     PlaceOS.Model.UserJWT.Permissions:
       type: string
       enum:
@@ -50147,6 +50302,7 @@ components:
           - 1
           - 2
           - 3
+          type: integer
         r:
           type: array
           items:
@@ -50156,12 +50312,6 @@ components:
       - e
       - p
       - r
-    PlaceOS.Model.Broker.AuthType:
-      type: string
-      enum:
-      - certificate
-      - no_auth
-      - user_password
     PlaceOS.Api.BuildMonitor.State:
       type: string
       enum:
@@ -50271,20 +50421,6 @@ components:
       required:
       - commit
       - message
-    PlaceOS.Encryption.Level:
-      type: string
-      enum:
-      - none
-      - support
-      - admin
-      - never_display
-    PlaceOS.Model.Settings.ParentType:
-      type: string
-      enum:
-      - control_system
-      - driver
-      - module
-      - zone
     PlaceOS.Api.Modules.DriverDetails:
       type: object
       properties:
@@ -50312,13 +50448,6 @@ components:
       required:
       - name
       - zone_data
-    PlaceOS.Model.Playlist.Orientation:
-      type: string
-      enum:
-      - unspecified
-      - landscape
-      - portrait
-      - square
     PlaceOS.Api.Llm.ProviderCapabilities:
       type: object
       properties:
@@ -50382,11 +50511,6 @@ components:
       - subscriptionExpirationDateTime
       - subscriptionId
       - tenantId
-    PlaceOS.Model.Repository.Type:
-      type: string
-      enum:
-      - driver
-      - interface
     PlaceOS.Api.ImageGen.ProviderCapabilities:
       type: object
       properties:
@@ -50413,24 +50537,6 @@ components:
       - name
       - provider
       - models
-    PlaceOS.Model.Playlist.Animation:
-      type: string
-      enum:
-      - default
-      - cut
-      - cross_fade
-      - slide_top
-      - slide_left
-      - slide_right
-      - slide_bottom
-    PlaceOS.Model.Playlist.Item.MediaType:
-      type: string
-      enum:
-      - image
-      - video
-      - plugin
-      - webpage
-      - external_image
     PlaceOS.Model.Playlist.Schedule:
       type: object
       properties:
@@ -50468,12 +50574,6 @@ components:
       - play_takeover
       - play_period
       - play_cron
-    PlaceOS.Model.SignagePlugin.PlaybackType:
-      type: string
-      enum:
-      - static
-      - interactive
-      - playsthrough
     PlaceOS.Model.SignageTemplate.Layout:
       type: object
       properties:
@@ -50495,8 +50595,7 @@ components:
           - type: "null"
         plugin_params:
           type: object
-          additionalProperties:
-            type: object
+          additionalProperties: {}
       required:
       - position
       - plugin_params
@@ -50518,12 +50617,6 @@ components:
       - stop_date
       - start_time
       - contents
-    PlaceOS.Model.Storage.Type:
-      type: string
-      enum:
-      - s3
-      - azure
-      - google
     PlaceOS.Api.SystemTriggers.ControlSystemDetails:
       type: object
       properties:
@@ -50863,8 +50956,7 @@ components:
           anyOf:
           - type: "null"
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
     PlaceOS.Model.Trigger.Actions.Email:
       type: object
       properties:
@@ -50975,8 +51067,7 @@ components:
           type: string
         parameters:
           type: object
-          additionalProperties:
-            type: object
+          additionalProperties: {}
       required:
       - function
       - description
@@ -50987,13 +51078,11 @@ components:
         function_params:
           anyOf:
           - type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
           - type: string
       required:
       - function_params
-    JSON.Any:
-      type: object
+    JSON.Any: {}
     NamedTuple-oerror-u00003A-u000020String-c:
       type: object
       properties:
@@ -51019,8 +51108,7 @@ components:
       - compilation_output
     Array-oJSON.Any-c:
       type: array
-      items:
-        type: object
+      items: {}
     Hash-oString-nString-c:
       type: object
       additionalProperties:
@@ -51075,14 +51163,12 @@ components:
         type: array
         items:
           type: object
-          additionalProperties:
-            type: object
+          additionalProperties: {}
     Hash-oString-nHash-oString-nJSON.Any-c-c:
       type: object
       additionalProperties:
         type: object
-        additionalProperties:
-          type: object
+        additionalProperties: {}
     Hash-oString-nPlaceOS.Model.Metadata.Interface-pNil-c:
       type: object
       additionalProperties:
@@ -51141,8 +51227,7 @@ components:
           type: boolean
         is_default:
           type: boolean
-        quotas:
-          type: object
+        quotas: {}
         created_at:
           type: integer
           format: Int64
@@ -51219,8 +51304,7 @@ components:
               format: Int32
           part_data:
             type: object
-            additionalProperties:
-              type: object
+            additionalProperties: {}
           upload_id:
             anyOf:
             - type: "null"
@@ -51346,5 +51430,5 @@ components:
       - $ref: '#/components/schemas/PlaceOS.Model.User.PublicResponse'
     -oJSON.Any-pNil-c:
       anyOf:
-      - type: object
+      - {}
       - type: "null"
