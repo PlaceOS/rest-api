@@ -31,3 +31,32 @@ describe "OpenAPI timestamp schemas" do
     upload["cache_modified"]["anyOf"].as_a.to_set.should eq Set{date_time, null}
   end
 end
+
+describe "OpenAPI wire schemas" do
+  it "includes response-only asset counts" do
+    refs = JSON::Schema::Definitions.new("#/components/schemas/")
+    asset_type = JSON.parse(PlaceOS::Model::AssetType.json_schema(refs: refs).to_json)
+    count = asset_type["properties"]["asset_count"]
+    variants = count["anyOf"]?.try(&.as_a) || [count]
+    variants.map(&.["type"].as_s).should contain("integer")
+    count["readOnly"].as_bool.should be_true
+  end
+
+  it "describes URI and scope values as strings" do
+    refs = JSON::Schema::Definitions.new("#/components/schemas/")
+    node = JSON.parse(PlaceOS::Api::Cluster::NodeStatus.json_schema(refs: refs).to_json)
+    node["properties"]["uri"]["type"].as_s.should eq "string"
+
+    api_key = JSON.parse(PlaceOS::Api::ApiKeys::Response.json_schema(refs: refs).to_json)
+    api_key["properties"]["scopes"]["items"]["type"].as_s.should eq "string"
+  end
+
+  it "describes values from the enum converter" do
+    refs = JSON::Schema::Definitions.new("#/components/schemas/")
+    broker = JSON.parse(PlaceOS::Model::Broker.json_schema(refs: refs).to_json)
+    variants = broker["properties"]["auth_type"]["anyOf"].as_a
+    values = variants.find! { |schema| schema["enum"]? }["enum"].as_a
+    values.should contain(JSON::Any.new(2_i64))
+    variants.should contain(JSON.parse(%({"type":"null"})))
+  end
+end

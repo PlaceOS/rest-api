@@ -148,6 +148,18 @@ module PlaceOS::Api
     end
 
     describe "show / write actions remain admin-only" do
+      it "finds applications with 64-bit IDs" do
+        app = Model::Generator.doorkeeper_application
+        id = Int32::MAX.to_i64 + 1
+        app.id = id
+        app.save!
+        app.id.should eq id
+
+        result = client.get(File.join(base, id.to_s), headers: Spec::Authentication.headers)
+        result.status_code.should eq 200
+        JSON.parse(result.body)["id"].as_i64.should eq id
+      end
+
       it "rejects show for non-admin users" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         _, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
