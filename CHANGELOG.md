@@ -155,6 +155,7 @@
 
 ### Fix
 
+- **openapi**: align schemas with serialized fields ([#471](https://github.com/PlaceOS/rest-api/pull/471))
 - **openapi**: document Unix-second timestamps as integers ([#469](https://github.com/PlaceOS/rest-api/pull/469))
 - **group_users**: don't return sensitive fields ([#462](https://github.com/PlaceOS/rest-api/pull/462))
 - **users**: stop leaking password digests and SSO tokens ([#461](https://github.com/PlaceOS/rest-api/pull/461))
