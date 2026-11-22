@@ -34,6 +34,39 @@ module PlaceOS::Api
       cache[user.id.as(String)] ||= compute_group_memberships(user)
     end
 
+    # Groups that can supply data to a list query. A nil scope means admin or
+    # support can read all items in the authority, including unlinked items.
+    private def readable_group_scope(group_id : UUID?, include_child_data : Bool = false) : Array(UUID)?
+      memberships = group_memberships(current_user) unless user_support?
+      return memberships.try(&.compact_map { |id, perms| id if perms.read? }) unless group_id
+
+      if memberships
+        raise Error::Forbidden.new unless memberships[group_id]?.try(&.read?)
+      end
+      return [group_id] of UUID unless include_child_data
+
+      # Restrict both the selected group and its descendants to this authority.
+      # UNION terminates if a group tree contains a cycle.
+      sql = <<-SQL
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM groups WHERE id = $1 AND authority_id = $2
+          UNION
+          SELECT g.id FROM groups g
+          INNER JOIN descendants d ON g.parent_id = d.id
+          WHERE g.authority_id = $2
+        )
+        SELECT id FROM descendants
+      SQL
+      authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+      descendants = ::PgORM::Database.connection do |conn|
+        conn.query_all(sql, group_id, authority_id, as: UUID)
+      end
+      return descendants unless memberships
+
+      # A direct grant on a descendant can override the parent's Read grant.
+      descendants.select { |id| memberships[id]?.try(&.read?) }
+    end
+
     private def compute_group_memberships(user : ::PlaceOS::Model::User) : Hash(UUID, ::PlaceOS::Model::Permissions)
       user_id = user.id.as(String)
 

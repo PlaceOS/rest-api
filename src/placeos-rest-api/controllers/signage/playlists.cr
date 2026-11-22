@@ -111,13 +111,15 @@ module PlaceOS::Api
     #
     # Non-admin callers see only playlists linked to groups they're a
     # member of (direct or transitive). Pass `group_id=...` to scope to
-    # a specific group (caller must have Read on that group). Pass
+    # a specific group by default (caller must have Read on that group). Pass
     # `q=...` for a case-insensitive substring search over `name` and
     # `description`.
     @[AC::Route::GET("/")]
     def index(
       @[AC::Param::Info(description: "filter to playlists linked to this group (caller must have Read on the group)")]
       group_id : UUID? = nil,
+      @[AC::Param::Info(description: "with group_id, also include playlists linked to readable descendant groups", example: "true")]
+      include_child_data : Bool = false,
       @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
       q : String? = nil,
       limit : Int32 = 100,
@@ -125,40 +127,13 @@ module PlaceOS::Api
     ) : Array(::PlaceOS::Model::Playlist)
       query = ::PlaceOS::Model::Playlist.where(authority_id: authority.id.as(String))
 
-      if group_id
-        unless user_support?
-          perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
-          raise Error::Forbidden.new unless perms.read?
-        end
-        linked_ids = ::PlaceOS::Model::GroupPlaylist
-          .where(group_id: group_id)
-          .to_a
-          .map(&.playlist_id)
-        if linked_ids.empty?
+      if scope = readable_group_scope(group_id, include_child_data)
+        if scope.empty?
           set_collection_headers(0, "playlists")
           return [] of ::PlaceOS::Model::Playlist
         end
-        query = query.where(id: linked_ids)
-      elsif !user_support?
-        # Regular user with no group_id filter: scope to every playlist
-        # linked to a group they have Read access on.
-        viewable = group_memberships(current_user).compact_map do |g_id, g_perms|
-          g_id if g_perms.read?
-        end
-        if viewable.empty?
-          set_collection_headers(0, "playlists")
-          return [] of ::PlaceOS::Model::Playlist
-        end
-        linked_ids = ::PlaceOS::Model::GroupPlaylist
-          .where(group_id: viewable)
-          .to_a
-          .map(&.playlist_id)
-          .uniq!
-        if linked_ids.empty?
-          set_collection_headers(0, "playlists")
-          return [] of ::PlaceOS::Model::Playlist
-        end
-        query = query.where(id: linked_ids)
+        placeholders = Array.new(scope.size, "?").join(", ")
+        query = query.where("id IN (SELECT playlist_id FROM group_playlists WHERE group_id IN (#{placeholders}))", args: scope)
       end
 
       if (term = q) && !term.empty?

@@ -207,6 +207,53 @@ module PlaceOS::Api
         result.status_code.should eq 403
       end
 
+      it "paginates unique playlists across readable descendants when requested" do
+        authority, shared, root, group, sibling = setup_shared_playlist
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        child = Model::Generator.group(parent: group).save!
+        grandchild = Model::Generator.group(parent: child).save!
+        hidden = Model::Generator.group(parent: group).save!
+        Model::Generator.group_user(user: user, group: root, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_user(user: user, group: hidden, permissions: Model::Permissions::None).save!
+
+        shared.name = "Group Playlist 1"
+        shared.save!
+        Model::Generator.group_playlist(group: child, playlist: shared).save!
+        descendant_playlist = Model::Generator.playlist(name: "Group Playlist 2", authority: authority).save!
+        Model::Generator.group_playlist(group: grandchild, playlist: descendant_playlist).save!
+        other = Model::Generator.playlist(name: "Group Playlist 3", authority: authority).save!
+        Model::Generator.group_playlist(group: sibling, playlist: other).save!
+        restricted = Model::Generator.playlist(name: "Group Playlist 4", authority: authority).save!
+        Model::Generator.group_playlist(group: hidden, playlist: restricted).save!
+
+        direct = client.get("#{base}?group_id=#{group.id}&include_child_data=false", headers: headers)
+        direct.status_code.should eq 200
+        JSON.parse(direct.body).as_a.map(&.["id"].as_s).should eq [shared.id.to_s]
+
+        scope = "group_id=#{group.id}&include_child_data=true"
+        first_page = client.get("#{base}?#{scope}&limit=1&q=playlist", headers: headers)
+        first_page.status_code.should eq 200
+        first_page.headers["X-Total-Count"].should eq "2"
+        first_page.headers["Link"].should contain "include_child_data=true"
+        JSON.parse(first_page.body).as_a.map(&.["id"].as_s).should eq [shared.id.to_s]
+
+        next_page = client.get(first_page.headers["Link"][/<([^>]+)>/, 1], headers: headers)
+        next_page.status_code.should eq 200
+        next_page.headers["X-Total-Count"].should eq "2"
+        JSON.parse(next_page.body).as_a.map(&.["id"].as_s).should eq [descendant_playlist.id.to_s]
+
+        all_groups = client.get("#{base}?include_child_data=true", headers: headers)
+        all_groups.status_code.should eq 200
+        JSON.parse(all_groups.body).as_a.map(&.["id"].as_s).should eq [shared.id.to_s, descendant_playlist.id.to_s, other.id.to_s]
+
+        forbidden = client.get("#{base}?group_id=#{hidden.id}&include_child_data=true", headers: headers)
+        forbidden.status_code.should eq 403
+
+        admin = client.get("#{base}?#{scope}", headers: Spec::Authentication.headers)
+        admin.status_code.should eq 200
+        JSON.parse(admin.body).as_a.map(&.["id"].as_s).should eq [shared.id.to_s, descendant_playlist.id.to_s, restricted.id.to_s]
+      end
+
       it "?q= searches name and description (ILIKE)" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         hit_name = Model::Generator.playlist(authority: authority)

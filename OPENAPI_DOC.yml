@@ -31573,7 +31573,7 @@ paths:
 
         of (direct or transitive). `group_id=...` scopes to a single
 
-        group; `q=...` is a case-insensitive substring search across
+        group by default. `q=...` is a case-insensitive substring search across
 
         `name` and `description`; `tags=...` returns items carrying any of
 
@@ -31591,6 +31591,13 @@ paths:
           - type: string
             format: uuid
           - type: "null"
+      - name: include_child_data
+        in: query
+        description: with group_id, also include items linked to readable descendant
+          groups
+        example: true
+        schema:
+          type: boolean
       - name: q
         in: query
         description: case-insensitive substring search on name and description (SQL
@@ -31846,9 +31853,9 @@ paths:
       description: 'return the distinct tags in use by media. Scopes the same way
         as
 
-        `index`: `group_id=...` limits to media linked to that group (caller
+        `index`: `group_id=...` limits to media linked to that group by default (caller
 
-        must have Read on it); without `group_id`, admin/support callers see
+        must have Read on it). Without `group_id`, admin/support callers see
 
         every tag in the authority while regular users see tags from media in
 
@@ -31866,6 +31873,13 @@ paths:
           - type: string
             format: uuid
           - type: "null"
+      - name: include_child_data
+        in: query
+        description: with group_id, also include tags on media linked to readable
+          descendant groups
+        example: true
+        schema:
+          type: boolean
       responses:
         "200":
           description: OK
@@ -31957,17 +31971,17 @@ paths:
       summary: remove a tag from every media item carrying it, or with
       description: 'remove a tag from every media item carrying it, or with
 
-        `remove_media=true` remove the tagged media itself. Scoping and
+        `remove_media=true` remove the tagged media itself. Authority-wide is
 
-        permissions per `tag_operation_scope`: authority-wide is admin/support
+        admin/support only. A single-group operation requires Read and Update
 
-        only, `group_id` requires Read and Update (or Manage) on that group —
+        (or Manage) on that group, or Read and Delete when removing media. An
 
-        Read and Delete when removing media. Removing media with `group_id`
+        expanded operation requires Update on each matched item, or Delete on
 
-        behaves like `DELETE /:id?group_id=`: the items are unlinked from that
+        every matched group link when removing media. Group-scoped media removal
 
-        group and only deleted once no group links remain.'
+        keeps items that are still linked outside the scope.'
       tags:
       - PlaylistMedia
       operationId: PlaceOS::Api::PlaylistMedia_remove_tag
@@ -31986,13 +32000,21 @@ paths:
           type: boolean
       - name: group_id
         in: query
-        description: limit to media linked to this group (caller must have Read and
-          Update on the group, Read and Delete when removing media)
+        description: select the media group. A single-group operation requires Read
+          and Update, or Read and Delete when removing media.
         schema:
           anyOf:
           - type: string
             format: uuid
           - type: "null"
+      - name: include_child_data
+        in: query
+        description: with group_id, also include media linked to readable descendant
+          groups. Requires Update on every matched item, or Delete on every matched
+          group link when removing media.
+        example: true
+        schema:
+          type: boolean
       responses:
         "200":
           description: OK
@@ -32079,11 +32101,11 @@ paths:
       description: 'rename a tag on every media item carrying it. Items that already
         carry
 
-        `new_tag` end up with it once. Scoping and permissions per
+        `new_tag` end up with it once. Authority-wide is admin/support only.
 
-        `tag_operation_scope`: authority-wide is admin/support only, `group_id`
+        A single-group operation requires Read and Update (or Manage) on that
 
-        requires Read and Update (or Manage) on that group.'
+        group. An expanded operation requires Update access to every matched item.'
       tags:
       - PlaylistMedia
       operationId: PlaceOS::Api::PlaylistMedia_rename_tag
@@ -32102,13 +32124,20 @@ paths:
           type: string
       - name: group_id
         in: query
-        description: limit to media linked to this group (caller must have Read and
-          Update on the group)
+        description: select the media group. A single-group rename requires Read and
+          Update on that group.
         schema:
           anyOf:
           - type: string
             format: uuid
           - type: "null"
+      - name: include_child_data
+        in: query
+        description: with group_id, also include media linked to readable descendant
+          groups. Every matched item must allow Update.
+        example: true
+        schema:
+          type: boolean
       responses:
         "200":
           description: OK
@@ -32200,7 +32229,7 @@ paths:
 
         way as `index`/`tags`: `group_id=...` limits to media linked to that
 
-        group (caller must have Read on it); without `group_id`, admin/support
+        group by default (caller must have Read on it). Without `group_id`, admin/support
 
         callers see counts across the authority while regular users see counts
 
@@ -32220,6 +32249,13 @@ paths:
           - type: string
             format: uuid
           - type: "null"
+      - name: include_child_data
+        in: query
+        description: with group_id, also count media linked to readable descendant
+          groups
+        example: true
+        schema:
+          type: boolean
       responses:
         "200":
           description: OK
@@ -32946,7 +32982,7 @@ paths:
 
         member of (direct or transitive). Pass `group_id=...` to scope to
 
-        a specific group (caller must have Read on that group). Pass
+        a specific group by default (caller must have Read on that group). Pass
 
         `q=...` for a case-insensitive substring search over `name` and
 
@@ -32964,6 +33000,13 @@ paths:
           - type: string
             format: uuid
           - type: "null"
+      - name: include_child_data
+        in: query
+        description: with group_id, also include playlists linked to readable descendant
+          groups
+        example: true
+        schema:
+          type: boolean
       - name: q
         in: query
         description: case-insensitive substring search on name and description (SQL
