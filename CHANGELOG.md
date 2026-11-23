@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **signage**: support child group content and tag changes
 - **websocket**: add support for binding to interfaces
 - **mcp**: describe the server for its MCP Server Card
 - **signage/playlists**: add playlist change history endpoint
@@ -155,6 +156,8 @@
 
 ### Fix
 
+- **openapi**: align schemas with serialized fields ([#471](https://github.com/PlaceOS/rest-api/pull/471))
+- **openapi**: document Unix-second timestamps as integers ([#469](https://github.com/PlaceOS/rest-api/pull/469))
 - **group_users**: don't return sensitive fields ([#462](https://github.com/PlaceOS/rest-api/pull/462))
 - **users**: stop leaking password digests and SSO tokens ([#461](https://github.com/PlaceOS/rest-api/pull/461))
 - **map-ai**: keep selected elements when the index is capped ([#460](https://github.com/PlaceOS/rest-api/pull/460))

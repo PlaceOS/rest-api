@@ -18,10 +18,10 @@ module PlaceOS::Api
     ###############################################################################################
 
     @[AC::Route::Filter(:before_action, except: [:index, :create])]
-    def find_current_app(id : String)
-      Log.context.set(application_id: id)
+    def find_current_app(id : Int64)
+      Log.context.set(application_id: id.to_s)
       # Find will raise a 404 (not found) if there is an error
-      app = ::PlaceOS::Model::DoorkeeperApplication.find!(id.to_i)
+      app = ::PlaceOS::Model::DoorkeeperApplication.find!(id)
       ensure_authority_reach!(app.owner_id, "application")
       @current_app = app
     end

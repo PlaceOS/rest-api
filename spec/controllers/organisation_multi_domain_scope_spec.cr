@@ -110,6 +110,46 @@ module PlaceOS::Api
       end
     end
 
+    it "expands selected customer signage groups inside the addressed domain" do
+      f, other = build.call
+      root = Model::Generator.group(authority: f.acadian.authority).save!
+      child = Model::Generator.group(authority: f.acadian.authority, parent: root).save!
+      sibling = Model::Generator.group(authority: other).save!
+      direct = Model::Generator.playlist(authority: f.acadian.authority).save!
+      nested = Model::Generator.playlist(authority: f.acadian.authority).save!
+      sibling_playlist = Model::Generator.playlist(authority: other).save!
+      Model::Generator.group_playlist(group: root, playlist: direct).save!
+      Model::Generator.group_playlist(group: child, playlist: nested).save!
+      Model::Generator.group_playlist(group: sibling, playlist: sibling_playlist).save!
+      root_item = Model::Generator.item(authority: f.acadian.authority).tap(&.tags = Set{"direct"}).save!
+      child_item = Model::Generator.item(authority: f.acadian.authority).tap(&.tags = Set{"nested"}).save!
+      sibling_item = Model::Generator.item(authority: other).tap(&.tags = Set{"sibling"}).save!
+      Model::Generator.group_playlist_item(group: root, playlist_item: root_item).save!
+      Model::Generator.group_playlist_item(group: child, playlist_item: child_item).save!
+      Model::Generator.group_playlist_item(group: sibling, playlist_item: sibling_item).save!
+      headers = Spec::Tenancy.headers(f.ntt_staff.admin)
+      suffix = "?organisation_id=#{f.acadian.organisation.id}&group_id=#{root.id}"
+      initial = client.get("#{Playlist.base_route}#{suffix}", headers: headers)
+      initial.status_code.should eq 200
+      Spec::Tenancy.ids(initial.body).should eq [direct.id]
+      suffix += "&include_child_data=true"
+      [
+        {Playlist.base_route, direct.id.as(String), nested.id.as(String)},
+        {PlaylistMedia.base_route, root_item.id.as(String), child_item.id.as(String)},
+      ].each do |(route, first_id, second_id)|
+        expanded = client.get("#{route}#{suffix}", headers: headers)
+        expanded.status_code.should eq 200
+        Spec::Tenancy.ids(expanded.body).sort.should eq [first_id, second_id].sort
+        expanded.headers["X-Total-Count"].should eq "2"
+      end
+      tags = client.get("#{PlaylistMedia.base_route}/tags#{suffix}", headers: headers)
+      tags.status_code.should eq 200
+      Array(String).from_json(tags.body).sort.should eq ["direct", "nested"]
+      counts = client.get("#{PlaylistMedia.base_route}/tag_counts#{suffix}", headers: headers)
+      counts.status_code.should eq 200
+      Hash(String, Int32).from_json(counts.body).should eq({"direct" => 1, "nested" => 1})
+    end
+
     it "accepts either storage authority selector and rejects conflicting or repeated selectors" do
       f, other = build.call
       Model::Generator.storage(authority_id: f.acadian.authority.id).save!

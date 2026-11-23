@@ -146,6 +146,57 @@ module PlaceOS::Api
         ids.should eq [linked.id.to_s]
       end
 
+      it "includes readable descendant media and their tags when requested" do
+        authority, shared, root, group, sibling = setup_shared_media
+        user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+        child = Model::Generator.group(parent: group).save!
+        grandchild = Model::Generator.group(parent: child).save!
+        hidden = Model::Generator.group(parent: group).save!
+        Model::Generator.group_user(user: user, group: root, permissions: Model::Permissions::Read).save!
+        Model::Generator.group_user(user: user, group: hidden, permissions: Model::Permissions::None).save!
+
+        shared.tags = Set{"shared"}
+        shared.save!
+        Model::Generator.group_playlist_item(group: child, playlist_item: shared).save!
+
+        descendant_media = Model::Generator.item(name: "Descendant promotion", authority: authority)
+        descendant_media.tags = Set{"promo", "shared"}
+        descendant_media.save!
+        Model::Generator.group_playlist_item(group: grandchild, playlist_item: descendant_media).save!
+
+        [
+          {hidden, "restricted"},
+          {sibling, "sibling"},
+        ].each do |item_group, tag|
+          item = Model::Generator.item(name: "#{tag} promotion", authority: authority)
+          item.tags = Set{tag}
+          item.save!
+          Model::Generator.group_playlist_item(group: item_group, playlist_item: item).save!
+        end
+
+        direct = client.get("#{base}?group_id=#{group.id}", headers: headers)
+        direct.status_code.should eq 200
+        JSON.parse(direct.body).as_a.map(&.["id"].as_s).should eq [shared.id.to_s]
+
+        scope = "group_id=#{group.id}&include_child_data=true"
+        expanded = client.get("#{base}?#{scope}", headers: headers)
+        expanded.status_code.should eq 200
+        expanded.headers["X-Total-Count"].should eq "2"
+        JSON.parse(expanded.body).as_a.map(&.["id"].as_s).sort!.should eq [shared.id.to_s, descendant_media.id.to_s].sort
+
+        search = client.get("#{base}?#{scope}&q=promotion&tags=promo", headers: headers)
+        search.status_code.should eq 200
+        JSON.parse(search.body).as_a.map(&.["id"].as_s).should eq [descendant_media.id.to_s]
+
+        tags = client.get("#{base}/tags?#{scope}", headers: headers)
+        tags.status_code.should eq 200
+        Array(String).from_json(tags.body).should eq ["promo", "shared"]
+
+        counts = client.get("#{base}/tag_counts?#{scope}", headers: headers)
+        counts.status_code.should eq 200
+        Hash(String, Int32).from_json(counts.body).should eq({"promo" => 1, "shared" => 2})
+      end
+
       it "spans multiple readable groups for a regular user (multi-placeholder IN)" do
         authority = Model::Authority.find_by_domain("localhost").not_nil!
         user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
@@ -792,6 +843,99 @@ module PlaceOS::Api
 
       remove = ->(params : Hash(String, String), headers : HTTP::Headers) do
         client.delete("#{base}/tags?#{HTTP::Params.encode(params)}", headers: headers)
+      end
+
+      describe "include_child_data=true" do
+        it "changes tags for writable media in readable descendants of a read-only group" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          root = Model::Generator.group(authority: authority_of.call).save!
+          parent = Model::Generator.group(parent: root).save!
+          child = Model::Generator.group(parent: parent).save!
+          grandchild = Model::Generator.group(parent: child).save!
+          read_only = Model::Generator.group(parent: parent).save!
+          unreadable = Model::Generator.group(parent: child).save!
+          outside = Model::Generator.group(parent: root).save!
+          Model::Generator.group_user(user: user, group: root, permissions: Model::Permissions::Read).save!
+          Model::Generator.group_user(user: user, group: child, permissions: Model::Permissions::Read | Model::Permissions::Update).save!
+          Model::Generator.group_user(user: user, group: unreadable, permissions: Model::Permissions::Update).save!
+          Model::Generator.group_user(user: user, group: outside, permissions: Model::Permissions::Manage).save!
+
+          nested = tagged.call(Set{"promo"}, grandchild)
+          shared = tagged.call(Set{"promo", "campaign"}, read_only)
+          Model::Generator.group_playlist_item(group: outside, playlist_item: shared).save!
+          Model::Generator.group_playlist_item(group: parent, playlist_item: shared).save!
+          hidden = tagged.call(Set{"promo"}, unreadable)
+          unrelated = tagged.call(Set{"promo"}, outside)
+          scope = {"group_id" => parent.id.to_s, "include_child_data" => "true"}
+
+          result = rename.call(scope.merge({"current_tag" => "promo", "new_tag" => "campaign"}), headers)
+          result.success?.should be_true
+          tags_of.call(nested).should eq Set{"campaign"}
+          tags_of.call(shared).should eq Set{"campaign"}
+          tags_of.call(hidden).should eq Set{"promo"}
+          tags_of.call(unrelated).should eq Set{"promo"}
+
+          remove.call(scope.merge({"tag" => "campaign"}), headers).success?.should be_true
+          tags_of.call(nested).should be_empty
+          tags_of.call(shared).should be_empty
+          media_link?(parent, shared).should be_true
+          media_link?(read_only, shared).should be_true
+          media_link?(outside, shared).should be_true
+        end
+
+        it "rejects an entire tag change when a matched media item is not writable" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          parent = Model::Generator.group(authority: authority_of.call).save!
+          child = Model::Generator.group(parent: parent).save!
+          Model::Generator.group_user(user: user, group: parent, permissions: Model::Permissions::Read | Model::Permissions::Update).save!
+          Model::Generator.group_user(user: user, group: child, permissions: Model::Permissions::Read).save!
+          writable = tagged.call(Set{"promo"}, parent)
+          locked = tagged.call(Set{"promo"}, child)
+          scope = {"group_id" => parent.id.to_s, "include_child_data" => "true"}
+
+          rename.call(scope.merge({"current_tag" => "promo", "new_tag" => "campaign"}), headers).status_code.should eq 403
+          remove.call(scope.merge({"tag" => "promo"}), headers).status_code.should eq 403
+          tags_of.call(writable).should eq Set{"promo"}
+          tags_of.call(locked).should eq Set{"promo"}
+        end
+
+        it "requires Delete on each visible link and preserves links outside the readable subtree" do
+          user, headers = Spec::Authentication.authentication(sys_admin: false, support: false)
+          root = Model::Generator.group(authority: authority_of.call).save!
+          parent = Model::Generator.group(parent: root).save!
+          child = Model::Generator.group(parent: parent).save!
+          grandchild = Model::Generator.group(parent: child).save!
+          read_only = Model::Generator.group(parent: parent).save!
+          unreadable = Model::Generator.group(parent: child).save!
+          outside = Model::Generator.group(parent: root).save!
+          Model::Generator.group_user(user: user, group: root, permissions: Model::Permissions::Read).save!
+          Model::Generator.group_user(user: user, group: child, permissions: Model::Permissions::Read | Model::Permissions::Delete).save!
+          Model::Generator.group_user(user: user, group: unreadable, permissions: Model::Permissions::Delete).save!
+          membership = Model::Generator.group_user(user: user, group: read_only, permissions: Model::Permissions::Read).save!
+
+          orphan = tagged.call(Set{"promo"}, grandchild)
+          shared = tagged.call(Set{"promo"}, grandchild)
+          {child, read_only, unreadable, outside}.each do |group|
+            Model::Generator.group_playlist_item(group: group, playlist_item: shared).save!
+          end
+          params = {"tag" => "promo", "remove_media" => "true", "group_id" => parent.id.to_s, "include_child_data" => "true"}
+
+          remove.call(params, headers).status_code.should eq 403
+          media_link?(grandchild, orphan).should be_true
+          media_link?(child, shared).should be_true
+          media_link?(read_only, shared).should be_true
+
+          membership.permissions = (Model::Permissions::Read | Model::Permissions::Delete).value
+          membership.save!
+          remove.call(params, headers).success?.should be_true
+          Model::Playlist::Item.find?(orphan.id.as(String)).should be_nil
+          media_link?(child, shared).should be_false
+          media_link?(grandchild, shared).should be_false
+          media_link?(read_only, shared).should be_false
+          media_link?(unreadable, shared).should be_true
+          media_link?(outside, shared).should be_true
+          tags_of.call(shared).should eq Set{"promo"}
+        end
       end
 
       describe "PATCH /tags (rename)" do

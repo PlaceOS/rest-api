@@ -30,11 +30,52 @@ module PlaceOS::Api::MCP
     placeos://modules/{id}/state/{key} and placeos://systems/{sys_id}/{module_slug}/{key}
     can be subscribed to for changes, placeos://modules/{id}/logs{?seconds,level} captures a module's
     debug output for a number of seconds. Use resources over function calls where available.
-    Capture logs using a subagent if you want to execute commands during a capture.
 
     Each subscribed resource is sent at least one notifications/resources/updated after
     subscriptions/listen is acknowledged, so subscribe first and read the resource when its
     update arrives, there's no need to read it beforehand.
+
+    Read the driver source at its current commit to understand how the module
+    works before live debugging. Follow the module's driver_id to its driver,
+    then use the driver's repository_id and file_name to find its repository
+    and source file. See CLAUDE.md or AGENTS.md at
+    https://github.com/place-labs/ai-env-drivers for development and testing guidance.
+
+    During live debugging, compare the module's state before and after running
+    a function. Start a log capture in a subagent and execute the function
+    while the capture runs. To read the full state by module ID, use resources/read with
+    placeos://modules/{id}/state. To read it by system ID and module slug, open
+    the systems toolbox and pass an argument object like this to call_read_only.
+
+    {
+      "name": "systems_state",
+      "arguments": {"sys_id": "sys-FYADMGGYSm", "module_slug": "System_1"}
+    }
+
+    Clone the driver's repository, edit and test the driver, then commit and push
+    the changes so PlaceOS can fetch them. If you only changed a required file or
+    library, make a small edit to the driver source, such as changing a comment,
+    so the commit is selectable.
+
+    Before updating the driver, open the repositories toolbox with open_toolbox.
+    Run repositories_details through call_tool with arguments like these.
+
+    {
+      "name": "repositories_details",
+      "arguments": {
+        "id": "repo-Fhwr6Ovf5z0",
+        "driver": "drivers/place/staff_api.cr",
+        "commit": "66a41ddf0f9e66df6e681be1d6916fe93d3c5768"
+      }
+    }
+
+    This check compiles the driver if needed and can take 3 minutes or more.
+    If it times out, retry the same check until it succeeds. Resolve any build
+    errors and check the corrected commit before proceeding. After the check
+    succeeds, open the drivers toolbox and run drivers_update through call_tool
+    with the driver ID and the checked commit in the request body. Allow about
+    10 seconds for the module to load the new code, then repeat the function
+    call and check its logs.
     TEXT
 
   # tokens are issued by auth.cr on the same host, its issuer is scheme + host

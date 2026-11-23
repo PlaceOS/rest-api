@@ -101,34 +101,6 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    # Resolve which groups bound the caller's visibility, honoring
-    # `group_id`. We key access off the *bounded* set of group ids (a user
-    # belongs to tens of groups) rather than the *unbounded* set of item
-    # ids — the actual item filter is pushed into SQL as a subquery against
-    # the `group_playlist_items` junction, so item ids are never pulled
-    # into memory.
-    #
-    # Returns:
-    # - `nil`  => no group constraint (admin/support: all authority media)
-    # - `[]`   => caller can see nothing (short-circuit to an empty result)
-    # - `[..]` => constrain to items linked to any of these groups
-    private def accessible_group_scope(group_id : UUID?) : Array(UUID)?
-      if group_id
-        unless user_support?
-          perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
-          raise Error::Forbidden.new unless perms.read?
-        end
-        return [group_id]
-      end
-
-      # admin/support see every item in the authority — no group constraint
-      return nil if user_support?
-
-      group_memberships(current_user).compact_map do |g_id, g_perms|
-        g_id if g_perms.read?
-      end
-    end
-
     # Raw-SQL `WHERE id IN (...junction subquery...)` fragment scoping
     # `playlist_items` to those linked to any of `group_ids`. Each group id
     # is a bound `?` placeholder (never interpolated). Caller guarantees
@@ -142,13 +114,15 @@ module PlaceOS::Api
     #
     # Non-admin callers see only items linked to groups they're a member
     # of (direct or transitive). `group_id=...` scopes to a single
-    # group; `q=...` is a case-insensitive substring search across
+    # group by default. `q=...` is a case-insensitive substring search across
     # `name` and `description`; `tags=...` returns items carrying any of
     # the supplied tags.
     @[AC::Route::GET("/", converters: {tags: ConvertStringArray})]
     def index(
       @[AC::Param::Info(description: "filter to items linked to this group (caller must have Read on the group)")]
       group_id : UUID? = nil,
+      @[AC::Param::Info(description: "with group_id, also include items linked to readable descendant groups", example: "true")]
+      include_child_data : Bool = false,
       @[AC::Param::Info(description: "case-insensitive substring search on name and description (SQL ILIKE)")]
       q : String? = nil,
       @[AC::Param::Info(description: "return items carrying any of these tags", example: "promo,lobby")]
@@ -158,7 +132,7 @@ module PlaceOS::Api
     ) : Array(::PlaceOS::Model::Playlist::Item)
       query = scope_resource_authorities(::PlaceOS::Model::Playlist::Item.all)
 
-      scope = accessible_group_scope(group_id)
+      scope = readable_group_scope(group_id, include_child_data)
       unless scope.nil?
         if scope.empty?
           set_collection_headers(0, "playlist_items")
@@ -186,16 +160,18 @@ module PlaceOS::Api
     end
 
     # return the distinct tags in use by media. Scopes the same way as
-    # `index`: `group_id=...` limits to media linked to that group (caller
-    # must have Read on it); without `group_id`, admin/support callers see
+    # `index`: `group_id=...` limits to media linked to that group by default (caller
+    # must have Read on it). Without `group_id`, admin/support callers see
     # every tag in the authority while regular users see tags from media in
     # groups they can read.
     @[AC::Route::GET("/tags")]
     def tags(
       @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read on the group)")]
       group_id : UUID? = nil,
+      @[AC::Param::Info(description: "with group_id, also include tags on media linked to readable descendant groups", example: "true")]
+      include_child_data : Bool = false,
     ) : Array(String)
-      scope = accessible_group_scope(group_id)
+      scope = readable_group_scope(group_id, include_child_data)
       return [] of String if !scope.nil? && scope.empty?
 
       # Distinct tags computed in SQL — we never materialize item ids. The
@@ -236,6 +212,46 @@ module PlaceOS::Api
       nil
     end
 
+    private def with_tag_operation_scope(group_id : UUID?, include_child_data : Bool, required : ::PlaceOS::Model::Permissions, &) : Nil
+      unless group_id && include_child_data
+        yield tag_operation_scope(group_id, required)
+        return
+      end
+
+      # Authorise and mutate the same snapshot of group links, tags and
+      # permissions. Concurrent changes to the rows we write cause a conflict.
+      PgORM::Database.transaction do |tx|
+        tx.connection.exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+        ensure_group_access!(group_id, ::PlaceOS::Model::Permissions::Read)
+        yield readable_group_scope(group_id, include_child_data: true)
+      end
+    end
+
+    private def ensure_tag_operation_access!(tag : String, scope : Array(UUID)?, required : ::PlaceOS::Model::Permissions) : Nil
+      return unless scope
+      return if user_support?
+
+      permitted = group_memberships(current_user).compact_map do |id, perms|
+        id if perms.manage? || perms.includes?(required)
+      end
+      # Unlinking needs permission on each affected link. A tag is part of
+      # the media record, so any link granting Update permits editing it.
+      unlinking = required.delete?
+      check_scope = unlinking ? scope - permitted : scope
+      return if check_scope.empty?
+
+      sql = String.build do |str|
+        str << "SELECT EXISTS(SELECT 1 FROM playlist_items WHERE authority_id = $1 AND $2 = ANY(tags)"
+        str << tag_scope_sql(check_scope, 3)
+        str << " AND id NOT IN (#{tag_linked_items_sql(4)})" unless unlinking
+        str << ")"
+      end
+      args = [authority.id.as(String), tag, check_scope.map(&.to_s)]
+      args << permitted.map(&.to_s) unless unlinking
+      denied = PgORM::Database.connection(&.scalar(sql, args: args)).as(Bool)
+      raise Error::Forbidden.new("missing #{required} permission on some of the tagged media") if denied
+    end
+
     # tags are free text so the only invalid value is a blank one
     private def require_tag(value : String, param : String) : String
       raise AC::Route::Param::ValueError.new("must not be blank", param) if value.blank?
@@ -246,74 +262,83 @@ module PlaceOS::Api
     # ids are bound as `$n::uuid[]`, never interpolated.
     private def tag_scope_sql(scope : Array(UUID)?, param : Int32) : String
       return "" if scope.nil?
-      " AND id IN (SELECT playlist_item_id FROM group_playlist_items WHERE group_id = ANY($#{param}::uuid[]))"
+      " AND id IN (#{tag_linked_items_sql(param)})"
+    end
+
+    private def tag_linked_items_sql(param : Int32) : String
+      "SELECT playlist_item_id FROM group_playlist_items WHERE group_id = ANY($#{param}::uuid[])"
     end
 
     # rename a tag on every media item carrying it. Items that already carry
-    # `new_tag` end up with it once. Scoping and permissions per
-    # `tag_operation_scope`: authority-wide is admin/support only, `group_id`
-    # requires Read and Update (or Manage) on that group.
+    # `new_tag` end up with it once. Authority-wide is admin/support only.
+    # A single-group operation requires Read and Update (or Manage) on that
+    # group. An expanded operation requires Update access to every matched item.
     @[AC::Route::PATCH("/tags")]
     def rename_tag(
       @[AC::Param::Info(description: "the existing tag to be renamed")]
       current_tag : String,
       @[AC::Param::Info(description: "the replacement tag name")]
       new_tag : String,
-      @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read and Update on the group)")]
+      @[AC::Param::Info(description: "select the media group. A single-group rename requires Read and Update on that group.")]
       group_id : UUID? = nil,
+      @[AC::Param::Info(description: "with group_id, also include media linked to readable descendant groups. Every matched item must allow Update.", example: "true")]
+      include_child_data : Bool = false,
     ) : Nil
       current_tag = require_tag(current_tag, "current_tag")
       # apply the same sanitisation the model applies to the tags attribute
       new_tag = require_tag(::ActiveModel::Sanitizer.sanitize(new_tag, :text), "new_tag")
-      scope = tag_operation_scope(group_id, ::PlaceOS::Model::Permissions::Update)
-      return if current_tag == new_tag
+      required = ::PlaceOS::Model::Permissions::Update
+      with_tag_operation_scope(group_id, include_child_data, required) do |scope|
+        next if current_tag == new_tag
+        ensure_tag_operation_access!(current_tag, scope, required) if include_child_data
 
-      # A single UPDATE in SQL — item ids never enter app memory. After the
-      # replacement, duplicates collapse keeping each tag's first position.
-      sql = String.build do |str|
-        str << "UPDATE playlist_items SET updated_at = CURRENT_TIMESTAMP, tags = ARRAY("
-        str << "SELECT t FROM unnest(array_replace(tags, $2, $3)) WITH ORDINALITY AS u(t, ord) GROUP BY t ORDER BY MIN(ord)"
-        str << ") WHERE authority_id = $1 AND $2 = ANY(tags)"
-        str << tag_scope_sql(scope, 4)
-      end
+        # After replacement, duplicates collapse to each tag's first position.
+        sql = String.build do |str|
+          str << "UPDATE playlist_items SET updated_at = CURRENT_TIMESTAMP, tags = ARRAY("
+          str << "SELECT t FROM unnest(array_replace(tags, $2, $3)) WITH ORDINALITY AS u(t, ord) GROUP BY t ORDER BY MIN(ord)"
+          str << ") WHERE authority_id = $1 AND $2 = ANY(tags)"
+          str << tag_scope_sql(scope, 4)
+        end
 
-      PgORM::Database.connection do |db|
-        if scope.nil?
-          db.exec(sql, args: [authority.id.as(String), current_tag, new_tag])
-        else
-          db.exec(sql, args: [authority.id.as(String), current_tag, new_tag, scope.map(&.to_s)])
+        args = [authority.id.as(String), current_tag, new_tag] of String | Array(String)
+        args << scope.map(&.to_s) if scope
+        PgORM::Database.connection do |db|
+          db.exec(sql, args: args)
         end
       end
     end
 
     # remove a tag from every media item carrying it, or with
-    # `remove_media=true` remove the tagged media itself. Scoping and
-    # permissions per `tag_operation_scope`: authority-wide is admin/support
-    # only, `group_id` requires Read and Update (or Manage) on that group —
-    # Read and Delete when removing media. Removing media with `group_id`
-    # behaves like `DELETE /:id?group_id=`: the items are unlinked from that
-    # group and only deleted once no group links remain.
+    # `remove_media=true` remove the tagged media itself. Authority-wide is
+    # admin/support only. A single-group operation requires Read and Update
+    # (or Manage) on that group, or Read and Delete when removing media. An
+    # expanded operation requires Update on each matched item, or Delete on
+    # every matched group link when removing media. Group-scoped media removal
+    # keeps items that are still linked outside the scope.
     @[AC::Route::DELETE("/tags")]
     def remove_tag(
       @[AC::Param::Info(description: "the tag to be removed")]
       tag : String,
       @[AC::Param::Info(description: "if true, removes the tag by removing all the media with this tag")]
       remove_media : Bool = false,
-      @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read and Update on the group, Read and Delete when removing media)")]
+      @[AC::Param::Info(description: "select the media group. A single-group operation requires Read and Update, or Read and Delete when removing media.")]
       group_id : UUID? = nil,
+      @[AC::Param::Info(description: "with group_id, also include media linked to readable descendant groups. Requires Update on every matched item, or Delete on every matched group link when removing media.", example: "true")]
+      include_child_data : Bool = false,
     ) : Nil
       tag = require_tag(tag, "tag")
       required = remove_media ? ::PlaceOS::Model::Permissions::Delete : ::PlaceOS::Model::Permissions::Update
-      scope = tag_operation_scope(group_id, required)
-
-      return remove_tagged_media!(tag, scope, group_id) if remove_media
-
-      sql = "UPDATE playlist_items SET updated_at = CURRENT_TIMESTAMP, tags = array_remove(tags, $2) WHERE authority_id = $1 AND $2 = ANY(tags)#{tag_scope_sql(scope, 3)}"
-      PgORM::Database.connection do |db|
-        if scope.nil?
-          db.exec(sql, args: [authority.id.as(String), tag])
+      with_tag_operation_scope(group_id, include_child_data, required) do |scope|
+        ensure_tag_operation_access!(tag, scope, required) if include_child_data
+        if remove_media
+          remove_tagged_media!(tag, scope)
         else
-          db.exec(sql, args: [authority.id.as(String), tag, scope.map(&.to_s)])
+          sql = "UPDATE playlist_items SET updated_at = CURRENT_TIMESTAMP, tags = array_remove(tags, $2) WHERE authority_id = $1 AND $2 = ANY(tags)#{tag_scope_sql(scope, 3)}"
+          args = [authority.id.as(String), tag] of String | Array(String)
+          args << scope.map(&.to_s) if scope
+          PgORM::Database.connection do |db|
+            db.exec(sql, args: args)
+          end
         end
       end
     end
@@ -326,7 +351,9 @@ module PlaceOS::Api
     # fetched in id-ordered batches with a keyset cursor so a large library
     # is never held in memory at once and progress is guaranteed even if a
     # removal leaves the row in place (unlinking a still-shared item).
-    private def remove_tagged_media!(tag : String, scope : Array(UUID)?, group_id : UUID?) : Nil
+    private def remove_tagged_media!(tag : String, scope : Array(UUID)?) : Nil
+      return if scope.try(&.empty?)
+
       base = ::PlaceOS::Model::Playlist::Item
         .where(authority_id: authority.id.as(String))
         .where("? = ANY(tags)", tag)
@@ -337,7 +364,15 @@ module PlaceOS::Api
         loop do
           batch = base.where("id > ?", last_id).order("id").limit(TAG_REMOVAL_BATCH).to_a
           break if batch.empty?
-          batch.each { |item| remove_item!(item, group_id) }
+          batch.each do |item|
+            if scope && scope.size > 1
+              links = ::PlaceOS::Model::GroupPlaylistItem.where(playlist_item_id: item.id.as(String))
+              links.where(group_id: scope).delete_all
+              destroy_item!(item) unless links.exists?
+            else
+              remove_item!(item, scope.try(&.first))
+            end
+          end
           last_id = batch.last.id.as(String)
         end
       end
@@ -345,7 +380,7 @@ module PlaceOS::Api
 
     # return the number of media items carrying each tag. Scopes the same
     # way as `index`/`tags`: `group_id=...` limits to media linked to that
-    # group (caller must have Read on it); without `group_id`, admin/support
+    # group by default (caller must have Read on it). Without `group_id`, admin/support
     # callers see counts across the authority while regular users see counts
     # from media in groups they can read. An item carrying a tag twice still
     # counts once.
@@ -353,8 +388,10 @@ module PlaceOS::Api
     def tag_counts(
       @[AC::Param::Info(description: "limit to media linked to this group (caller must have Read on the group)")]
       group_id : UUID? = nil,
+      @[AC::Param::Info(description: "with group_id, also count media linked to readable descendant groups", example: "true")]
+      include_child_data : Bool = false,
     ) : Hash(String, Int32)
-      scope = accessible_group_scope(group_id)
+      scope = readable_group_scope(group_id, include_child_data)
       counts = {} of String => Int32
       return counts if !scope.nil? && scope.empty?
 
@@ -429,7 +466,7 @@ module PlaceOS::Api
     # those shared into a group they hold Read on (a grant on a parent group
     # covers its children, per `group_memberships`).
     private def playlists_containing_item : Array(::PlaceOS::Model::Playlist)
-      scope = accessible_group_scope(nil)
+      scope = readable_group_scope(nil)
       return [] of ::PlaceOS::Model::Playlist if scope && scope.empty?
 
       item_id = current_item.id.as(String)
