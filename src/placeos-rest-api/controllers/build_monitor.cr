@@ -15,6 +15,7 @@ module PlaceOS::Api
     before_action :can_write, only: [:cancel]
 
     before_action :check_admin, only: [:cancel]
+    before_action :check_cluster_admin, only: [:cancel]
 
     ###############################################################################################
 

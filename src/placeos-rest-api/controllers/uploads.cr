@@ -13,9 +13,9 @@ module PlaceOS::Api
 
     base "/api/engine/v2/uploads"
 
-    @[AC::Route::Filter(:before_action)]
+    @[AC::Route::Filter(:before_action, except: [:index, :get_link, :download_proxy_file_contents, :download_simple_route, :edit, :update, :finished, :destroy])]
     def check_authority
-      unless @authority = current_authority
+      unless @authority = resource_authority
         Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
         raise Error::Unauthorized.new "authority not found"
       end
@@ -26,11 +26,33 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "upload id of the upload", example: "uploads-XXX")]
       id : String,
     )
+      if key = route_params["api_key"]?
+        key = Base64.decode_string(key).strip rescue key
+        request.headers["X-API-Key"] = key
+        authorize!
+        set_user_id
+      end
       # id can be base64 encoded for simple downloads
       id = id.starts_with?("uploads-") ? id : Base64.decode_string(id).strip rescue id
       unless @current_upload = ::PlaceOS::Model::Upload.find?(id)
-        Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: authority.id, user: current_user.id} }
+        Log.warn { {message: "Invalid upload id. Unable to find matching upload entry", upload_id: id, authority: current_authority.try(&.id), user: current_user.id} }
         raise Error::NotFound.new("Invalid upload id: #{id}")
+      end
+      ensure_upload_reach!(current_upload)
+      @authority = if Utils::Tenancy.enforce?
+                     authority_for_resource!(upload_authority_id(current_upload), "upload")
+                   else
+                     current_authority
+                   end
+    end
+
+    @[AC::Route::Filter(:before_action)]
+    def check_upload_scope
+      return unless Utils::Tenancy.enforce?
+      if action_name.in?({:create, :screenshot, :edit, :update, :finished, :destroy})
+        can_write
+      else
+        can_read
       end
     end
 
@@ -60,8 +82,9 @@ module PlaceOS::Api
     # on the org zone, may manage it. (`create` is always self-owned.)
     @[AC::Route::Filter(:before_action, only: [:edit, :update, :finished, :destroy])]
     def confirm_upload_access
-      return if current_upload.uploaded_by == current_user.id
       required = request.method.upcase == "DELETE" ? ::PlaceOS::Model::Permissions::Delete : ::PlaceOS::Model::Permissions::Update
+      ensure_upload_reach!(current_upload, required: required)
+      return if current_upload.uploaded_by == current_user.id
       ensure_support_access!([support_org_zone_id].compact, required)
     end
 
@@ -91,25 +114,29 @@ module PlaceOS::Api
         end
       end
 
-      # 1. Prepare table name and storage
+      # Resolve every selected authority's default before pagination, including shared providers.
       table_name = ::PlaceOS::Model::Upload.table_name
-      storage = if storage_id
-                  # Validate that the storage exists and belongs to this authority
-                  unless found_storage = ::PlaceOS::Model::Storage.find?(storage_id)
-                    raise Error::NotFound.new("Storage not found: #{storage_id}")
-                  end
-                  unless found_storage.authority_id == authority.id || found_storage.authority_id.nil?
-                    raise Error::Forbidden.new("Storage does not belong to this authority")
-                  end
-                  found_storage
-                else
-                  ::PlaceOS::Model::Storage.storage_or_default(authority.id)
-                end
-
-      # 2. Build conditions and bind params
-      conditions = ["u.storage_id = $1"]
+      authority_ids = resource_authority_ids
+      if authority_ids.empty?
+        set_collection_headers(0, table_name)
+        return [] of ::PlaceOS::Model::Upload
+      end
+      storages = if storage_id
+                   found = ::PlaceOS::Model::Storage.find?(storage_id) || raise Error::NotFound.new("Storage not found: #{storage_id}")
+                   if found.authority_id && !authority_ids.includes?(found.authority_id)
+                     raise Error::NotFound.new("Storage not found: #{storage_id}") if Utils::Tenancy.enforce?
+                     raise Error::Forbidden.new("Storage does not belong to this authority")
+                   end
+                   [found]
+                 else
+                   authority_ids.map { |id| ::PlaceOS::Model::Storage.storage_or_default(id) }.uniq!(&.id)
+                 end
       params = [] of String | Int32
-      params << storage.id.as(String)
+      storage_placeholders = storages.map do |entry|
+        params << entry.id.as(String)
+        "$#{params.size}"
+      end
+      conditions = ["u.storage_id IN (#{storage_placeholders.join(", ")})"]
 
       # 2a. Optional filename search
       if file_search
@@ -127,6 +154,13 @@ module PlaceOS::Api
         params << pg_array_literal
       end
 
+      if Utils::Tenancy.enforce?
+        owner_placeholders = authority_ids.map do |id|
+          params << id
+          "$#{params.size}"
+        end
+        conditions << "COALESCE(u.object_options->>'authority_id', (SELECT authority_id FROM storages WHERE id = u.storage_id), (SELECT authority_id FROM \"user\" WHERE id = u.uploaded_by)) IN (#{owner_placeholders.join(", ")})"
+      end
       where_clause = "WHERE " + conditions.join(" AND ")
 
       # 3. Compute placeholder numbers for LIMIT/OFFSET
@@ -222,7 +256,16 @@ module PlaceOS::Api
       user_email = current_user.email
       file_name = sanitize_filename(info.file_name)
 
-      if upload = on_primary { ::PlaceOS::Model::Upload.find_by?(uploaded_by: user_id, file_name: file_name, file_size: info.file_size, file_md5: info.file_id) }
+      existing = on_primary do
+        query = ::PlaceOS::Model::Upload.where(uploaded_by: user_id, file_name: file_name, file_size: info.file_size, file_md5: info.file_id)
+        if Utils::Tenancy.enforce?
+          query = query.where(storage_id: storage.id)
+          query = query.where("COALESCE(object_options->>'authority_id', (SELECT authority_id FROM storages WHERE id = uploads.storage_id), (SELECT authority_id FROM \"user\" WHERE id = uploads.uploaded_by)) = ?", authority.id.as(String))
+        end
+        query.first?
+      end
+      if upload = existing
+        ensure_upload_reach!(upload)
         visibility = upload.public ? :public : :private
         resp = if (resumable_id = upload.resumable_id) && upload.resumable
                  s3 = signer.get_parts(storage.bucket_name, upload.object_key, upload.file_size, resumable_id, get_headers(upload))
@@ -304,6 +347,7 @@ module PlaceOS::Api
         object_key: get_object_key(file_name),
         public: info.public,
         tags: (info.tags + [SCREENSHOT_TAG]).uniq,
+        authority_id: authority.id,
       )
     end
 
@@ -508,20 +552,22 @@ module PlaceOS::Api
     end
 
     private def get_object_key(filename)
-      ObjectStore.object_key(request.hostname, filename)
+      ObjectStore.object_key(Utils::Tenancy.enforce? ? authority.domain : request.hostname, filename)
     end
 
     private def default_object_options(file_mime, public)
-      if mime = file_mime
-        {
-          "permissions" => JSON::Any.new(public ? "public" : "private"),
-          "headers"     => JSON::Any.new({
-            "Content-Type" => JSON::Any.new(mime),
-          }),
-        }
-      else
-        {"permissions" => JSON::Any.new(public ? "public" : "private")}
-      end
+      options = if mime = file_mime
+                  {
+                    "permissions" => JSON::Any.new(public ? "public" : "private"),
+                    "headers"     => JSON::Any.new({
+                      "Content-Type" => JSON::Any.new(mime),
+                    }),
+                  }
+                else
+                  {"permissions" => JSON::Any.new(public ? "public" : "private")}
+                end
+      options[Utils::ResourceAuthority::UPLOAD_AUTHORITY_KEY] = JSON::Any.new(authority.id.as(String)) if Utils::Tenancy.enforce?
+      options
     end
 
     private def get_default_headers(mime, public)

@@ -10,16 +10,32 @@ module PlaceOS::Api
       # grab the existing `PlaceOS::Driver::Subscriptions` instance
       subscriber = PlaceOS::Api::WebSocket::Session.subscriptions.@subscriber
       subscriber.channel("internal/chat/forward_signal") do |_, payload|
-        signal = SessionSignal.from_json(payload)
-        perform_forwarded_signal(signal)
+        data = JSON.parse(payload)
+        if authority = data["authority_id"]?.try(&.as_s?)
+          perform_forwarded_signal(SessionSignal.from_json(data["signal"].to_json), authority)
+        elsif !Utils::Tenancy.enforce?
+          perform_forwarded_signal(SessionSignal.from_json(payload))
+        end
       end
       subscriber.channel("internal/chat/kick_user") do |_, payload|
-        user_id, reason = Tuple(String, String).from_json(payload)
-        perform_kick_user(user_id, reason)
+        data = JSON.parse(payload)
+        if data.as_h?
+          authority = data["authority_id"].as_s
+          perform_kick_user(data["user_id"].as_s, data["reason"].as_s, authority)
+        elsif !Utils::Tenancy.enforce?
+          user_id, reason = Tuple(String, String).from_json(payload)
+          perform_kick_user(user_id, reason)
+        end
       end
       subscriber.channel("internal/chat/transfer_user") do |_, payload|
-        user_id, session_id, connection_details = Tuple(String, String?, String?).from_json(payload)
-        perform_transfer(user_id, session_id, connection_details)
+        data = JSON.parse(payload)
+        if data.as_h?
+          authority = data["authority_id"].as_s
+          perform_transfer(data["user_id"].as_s, data["session_id"].as_s?, data["payload"].as_s?, authority)
+        elsif !Utils::Tenancy.enforce?
+          user_id, session_id, connection_details = Tuple(String, String?, String?).from_json(payload)
+          perform_transfer(user_id, session_id, connection_details)
+        end
       end
 
       spawn { ping_sockets }
@@ -38,7 +54,7 @@ module PlaceOS::Api
           connections = sockets.dup
           id = "SIGNAL::#{Time.utc.to_unix_ms}+#{Random::Secure.hex(6)}"
           connections.each do |websocket, session|
-            perform_ping(id, websocket, session) rescue Exception
+            perform_ping(id, websocket, session)
           end
         rescue
         end
@@ -65,19 +81,43 @@ module PlaceOS::Api
       ::PlaceOS::Driver::RedisStorage.with_redis &.publish(path, payload.to_json)
     end
 
-    def create_new_call(signal) : CallDetails
-      calls[signal.session_id] = CallDetails.new(signal.session_id)
+    private def context_key(authority_id : String?, id : String) : String
+      authority_id ? {authority_id, id}.to_json : id
+    end
+
+    private def socket_authorized?(websocket : HTTP::WebSocket) : Bool
+      callback = authorizers[websocket]?
+      callback.nil? || callback.call
+    rescue error
+      Log.warn(exception: error) { "chat socket credentials could not be verified" }
+      false
+    end
+
+    private def publish_forwarded(signal : SessionSignal, authority_id : String?)
+      if authority_id
+        redis_publish("placeos/internal/chat/forward_signal", {authority_id: authority_id, signal: signal})
+      else
+        redis_publish("placeos/internal/chat/forward_signal", signal)
+      end
+    end
+
+    def create_new_call(signal, authority_id : String? = nil) : CallDetails
+      calls[context_key(authority_id, signal.session_id)] = CallDetails.new(signal.session_id, authority_id)
     end
 
     def send_signal(websocket, signal)
+      unless socket_authorized?(websocket)
+        websocket.close
+        return
+      end
       Log.trace { "Sending signal #{signal.type} to #{signal.session_id}" }
       websocket.send(signal.to_json)
     rescue
       # we'll ignore websocket send failures, the user will be cleaned up
     end
 
-    def member_list(session_id : String) : Array(String)
-      CallDetails::SESSIONS.user_list(session_id)
+    def member_list(session_id : String, authority_id : String? = nil) : Array(String)
+      CallDetails::SESSIONS.user_list(session_id, authority_id)
     end
 
     # =================================
@@ -89,9 +129,16 @@ module PlaceOS::Api
     private getter calls = {} of String => CallDetails
     private getter sockets = {} of HTTP::WebSocket => SessionSignal
     private getter user_lookup = {} of String => HTTP::WebSocket
+    private getter authorizers = {} of HTTP::WebSocket => Proc(Bool)
 
-    def handle_session(websocket, request_id, user_id, auth_id)
+    def handle_session(websocket, request_id, user_id, auth_id, authorize : Proc(Bool)? = nil)
+      authority_id = Utils::Tenancy.enforce? ? auth_id.as(String) : nil
+      authorizers[websocket] = authorize if authorize
       websocket.on_message do |message|
+        unless socket_authorized?(websocket)
+          websocket.close
+          next
+        end
         Log.context.set(request_id: request_id, user_id: user_id)
         Log.trace { {frame: "TEXT", text: message} }
 
@@ -101,14 +148,14 @@ module PlaceOS::Api
 
         case signal.type
         when .join?
-          on_join_signal(websocket, signal, auth_id)
+          on_join_signal(websocket, signal, auth_id, authority_id)
         when .offer?, .answer?, .candidate?, .leave?
-          forward_signal(websocket, signal)
+          forward_signal(websocket, signal, authority_id)
         else
           Log.warn { "user #{user_id} sent unsupported signal #{signal.type}" }
         end
 
-        if call = calls[signal.session_id]?
+        if call = calls[context_key(authority_id, signal.session_id)]?
           call.updated_at = Time.utc
         end
       end
@@ -116,9 +163,10 @@ module PlaceOS::Api
       websocket.on_close do |_|
         Log.trace { {request_id: request_id, frame: "CLOSE"} }
 
+        authorizers.delete(websocket)
         if connect_details = sockets.delete websocket
-          user_lookup.delete connect_details.user_id
-          remove_from_call(connect_details)
+          user_lookup.delete context_key(authority_id, connect_details.user_id)
+          remove_from_call(connect_details, authority_id)
 
           # signals routed to the system id that represents the application managing the chat
           redis_publish("placeos/#{auth_id}/chat/user/left", {
@@ -128,26 +176,28 @@ module PlaceOS::Api
       end
     end
 
-    def remove_from_call(connect_details : SessionSignal)
+    def remove_from_call(connect_details : SessionSignal, authority_id : String? = nil)
       session_id = connect_details.session_id
+      key = context_key(authority_id, session_id)
 
-      if call = calls[session_id]?
+      if call = calls[key]?
         # inform the call peers that the user is gone
         call.remove connect_details.user_id
         # cleanup empty sessions
-        calls.delete(session_id) if call.peers.empty?
+        calls.delete(key) if call.peers.empty?
       end
 
       # forward the leave signal to all the members of the call
       connect_details.type = :leave
-      CallDetails::SESSIONS.user_list(session_id).each do |user_id|
+      CallDetails::SESSIONS.user_list(session_id, authority_id).each do |user_id|
         connect_details.to_user = user_id
-        redis_publish("placeos/internal/chat/forward_signal", connect_details)
+        publish_forwarded(connect_details, authority_id)
       end
     end
 
-    def on_join_signal(websocket, signal, auth_id) : Nil
-      call = calls[signal.session_id]? || create_new_call(signal)
+    def on_join_signal(websocket, signal, auth_id, authority_id : String? = nil) : Nil
+      key = context_key(authority_id, signal.session_id)
+      call = calls[key]? || create_new_call(signal, authority_id)
 
       # check the current user can join the call (prevent spoofing)
       # TODO:: look into this now the service is clustered
@@ -163,11 +213,11 @@ module PlaceOS::Api
 
       # check if the user is already in another call and remove them
       if existing_user = sockets[websocket]?
-        remove_from_call existing_user
+        remove_from_call(existing_user, authority_id)
       end
 
       # add the user to the new call
-      user_lookup[signal.user_id] = websocket
+      user_lookup[context_key(authority_id, signal.user_id)] = websocket
       call.add(signal.user_id, websocket)
       sockets[websocket] = signal
 
@@ -201,8 +251,8 @@ module PlaceOS::Api
     # Forward signal
     # ================================
 
-    def forward_signal(websocket, signal) : Nil
-      if call = calls[signal.session_id]?
+    def forward_signal(websocket, signal, authority_id : String? = nil) : Nil
+      if call = calls[context_key(authority_id, signal.session_id)]?
         # check the current user is in the call
         if existing_peer_ws = call.peers[signal.user_id]?
           if existing_user = sockets[existing_peer_ws]?
@@ -218,14 +268,14 @@ module PlaceOS::Api
           return
         end
 
-        redis_publish("placeos/internal/chat/forward_signal", signal)
+        publish_forwarded(signal, authority_id)
       end
     end
 
     # all security checks have occured at this point, forward the message
     # if the user is connected to this server
-    protected def perform_forwarded_signal(signal)
-      if call = calls[signal.session_id]?
+    protected def perform_forwarded_signal(signal, authority_id : String? = nil)
+      if call = calls[context_key(authority_id, signal.session_id)]?
         if to_user = call.peers[signal.to_user]?
           send_signal(to_user, signal)
         end
@@ -243,25 +293,37 @@ module PlaceOS::Api
         user_id: user_id,
       })
 
-      # find the users websocket
+      authority_id = Utils::Tenancy.enforce? ? auth_id : nil
+      # find the user's websocket in the same Authority only
       spawn do
         sleep 1.second
-        redis_publish("placeos/internal/chat/kick_user", {user_id, "call ended"})
+        publish_kick(user_id, "call ended", authority_id)
+      end
+    end
+
+    private def publish_kick(user_id : String, reason : String, authority_id : String?)
+      if authority_id
+        redis_publish("placeos/internal/chat/kick_user", {authority_id: authority_id, user_id: user_id, reason: reason})
+      else
+        redis_publish("placeos/internal/chat/kick_user", {user_id, reason})
       end
     end
 
     def kick_user(auth_id : String, user_id : String, session_id : String, details : KickReason)
-      # find the users websocket
-      redis_publish("placeos/internal/chat/kick_user", {user_id, details.reason})
+      authority_id = Utils::Tenancy.enforce? ? auth_id : nil
+      if authority_id && CallDetails::SESSIONS.lookup_session(user_id, authority_id) != session_id
+        raise Error::NotFound.new("participant not found")
+      end
+      publish_kick(user_id, details.reason, authority_id)
 
       redis_publish("placeos/#{auth_id}/chat/user/exited", {
         user_id: user_id,
       })
     end
 
-    def perform_kick_user(user_id, reason)
-      # find the users websocket
-      websocket = user_lookup[user_id]?
+    def perform_kick_user(user_id, reason, authority_id : String? = nil)
+      # find the user's websocket only in the originating Authority
+      websocket = user_lookup[context_key(authority_id, user_id)]?
       return unless websocket
 
       connect_details = sockets[websocket]?
@@ -291,24 +353,28 @@ module PlaceOS::Api
     end
 
     # transfer a user to a new chat room
-    def transfer(user_id : String, session_id : String? = nil, payload : String? = nil) : TransferResult
-      current_session_id = CallDetails::SESSIONS.lookup_session(user_id)
+    def transfer(user_id : String, session_id : String? = nil, payload : String? = nil, authority_id : String? = nil) : TransferResult
+      current_session_id = CallDetails::SESSIONS.lookup_session(user_id, authority_id)
       return TransferResult::NoConnection unless current_session_id
 
-      redis_publish("placeos/internal/chat/transfer_user", {user_id, session_id, payload})
+      if authority_id
+        redis_publish("placeos/internal/chat/transfer_user", {authority_id: authority_id, user_id: user_id, session_id: session_id, payload: payload})
+      else
+        redis_publish("placeos/internal/chat/transfer_user", {user_id, session_id, payload})
+      end
       TransferResult::SignalSent
     end
 
-    def perform_transfer(user_id : String, session_id : String? = nil, payload : String? = nil)
-      # find the users websocket
-      websocket = user_lookup[user_id]?
+    def perform_transfer(user_id : String, session_id : String? = nil, payload : String? = nil, authority_id : String? = nil)
+      # find the user's websocket only in the originating Authority
+      websocket = user_lookup[context_key(authority_id, user_id)]?
       return unless websocket
 
       connect_details = sockets[websocket]?
       return unless connect_details
 
       # remove the user from the current call
-      remove_from_call(connect_details) if session_id && session_id != connect_details.session_id
+      remove_from_call(connect_details, authority_id) if session_id && session_id != connect_details.session_id
 
       # send the user a Transfer signal
       send_signal(websocket, SessionSignal.new(

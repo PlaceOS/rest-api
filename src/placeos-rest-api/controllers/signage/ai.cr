@@ -30,10 +30,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     @[AC::Route::Filter(:before_action, only: [:show_job, :cancel, :claim])]
     def find_current_job(id : UUID)
+      if Utils::Tenancy.enforce?
+        row = ::PlaceOS::Model::SignageAIJob.find!(id)
+        authority_for_resource!(row.authority_id, "job")
+      end
       Log.context.set(signage_ai_job: id.to_s)
       @current_job = authority_job(id, authority.id.as(String))
     end
@@ -385,18 +389,20 @@ module PlaceOS::Api
     # bytes. Checked on the name because an upload records no content type.
     IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
-    # Size and type only, with no view on who owns it. Separate from
-    # `readable_upload` because the brand logo is a domain asset that belongs to
-    # nobody in particular: putting it through the ownership ladder below
-    # dropped it for every caller who was not support, which is every customer.
+    # A brand logo needs domain access rather than personal uploader ownership.
+    # Keep its type and size bounded before it is sent to a vendor.
     private def vendor_readable?(upload : ::PlaceOS::Model::Upload) : Bool
+      ensure_upload_reach!(upload, required: ::PlaceOS::Model::Permissions::Read)
       return false if upload.file_size > SIGNAGE_AI_MAX_IMAGE_BYTES
       IMAGE_EXTENSIONS.includes?(File.extname(upload.file_name).downcase)
+    rescue Error::NotFound | Error::Forbidden
+      false
     end
 
     private def readable_upload(upload_id : String, item_id : String? = nil) : ::PlaceOS::Model::Upload
       upload = ::PlaceOS::Model::Upload.find?(upload_id)
       raise Error::NotFound.new("no such upload") if upload.nil?
+      ensure_upload_reach!(upload, required: ::PlaceOS::Model::Permissions::Read)
 
       # Bound this before anything reads the object: `Store.fetch` pulls the
       # whole thing into the heap and the Vertex adapter base64 encodes it.
@@ -538,8 +544,8 @@ module PlaceOS::Api
       # composites the real file afterwards, and an attached logo is a logo the
       # model draws as well, leaving two.
       if kind == ImageGen::Kind::Edit && include_logo && (logo = brand_kit.try(&.logo_upload_id).presence)
-        # Size and type, not ownership: it is fetched and base64 encoded exactly
-        # like a reference, so it needs the same ceiling, but nobody "owns" it.
+        # The configured logo must remain in the selected domain's readable
+        # uploads, even when the caller did not upload it personally.
         # An SVG logo is skipped here on purpose: it draws fine in the browser
         # layer, and no vendor takes one as an input image.
         logo_upload = ::PlaceOS::Model::Upload.find?(logo)
@@ -549,7 +555,7 @@ module PlaceOS::Api
           Log.info { {
             message: "signage AI brand logo not sent to the vendor",
             upload:  logo,
-            reason:  logo_upload.nil? ? "missing" : "size or file type",
+            reason:  logo_upload.nil? ? "missing" : "domain access, size or file type",
           } }
         end
       end
@@ -660,7 +666,7 @@ module PlaceOS::Api
     end
 
     private def request_hostname : String
-      request.hostname.presence || authority.domain
+      Utils::Tenancy.enforce? ? authority.domain : (request.hostname.presence || authority.domain)
     end
   end
 end

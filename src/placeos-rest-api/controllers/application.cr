@@ -38,6 +38,11 @@ module PlaceOS::Api
     # Helpers for defining scope checks on controller actions
     include Utils::Scopes
 
+    # Helpers for organisation reach (PPT-526 multi-tenancy)
+    include Utils::Tenancy
+    include Utils::ResourceAuthority
+    include Utils::HistoryScope
+
     # for converting comma seperated lists
     # i.e. `"id-1,id-2,id-3"`, or a JSON array `["id-1","id-2"]`
     struct ConvertStringArray
@@ -171,6 +176,16 @@ module PlaceOS::Api
     # Simplifies determining user's requests in server-side logs
     before_action :set_user_id
 
+    @[AC::Route::Filter(:before_action)]
+    def resolve_organisation_context(
+      @[AC::Param::Info(description: "organisation selected for this REST request; all roles default to the authenticated domain owner when omitted", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+      @[AC::Param::Info(description: "target domain when an organisation has multiple domains", example: "auth-12345")]
+      authority_id : String? = nil,
+    )
+      prepare_organisation_selection(organisation_id, authority_id)
+    end
+
     def set_user_id
       Log.context.set(user_id: user_token.id)
     end
@@ -238,6 +253,16 @@ module PlaceOS::Api
         @error = error.message
         @backtrace = backtrace ? error.backtrace : nil
       end
+    end
+
+    record OrganisationSelectionError, error : String, code : String do
+      include JSON::Serializable
+      include YAML::Serializable
+    end
+
+    @[AC::Route::Exception(Error::OrganisationSelection, status_code: HTTP::Status::BAD_REQUEST)]
+    def invalid_organisation_selection(error) : OrganisationSelectionError
+      OrganisationSelectionError.new(error.message || "invalid organisation selection", error.code)
     end
 
     # CONFLICT if there is a version clash

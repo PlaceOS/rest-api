@@ -43,6 +43,7 @@ module PlaceOS::Api::ImageGen
         # candidates are private until the user keeps one
         public: false,
         tags: [CANDIDATE_TAG, "ai-job-#{job_id}"],
+        authority_id: ::PlaceOS::Model::Authority.find_by_domain(hostname).try(&.id),
       )
 
       Stored.new(upload: upload, width: image.width, height: image.height)

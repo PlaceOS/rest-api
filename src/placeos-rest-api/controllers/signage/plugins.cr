@@ -23,6 +23,7 @@ module PlaceOS::Api
 
       # shared plugins (no authority_id) are accessible to all, otherwise must match
       if plugin_authority = plugin.authority_id
+        authority_for_resource!(plugin_authority, "plugin") if Utils::Tenancy.enforce?
         raise Error::Forbidden.new unless authority.id == plugin_authority
       end
     end
@@ -35,7 +36,7 @@ module PlaceOS::Api
 
     getter! plugin_update : ::PlaceOS::Model::SignagePlugin
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -64,14 +65,11 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "only return plugins of this type", example: "widget")]
       plugin_type : ::PlaceOS::Model::SignagePlugin::PluginType? = nil,
     ) : Array(::PlaceOS::Model::SignagePlugin)
-      authority_id = authority.id.as(String)
-
       # PG full-text search (PPT-2644)
       # this domain's plugins OR shared plugins (no authority) — SQL expresses
       # the OR-with-NULL directly, unlike the Elasticsearch should-clause
       # encoding this replaces
-      query = ::PlaceOS::Model::SignagePlugin.all
-        .where("(authority_id = ? OR authority_id IS NULL)", authority_id)
+      query = scope_resource_authorities(::PlaceOS::Model::SignagePlugin.all, shared: true)
 
       unless enabled.nil?
         query = query.where(enabled: enabled)
@@ -97,7 +95,14 @@ module PlaceOS::Api
     def update : ::PlaceOS::Model::SignagePlugin
       plugin = plugin_update
       current = current_plugin
+      ensure_resource_authority!(current.authority_id, "plugin", shared: true)
+      if Utils::Tenancy.enforce? && (requested = plugin.authority_id) && requested != current.authority_id
+        ensure_resource_authority!(requested, "plugin")
+        raise Error::Forbidden.new("plugin ownership cannot be reassigned")
+      end
+      owner = current.authority_id
       current.assign_attributes(plugin)
+      current.authority_id = owner if Utils::Tenancy.enforce?
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -106,6 +111,7 @@ module PlaceOS::Api
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
     def create : ::PlaceOS::Model::SignagePlugin
       plugin = plugin_update
+      plugin.authority_id = authority.id if Utils::Tenancy.enforce?
       raise Error::ModelValidation.new(plugin.errors) unless plugin.save
       plugin
     end
@@ -113,6 +119,7 @@ module PlaceOS::Api
     # remove a signage plugin
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
+      ensure_resource_authority!(current_plugin.authority_id, "plugin", shared: true)
       current_plugin.destroy
     end
   end

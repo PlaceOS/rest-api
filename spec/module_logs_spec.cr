@@ -60,6 +60,52 @@ module PlaceOS::Api
       Time.measure { capture.wait(5.seconds, context) }.should be < 2.seconds
     end
 
+    it "stops writing and finishes when an organisation grant is revoked" do
+      fixture = nil.as(Spec::Tenancy::Fixture?)
+      f = fixture = Spec::Tenancy.build
+      token = Model::UserJWT.decode(Spec::Tenancy.headers(f.ucla.admin)["Authorization"].split(' ').last)
+      policy = Utils::Tenancy::Policy.new(token, f.ucla.authority.id.as(String), f.acadian.organisation.id)
+      permissions = Model::Permissions::Read | Model::Permissions::Operate
+      grant = Model::Grant.new(user_id: f.ucla.admin.id.as(String), scope_type: "organisation", scope_id: f.acadian.organisation.id.to_s, permissions: permissions.to_i).save!
+      output = IO::Memory.new
+      capture = Utils::ModuleLogCapture.new(output, authorize: -> { policy.module_debug_access?(f.acadian.mod.id.as(String)) })
+      capture.write(::Log::Severity::Info, "authorised before revocation")
+      output.to_s.should contain "authorised before revocation"
+      grant.destroy
+      capture.write(::Log::Severity::Info, "private after revocation")
+      output.to_s.should_not contain "private after revocation"
+      capture.finished?.should be_true
+      Time.measure { capture.wait(5.seconds) }.should be < 1.second
+    ensure
+      if cleanup = fixture
+        Spec::Tenancy.teardown(cleanup)
+      end
+    end
+
+    it "fails closed when a live permission check cannot be completed" do
+      output = IO::Memory.new
+      unavailable = true
+      capture = Utils::ModuleLogCapture.new(output, authorize: -> {
+        raise "permission lookup unavailable" if unavailable
+        true
+      })
+      capture.write(::Log::Severity::Info, "private")
+      output.to_s.should be_empty
+      capture.finished?.should be_true
+    end
+
+    it "ends a quiet capture when access is revoked without waiting for another log line" do
+      allowed = true
+      capture = Utils::ModuleLogCapture.new(IO::Memory.new, authorize: -> { allowed })
+      spawn do
+        sleep 100.milliseconds
+        allowed = false
+      end
+      elapsed = Time.measure { capture.wait(5.seconds) }
+      elapsed.should be < 2.seconds
+      capture.finished?.should be_true
+    end
+
     it "ends when stopped, i.e. core closed the debug socket" do
       capture = Utils::ModuleLogCapture.new(IO::Memory.new)
       spawn do

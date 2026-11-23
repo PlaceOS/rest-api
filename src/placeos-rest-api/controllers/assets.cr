@@ -39,6 +39,12 @@ module PlaceOS::Api
     # a new or changed asset may only use an asset type of the caller's authority
     private def confirm_asset_type_authority(asset : ::PlaceOS::Model::Asset)
       raise Error::Forbidden.new("asset type #{asset.asset_type_id} belongs to another authority") unless owned_by_caller?(asset)
+      if Utils::Tenancy.enforce?
+        ([asset.zone_id] + asset.zones).compact.uniq!.each { |id| ensure_reach!(::PlaceOS::Model::Zone.find!(id)) }
+        if order_id = asset.purchase_order_id
+          ensure_resource_authority!(::PlaceOS::Model::AssetPurchaseOrder.find!(order_id).authority_id, "asset purchase order")
+        end
+      end
     end
 
     # whether the asset's type belongs to the caller's authority (or to a legacy category with no
@@ -47,7 +53,11 @@ module PlaceOS::Api
     private def owned_by_caller?(asset : ::PlaceOS::Model::Asset) : Bool
       asset_type = asset.asset_type_id.try { |type_id| ::PlaceOS::Model::AssetType.find?(type_id) }
       owner = asset_type.try(&.category).try(&.authority_id)
-      owner.nil? || owner == current_authority.as(::PlaceOS::Model::Authority).id
+      if Utils::Tenancy.enforce?
+        authority_for_resource!(owner, "asset")
+        return true
+      end
+      owner.nil? || owner == resource_authority!.id
     end
 
     @[AC::Route::Filter(:before_action, only: [:update, :destroy])]
@@ -58,7 +68,7 @@ module PlaceOS::Api
       asset_zones = ([current_asset.zone_id] + current_asset.zones).compact.uniq!
       return if support_subsystem_grants?(asset_zones, verb_permission)
 
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         zones = [zone_id, current_asset.zone_id].compact
@@ -99,10 +109,10 @@ module PlaceOS::Api
       # Callers only see assets belonging to their own authority (via
       # asset_type → category); legacy NULL-authority categories stay visible
       # (see `confirm_authority`).
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+      authority_filter, authority_ids = resource_authority_filter("ac.authority_id", shared: !Utils::Tenancy.enforce?)
       query = query.where(
-        "EXISTS (SELECT 1 FROM asset_type at JOIN asset_category ac ON ac.id = at.category_id WHERE at.id = asset.asset_type_id AND (ac.authority_id IS NULL OR ac.authority_id = ?))",
-        authority_id
+        "EXISTS (SELECT 1 FROM asset_type at JOIN asset_category ac ON ac.id = at.category_id WHERE at.id = asset.asset_type_id AND #{authority_filter})",
+        args: authority_ids
       )
 
       if zone_id
@@ -205,42 +215,52 @@ module PlaceOS::Api
     # Create several assets; the body is a JSON array of assets.
     @[AC::Route::POST("/bulk", body: :assets, status_code: HTTP::Status::CREATED)]
     def bulk_create(assets : Array(::PlaceOS::Model::Asset)) : Array(::PlaceOS::Model::Asset)
-      assets.map do |asset|
-        @current_asset = asset
-        confirm_asset_type_authority(asset)
-        confirm_access
-        raise Error::ModelValidation.new(asset.errors) unless asset.save
-        asset
+      results = [] of ::PlaceOS::Model::Asset
+      PgORM::Database.transaction do |_transaction|
+        results = assets.map do |asset|
+          @current_asset = asset
+          confirm_asset_type_authority(asset)
+          confirm_access
+          raise Error::ModelValidation.new(asset.errors) unless asset.save
+          asset
+        end
       end
+      results
     end
 
     # Update several assets; the body is a JSON array of assets, each with its `id`.
     @[AC::Route::PATCH("/bulk", body: :assets)]
     @[AC::Route::PUT("/bulk", body: :assets)]
     def bulk_update(assets : Array(::PlaceOS::Model::Asset)) : Array(::PlaceOS::Model::Asset)
-      assets.compact_map do |asset|
-        if asset_id = asset.id
-          current = find_current_asset(asset_id)
-          confirm_authority
-          confirm_access
-          current.assign_attributes(asset)
-          confirm_asset_type_authority(current)
-          # destination zones of a move must be authorised too
-          confirm_access
-          raise Error::ModelValidation.new(current.errors) unless current.save
-          current
+      results = [] of ::PlaceOS::Model::Asset
+      PgORM::Database.transaction do |_transaction|
+        results = assets.compact_map do |asset|
+          if asset_id = asset.id
+            current = find_current_asset(asset_id)
+            confirm_authority
+            confirm_access
+            current.assign_attributes(asset)
+            confirm_asset_type_authority(current)
+            # destination zones of a move must be authorised too
+            confirm_access
+            raise Error::ModelValidation.new(current.errors) unless current.save
+            current
+          end
         end
       end
+      results
     end
 
     # Delete several assets; the body is a JSON array of asset ids.
     @[AC::Route::DELETE("/bulk", body: :asset_ids, status_code: HTTP::Status::ACCEPTED)]
     def bulk_destroy(asset_ids : Array(String)) : Nil
-      asset_ids.each do |asset_id|
-        current = find_current_asset(asset_id)
-        confirm_authority
-        confirm_access
-        current.destroy
+      PgORM::Database.transaction do |_transaction|
+        asset_ids.each do |asset_id|
+          current = find_current_asset(asset_id)
+          confirm_authority
+          confirm_access
+          current.destroy
+        end
       end
     end
   end

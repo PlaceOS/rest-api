@@ -38,6 +38,7 @@ module PlaceOS::Api
       @current_mapping = ::PlaceOS::Model::SignageTemplate::SystemTemplate.find!(id)
 
       # ensure the current user has access
+      authority_for_resource!(mapping_template.authority_id, "mapping") if Utils::Tenancy.enforce?
       raise Error::Forbidden.new unless authority.id == mapping_template.authority_id
     end
 
@@ -54,7 +55,7 @@ module PlaceOS::Api
 
     getter! mapping_update : ::PlaceOS::Model::SignageTemplate::SystemTemplate
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -209,8 +210,9 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::SignageTemplate::SystemTemplate)
+      owner_filter, authority_ids = resource_authority_filter
       query = ::PlaceOS::Model::SignageTemplate::SystemTemplate
-        .where("template_id IN (SELECT id FROM signage_template WHERE authority_id = ?)", authority.id.as(String))
+        .where("template_id IN (SELECT id FROM signage_template WHERE #{owner_filter})", args: authority_ids)
 
       unless user_support?
         # templates readable via group links
@@ -290,10 +292,10 @@ module PlaceOS::Api
 
       # clean 404s for missing targets (the XOR rule itself is a model validation)
       if sys_id = mapping.control_system_id.presence
-        ::PlaceOS::Model::ControlSystem.find!(sys_id)
+        ensure_reach!(::PlaceOS::Model::ControlSystem.find!(sys_id))
       end
       if zone_id = mapping.zone_id.presence
-        ::PlaceOS::Model::Zone.find!(zone_id)
+        ensure_reach!(::PlaceOS::Model::Zone.find!(zone_id))
       end
 
       raise Error::ModelValidation.new(mapping.errors) unless mapping.save

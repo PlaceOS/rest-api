@@ -30,10 +30,14 @@ module PlaceOS::Api
 
     ###############################################################################################
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     @[AC::Route::Filter(:before_action, only: [:show_job, :cancel, :resolve])]
     def find_current_job(id : UUID)
+      if Utils::Tenancy.enforce?
+        row = ::PlaceOS::Model::SignageAIJob.find!(id)
+        authority_for_resource!(row.authority_id, "job")
+      end
       Log.context.set(map_ai_job: id.to_s)
       job = authority_job(id, authority.id.as(String))
       raise Error::NotFound.new("no such job") unless job.kind.map_edit?
@@ -197,7 +201,9 @@ module PlaceOS::Api
       raise Error::ModelValidation.new([Error::Field.new(:zone_id, "is required")]) if params.zone_id.blank?
 
       zone = ::PlaceOS::Model::Zone.find?(params.zone_id)
-      raise Error::NotFound.new("no such zone") if zone.nil? || !zone_visible?(zone)
+      raise Error::NotFound.new("no such zone") if zone.nil?
+      ensure_reach!(zone)
+      raise Error::NotFound.new("no such zone") unless zone_visible?(zone)
       raise Error::Forbidden.new("you cannot change this zone's map") unless zone_updatable?(zone)
 
       context = params.context
@@ -454,6 +460,7 @@ module PlaceOS::Api
     private def markup_upload(upload_id : String) : ::PlaceOS::Model::Upload
       upload = ::PlaceOS::Model::Upload.find?(upload_id)
       raise Error::NotFound.new("no such upload") if upload.nil?
+      ensure_upload_reach!(upload, required: ::PlaceOS::Model::Permissions::Read)
       raise Error::ImageGen::Permission.new("that image is not yours") unless upload.uploaded_by == current_user.id
       if upload.file_size > SIGNAGE_AI_MAX_IMAGE_BYTES
         raise Error::ImageGen::Permission.new("that image is larger than #{SIGNAGE_AI_MAX_IMAGE_BYTES // (1024 * 1024)}MB")

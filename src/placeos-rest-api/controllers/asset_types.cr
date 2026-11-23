@@ -18,7 +18,7 @@ module PlaceOS::Api
     private def confirm_access
       return if user_support?
 
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         # "support" subsystem: the verb's bit on the org zone.
@@ -49,7 +49,11 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:show, :update, :destroy])]
     private def confirm_authority
       owner = current_asset_type.category.try(&.authority_id)
-      return if owner.nil? || owner == current_authority.as(::PlaceOS::Model::Authority).id
+      if Utils::Tenancy.enforce?
+        authority_for_resource!(owner, "asset type")
+        return
+      end
+      return if owner.nil? || owner == resource_authority!.id
       raise Error::NotFound.new("asset type #{current_asset_type.id} not found")
     end
 
@@ -74,8 +78,13 @@ module PlaceOS::Api
       # Callers only see asset types belonging to their own authority (via the
       # category); legacy NULL-authority categories stay visible (see
       # `confirm_authority`).
-      args << current_authority.as(::PlaceOS::Model::Authority).id
-      where_clauses << "EXISTS (SELECT 1 FROM asset_category ac WHERE ac.id = at.category_id AND (ac.authority_id IS NULL OR ac.authority_id = $#{args.size}))"
+      placeholders = resource_authority_ids.map do |id|
+        args << id
+        "$#{args.size}"
+      end
+      owner_filter = placeholders.empty? ? "1 = 0" : "ac.authority_id IN (#{placeholders.join(", ")})"
+      owner_filter = "(#{owner_filter} OR ac.authority_id IS NULL)" unless Utils::Tenancy.enforce?
+      where_clauses << "EXISTS (SELECT 1 FROM asset_category ac WHERE ac.id = at.category_id AND #{owner_filter})"
 
       if brand
         args << brand
@@ -161,6 +170,7 @@ module PlaceOS::Api
     def update(asset_type : ::PlaceOS::Model::AssetType) : ::PlaceOS::Model::AssetType
       current = current_asset_type
       current.assign_attributes(asset_type)
+      check_type_category(current)
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -168,8 +178,16 @@ module PlaceOS::Api
     # Create an asset type.
     @[AC::Route::POST("/", body: :asset_type, status_code: HTTP::Status::CREATED)]
     def create(asset_type : ::PlaceOS::Model::AssetType) : ::PlaceOS::Model::AssetType
+      check_type_category(asset_type)
       raise Error::ModelValidation.new(asset_type.errors) unless asset_type.save
       asset_type
+    end
+
+    private def check_type_category(type : ::PlaceOS::Model::AssetType)
+      return unless Utils::Tenancy.enforce?
+      if id = type.category_id
+        ensure_resource_authority!(::PlaceOS::Model::AssetCategory.find!(id).authority_id, "asset category")
+      end
     end
 
     # Delete an asset type.

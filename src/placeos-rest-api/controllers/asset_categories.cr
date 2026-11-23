@@ -18,7 +18,7 @@ module PlaceOS::Api
     private def confirm_access
       return if user_support?
 
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
 
       if zone_id = authority.config["org_zone"]?.try(&.as_s?)
         # "support" subsystem: the verb's bit on the org zone.
@@ -37,6 +37,7 @@ module PlaceOS::Api
       Log.context.set(asset_category_id: id)
       # Find will raise a 404 (not found) if there is an error
       @current_asset_category = ::PlaceOS::Model::AssetCategory.find!(id)
+      authority_for_resource!(current_asset_category.authority_id, "asset category") if Utils::Tenancy.enforce?
     end
 
     getter! current_asset_category : ::PlaceOS::Model::AssetCategory
@@ -46,7 +47,11 @@ module PlaceOS::Api
     @[AC::Route::Filter(:before_action, only: [:show])]
     private def confirm_authority
       owner = current_asset_category.authority_id
-      return if owner.nil? || owner == current_authority.as(::PlaceOS::Model::Authority).id
+      if Utils::Tenancy.enforce?
+        authority_for_resource!(owner, "asset category")
+        return
+      end
+      return if owner.nil? || owner == resource_authority!.id
       raise Error::NotFound.new("asset category #{current_asset_category.id} not found")
     end
 
@@ -60,8 +65,7 @@ module PlaceOS::Api
       hidden : Bool? = nil,
     ) : Array(::PlaceOS::Model::AssetCategory)
       # PG full-text search (PPT-2644)
-      query = ::PlaceOS::Model::AssetCategory.all
-      query = query.where("authority_id IS NULL OR authority_id = ?", current_authority.as(::PlaceOS::Model::Authority).id)
+      query = scope_resource_authorities(::PlaceOS::Model::AssetCategory.all, shared: !Utils::Tenancy.enforce?)
 
       # NOTE:: the Elasticsearch implementation silently skipped this filter
       # when `hidden=false` (Crystal falsy), contradicting the documented
@@ -84,7 +88,7 @@ module PlaceOS::Api
     @[AC::Route::PUT("/:id", body: :asset_category)]
     def update(asset_category : ::PlaceOS::Model::AssetCategory) : ::PlaceOS::Model::AssetCategory
       current = current_asset_category
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+      authority_id = resource_authority!.id
 
       # A category that already belongs to another authority may not be edited.
       # Legacy records with no authority get adopted by the current authority.
@@ -94,6 +98,7 @@ module PlaceOS::Api
 
       current.assign_attributes(asset_category)
       current.authority_id = authority_id
+      check_category_parent(current)
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -101,9 +106,17 @@ module PlaceOS::Api
     # Create an asset category.
     @[AC::Route::POST("/", body: :asset_category, status_code: HTTP::Status::CREATED)]
     def create(asset_category : ::PlaceOS::Model::AssetCategory) : ::PlaceOS::Model::AssetCategory
-      asset_category.authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+      asset_category.authority_id = resource_authority!.id
+      check_category_parent(asset_category)
       raise Error::ModelValidation.new(asset_category.errors) unless asset_category.save
       asset_category
+    end
+
+    private def check_category_parent(category : ::PlaceOS::Model::AssetCategory)
+      return unless Utils::Tenancy.enforce?
+      if id = category.parent_category_id
+        ensure_resource_authority!(::PlaceOS::Model::AssetCategory.find!(id).authority_id, "parent category")
+      end
     end
 
     # Delete an asset category.
@@ -111,7 +124,7 @@ module PlaceOS::Api
     def destroy : Nil
       # A category owned by another authority may not be removed (same guard
       # as update; legacy records with no authority remain removable).
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id
+      authority_id = resource_authority!.id
       if (existing = current_asset_category.authority_id) && existing != authority_id
         raise Error::Forbidden.new("asset category belongs to another authority")
       end

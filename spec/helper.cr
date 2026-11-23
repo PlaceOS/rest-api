@@ -94,6 +94,13 @@ def clear_tables
     PlaceOS::Model::Storage,
     PlaceOS::Model::DoorkeeperApplication,
   ].each(&.clear)
+
+  # Tenancy rows go last: the estate tables above RESTRICT on organisations.
+  PlaceOS::Model::Edge.clear
+  PlaceOS::Model::Broker.clear
+  PlaceOS::Model::Grant.clear
+  PlaceOS::Model::Organisation.clear
+  PlaceOS::Model::Partner.clear
 end
 
 def random_name

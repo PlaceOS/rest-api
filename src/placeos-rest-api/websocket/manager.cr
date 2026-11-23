@@ -27,13 +27,23 @@ module PlaceOS::Api::WebSocket
 
     # Creates the session and handles the cleanup
     #
-    def create_session(ws, request_id, user)
+    def create_session(
+      ws, request_id, user,
+      organisation_ids : Set(UUID)? = nil,
+      authorizer : Proc(String, ::PlaceOS::Model::Permissions, Bool)? = nil,
+      security_authorizer : Proc(String, Driver::Proxy::RemoteDriver::Clearance)? = nil,
+      module_debug_authorizer : Proc(String, Bool)? = nil,
+    )
       Log.trace { {request_id: request_id, frame: "OPEN"} }
       session = Session.new(
         ws: ws,
         request_id: request_id,
         user: user,
         discovery: discovery,
+        organisation_ids: organisation_ids,
+        authorizer: authorizer,
+        security_authorizer: security_authorizer,
+        module_debug_authorizer: module_debug_authorizer,
       )
 
       session_lock.synchronize { sessions << session }
@@ -60,7 +70,8 @@ module PlaceOS::Api::WebSocket
         begin
           connections = session_lock.synchronize { sessions.dup }
           connections.each do |session|
-            session.ping rescue Exception
+            session.ping
+          rescue Exception
           end
         rescue
         end

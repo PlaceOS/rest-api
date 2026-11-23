@@ -17,6 +17,13 @@ module PlaceOS::Api
     before_action :can_write, only: [:create, :update, :destroy, :sync_ad_groups]
     before_action :check_support, only: [:sync_ad_groups]
 
+    private def check_group_parent(group : ::PlaceOS::Model::Group)
+      return unless Utils::Tenancy.enforce?
+      if id = group.parent_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(id).authority_id, "parent group")
+      end
+    end
+
     # Response helpers
     ###############################################################################################
 
@@ -31,6 +38,7 @@ module PlaceOS::Api
     def find_current_group(id : UUID)
       Log.context.set(group_id: id.to_s)
       @current_group = ::PlaceOS::Model::Group.find!(id)
+      authority_for_resource!(current_group.authority_id, "group") if Utils::Tenancy.enforce?
     end
 
     getter! current_group : ::PlaceOS::Model::Group
@@ -52,6 +60,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:create])]
     def check_create_permissions
+      check_group_parent(group_update)
       return if user_admin?
       # Root groups (parent_id nil) can only be created by sys_admin.
       parent_id = group_update.parent_id
@@ -62,6 +71,7 @@ module PlaceOS::Api
 
     @[AC::Route::Filter(:before_action, only: [:update])]
     def check_update_permissions
+      check_group_parent(group_update)
       return if user_admin?
       ensure_manage!(current_user, current_group)
       # Block reparenting unless manager also has Manage on the new parent.
@@ -108,8 +118,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::Group)
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
-      query = ::PlaceOS::Model::Group.where(authority_id: authority_id)
+      query = scope_resource_authorities(::PlaceOS::Model::Group.all)
 
       unless user_admin?
         ids = viewable_group_ids(current_user)
@@ -121,6 +130,9 @@ module PlaceOS::Api
         if parent_id == "root"
           query = query.where(parent_id: nil)
         else
+          if Utils::Tenancy.enforce?
+            ensure_resource_authority!(::PlaceOS::Model::Group.find!(UUID.new(parent_id)).authority_id, "parent group")
+          end
           query = query.where(parent_id: UUID.new(parent_id))
         end
       end
@@ -190,7 +202,13 @@ module PlaceOS::Api
     def update : ::PlaceOS::Model::Group
       update = group_update
       current = current_group
+      authority_id = current.authority_id
+      if Utils::Tenancy.enforce? && update.authority_id_present? && (requested = update.authority_id.presence) && requested != authority_id
+        ensure_resource_authority!(requested, "group")
+        raise Error::Forbidden.new("group ownership cannot be reassigned")
+      end
       current.assign_attributes(update)
+      current.authority_id = authority_id if Utils::Tenancy.enforce?
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -201,7 +219,7 @@ module PlaceOS::Api
     def create : ::PlaceOS::Model::Group
       group = group_update
       # Force the authority to the caller's — no cross-authority moves.
-      group.authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+      group.authority_id = resource_authority!.id.as(String)
       raise Error::ModelValidation.new(group.errors) unless group.save
       group
     end
@@ -227,7 +245,7 @@ module PlaceOS::Api
     # group memberships in the current authority. Requires support or sys_admin.
     @[AC::Route::POST("/ad_groups/sync", body: :sync)]
     def sync_ad_groups(sync : AdGroupSync) : Array(::PlaceOS::Model::GroupUser)
-      authority_id = current_authority.as(::PlaceOS::Model::Authority).id.as(String)
+      authority_id = resource_authority!.id.as(String)
       user = ::PlaceOS::Model::User.find?(sync.user_id)
       raise Error::NotFound.new("user #{sync.user_id} not found") unless user && user.authority_id == authority_id
 
@@ -261,7 +279,9 @@ module PlaceOS::Api
       memberships = group_memberships(current_user)
       return [] of CurrentGroup if memberships.empty?
 
-      groups = ::PlaceOS::Model::Group.where(id: memberships.keys).to_a
+      query = ::PlaceOS::Model::Group.where(id: memberships.keys)
+      query = scope_resource_authorities(query) if Utils::Tenancy.enforce?
+      groups = query.to_a
       groups.compact_map do |g|
         gid = g.id
         next if gid.nil?

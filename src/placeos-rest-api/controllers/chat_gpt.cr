@@ -11,9 +11,9 @@ module PlaceOS::Api
     before_action :can_read, only: [:index, :show]
     before_action :can_write, only: [:chat, :delete]
 
-    @[AC::Route::Filter(:before_action)]
+    @[AC::Route::Filter(:before_action, only: [:chat])]
     def check_authority
-      unless @authority = current_authority
+      unless @authority = resource_authority
         Log.warn { {message: "authority not found", action: "authorize!", host: request.hostname} }
         raise Error::Unauthorized.new "authority not found"
       end
@@ -25,7 +25,13 @@ module PlaceOS::Api
     # list user chats
     @[AC::Route::GET("/")]
     def index : Array(::PlaceOS::Model::Chat)
-      ::PlaceOS::Model::Chat.where(user_id: current_user.id.not_nil!).all.to_a
+      query = ::PlaceOS::Model::Chat.where(user_id: current_user.id.not_nil!)
+      if Utils::Tenancy.enforce?
+        ids = scope_organisations(::PlaceOS::Model::ControlSystem.all).to_a.compact_map(&.id)
+        return [] of ::PlaceOS::Model::Chat if ids.empty?
+        query = query.where(system_id: ids)
+      end
+      query.to_a
     end
 
     # show user chat history
@@ -45,6 +51,9 @@ module PlaceOS::Api
     # lagging replica, which would 404 and spawn a duplicate chat.
     @[AC::Route::Filter(:before_action, only: [:chat])]
     def find_resume_chat(resume : String? = nil)
+      if Utils::Tenancy.enforce?
+        ensure_reach!(::PlaceOS::Model::ControlSystem.find!(route_params["system_id"]))
+      end
       @resume_chat = on_primary { own_chat!(resume) } if resume
     end
 
@@ -84,6 +93,7 @@ module PlaceOS::Api
         Log.warn { {message: "Invalid chat id. Unable to find matching chat for user", id: id, user: current_user.id} }
         raise Error::NotFound.new("Invalid chat id: #{id}")
       end
+      ensure_reach!(::PlaceOS::Model::ControlSystem.find!(chat.system_id)) if Utils::Tenancy.enforce?
       chat
     end
 

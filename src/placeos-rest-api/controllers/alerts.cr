@@ -20,6 +20,7 @@ module PlaceOS::Api
       Log.context.set(alert_id: id)
       # Find will raise a 404 (not found) if there is an error
       @current_alert = ::PlaceOS::Model::Alert.find!(id)
+      check_alert_dashboard(current_alert)
     end
 
     getter! current_alert : ::PlaceOS::Model::Alert
@@ -46,12 +47,23 @@ module PlaceOS::Api
     ) : Array(::PlaceOS::Model::Alert)
       # PG full-text search (PPT-2644)
       query = ::PlaceOS::Model::Alert.all
+      if Utils::Tenancy.enforce?
+        dashboards = scope_resource_authorities(::PlaceOS::Model::AlertDashboard.all).to_a.compact_map(&.id)
+        if dashboards.empty?
+          set_collection_headers(0, ::PlaceOS::Model::Alert.table_name)
+          return [] of ::PlaceOS::Model::Alert
+        end
+        query = query.where(alert_dashboard_id: dashboards)
+      end
 
       if adi = alert_dashboard_id
+        if Utils::Tenancy.enforce?
+          ensure_resource_authority!(::PlaceOS::Model::AlertDashboard.find!(adi).authority_id, "dashboard")
+        end
         query = query.where(alert_dashboard_id: adi)
-      elsif !user_support?
+      elsif !Utils::Tenancy.enforce? && !user_support?
         # Limit to current authority's dashboards for non-support users
-        auth = current_authority.as(::PlaceOS::Model::Authority)
+        auth = resource_authority!
         dashboard_ids = ::PlaceOS::Model::AlertDashboard.where(authority_id: auth.id).select(:id).map(&.id.as(String))
         if dashboard_ids.empty?
           set_collection_headers(0, ::PlaceOS::Model::Alert.table_name)
@@ -110,6 +122,7 @@ module PlaceOS::Api
     def update(alert : ::PlaceOS::Model::Alert) : ::PlaceOS::Model::Alert
       current = current_alert
       current.assign_attributes(alert)
+      check_alert_dashboard(current)
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
@@ -117,10 +130,11 @@ module PlaceOS::Api
     # adds a new alert
     @[AC::Route::POST("/", body: :alert, status_code: HTTP::Status::CREATED)]
     def create(alert : ::PlaceOS::Model::Alert) : ::PlaceOS::Model::Alert
+      check_alert_dashboard(alert)
       # Validate that the dashboard belongs to the current authority if not support user
       if alert.alert_dashboard_id && !user_support?
         dashboard = ::PlaceOS::Model::AlertDashboard.find!(alert.alert_dashboard_id.as(String))
-        auth = current_authority.as(::PlaceOS::Model::Authority)
+        auth = resource_authority!
         unless dashboard.authority_id == auth.id
           raise Error::Forbidden.new("Cannot create alert for dashboard in different authority")
         end
@@ -128,6 +142,13 @@ module PlaceOS::Api
 
       raise Error::ModelValidation.new(alert.errors) unless alert.save
       alert
+    end
+
+    private def check_alert_dashboard(alert : ::PlaceOS::Model::Alert)
+      return unless Utils::Tenancy.enforce?
+      if id = alert.alert_dashboard_id
+        authority_for_resource!(::PlaceOS::Model::AlertDashboard.find!(id).authority_id, "dashboard")
+      end
     end
 
     # removes an alert

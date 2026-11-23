@@ -46,6 +46,7 @@ module PlaceOS::Api
       @current_template = template
 
       # ensure the current user has access
+      authority_for_resource!(template.authority_id, "template") if Utils::Tenancy.enforce?
       raise Error::Forbidden.new unless authority.id == template.authority_id
     end
 
@@ -57,7 +58,7 @@ module PlaceOS::Api
 
     getter! template_update : ::PlaceOS::Model::SignageTemplate
 
-    getter authority : ::PlaceOS::Model::Authority { current_authority.as(::PlaceOS::Model::Authority) }
+    getter authority : ::PlaceOS::Model::Authority { resource_authority! }
 
     # Permissions
     ###############################################################################################
@@ -186,8 +187,7 @@ module PlaceOS::Api
       limit : Int32 = 100,
       offset : Int32 = 0,
     ) : Array(::PlaceOS::Model::SignageTemplate)
-      query = ::PlaceOS::Model::SignageTemplate
-        .where(authority_id: authority.id.as(String))
+      query = scope_resource_authorities(::PlaceOS::Model::SignageTemplate.all)
         .where(live_template_id: nil)
 
       if group_id
@@ -332,6 +332,9 @@ module PlaceOS::Api
       template = template_update
       template.authority_id = authority.id.as(String)
 
+      if Utils::Tenancy.enforce? && group_id
+        ensure_resource_authority!(::PlaceOS::Model::Group.find!(group_id).authority_id, "group")
+      end
       unless user_support?
         raise Error::Forbidden.new("group_id required") if group_id.nil?
         perms = group_memberships(current_user)[group_id]? || ::PlaceOS::Model::Permissions::None
@@ -547,6 +550,7 @@ module PlaceOS::Api
     # the caller is a member of it or one of its ancestors.
     private def validate_approval_group!(group_id : UUID) : ::PlaceOS::Model::Group
       group = ::PlaceOS::Model::Group.find?(group_id)
+      authority_for_resource!(group.authority_id, "group") if Utils::Tenancy.enforce? && group
       raise Error::NotFound.new("group not found") if group.nil? || group.authority_id != authority.id
       return group if user_support?
       raise Error::Forbidden.new("not a member of the group") if group_memberships(current_user)[group_id]?.nil?

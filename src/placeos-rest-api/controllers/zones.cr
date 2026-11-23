@@ -15,11 +15,11 @@ module PlaceOS::Api
     ###############################################################################################
 
     before_action :can_read, only: [:index, :show, :trigger_instances]
-    before_action :can_write, only: [:create, :update, :destroy, :remove]
+    before_action :can_write, only: [:create, :update, :destroy, :remove, :zone_execute]
 
     # Restrict zone trigger listing to admin/support — `:trigger_instances`
     # (GET /zones/:id/triggers) exposes internal automation/driver state.
-    before_action :check_support, only: [:zone_execute, :trigger_instances]
+    before_action :check_support, only: [:trigger_instances]
 
     # Response helpers
     ###############################################################################################
@@ -37,10 +37,20 @@ module PlaceOS::Api
     def current_zone(id : String)
       Log.context.set(zone_id: id)
       # Find will raise a 404 (not found) if there is an error
-      @current_zone = ::PlaceOS::Model::Zone.find!(id)
+      zone = ::PlaceOS::Model::Zone.find!(id)
+      ensure_reach!(zone)
+      @current_zone = zone
     end
 
     getter! current_zone : ::PlaceOS::Model::Zone
+
+    @[AC::Route::Filter(:before_action, only: [:zone_execute])]
+    def check_zone_execution_permissions
+      return check_support unless Utils::Tenancy.enforce?
+      # The reach gate already verified an explicit delegated Operate grant.
+      return unless tenancy_policy.structural?(current_zone.organisation_id)
+      ensure_support_access!([current_zone.id.as(String)], ::PlaceOS::Model::Permissions::Operate)
+    end
 
     @[AC::Route::Filter(:before_action, only: [:update, :create], body: :zone_update)]
     def parse_update_zone(@zone_update : ::PlaceOS::Model::Zone)
@@ -154,6 +164,8 @@ module PlaceOS::Api
       include_children_count : Bool = false,
       @[AC::Param::Info(description: "with group_id, include anchor zones and their descendants, excluding denied subtrees", example: "true")]
       descendants : Bool = false,
+      @[AC::Param::Info(description: "only rows owned by this organisation (must be within reach)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
     ) : Array(::PlaceOS::Model::Zone)
       group_zone_ids = nil
       if group_id
@@ -179,7 +191,7 @@ module PlaceOS::Api
       # the same for `?parent_id=` as for no param at all
       parent_id = nil if parent_id.try(&.empty?)
 
-      query = ::PlaceOS::Model::Zone.all
+      query = narrow_organisation(scope_organisations(::PlaceOS::Model::Zone.all), organisation_id)
 
       if group_id && descendants
         query = query.where("id IN (#{group_descendants_sql})", group_id.to_s)
@@ -269,8 +281,14 @@ module PlaceOS::Api
     # returns unique zone tags
     @[AC::Route::GET("/tags")]
     def tags : Array(String)
+      ids = permitted_organisation_ids
+      return [] of String if ids && ids.empty?
       unique_tags = PgORM::Database.connection do |db|
-        db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone ) as unnested", &.read(String)
+        if ids
+          db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone where organisation_id = ANY($1::uuid[]) ) as unnested", args: [ids.to_a.map(&.to_s)], &.read(String)
+        else
+          db.query_one "select string_agg(distinct tag, ', ' order by tag) as types from ( select unnest(tags) as tag from zone ) as unnested", &.read(String)
+        end
       end
       unique_tags.split(',')
     rescue DB::ColumnTypeMismatchError
@@ -296,24 +314,69 @@ module PlaceOS::Api
       zone = zone_update
       current = current_zone
       current.assign_attributes(zone)
+      if (parent_id = current.parent_id.presence) && current.parent_id_changed?
+        parent = ::PlaceOS::Model::Zone.find!(parent_id)
+        ensure_reach!(parent)
+        raise Error::ModelValidation.new([Utils::Tenancy::Failure.new(:parent_id, "parent belongs to another organisation")], "parent belongs to another organisation") unless parent.organisation_id == current.organisation_id
+      end
       raise Error::ModelValidation.new(current.errors) unless current.save
       current
     end
 
-    # add a new zone
+    # add a new zone. A child zone belongs to its parent's organisation; a
+    # root zone belongs to the caller's, or to the organisation a cluster
+    # admin names.
     @[AC::Route::POST("/", status_code: HTTP::Status::CREATED)]
-    def create : ::PlaceOS::Model::Zone
+    def create(
+      @[AC::Param::Info(description: "the organisation that owns a new root zone (cluster admins only)", example: "0192f1c4-7a6b-7c4d-9f3e-1a2b3c4d5e6f")]
+      organisation_id : UUID? = nil,
+    ) : ::PlaceOS::Model::Zone
       zone = zone_update
+      zone.organisation_id = if parent_id = zone.parent_id.presence
+                               parent = ::PlaceOS::Model::Zone.find!(parent_id)
+                               ensure_reach!(parent)
+                               parent.organisation_id
+                             else
+                               organisation_for_new_row(organisation_id)
+                             end
       raise Error::ModelValidation.new(zone.errors) unless zone.save
       zone
     end
 
     # remove a zone and any children zones
+    private def validate_zone_deletion!
+      ids = [] of String
+      PgORM::Database.connection do |db|
+        db.query_each(<<-SQL, args: [current_zone.id]) do |row|
+          WITH RECURSIVE tree AS (
+            SELECT id FROM zone WHERE id = $1
+            UNION
+            SELECT z.id FROM zone z INNER JOIN tree ON z.parent_id = tree.id
+          ) SELECT id FROM tree
+          SQL
+          ids << row.read(String)
+        end
+      end
+      ::PlaceOS::Model::Zone.find_all(ids).each do |zone|
+        ensure_reach!(zone)
+        zone.systems.try &.each { |system| ensure_reach!(system) }
+        zone.trigger_instances.each do |instance|
+          system = instance.control_system || raise Error::NotFound.new("system not found")
+          ensure_reach!(system)
+        end
+        ::PlaceOS::Model::Asset.where("? = ANY(zones) OR zone_id = ?", zone.id, zone.id).each do |asset|
+          ensure_authority_reach!(asset.asset_type.try(&.category).try(&.authority_id), "asset")
+        end
+        ::PlaceOS::Model::PendingMail.where("? = ANY(zones)", zone.id).each { |mail| ensure_authority_reach!(mail.authority_id, "mail") }
+      end
+    end
+
     @[AC::Route::DELETE("/:id", status_code: HTTP::Status::ACCEPTED)]
     def destroy : Nil
       zone_id = current_zone.id
+      validate_zone_deletion! if Utils::Tenancy.enforce?
       current_zone.destroy
-      spawn { Api::Metadata.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {parent_id: zone_id}) }
+      publish_metadata_change(zone_id.as(String), :destroy_all, {parent_id: zone_id})
     end
 
     # return metadata associcated with the selected zone
@@ -323,6 +386,7 @@ module PlaceOS::Api
       @[AC::Param::Info(description: "only return the metadata key we are interested in", example: "workplace-config")]
       name : String? = nil,
     ) : Hash(String, ::PlaceOS::Model::Metadata::Interface)
+      ensure_reach!(::PlaceOS::Model::Zone.find!(id))
       ::PlaceOS::Model::Metadata.build_metadata(id, name)
     end
 
@@ -358,21 +422,31 @@ module PlaceOS::Api
       method : String,
     ) : ZoneExecResponse
       module_name, index = Driver::Proxy::RemoteDriver.get_parts(module_slug)
+      scoped = Utils::Tenancy.enforce?
+      owner = current_zone.organisation_id
+      clearance = scoped ? tenancy_policy.resource_security(owner) : driver_clearance(user_token)
 
       results = Promise.map(current_zone.systems) do |system|
         system_id = system.id.as(String)
         Log.context.set(system_id: system_id, module_name: module_name, index: index)
         begin
-          remote_driver = Driver::Proxy::RemoteDriver.new(
-            sys_id: system_id,
-            module_name: module_name,
-            index: index
-          ) { |module_id|
-            ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String)
-          }
+          # Authorisation belongs to the addressed zone. These checks validate
+          # ownership and runtime references, without requiring descendant grants.
+          approved = if scoped
+                       next {system_id, ExecStatus::Failure} unless owner && system.organisation_id == owner
+                       mod = Systems.approved_runtime_module?(system_id, module_name, index)
+                       next {system_id, ExecStatus::Missing} unless mod && mod.organisation_id == owner
+                       mod
+                     end
+          edge_id = ->(module_id : String) { ::PlaceOS::Model::Module.find!(module_id).edge_id.as(String) }
+          remote_driver = if approved
+                            Driver::Proxy::RemoteDriver.new(module_id: approved.id.as(String), sys_id: system_id, module_name: module_name, index: index, &edge_id)
+                          else
+                            Driver::Proxy::RemoteDriver.new(sys_id: system_id, module_name: module_name, index: index, &edge_id)
+                          end
 
           output, status_code = remote_driver.exec(
-            security: driver_clearance(user_token),
+            security: clearance,
             function: method,
             args: args,
             request_id: request_id,

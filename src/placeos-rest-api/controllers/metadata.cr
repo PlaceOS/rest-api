@@ -26,8 +26,18 @@ module PlaceOS::Api
       @[AC::Param::Info(name: "id", description: "the parent id of the metadata to be destroyed")]
       parent_id : String,
     )
+      ensure_parent_reach!(parent_id) unless parent_id == user_token.id
       return if user_support? || parent_id == user_token.id
       check_access_level(parent_id, admin_required: true)
+    end
+
+    # Every parent-addressed read and write stays inside the caller's reach
+    @[AC::Route::Filter(:before_action, only: [:show, :children_metadata, :update, :merge, :rename, :history])]
+    def check_parent_reach(
+      @[AC::Param::Info(name: "id", description: "the parent id of the metadata")]
+      parent_id : String,
+    )
+      ensure_parent_reach!(parent_id) unless parent_id == user_token.id
     end
 
     ###############################################################################################
@@ -53,6 +63,8 @@ module PlaceOS::Api
 
       # Build result hash with parent_id as key and metadata as value
       result = {} of String => ::PlaceOS::Model::Metadata::Interface?
+
+      parent_ids = parent_ids.select { |id| id == user_token.id || parent_in_reach?(id) }
 
       parent_ids.each do |parent_id|
         metadata = ::PlaceOS::Model::Metadata.for(parent_id, metadata_name).first?
@@ -109,7 +121,7 @@ module PlaceOS::Api
       Log.context.set(zone_id: parent_id)
       current_zone = ::PlaceOS::Model::Zone.find!(parent_id)
       current_zone.children.all.compact_map do |zone|
-        Children.new(zone, name) if include_parent || zone.id != parent_id
+        Children.new(zone, name) if parent_in_reach?(zone.id.as(String)) && (include_parent || zone.id != parent_id)
       end
     end
 
@@ -161,21 +173,21 @@ module PlaceOS::Api
       end
 
       payload = metadata.interface
-      spawn { self.class.signal_metadata(current_authority.not_nil!.id.to_s, :update, payload) }
+      publish_metadata_change(parent_id, :update, payload)
       payload
     end
 
     UNSCOPED_SIGNAL_CHANNEL = "placeos/metadata/changed"
     SCOPED_SIGNAL_CHANNEL   = "placeos/%s/metadata/changed"
 
-    protected def self.signal_metadata(authority : String, action : Symbol, metadata) : Nil
+    protected def self.signal_metadata(authority : String, action : Symbol, metadata, scoped : Bool = Utils::Tenancy.enforce?) : Nil
       payload = {
         action:   action,
         metadata: metadata,
       }.to_json
 
       Log.info { "signalling #{UNSCOPED_SIGNAL_CHANNEL} with #{payload.bytesize} bytes" }
-      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(UNSCOPED_SIGNAL_CHANNEL, payload)
+      ::PlaceOS::Driver::RedisStorage.with_redis &.publish(UNSCOPED_SIGNAL_CHANNEL, payload) unless scoped unless Utils::Tenancy.enforce?
 
       signal_channel = sprintf(SCOPED_SIGNAL_CHANNEL, authority)
       Log.info { "signalling #{signal_channel} with #{payload.bytesize} bytes" }
@@ -197,7 +209,7 @@ module PlaceOS::Api
       end
 
       payload = metadata.interface
-      spawn { self.class.signal_metadata(current_authority.not_nil!.id.to_s, :update, payload) }
+      publish_metadata_change(parent_id, :update, payload)
       payload
     end
 
@@ -211,17 +223,10 @@ module PlaceOS::Api
     ) : Nil
       ::PlaceOS::Model::Metadata.for(parent_id, metadata_name).each &.destroy
 
-      spawn do
-        if metadata_name.empty?
-          self.class.signal_metadata(current_authority.not_nil!.id.to_s, :destroy_all, {
-            parent_id: parent_id,
-          })
-        else
-          self.class.signal_metadata(current_authority.not_nil!.id.to_s, :destroy, {
-            parent_id: parent_id,
-            name:      metadata_name,
-          })
-        end
+      if metadata_name.empty?
+        publish_metadata_change(parent_id, :destroy_all, {parent_id: parent_id})
+      else
+        publish_metadata_change(parent_id, :destroy, {parent_id: parent_id, name: metadata_name})
       end
     end
 
@@ -299,7 +304,7 @@ module PlaceOS::Api
       raise Error::Forbidden.new unless parent_id.starts_with? "zone-"
 
       # find the org zone
-      authority = current_authority.as(::PlaceOS::Model::Authority)
+      authority = resource_authority!
       org_zone_id = authority.config["org_zone"]?.try(&.as_s?)
       raise Error::Forbidden.new unless org_zone_id
 

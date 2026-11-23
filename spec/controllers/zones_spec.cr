@@ -70,14 +70,16 @@ module PlaceOS::Api
       end
 
       it "gets root zones with parent_id=root" do
-        root1 = Model::Generator.zone.save!
-        root2 = Model::Generator.zone.save!
+        tag = "root-filter-#{random_name}"
+        zone = -> { Model::Generator.zone.tap(&.tags = Set{tag}) }
+        root1 = zone.call.save!
+        root2 = zone.call.save!
 
-        child = Model::Generator.zone
+        child = zone.call
         child.parent_id = root1.id
         child.save!
 
-        params = HTTP::Params.encode({"parent_id" => "root"})
+        params = HTTP::Params.encode({"parent_id" => "root", "tags" => tag})
         path = "#{Zones.base_route}?#{params}"
         result = client.get(path, headers: Spec::Authentication.headers)
 
@@ -95,17 +97,19 @@ module PlaceOS::Api
       end
 
       it "treats zones with parent_id='' as root for ?parent_id=root" do
-        nil_root = Model::Generator.zone.save!
+        tag = "root-filter-#{random_name}"
+        zone = -> { Model::Generator.zone.tap(&.tags = Set{tag}) }
+        nil_root = zone.call.save!
 
-        empty_root = Model::Generator.zone.save!
+        empty_root = zone.call.save!
         empty_root.parent_id = ""
         empty_root.save!
 
-        child = Model::Generator.zone
+        child = zone.call
         child.parent_id = nil_root.id
         child.save!
 
-        params = HTTP::Params.encode({"parent_id" => "root"})
+        params = HTTP::Params.encode({"parent_id" => "root", "tags" => tag})
         path = "#{Zones.base_route}?#{params}"
         result = client.get(path, headers: Spec::Authentication.headers)
 
@@ -122,20 +126,22 @@ module PlaceOS::Api
       end
 
       it "returns both empty-string roots and named-parent children when mixing root with explicit parent_ids" do
-        nil_root = Model::Generator.zone.save!
+        tag = "root-filter-#{random_name}"
+        zone = -> { Model::Generator.zone.tap(&.tags = Set{tag}) }
+        nil_root = zone.call.save!
 
-        empty_root = Model::Generator.zone.save!
+        empty_root = zone.call.save!
         empty_root.parent_id = ""
         empty_root.save!
 
-        anchor = Model::Generator.zone.save!
-        anchor_child = Model::Generator.zone
+        anchor = zone.call.save!
+        anchor_child = zone.call
         anchor_child.parent_id = anchor.id
         anchor_child.save!
 
-        unrelated = Model::Generator.zone.save!
+        unrelated = zone.call.save!
 
-        params = HTTP::Params.encode({"parent_id" => "root,#{anchor.id}"})
+        params = HTTP::Params.encode({"parent_id" => "root,#{anchor.id}", "tags" => tag})
         path = "#{Zones.base_route}?#{params}"
         result = client.get(path, headers: Spec::Authentication.headers)
 

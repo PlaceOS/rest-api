@@ -40,6 +40,14 @@ module PlaceOS::Api
                end
 
       raise Error::NotFound.new("could not find system #{system_id}") unless system.public
+      if Utils::Tenancy.enforce?
+        if @user_token && !user_token.guest_scope?
+          ensure_reach!(system)
+        else
+          owner = current_authority.try(&.organisation_id)
+          raise Error::NotFound.new("system not found") unless owner && system.organisation_id == owner
+        end
+      end
 
       Log.context.set(control_system_id: system_id)
       @current_control_system = system
